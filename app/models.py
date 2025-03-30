@@ -206,6 +206,31 @@ class Property(db.Model):
     # Direct calendar URL
     ical_url = db.Column(db.String(500), nullable=True)
     
+    # Check-in and check-out times
+    checkin_time = db.Column(db.String(10), nullable=True, comment='Standard check-in time (e.g., "15:00")')
+    checkout_time = db.Column(db.String(10), nullable=True, comment='Standard check-out time (e.g., "11:00")')
+    
+    # Service schedule
+    trash_day = db.Column(db.String(20), nullable=True, comment='Day of the week for trash collection')
+    recycling_day = db.Column(db.String(20), nullable=True, comment='Day of the week for recycling collection')
+    
+    # Utility and service information
+    internet_provider = db.Column(db.String(100), nullable=True, comment='Internet service provider name')
+    internet_account = db.Column(db.String(100), nullable=True, comment='Internet account number')
+    internet_contact = db.Column(db.String(100), nullable=True, comment='Internet provider contact information')
+    
+    electric_provider = db.Column(db.String(100), nullable=True, comment='Electricity provider name')
+    electric_account = db.Column(db.String(100), nullable=True, comment='Electricity account number')
+    electric_contact = db.Column(db.String(100), nullable=True, comment='Electricity provider contact information')
+    
+    water_provider = db.Column(db.String(100), nullable=True, comment='Water provider name')
+    water_account = db.Column(db.String(100), nullable=True, comment='Water account number')
+    water_contact = db.Column(db.String(100), nullable=True, comment='Water provider contact information')
+    
+    trash_provider = db.Column(db.String(100), nullable=True, comment='Trash collection provider name')
+    trash_account = db.Column(db.String(100), nullable=True, comment='Trash collection account number')
+    trash_contact = db.Column(db.String(100), nullable=True, comment='Trash collection contact information')
+    
     # Cleaner-specific information
     total_beds = db.Column(db.Integer, comment='Total number of beds in the property')
     bed_sizes = db.Column(db.String(255), comment='Description of bed sizes (e.g., "1 King, 2 Queen, 1 Twin")')

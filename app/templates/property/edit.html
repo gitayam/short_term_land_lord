@@ -80,6 +80,193 @@
                             </div>
                         </div>
                         
+                        <h5 class="mt-4 mb-3">⏰ Guest Check-in/Check-out</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.checkin_time.label(class="form-label") }}
+                                    {{ form.checkin_time(class="form-control", placeholder="15:00") }}
+                                    {% for error in form.checkin_time.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">Standard check-in time (e.g., "15:00")</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.checkout_time.label(class="form-label") }}
+                                    {{ form.checkout_time(class="form-control", placeholder="11:00") }}
+                                    {% for error in form.checkout_time.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">Standard check-out time (e.g., "11:00")</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3">🗑️ Service Schedule</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.trash_day.label(class="form-label") }}
+                                    {{ form.trash_day(class="form-select") }}
+                                    {% for error in form.trash_day.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.recycling_day.label(class="form-label") }}
+                                    {{ form.recycling_day(class="form-select") }}
+                                    {% for error in form.recycling_day.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if current_user.is_property_owner() or current_user.is_admin() %}
+                        <h5 class="mt-4 mb-3">🔌 Utility Information</h5>
+                        <div class="accordion mb-3" id="utilitiesAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="internetHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#internetCollapse" aria-expanded="false" aria-controls="internetCollapse">
+                                        🌐 Internet Service
+                                    </button>
+                                </h2>
+                                <div id="internetCollapse" class="accordion-collapse collapse" aria-labelledby="internetHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.internet_provider.label(class="form-label") }}
+                                                    {{ form.internet_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.internet_account.label(class="form-label") }}
+                                                    {{ form.internet_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.internet_contact.label(class="form-label") }}
+                                                    {{ form.internet_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="electricityHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#electricityCollapse" aria-expanded="false" aria-controls="electricityCollapse">
+                                        ⚡ Electricity Service
+                                    </button>
+                                </h2>
+                                <div id="electricityCollapse" class="accordion-collapse collapse" aria-labelledby="electricityHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.electric_provider.label(class="form-label") }}
+                                                    {{ form.electric_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.electric_account.label(class="form-label") }}
+                                                    {{ form.electric_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.electric_contact.label(class="form-label") }}
+                                                    {{ form.electric_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="waterHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#waterCollapse" aria-expanded="false" aria-controls="waterCollapse">
+                                        💧 Water Service
+                                    </button>
+                                </h2>
+                                <div id="waterCollapse" class="accordion-collapse collapse" aria-labelledby="waterHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.water_provider.label(class="form-label") }}
+                                                    {{ form.water_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.water_account.label(class="form-label") }}
+                                                    {{ form.water_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.water_contact.label(class="form-label") }}
+                                                    {{ form.water_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="trashHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#trashCollapse" aria-expanded="false" aria-controls="trashCollapse">
+                                        🗑️ Trash Service
+                                    </button>
+                                </h2>
+                                <div id="trashCollapse" class="accordion-collapse collapse" aria-labelledby="trashHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.trash_provider.label(class="form-label") }}
+                                                    {{ form.trash_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.trash_account.label(class="form-label") }}
+                                                    {{ form.trash_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.trash_contact.label(class="form-label") }}
+                                                    {{ form.trash_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
                         <h5 class="mt-4 mb-3">🏠 Address Information</h5>
                         <div class="row">
                             <div class="col-md-12">

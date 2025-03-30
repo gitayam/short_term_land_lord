@@ -77,6 +77,26 @@
                                     <th>Year Built:</th>
                                     <td>{{ property.year_built if property.year_built is not none else 'Not specified' }}</td>
                                 </tr>
+                                {% if property.checkin_time or property.checkout_time %}
+                                <tr>
+                                    <th>Check-in Time:</th>
+                                    <td>{{ property.checkin_time if property.checkin_time else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Check-out Time:</th>
+                                    <td>{{ property.checkout_time if property.checkout_time else 'Not specified' }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if property.trash_day or property.recycling_day %}
+                                <tr>
+                                    <th>Trash Day:</th>
+                                    <td>{{ property.trash_day|title if property.trash_day else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Recycling Day:</th>
+                                    <td>{{ property.recycling_day|title if property.recycling_day else 'Not specified' }}</td>
+                                </tr>
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>
@@ -284,6 +304,105 @@
                         {% else %}
                             <p class="text-muted">No room details have been added yet.</p>
                         {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if current_user.is_property_owner() or current_user.is_admin() or current_user.is_property_manager() or (current_user.is_service_staff() and current_user.has_maintenance_permission) %}
+                <h5 class="mt-4">Utility Information</h5>
+                <div class="card card-body bg-light mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">🌐 Internet Service</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Provider:</th>
+                                            <td>{{ property.internet_provider if property.internet_provider else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account #:</th>
+                                            <td>{{ property.internet_account if property.internet_account else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Contact:</th>
+                                            <td>{{ property.internet_contact if property.internet_contact else 'Not specified' }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-3">
+                                <div class="card-header bg-danger text-white">
+                                    <h6 class="mb-0">⚡ Electricity Service</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Provider:</th>
+                                            <td>{{ property.electric_provider if property.electric_provider else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account #:</th>
+                                            <td>{{ property.electric_account if property.electric_account else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Contact:</th>
+                                            <td>{{ property.electric_contact if property.electric_contact else 'Not specified' }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">💧 Water Service</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Provider:</th>
+                                            <td>{{ property.water_provider if property.water_provider else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account #:</th>
+                                            <td>{{ property.water_account if property.water_account else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Contact:</th>
+                                            <td>{{ property.water_contact if property.water_contact else 'Not specified' }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-3">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">🗑️ Trash Service</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Provider:</th>
+                                            <td>{{ property.trash_provider if property.trash_provider else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account #:</th>
+                                            <td>{{ property.trash_account if property.trash_account else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Contact:</th>
+                                            <td>{{ property.trash_contact if property.trash_contact else 'Not specified' }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 {% endif %}

@@ -74,6 +74,58 @@ class PropertyForm(FlaskForm):
     # Calendar integration
     ical_url = URLField('Property Calendar URL (iCal) 📅', validators=[Optional(), URL(), Length(max=500)])
     
+    # Check-in and check-out times
+    checkin_time = StringField('Check-in Time ⏰', validators=[Optional(), Length(max=10)], 
+                              description="Standard check-in time (e.g., '15:00')")
+    checkout_time = StringField('Check-out Time ⏰', validators=[Optional(), Length(max=10)], 
+                               description="Standard check-out time (e.g., '11:00')")
+    
+    # Service schedule
+    trash_day = SelectField('Trash Collection Day 🗑️', choices=[
+        ('', 'Select Day'),
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+        ('saturday', 'Saturday'),
+        ('sunday', 'Sunday'),
+        ('biweekly', 'Biweekly'),
+        ('monthly', 'Monthly'),
+        ('custom', 'Custom Schedule')
+    ], validators=[Optional()])
+    
+    recycling_day = SelectField('Recycling Collection Day ♻️', choices=[
+        ('', 'Select Day'),
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+        ('saturday', 'Saturday'),
+        ('sunday', 'Sunday'),
+        ('biweekly', 'Biweekly'),
+        ('monthly', 'Monthly'),
+        ('custom', 'Custom Schedule')
+    ], validators=[Optional()])
+    
+    # Utility information
+    internet_provider = StringField('Internet Provider 🌐', validators=[Optional(), Length(max=100)])
+    internet_account = StringField('Internet Account # 🔢', validators=[Optional(), Length(max=100)])
+    internet_contact = StringField('Internet Provider Contact 📞', validators=[Optional(), Length(max=100)])
+    
+    electric_provider = StringField('Electric Provider ⚡', validators=[Optional(), Length(max=100)])
+    electric_account = StringField('Electric Account # 🔢', validators=[Optional(), Length(max=100)])
+    electric_contact = StringField('Electric Provider Contact 📞', validators=[Optional(), Length(max=100)])
+    
+    water_provider = StringField('Water Provider 💧', validators=[Optional(), Length(max=100)])
+    water_account = StringField('Water Account # 🔢', validators=[Optional(), Length(max=100)])
+    water_contact = StringField('Water Provider Contact 📞', validators=[Optional(), Length(max=100)])
+    
+    trash_provider = StringField('Trash Collection Provider 🗑️', validators=[Optional(), Length(max=100)])
+    trash_account = StringField('Trash Collection Account # 🔢', validators=[Optional(), Length(max=100)])
+    trash_contact = StringField('Trash Collection Contact 📞', validators=[Optional(), Length(max=100)])
+    
     # Cleaner-specific information (preserved for compatibility)
     total_beds = IntegerField('Total Number of Beds', validators=[Optional(), NumberRange(min=0)])
     bed_sizes = StringField('Bed Sizes (e.g., "1 King, 2 Queen, 1 Twin")', validators=[Optional(), Length(max=255)])

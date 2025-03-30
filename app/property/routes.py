@@ -49,6 +49,27 @@ def create():
             square_feet=form.square_feet.data,
             year_built=form.year_built.data,
             ical_url=form.ical_url.data,
+            
+            # New fields
+            checkin_time=form.checkin_time.data,
+            checkout_time=form.checkout_time.data,
+            trash_day=form.trash_day.data,
+            recycling_day=form.recycling_day.data,
+            
+            # Utility information
+            internet_provider=form.internet_provider.data,
+            internet_account=form.internet_account.data,
+            internet_contact=form.internet_contact.data,
+            electric_provider=form.electric_provider.data,
+            electric_account=form.electric_account.data,
+            electric_contact=form.electric_contact.data,
+            water_provider=form.water_provider.data,
+            water_account=form.water_account.data,
+            water_contact=form.water_contact.data,
+            trash_provider=form.trash_provider.data,
+            trash_account=form.trash_account.data,
+            trash_contact=form.trash_contact.data,
+            
             cleaning_supplies_location=form.cleaning_supplies_location.data,
             wifi_network=form.wifi_network.data,
             wifi_password=form.wifi_password.data,
@@ -205,6 +226,26 @@ def edit(id):
         property.square_feet = form.square_feet.data
         property.year_built = form.year_built.data
         property.ical_url = form.ical_url.data
+        
+        # New fields
+        property.checkin_time = form.checkin_time.data
+        property.checkout_time = form.checkout_time.data
+        property.trash_day = form.trash_day.data
+        property.recycling_day = form.recycling_day.data
+        
+        # Utility information
+        property.internet_provider = form.internet_provider.data
+        property.internet_account = form.internet_account.data
+        property.internet_contact = form.internet_contact.data
+        property.electric_provider = form.electric_provider.data
+        property.electric_account = form.electric_account.data
+        property.electric_contact = form.electric_contact.data
+        property.water_provider = form.water_provider.data
+        property.water_account = form.water_account.data
+        property.water_contact = form.water_contact.data
+        property.trash_provider = form.trash_provider.data
+        property.trash_account = form.trash_account.data
+        property.trash_contact = form.trash_contact.data
         
         # Update cleaner-specific info
         property.cleaning_supplies_location = form.cleaning_supplies_location.data
@@ -382,6 +423,26 @@ def edit(id):
         form.square_feet.data = property.square_feet
         form.year_built.data = property.year_built
         form.ical_url.data = property.ical_url
+        
+        # Populate new fields
+        form.checkin_time.data = property.checkin_time
+        form.checkout_time.data = property.checkout_time
+        form.trash_day.data = property.trash_day
+        form.recycling_day.data = property.recycling_day
+        
+        # Populate utility information
+        form.internet_provider.data = property.internet_provider
+        form.internet_account.data = property.internet_account
+        form.internet_contact.data = property.internet_contact
+        form.electric_provider.data = property.electric_provider
+        form.electric_account.data = property.electric_account
+        form.electric_contact.data = property.electric_contact
+        form.water_provider.data = property.water_provider
+        form.water_account.data = property.water_account
+        form.water_contact.data = property.water_contact
+        form.trash_provider.data = property.trash_provider
+        form.trash_account.data = property.trash_account
+        form.trash_contact.data = property.trash_contact
         
         # Populate cleaner-specific info
         form.cleaning_supplies_location.data = property.cleaning_supplies_location

@@ -126,6 +126,62 @@
                             </div>
                         </div>
                         
+                        <!-- Important Times & Schedules Section -->
+                        {% if property.checkin_time or property.checkout_time or property.trash_day or property.recycling_day %}
+                        <div class="section">
+                            <h4>Important Times & Schedules</h4>
+                            <div class="row">
+                                {% if property.checkin_time or property.checkout_time %}
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header bg-primary text-white">
+                                            <h5 class="mb-0"><i class="bi bi-clock"></i> Check-in/Check-out</h5>
+                                        </div>
+                                        <ul class="list-group list-group-flush">
+                                            {% if property.checkin_time %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><i class="bi bi-box-arrow-in-right amenity-icon"></i> Check-in</span>
+                                                <span class="badge bg-primary rounded-pill">{{ property.checkin_time }}</span>
+                                            </li>
+                                            {% endif %}
+                                            {% if property.checkout_time %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><i class="bi bi-box-arrow-right amenity-icon"></i> Check-out</span>
+                                                <span class="badge bg-info rounded-pill">{{ property.checkout_time }}</span>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if property.trash_day or property.recycling_day %}
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header bg-success text-white">
+                                            <h5 class="mb-0"><i class="bi bi-trash"></i> Service Schedule</h5>
+                                        </div>
+                                        <ul class="list-group list-group-flush">
+                                            {% if property.trash_day %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><i class="bi bi-trash amenity-icon"></i> Trash Collection</span>
+                                                <span class="badge bg-dark rounded-pill">{{ property.trash_day|title }}</span>
+                                            </li>
+                                            {% endif %}
+                                            {% if property.recycling_day %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><i class="bi bi-recycle amenity-icon"></i> Recycling</span>
+                                                <span class="badge bg-success rounded-pill">{{ property.recycling_day|title }}</span>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
                         {% if property.rooms.count() > 0 %}
                         <div class="section">
                             <h4>Room Details</h4>
@@ -217,6 +273,38 @@
                             
                             <div class="card mb-4">
                                 <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="bi bi-clock"></i> Check-in & Check-out Times</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="p-2 bg-primary rounded-circle text-white me-3">
+                                                    <i class="bi bi-box-arrow-in-right"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Check-in Time</h6>
+                                                    <p class="mb-0 fs-4">{{ property.checkin_time or 'Contact host' }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="p-2 bg-info rounded-circle text-white me-3">
+                                                    <i class="bi bi-box-arrow-right"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Check-out Time</h6>
+                                                    <p class="mb-0 fs-4">{{ property.checkout_time or 'Contact host' }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
                                     <h5 class="mb-0"><i class="bi bi-door-open"></i> Check-in Instructions</h5>
                                 </div>
                                 <div class="card-body">
@@ -267,6 +355,45 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            {% if property.trash_day or property.recycling_day %}
+                            <div class="card mb-4">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="mb-0"><i class="bi bi-trash"></i> Waste Collection Schedule</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% if property.trash_day %}
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="p-2 bg-dark rounded-circle text-white me-3">
+                                                    <i class="bi bi-trash"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Trash Day</h6>
+                                                    <p class="mb-0">{{ property.trash_day|title }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if property.recycling_day %}
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="p-2 bg-success rounded-circle text-white me-3">
+                                                    <i class="bi bi-recycle"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Recycling Day</h6>
+                                                    <p class="mb-0">{{ property.recycling_day|title }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
                             
                             {% if property.entry_instructions %}
                             <div class="card mb-4">
