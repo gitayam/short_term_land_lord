@@ -180,79 +180,84 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        {% if calendars %}
-            var calendarEl = document.getElementById('calendar');
-            
-            try {
-                // Pass events data from Flask to JavaScript
-                var eventsData = {{ events|tojson|safe }};
-                
-                var calendar = new FullCalendar.Calendar(calendarEl, {
-                    initialView: 'dayGridMonth',
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek'
-                    },
-                    events: eventsData || [],
-                    eventClick: function(info) {
-                        try {
-                            // Show modal with event details
-                            document.getElementById('eventTitle').textContent = info.event.title || 'Booking';
-                            document.getElementById('eventDates').textContent = formatDateRange(info.event.start, info.event.end);
-                            
-                            if (info.event.extendedProps && info.event.extendedProps.service) {
-                                document.getElementById('eventService').textContent = info.event.extendedProps.service;
-                            } else {
-                                document.getElementById('eventService').textContent = 'Unknown';
-                            }
-                            
-                            if (document.getElementById('eventRoom')) {
-                                if (info.event.extendedProps && info.event.extendedProps.room) {
-                                    document.getElementById('eventRoom').textContent = info.event.extendedProps.room;
-                                } else {
-                                    document.getElementById('eventRoom').textContent = 'Entire Property';
-                                }
-                            }
-                            
-                            var modal = new bootstrap.Modal(document.getElementById('eventModal'));
-                            modal.show();
-                        } catch (error) {
-                            console.error('Error displaying event details:', error);
-                        }
-                    }
-                });
-                
-                calendar.render();
-            } catch (error) {
-                console.error('Error initializing calendar:', error);
-                calendarEl.innerHTML = '<div class="alert alert-danger">There was an error loading the calendar. Please try refreshing the page.</div>';
-            }
-            
-            // Helper function to format date range
-            function formatDateRange(start, end) {
+document.addEventListener('DOMContentLoaded', function() {
+    // Debug - Log to console if there are any calendars
+    console.log("Calendars:", {% if calendars %}{{ calendars|length }}{% else %}0{% endif %});
+    
+    // Debug - Log events data availability and count
+    var eventsData = {{ events|tojson|safe }};
+    console.log("Events data available:", (eventsData && Array.isArray(eventsData)));
+    console.log("Number of events:", eventsData ? eventsData.length : 0);
+    
+    try {
+        // Get calendar element
+        var calendarEl = document.getElementById('calendar');
+        
+        if (!calendarEl) {
+            console.error("Calendar element not found!");
+            return;
+        }
+        
+        // Initialize FullCalendar
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek'
+            },
+            events: eventsData || [],
+            eventClick: function(info) {
                 try {
-                    var options = { month: 'short', day: 'numeric', year: 'numeric' };
-                    var startDate = new Date(start).toLocaleDateString('en-US', options);
+                    // Get event data
+                    var event = info.event;
+                    var title = event.title || 'Booking';
+                    var startDate = event.start ? formatDate(event.start) : 'Unknown';
+                    var endDate = event.end ? formatDate(event.end) : 'Unknown';
                     
-                    // Subtract one day from end date for display purposes (since iCal end dates are exclusive)
-                    var endDate = new Date(end);
-                    endDate.setDate(endDate.getDate() - 1);
-                    var formattedEndDate = endDate.toLocaleDateString('en-US', options);
+                    // Get extended props safely
+                    var extendedProps = event.extendedProps || {};
+                    var service = extendedProps.service || 'Unknown';
+                    var room = extendedProps.room || 'Entire Property';
                     
-                    return startDate + ' - ' + formattedEndDate;
-                } catch (error) {
-                    console.error('Error formatting date range:', error);
-                    return 'Date information unavailable';
+                    // Update modal content
+                    document.getElementById('eventModalLabel').textContent = title;
+                    document.getElementById('eventDates').textContent = startDate + ' to ' + endDate;
+                    document.getElementById('eventService').textContent = service;
+                    document.getElementById('eventRoom').textContent = room;
+                    
+                    // Show modal
+                    var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    eventModal.show();
+                } catch (err) {
+                    console.error("Error showing event details:", err);
+                    alert("Could not display event details due to an error.");
                 }
             }
-        {% else %}
-            // No calendars available
-            console.log('No calendars configured');
-        {% endif %}
-    });
+        });
+        
+        calendar.render();
+        console.log("Calendar successfully rendered");
+    } catch (err) {
+        console.error("Error initializing calendar:", err);
+        document.getElementById('calendar').innerHTML = '<div class="alert alert-danger">An error occurred while loading the calendar. Please try refreshing the page.</div>';
+    }
+    
+    // Date formatting helper function
+    function formatDate(date) {
+        try {
+            if (!date) return 'Unknown';
+            
+            var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString(undefined, options);
+        } catch (err) {
+            console.error("Error formatting date:", err);
+            return 'Unknown date';
+        }
+    }
+});
 </script>
 {% endblock %} 

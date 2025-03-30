@@ -695,12 +695,42 @@ def view_calendar(id):
     
     for calendar in calendars:
         try:
-            # Fetch the iCal data with timeout to prevent hanging
-            response = requests.get(calendar.ical_url, timeout=10)
+            # Log the attempt to fetch
+            current_app.logger.info(f"Attempting to fetch calendar {calendar.id}: {calendar.name} - URL: {calendar.ical_url}")
+            
+            # Fetch the iCal data with timeout to prevent hanging and custom headers
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+                'Accept': 'text/calendar,application/ics,*/*'
+            }
+            
+            # Add debug info 
+            current_app.logger.info(f"Fetching calendar URL: {calendar.ical_url}")
+            
+            response = requests.get(calendar.ical_url, 
+                                   headers=headers, 
+                                   timeout=15,
+                                   verify=True)  # Set to False if SSL issues
+            
+            current_app.logger.info(f"Calendar fetch response: {response.status_code}")
+            
             if response.status_code == 200:
+                # Log successful fetch
+                current_app.logger.info(f"Successfully fetched calendar data. Content length: {len(response.text)} bytes")
+                
+                # Debug - log the first 100 chars of response
+                content_preview = response.text[:100].replace('\n', '\\n')
+                current_app.logger.info(f"Content preview: {content_preview}")
+                
                 # Parse the iCal data
                 try:
                     cal = Calendar.from_ical(response.text)
+                    
+                    # Log successful parsing
+                    current_app.logger.info(f"Successfully parsed iCal data for calendar {calendar.id}")
+                    
+                    # Count events for logging
+                    event_count = 0
                     
                     # Extract events
                     for component in cal.walk():
@@ -763,11 +793,15 @@ def view_calendar(id):
                                     }
                                 }
                                 events.append(event)
+                                event_count += 1
                                 success = True
                             except (KeyError, AttributeError, ValueError, TypeError) as e:
                                 # Just skip this event if there's a problem with it
                                 current_app.logger.error(f"Error parsing event in calendar {calendar.id}: {str(e)}")
                                 continue
+                    
+                    # Log event count
+                    current_app.logger.info(f"Successfully processed {event_count} events from calendar {calendar.id}")
                     
                     # Update last_synced and status
                     calendar.last_synced = datetime.utcnow()
@@ -781,6 +815,7 @@ def view_calendar(id):
                     calendar.sync_error = f"Error parsing iCal data: {str(e)[:255]}"
                     db.session.commit()
                     current_app.logger.error(f"Error parsing iCal for calendar {calendar.id}: {str(e)}")
+                    current_app.logger.error(f"iCal Content: {response.text[:500]}")
                     flash(f'Error parsing calendar {calendar.name}: {str(e)}', 'warning')
             else:
                 # Update sync status
@@ -808,11 +843,15 @@ def view_calendar(id):
     if not success and calendars:
         flash('Could not fetch calendar data from any of the configured sources. Please check your calendar URLs and try again.', 'warning')
     
+    # Log events data size
+    current_app.logger.info(f"Total events collected: {len(events)}")
+    
     # Ensure events data is JSON serializable
     try:
         import json
         # Attempt to serialize to verify it's valid JSON
-        json.dumps(events)
+        events_json = json.dumps(events)
+        current_app.logger.info(f"Events data successfully serialized to JSON. Size: {len(events_json)} bytes")
     except (TypeError, ValueError) as e:
         current_app.logger.error(f"Error serializing events data: {str(e)}")
         flash('Error preparing calendar data for display. Some events may not be shown.', 'warning')
