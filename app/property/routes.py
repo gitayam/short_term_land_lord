@@ -259,7 +259,7 @@ def view(id):
         ).filter(
             TaskProperty.property_id == id,
             TaskAssignment.user_id == current_user.id
-        ).all()
+        ).order_by(TaskProperty.sequence_number.asc(), Task.due_date.asc(), Task.priority.desc()).all()
     
     return render_template('property/view.html', 
                           property=property, 

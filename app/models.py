@@ -642,6 +642,7 @@ class TaskAssignment(db.Model):
 class TaskProperty(db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), primary_key=True)
+    sequence_number = db.Column(db.Integer, default=0, nullable=False, comment='Order sequence for task display during cleaning')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -1034,3 +1035,24 @@ def migrate_site_settings():
 @login_manager.user_loader
 def load_user(id):
     return User.query.get(int(id))
+
+class TaskTemplate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    category = db.Column(db.String(50), nullable=True)  # e.g., "cleaning", "maintenance", etc.
+    is_global = db.Column(db.Boolean, default=False)  # If true, available to all users
+    sequence_number = db.Column(db.Integer, default=0, nullable=False)
+    
+    # Creator information
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    creator = db.relationship('User', backref='created_task_templates')
+    
+    def __repr__(self):
+        return f'<TaskTemplate {self.title}>'

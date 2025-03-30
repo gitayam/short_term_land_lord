@@ -650,7 +650,7 @@ def view_for_property(property_id):
         TaskProperty, TaskProperty.task_id == Task.id
     ).filter(
         TaskProperty.property_id == property_id
-    ).order_by(Task.due_date.asc(), Task.priority.desc()).all()
+    ).order_by(TaskProperty.sequence_number.asc(), Task.due_date.asc(), Task.priority.desc()).all()
     
     # If service staff, filter to only show their assigned tasks
     if current_user.is_service_staff():
@@ -1226,3 +1226,46 @@ def can_manage_repair_request(repair_request, user):
     """Check if a user can manage (approve/reject/convert) a repair request"""
     # Only property owner can manage
     return user.is_property_owner() and repair_request.property.owner_id == user.id
+
+
+@bp.route('/property/<int:property_id>/reorder', methods=['GET', 'POST'])
+@login_required
+def reorder_tasks(property_id):
+    """Reorder property tasks"""
+    property = Property.query.get_or_404(property_id)
+    
+    # Permission check - only property owners, managers and admins can reorder tasks
+    if not (current_user.is_property_owner() and property.owner_id == current_user.id) and \
+       not current_user.is_property_manager() and not current_user.is_admin():
+        flash('You do not have permission to reorder tasks for this property.', 'danger')
+        return redirect(url_for('tasks.view_for_property', property_id=property_id))
+    
+    # Get all tasks for this property
+    property_tasks = db.session.query(Task).join(
+        TaskProperty, TaskProperty.task_id == Task.id
+    ).filter(
+        TaskProperty.property_id == property_id
+    ).order_by(TaskProperty.sequence_number.asc(), Task.due_date.asc(), Task.priority.desc()).all()
+    
+    if request.method == 'POST':
+        # Get the new order from the form submission
+        task_order = request.form.getlist('task_order[]')
+        
+        # Update the sequence numbers
+        for i, task_id in enumerate(task_order):
+            task_property = TaskProperty.query.filter_by(
+                task_id=task_id,
+                property_id=property_id
+            ).first()
+            
+            if task_property:
+                task_property.sequence_number = i
+        
+        db.session.commit()
+        flash('Task order has been updated successfully.', 'success')
+        return redirect(url_for('tasks.view_for_property', property_id=property_id))
+    
+    return render_template('tasks/reorder.html',
+                          title=f'Reorder Tasks for {property.name}',
+                          property=property,
+                          tasks=property_tasks)

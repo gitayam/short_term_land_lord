@@ -10,6 +10,11 @@
                 <i class="fas fa-plus"></i> Create New Task
             </a>
             {% endif %}
+            {% if current_user.is_property_owner() and current_user.id == property.owner_id or current_user.is_property_manager() or current_user.is_admin() %}
+            <a href="{{ url_for('tasks.reorder_tasks', property_id=property.id) }}" class="btn btn-info">
+                <i class="fas fa-sort"></i> Reorder Tasks
+            </a>
+            {% endif %}
             <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-secondary">
                 Back to Property
             </a>
