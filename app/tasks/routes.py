@@ -93,12 +93,24 @@ def index():
 def create():
     form = TaskForm()
     
+    # Set up empty choices for form.properties
+    form.properties.choices = []
+    
     # For property owners, only show their properties in the dropdown
     if current_user.is_property_owner():
         form.properties.choices = [(p.id, p.name) for p in current_user.properties]
-    else:
-        # For admins and other users, show all properties
+    elif current_user.is_admin() or current_user.is_property_manager():
+        # For admins and managers, show all properties
         form.properties.choices = [(p.id, p.name) for p in Property.query.all()]
+    
+    # Set up calendar choices
+    calendar_choices = []
+    if current_user.is_property_owner():
+        for property in current_user.properties:
+            for calendar in property.calendars:
+                calendar_choices.append((calendar.id, f"{property.name} - {calendar.name}"))
+    
+    form.calendar_id.choices = [(-1, 'None')] + calendar_choices
     
     # Get suggested task templates
     task_templates = TaskTemplate.query.filter(
@@ -128,7 +140,7 @@ def create():
             task.recurrence_end_date = form.recurrence_end_date.data
         
         # Handle calendar link if enabled
-        if form.linked_to_checkout.data and form.calendar_id.data:
+        if form.linked_to_checkout.data and form.calendar_id.data and form.calendar_id.data != -1:
             task.linked_to_checkout = True
             task.calendar_id = form.calendar_id.data
         
@@ -1408,6 +1420,25 @@ def apply_template(template_id):
     # Initialize form with template data
     form = TaskForm()
     
+    # Set up empty choices for form.properties
+    form.properties.choices = []
+    
+    # For property owners, only show their properties in the dropdown
+    if current_user.is_property_owner():
+        form.properties.choices = [(p.id, p.name) for p in current_user.properties]
+    elif current_user.is_admin() or current_user.is_property_manager():
+        # For admins and managers, show all properties
+        form.properties.choices = [(p.id, p.name) for p in Property.query.all()]
+    
+    # Set up calendar choices
+    calendar_choices = []
+    if current_user.is_property_owner():
+        for property in current_user.properties:
+            for calendar in property.calendars:
+                calendar_choices.append((calendar.id, f"{property.name} - {calendar.name}"))
+    
+    form.calendar_id.choices = [(-1, 'None')] + calendar_choices
+    
     if request.method == 'GET':
         form.title.data = template.title
         form.description.data = template.description
@@ -1430,14 +1461,20 @@ def apply_template(template_id):
             task.recurrence_interval = form.recurrence_interval.data
             task.recurrence_end_date = form.recurrence_end_date.data
         
+        # Handle calendar link if enabled
+        if form.linked_to_checkout.data and form.calendar_id.data and form.calendar_id.data != -1:
+            task.linked_to_checkout = True
+            task.calendar_id = form.calendar_id.data
+        
         db.session.add(task)
         
         # Associate with property if selected
-        if form.property_id.data:
-            task_property = TaskProperty(
-                property_id=form.property_id.data
-            )
-            task.properties.append(task_property)
+        if form.properties.data:
+            for property_id in form.properties.data:
+                task_property = TaskProperty(
+                    property_id=property_id
+                )
+                task.properties.append(task_property)
         
         db.session.commit()
         
