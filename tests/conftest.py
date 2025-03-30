@@ -8,7 +8,7 @@ from app.models import (User, UserRoles, Task, TaskAssignment, TaskStatus,
 @pytest.fixture(scope='function')
 def app():
     """Create and configure a Flask app for testing."""
-    app = create_app('testing')
+    app = create_app()  # Use default config
     app.config['WTF_CSRF_ENABLED'] = False
     
     # Create a test context
