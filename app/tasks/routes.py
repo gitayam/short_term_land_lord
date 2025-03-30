@@ -892,9 +892,15 @@ def submit_repair_request(property_id):
         
         # Handle multiple photo uploads
         photos = request.files.getlist('photos')
+        has_valid_photos = False
         
         for photo in photos:
-            if photo and allowed_file(photo.filename, current_app.config['ALLOWED_PHOTO_EXTENSIONS']):
+            # Skip if no file was selected
+            if not photo or photo.filename == '':
+                continue
+                
+            if allowed_file(photo.filename, current_app.config['ALLOWED_PHOTO_EXTENSIONS']):
+                has_valid_photos = True
                 try:
                     # Generate a unique filename
                     filename = f"{secrets.token_hex(16)}_{secure_filename(photo.filename)}"

@@ -167,8 +167,8 @@ class RepairRequestForm(FlaskForm):
     location = StringField('Location in Property', validators=[DataRequired(), Length(min=3, max=255)])
     severity = SelectField('Severity', validators=[DataRequired()], coerce=str)
     additional_notes = TextAreaField('Additional Notes', validators=[Optional(), Length(max=1000)])
-    photos = FileField('Photos', validators=[
-        FileRequired(),
+    photos = FileField('Photos (Optional)', validators=[
+        Optional(),
         FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')
     ])
     submit = SubmitField('Submit Repair Request')
