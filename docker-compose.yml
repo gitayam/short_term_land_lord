@@ -12,14 +12,16 @@ services:
     env_file:
       - .env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: always
     command: >
-      bash -c "if [ ! -d 'migrations' ] || [ ! -f 'migrations/env.py' ]; then
+      bash -c "sleep 5 &&
+               if [ ! -d 'migrations' ] || [ ! -f 'migrations/env.py' ]; then
                  flask db init;
                fi &&
-               flask db migrate -m 'Initial migration' &&
-               flask db upgrade &&
+               flask db migrate -m 'Initial migration' || true &&
+               flask db upgrade || true &&
                flask run --host=0.0.0.0"
 
   db:
@@ -35,6 +37,11 @@ services:
     ports:
       - "5434:5432"
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

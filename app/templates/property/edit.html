@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Edit Property</h4>
+                <div>
+                    <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-sm btn-outline-secondary">Back to Property</a>
+                    <a href="{{ url_for('property.manage_images', id=property.id) }}" class="btn btn-sm btn-outline-primary">Manage Images</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <h5 class="mb-3">Basic Information</h5>
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                        {% for error in form.name.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows=4) }}
+                        {% for error in form.description.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <h5 class="mb-3 mt-4">Address Information</h5>
+                    <div class="mb-3">
+                        {{ form.street_address.label(class="form-label") }}
+                        {{ form.street_address(class="form-control") }}
+                        {% for error in form.street_address.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            {{ form.city.label(class="form-label") }}
+                            {{ form.city(class="form-control") }}
+                            {% for error in form.city.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.state.label(class="form-label") }}
+                            {{ form.state(class="form-control") }}
+                            {% for error in form.state.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.zip_code.label(class="form-label") }}
+                            {{ form.zip_code(class="form-control") }}
+                            {% for error in form.zip_code.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.country.label(class="form-label") }}
+                        {{ form.country(class="form-control") }}
+                        {% for error in form.country.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <h5 class="mb-3 mt-4">Property Specifications</h5>
+                    <div class="mb-3">
+                        {{ form.property_type.label(class="form-label") }}
+                        {{ form.property_type(class="form-select") }}
+                        {% for error in form.property_type.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            {{ form.bedrooms.label(class="form-label") }}
+                            {{ form.bedrooms(class="form-control") }}
+                            {% for error in form.bedrooms.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.bathrooms.label(class="form-label") }}
+                            {{ form.bathrooms(class="form-control") }}
+                            {% for error in form.bathrooms.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.square_feet.label(class="form-label") }}
+                            {{ form.square_feet(class="form-control") }}
+                            {% for error in form.square_feet.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.year_built.label(class="form-label") }}
+                            {{ form.year_built(class="form-control") }}
+                            {% for error in form.year_built.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <h5 class="mb-3 mt-4">Cleaner Information</h5>
+                    <div class="card card-body bg-light mb-3">
+                        <p class="small text-muted mb-3">This information is specifically for cleaners to help them better understand the property.</p>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form.total_beds.label(class="form-label") }}
+                                {{ form.total_beds(class="form-control") }}
+                                {% for error in form.total_beds.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.bed_sizes.label(class="form-label") }}
+                                {{ form.bed_sizes(class="form-control") }}
+                                {% for error in form.bed_sizes.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                {{ form.number_of_tvs.label(class="form-label") }}
+                                {{ form.number_of_tvs(class="form-control") }}
+                                {% for error in form.number_of_tvs.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.number_of_showers.label(class="form-label") }}
+                                {{ form.number_of_showers(class="form-control") }}
+                                {% for error in form.number_of_showers.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.number_of_tubs.label(class="form-label") }}
+                                {{ form.number_of_tubs(class="form-control") }}
+                                {% for error in form.number_of_tubs.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.cleaning_supplies_location.label(class="form-label") }}
+                            {{ form.cleaning_supplies_location(class="form-control", rows=2) }}
+                            {% for error in form.cleaning_supplies_location.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form.wifi_network.label(class="form-label") }}
+                                {{ form.wifi_network(class="form-control") }}
+                                {% for error in form.wifi_network.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.wifi_password.label(class="form-label") }}
+                                {{ form.wifi_password(class="form-control") }}
+                                {% for error in form.wifi_password.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.entry_instructions.label(class="form-label") }}
+                            {{ form.entry_instructions(class="form-control", rows=2) }}
+                            {% for error in form.entry_instructions.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.special_instructions.label(class="form-label") }}
+                            {{ form.special_instructions(class="form-control", rows=3) }}
+                            {% for error in form.special_instructions.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-secondary">Cancel</a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

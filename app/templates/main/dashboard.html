@@ -24,11 +24,33 @@
     {% if current_user.is_property_owner() %}
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Your Properties</h5>
+                <a href="{{ url_for('property.create') }}" class="btn btn-sm btn-primary">Add Property</a>
             </div>
             <div class="card-body">
-                <p>Property management features will be available in the next phase.</p>
+                {% set properties = current_user.properties.limit(5).all() %}
+                {% if properties %}
+                <div class="list-group">
+                    {% for property in properties %}
+                    <a href="{{ url_for('property.view', id=property.id) }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ property.name }}</h6>
+                            <small>{{ property.created_at.strftime('%m/%d/%Y') }}</small>
+                        </div>
+                        <small class="text-muted">{{ property.city }}, {{ property.state }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% if current_user.properties.count() > 5 %}
+                <div class="mt-2 text-end">
+                    <a href="{{ url_for('property.index') }}" class="btn btn-sm btn-outline-primary">View All Properties</a>
+                </div>
+                {% endif %}
+                {% else %}
+                <p>You haven't added any properties yet.</p>
+                <a href="{{ url_for('property.create') }}" class="btn btn-outline-primary">Add Your First Property</a>
+                {% endif %}
             </div>
         </div>
     </div>

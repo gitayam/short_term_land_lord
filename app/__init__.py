@@ -33,6 +33,9 @@ def create_app(config_class=Config):
     from app.profile import bp as profile_bp
     app.register_blueprint(profile_bp, url_prefix='/profile')
     
+    from app.property import bp as property_bp
+    app.register_blueprint(property_bp, url_prefix='/property')
+    
     return app
 
 from app import models

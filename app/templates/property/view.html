@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">{{ property.name }}</h4>
+                <div>
+                    <a href="{{ url_for('property.edit', id=property.id) }}" class="btn btn-sm btn-primary">Edit Property</a>
+                    <a href="{{ url_for('property.manage_images', id=property.id) }}" class="btn btn-sm btn-outline-primary">Manage Images</a>
+                    <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-sm btn-outline-info">View Calendar</a>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                {% if property.images.count() > 0 %}
+                <div id="propertyCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        {% for image in property.images %}
+                        <div class="carousel-item {% if loop.first %}active{% endif %}">
+                            <img src="{{ image.image_path }}" class="d-block w-100" alt="{{ image.caption or property.name }}">
+                            {% if image.caption %}
+                            <div class="carousel-caption d-none d-md-block">
+                                <p>{{ image.caption }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if property.images.count() > 1 %}
+                    <button class="carousel-control-prev" type="button" data-bs-target="#propertyCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#propertyCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-4">
+                    No images have been added for this property.
+                    <a href="{{ url_for('property.manage_images', id=property.id) }}">Add images</a>
+                </div>
+                {% endif %}
+                
+                <h5>Description</h5>
+                <p>{{ property.description or 'No description provided.' }}</p>
+                
+                <h5 class="mt-4">Property Details</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Property Type:</th>
+                                    <td>{{ property.property_type|title if property.property_type else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Bedrooms:</th>
+                                    <td>{{ property.bedrooms if property.bedrooms is not none else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Bathrooms:</th>
+                                    <td>{{ property.bathrooms if property.bathrooms is not none else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Square Feet:</th>
+                                    <td>{{ property.square_feet if property.square_feet is not none else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Year Built:</th>
+                                    <td>{{ property.year_built if property.year_built is not none else 'Not specified' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Address</h6>
+                        <address>
+                            {{ property.street_address }}<br>
+                            {{ property.city }}, {{ property.state }} {{ property.zip_code }}<br>
+                            {{ property.country }}
+                        </address>
+                    </div>
+                </div>
+                
+                {% if current_user.is_cleaner() or current_user.id == property.owner_id %}
+                <h5 class="mt-4">Cleaner Information</h5>
+                <div class="card card-body bg-light mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Bed & Bath Details</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Total Beds:</th>
+                                        <td>{{ property.total_beds if property.total_beds is not none else 'Not specified' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Bed Sizes:</th>
+                                        <td>{{ property.bed_sizes or 'Not specified' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>TVs:</th>
+                                        <td>{{ property.number_of_tvs if property.number_of_tvs is not none else 'Not specified' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Showers:</th>
+                                        <td>{{ property.number_of_showers if property.number_of_showers is not none else 'Not specified' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Bathtubs:</th>
+                                        <td>{{ property.number_of_tubs if property.number_of_tubs is not none else 'Not specified' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Access Information</h6>
+                            <div class="mb-3">
+                                <strong>WiFi Network:</strong> 
+                                <span>{{ property.wifi_network or 'Not specified' }}</span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>WiFi Password:</strong> 
+                                <span>{{ property.wifi_password or 'Not specified' }}</span>
+                            </div>
+                            <div>
+                                <strong>Entry Instructions:</strong>
+                                <p class="small mb-0">{{ property.entry_instructions or 'Not specified' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6>Cleaning Supplies Location</h6>
+                        <p class="mb-3">{{ property.cleaning_supplies_location or 'Not specified' }}</p>
+                        
+                        <h6>Special Instructions</h6>
+                        <p class="mb-0">{{ property.special_instructions or 'No special instructions provided.' }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="card-footer">
+                <form action="{{ url_for('property.delete', id=property.id) }}" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this property? This action cannot be undone.');">
+                    <button type="submit" class="btn btn-danger">Delete Property</button>
+                </form>
+                <a href="{{ url_for('property.index') }}" class="btn btn-outline-secondary float-end">Back to Properties</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Property Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Added:</strong> {{ property.created_at.strftime('%B %d, %Y') }}</p>
+                <p><strong>Last Updated:</strong> {{ property.updated_at.strftime('%B %d, %Y') }}</p>
+                
+                <!-- Placeholder for future task assignment functionality -->
+                <div class="alert alert-secondary">
+                    <h6>Tasks</h6>
+                    <p class="mb-0">Task assignment functionality will be available soon.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

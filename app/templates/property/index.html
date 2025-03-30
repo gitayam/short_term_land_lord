@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>My Properties</h1>
+    <a href="{{ url_for('property.create') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add New Property
+    </a>
+</div>
+
+{% if properties %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for property in properties %}
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-img-top bg-light" style="height: 200px; overflow: hidden;">
+                {% if property.images.count() > 0 %}
+                <img src="{{ property.get_primary_image_url() }}" class="img-fluid" alt="{{ property.name }}">
+                {% else %}
+                <div class="d-flex justify-content-center align-items-center h-100 text-muted">
+                    <span>No image available</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ property.name }}</h5>
+                <p class="card-text text-muted">{{ property.city }}, {{ property.state }}</p>
+                <div class="d-flex mb-2">
+                    {% if property.bedrooms %}
+                    <div class="me-3">
+                        <small class="text-muted">Beds</small>
+                        <p class="mb-0">{{ property.bedrooms }}</p>
+                    </div>
+                    {% endif %}
+                    {% if property.bathrooms %}
+                    <div class="me-3">
+                        <small class="text-muted">Baths</small>
+                        <p class="mb-0">{{ property.bathrooms }}</p>
+                    </div>
+                    {% endif %}
+                    {% if property.square_feet %}
+                    <div>
+                        <small class="text-muted">Sq Ft</small>
+                        <p class="mb-0">{{ property.square_feet }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-outline-primary btn-sm">View Details</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+    <p class="mb-0">You don't have any properties yet. <a href="{{ url_for('property.create') }}">Add your first property</a>.</p>
+</div>
+{% endif %}
+{% endblock %}
