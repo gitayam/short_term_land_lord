@@ -54,6 +54,7 @@ class PropertyForm(FlaskForm):
     property_type = SelectField('Property Type 🏘️', choices=[
         ('', 'Select Type'),
         ('house', '🏠 House'),
+        ('suite', '🏢 Suite'),
         ('apartment', '🏢 Apartment'),
         ('condo', '🏙️ Condominium'),
         ('townhouse', '🏘️ Townhouse'),
