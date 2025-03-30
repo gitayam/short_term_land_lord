@@ -266,7 +266,8 @@ def view(id):
                           reviews_count=reviews_count,
                           service_history=service_history,
                           service_staff_tasks=service_staff_tasks,
-                          guest_review_count=reviews_count)
+                          guest_review_count=reviews_count,
+                          rooms_list=property.rooms.all())
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @property_owner_required

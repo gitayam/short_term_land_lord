@@ -23,6 +23,15 @@ def create_app(config_class=Config):
     mail.init_app(app)
     migrate.init_app(app, db)
     
+    # Initialize task permission functions for templates
+    from app.tasks.routes import can_view_task, can_edit_task, can_delete_task, can_complete_task
+    app.jinja_env.globals.update(
+        can_view_task=can_view_task,
+        can_edit_task=can_edit_task,
+        can_delete_task=can_delete_task,
+        can_complete_task=can_complete_task
+    )
+    
     # Register custom Jinja2 filters
     @app.template_filter('nl2br')
     def nl2br_filter(s):
