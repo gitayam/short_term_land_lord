@@ -422,8 +422,8 @@
             // Generate WiFi QR Code
             const wifiQRContainer = document.getElementById('wifi-qrcode');
             if (wifiQRContainer) {
-                const ssid = "{{ property.wifi_network|e('js') }}";
-                const password = "{{ property.wifi_password|e('js') }}";
+                const ssid = "{{ property.wifi_network|tojson|safe }}";
+                const password = "{{ property.wifi_password|tojson|safe }}";
                 
                 // Create WiFi network string in format: WIFI:S:<SSID>;T:<WPA|WEP|>;P:<password>;;
                 const wifiString = "WIFI:S:" + ssid + ";T:WPA;P:" + password + ";;";

@@ -90,16 +90,27 @@
 <script>
     function copyGuestUrl() {
         const guestUrlInput = document.getElementById('guest-url');
-        guestUrlInput.select();
-        document.execCommand('copy');
-        
-        // Show a temporary "Copied!" tooltip or message
         const copyBtn = guestUrlInput.nextElementSibling;
         const originalText = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
-        setTimeout(() => {
-            copyBtn.innerHTML = originalText;
-        }, 2000);
+        
+        // Use modern clipboard API
+        navigator.clipboard.writeText(guestUrlInput.value)
+            .then(() => {
+                // Show success message
+                copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
+            })
+            .catch(err => {
+                // Fallback to the old method if clipboard API fails
+                guestUrlInput.select();
+                document.execCommand('copy');
+                copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
+            });
     }
 </script>
 {% endblock %}

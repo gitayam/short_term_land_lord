@@ -204,14 +204,14 @@ class Property(db.Model):
     entry_instructions = db.Column(db.Text, comment='Instructions for entering the property (key codes, etc.)')
     
     # Guest-specific information - comment these out as they don't exist in the database yet
-    # guest_access_token = db.Column(db.String(64), unique=True, nullable=True, comment='Unique token for guest access link')
-    # guest_rules = db.Column(db.Text, nullable=True, comment='House rules for guests')
-    # guest_checkin_instructions = db.Column(db.Text, nullable=True, comment='Check-in instructions for guests')
-    # guest_checkout_instructions = db.Column(db.Text, nullable=True, comment='Check-out instructions for guests')
-    # guest_wifi_instructions = db.Column(db.Text, nullable=True, comment='WiFi instructions for guests')
-    # local_attractions = db.Column(db.Text, nullable=True, comment='Information about local attractions')
-    # emergency_contact = db.Column(db.String(255), nullable=True, comment='Emergency contact information')
-    # guest_access_enabled = db.Column(db.Boolean, default=False, comment='Whether guest access is enabled')
+    guest_access_token = db.Column(db.String(64), unique=True, nullable=True, comment='Unique token for guest access link')
+    guest_rules = db.Column(db.Text, nullable=True, comment='House rules for guests')
+    guest_checkin_instructions = db.Column(db.Text, nullable=True, comment='Check-in instructions for guests')
+    guest_checkout_instructions = db.Column(db.Text, nullable=True, comment='Check-out instructions for guests')
+    guest_wifi_instructions = db.Column(db.Text, nullable=True, comment='WiFi instructions for guests')
+    local_attractions = db.Column(db.Text, nullable=True, comment='Information about local attractions')
+    emergency_contact = db.Column(db.String(255), nullable=True, comment='Emergency contact information')
+    guest_access_enabled = db.Column(db.Boolean, default=False, comment='Whether guest access is enabled')
     
     # Ownership and timestamps
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

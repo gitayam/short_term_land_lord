@@ -7,10 +7,16 @@
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h2 class="h4 mb-0">
-                        {% if item %}Edit{% else %}Add{% endif %} Catalog Item
+                        {% if item %}Edit{% else %}Add{% endif %} Global Catalog Item
                     </h2>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading">About the Global Inventory Catalog</h5>
+                        <p>The catalog contains general information about inventory items that can be used across all properties. 
+                        Once added to the catalog, these items can be added to specific properties with location and quantity information.</p>
+                    </div>
+                    
                     <form method="post" novalidate>
                         {{ form.hidden_tag() }}
                         

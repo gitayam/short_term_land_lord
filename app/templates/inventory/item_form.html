@@ -7,10 +7,16 @@
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h2 class="h4 mb-0">
-                        {% if item %}Edit{% else %}Add{% endif %} Inventory Item - {{ property.name }}
+                        {% if item %}Edit{% else %}Add{% endif %} Property Inventory Item
                     </h2>
                 </div>
                 <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading">Adding from the Global Catalog</h5>
+                        <p>You're adding an inventory item to <strong>{{ property.name }}</strong> from the global catalog. 
+                        Select an item from the catalog, then specify the quantity and storage location specific to this property.</p>
+                    </div>
+                    
                     <form method="post" novalidate>
                         {{ form.hidden_tag() }}
                         
@@ -21,9 +27,9 @@
                             <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
                             <small class="form-text text-muted">
-                                Select an item from the global catalog. 
+                                Select an item from the global catalog. Can't find what you need?
                                 {% if is_property_owner %}
-                                <a href="{{ url_for('inventory.add_catalog_item', next=request.path) }}">Add new catalog item</a>
+                                <a href="{{ url_for('inventory.add_catalog_item', next=request.path) }}">Add new catalog item</a> first.
                                 {% endif %}
                             </small>
                         </div>

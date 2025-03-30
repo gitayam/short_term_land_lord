@@ -3,14 +3,17 @@
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Inventory Management - {{ property.name }}</h1>
+        <div>
+            <h1>Property Inventory - {{ property.name }}</h1>
+            <p class="text-muted">Manage inventory items for this specific property, including quantities and storage locations.</p>
+        </div>
         <div>
             <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Property
             </a>
             {% if is_property_owner %}
             <a href="{{ url_for('inventory.add_item', property_id=property.id) }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Item
+                <i class="fas fa-plus"></i> Add From Catalog
             </a>
             {% endif %}
         </div>
