@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+<style>
+    .fc-event {
+        cursor: pointer;
+    }
+    
+    .calendar-legend {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .legend-color {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        margin-right: 8px;
+        display: inline-block;
+    }
+    
+    .calendar-title {
+        position: relative;
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .calendar-title:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 50px;
+        height: 3px;
+        background-color: #0d6efd;
+    }
+    
+    .property-filter {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .property-filter input {
+        margin-right: 8px;
+    }
+    
+    .fc-view-harness {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+    
+    .card-dashboard {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    
+    .card-dashboard:hover {
+        transform: translateY(-5px);
+    }
+    
+    .card-header-dashboard {
+        background-color: #fff;
+        border-bottom: none;
+        padding: 20px 20px 0 20px;
+    }
+    
+    .card-body-dashboard {
+        padding: 20px;
+    }
+    
+    .event-modal-property {
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    
+    .fc-button-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .fc-button-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Combined Calendar</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="calendar-title">Combined Property Calendar</h2>
+                <div>
+                    <button class="btn btn-outline-primary" id="refreshCalendar">
+                        <i class="fas fa-sync-alt"></i> Refresh Calendar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-3">
+            <div class="calendar-legend mb-4">
+                <h5 class="mb-3">Property Legend</h5>
+                <div id="legendContainer">
+                    {% if legend_data %}
+                        {% for property in legend_data %}
+                        <div class="property-filter">
+                            <input type="checkbox" class="property-checkbox" 
+                                   id="property-{{ property.id }}" 
+                                   data-property-id="{{ property.id }}"
+                                   checked>
+                            <label for="property-{{ property.id }}" class="legend-item">
+                                <span class="legend-color" style="background-color: {{ property.color }};"></span>
+                                <span>{{ property.name }}</span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">No properties found</p>
+                    {% endif %}
+                </div>
+                
+                <hr class="my-3">
+                
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary mb-2" id="selectAllProperties">Select All</button>
+                    <button class="btn btn-sm btn-outline-secondary mb-2" id="deselectAllProperties">Deselect All</button>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Calendar Navigation</h6>
+                    <div class="d-grid gap-2 mt-2">
+                        <button class="btn btn-sm btn-primary" id="goToToday">Go to Today</button>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-secondary" id="prevMonth">
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" id="nextMonth">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Calendar Views</h6>
+                    <div class="btn-group d-flex mt-2">
+                        <button class="btn btn-sm btn-outline-primary" id="viewMonth">Month</button>
+                        <button class="btn btn-sm btn-outline-primary" id="viewWeek">Week</button>
+                        <button class="btn btn-sm btn-outline-primary" id="viewDay">Day</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card card-dashboard mb-4">
+                <div class="card-header card-header-dashboard">
+                    <h5>Quick Links</h5>
+                </div>
+                <div class="card-body card-body-dashboard">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-th-large"></i> Dashboard
+                        </a>
+                        {% if properties %}
+                            {% for property in properties %}
+                            <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-outline-info">
+                                <i class="fas fa-calendar-alt"></i> {{ property.name }} Calendar
+                            </a>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card card-dashboard">
+                <div class="card-body card-body-dashboard p-0">
+                    <!-- Calendar container -->
+                    <div id="calendar" class="p-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalLabel">Booking Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Property:</strong>
+                    <span id="eventProperty" class="event-modal-property"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Dates:</strong>
+                    <span id="eventDates"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Service:</strong>
+                    <span id="eventService"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Room:</strong>
+                    <span id="eventRoom"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" id="viewPropertyLink" class="btn btn-primary">View Property</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var events = {{ events|tojson|safe }};
+    var calendarEl = document.getElementById('calendar');
+    var allEvents = events;
+    var calendar;
+    
+    // Initialize FullCalendar
+    initCalendar();
+    
+    function initCalendar() {
+        if (calendar) {
+            calendar.destroy();
+        }
+        
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: allEvents,
+            eventClick: function(info) {
+                try {
+                    // Get event data
+                    var event = info.event;
+                    var title = event.title || 'Booking';
+                    var startDate = event.start ? formatDate(event.start) : 'Unknown';
+                    var endDate = event.end ? formatDate(event.end) : 'Unknown';
+                    
+                    // Get extended props safely
+                    var extendedProps = event.extendedProps || {};
+                    var propertyName = extendedProps.property_name || 'Unknown';
+                    var propertyId = extendedProps.property_id || '';
+                    var service = extendedProps.service || 'Unknown';
+                    var room = extendedProps.room || 'Entire Property';
+                    
+                    // Update modal content
+                    document.getElementById('eventModalLabel').textContent = title;
+                    document.getElementById('eventProperty').textContent = propertyName;
+                    document.getElementById('eventDates').textContent = startDate + ' to ' + endDate;
+                    document.getElementById('eventService').textContent = service;
+                    document.getElementById('eventRoom').textContent = room;
+                    
+                    // Set property view link
+                    var viewPropertyLink = document.getElementById('viewPropertyLink');
+                    if (propertyId) {
+                        viewPropertyLink.href = '/property/' + propertyId;
+                        viewPropertyLink.style.display = 'block';
+                    } else {
+                        viewPropertyLink.style.display = 'none';
+                    }
+                    
+                    // Show modal
+                    var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    eventModal.show();
+                } catch (err) {
+                    console.error("Error showing event details:", err);
+                    alert("Could not display event details due to an error.");
+                }
+            },
+            eventDidMount: function(info) {
+                // Add a tooltip
+                var tooltip = new bootstrap.Tooltip(info.el, {
+                    title: info.event.title,
+                    placement: 'top',
+                    trigger: 'hover',
+                    container: 'body'
+                });
+            }
+        });
+        
+        calendar.render();
+    }
+    
+    // Handle property checkboxes
+    document.querySelectorAll('.property-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', updateVisibleProperties);
+    });
+    
+    // Handle select/deselect all buttons
+    document.getElementById('selectAllProperties').addEventListener('click', function() {
+        document.querySelectorAll('.property-checkbox').forEach(function(checkbox) {
+            checkbox.checked = true;
+        });
+        updateVisibleProperties();
+    });
+    
+    document.getElementById('deselectAllProperties').addEventListener('click', function() {
+        document.querySelectorAll('.property-checkbox').forEach(function(checkbox) {
+            checkbox.checked = false;
+        });
+        updateVisibleProperties();
+    });
+    
+    // Handle calendar controls
+    document.getElementById('goToToday').addEventListener('click', function() {
+        calendar.today();
+    });
+    
+    document.getElementById('prevMonth').addEventListener('click', function() {
+        calendar.prev();
+    });
+    
+    document.getElementById('nextMonth').addEventListener('click', function() {
+        calendar.next();
+    });
+    
+    document.getElementById('viewMonth').addEventListener('click', function() {
+        calendar.changeView('dayGridMonth');
+    });
+    
+    document.getElementById('viewWeek').addEventListener('click', function() {
+        calendar.changeView('timeGridWeek');
+    });
+    
+    document.getElementById('viewDay').addEventListener('click', function() {
+        calendar.changeView('timeGridDay');
+    });
+    
+    document.getElementById('refreshCalendar').addEventListener('click', function() {
+        window.location.reload();
+    });
+    
+    // Filter events based on selected properties
+    function updateVisibleProperties() {
+        var selectedPropertyIds = [];
+        document.querySelectorAll('.property-checkbox:checked').forEach(function(checkbox) {
+            selectedPropertyIds.push(parseInt(checkbox.dataset.propertyId));
+        });
+        
+        // Filter events based on selected properties
+        var filteredEvents = allEvents.filter(function(event) {
+            return selectedPropertyIds.includes(event.extendedProps.property_id);
+        });
+        
+        // Update the calendar with filtered events
+        calendar.removeAllEvents();
+        calendar.addEventSource(filteredEvents);
+    }
+    
+    // Date formatting helper function
+    function formatDate(date) {
+        try {
+            if (!date) return 'Unknown';
+            
+            var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString(undefined, options);
+        } catch (err) {
+            console.error("Error formatting date:", err);
+            return 'Unknown date';
+        }
+    }
+});
+</script>
+{% endblock %} 
