@@ -3,13 +3,41 @@
 {% block content %}
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Create New Task</h1>
+        <h1>{% if from_template %}Create Task from Template{% else %}Create New Task{% endif %}</h1>
         <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary">Back to Tasks</a>
     </div>
     
+    {% if task_templates and not from_template %}
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Suggested Templates</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for template in task_templates %}
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ template.title }}</h5>
+                            {% if template.category %}
+                            <span class="badge bg-secondary mb-2">{{ template.category }}</span>
+                            {% endif %}
+                            <p class="card-text small">{{ template.description|truncate(100) }}</p>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{{ url_for('tasks.apply_template', template_id=template.id) }}" class="btn btn-sm btn-primary">Use Template</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="card">
         <div class="card-body">
-            <form method="post" action="{{ url_for('tasks.create') }}">
+            <form method="post" action="{% if from_template %}{{ url_for('tasks.apply_template', template_id=template.id) }}{% else %}{{ url_for('tasks.create') }}{% endif %}">
                 {{ form.hidden_tag() }}
                 
                 <div class="row mb-3">

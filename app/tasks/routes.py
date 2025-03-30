@@ -91,47 +91,53 @@ def index():
 @bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
-    # Only property owners can create tasks
-    if not current_user.is_property_owner():
-        flash('Only property owners can create tasks.', 'danger')
-        return redirect(url_for('main.index'))
-    
     form = TaskForm()
     
-    # Set up query for properties owned by the current user
-    form.properties.query = Property.query.filter_by(owner_id=current_user.id)
+    # For property owners, only show their properties in the dropdown
+    if current_user.is_property_owner():
+        form.properties.choices = [(p.id, p.name) for p in current_user.properties]
+    else:
+        # For admins and other users, show all properties
+        form.properties.choices = [(p.id, p.name) for p in Property.query.all()]
     
-    # Set up calendar choices
-    calendar_choices = []
-    for property in current_user.properties:
-        for calendar in property.calendars:
-            calendar_choices.append((calendar.id, f"{property.name} - {calendar.name}"))
-    
-    form.calendar_id.choices = [(-1, 'None')] + calendar_choices
+    # Get suggested task templates
+    task_templates = TaskTemplate.query.filter(
+        db.or_(
+            TaskTemplate.creator_id == current_user.id,
+            TaskTemplate.is_global == True
+        )
+    ).order_by(TaskTemplate.sequence_number.asc()).all()
     
     if form.validate_on_submit():
-        # Create new task
         task = Task(
             title=form.title.data,
             description=form.description.data,
             due_date=form.due_date.data,
-            status=TaskStatus(form.status.data),
-            priority=TaskPriority(form.priority.data),
+            status=form.status.data,
+            priority=form.priority.data,
             notes=form.notes.data,
-            is_recurring=form.is_recurring.data,
-            recurrence_pattern=RecurrencePattern(form.recurrence_pattern.data) if form.is_recurring.data else RecurrencePattern.NONE,
-            recurrence_interval=form.recurrence_interval.data if form.is_recurring.data else 1,
-            recurrence_end_date=form.recurrence_end_date.data,
-            linked_to_checkout=form.linked_to_checkout.data,
-            calendar_id=form.calendar_id.data if form.calendar_id.data != -1 else None,
-            assign_to_next_cleaner=form.assign_to_next_cleaner.data,
-            creator_id=current_user.id
+            creator_id=current_user.id,
+            assign_to_next_cleaner=form.assign_to_next_cleaner.data
         )
         
-        # Add properties to the task if any were selected
+        # Handle recurrence if enabled
+        if form.is_recurring.data:
+            task.is_recurring = True
+            task.recurrence_pattern = form.recurrence_pattern.data
+            task.recurrence_interval = form.recurrence_interval.data
+            task.recurrence_end_date = form.recurrence_end_date.data
+        
+        # Handle calendar link if enabled
+        if form.linked_to_checkout.data and form.calendar_id.data:
+            task.linked_to_checkout = True
+            task.calendar_id = form.calendar_id.data
+        
+        # Associate with properties
         if form.properties.data:
-            for property in form.properties.data:
-                task_property = TaskProperty(property=property)
+            for property_id in form.properties.data:
+                task_property = TaskProperty(
+                    property_id=property_id
+                )
                 task.properties.append(task_property)
         
         db.session.add(task)
@@ -140,7 +146,10 @@ def create():
         flash('Task created successfully!', 'success')
         return redirect(url_for('tasks.view', id=task.id))
     
-    return render_template('tasks/create.html', title='Create Task', form=form)
+    return render_template('tasks/create.html', 
+                          title='Create Task', 
+                          form=form,
+                          task_templates=task_templates)
 
 
 @bp.route('/<int:id>')
