@@ -21,3 +21,9 @@ python-magic
 twilio
 # For barcode scanning functionality, we use QuaggaJS (client-side JavaScript library)
 # No additional Python package required as it's loaded via CDN
+pandas
+numpy
+matplotlib
+seaborn
+scipy
+scikit-learn

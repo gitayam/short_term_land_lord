@@ -2,62 +2,160 @@
 
 {% block styles %}
 {{ super() }}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css">
 <style>
+    /* Apple Calendar inspired dark theme */
     :root {
-        --fc-border-color: rgba(255, 255, 255, 0.15);
-        --fc-today-bg-color: rgba(255, 255, 255, 0.05);
-        --fc-page-bg-color: #222;
-        --fc-list-event-hover-bg-color: rgba(255, 255, 255, 0.1);
-        --fc-neutral-bg-color: rgba(255, 255, 255, 0.15);
+        --fc-border-color: rgba(45, 45, 45, 0.2);
+        --fc-today-bg-color: transparent;
+        --fc-page-bg-color: #1a1a1a;
+        --fc-list-event-hover-bg-color: rgba(60, 120, 216, 0.1);
+        --fc-neutral-bg-color: rgba(60, 120, 216, 0.15);
         --fc-neutral-text-color: #fff;
         --fc-button-text-color: #fff;
-        --fc-button-bg-color: #444;
-        --fc-button-border-color: #555;
-        --fc-button-hover-bg-color: #666;
-        --fc-button-hover-border-color: #777;
-        --fc-button-active-bg-color: #555;
-        --fc-button-active-border-color: #666;
-        --fc-event-bg-color: #3788d8;
-        --fc-event-border-color: #3788d8;
+        --fc-button-bg-color: #4b4b4b;
+        --fc-button-border-color: #4b4b4b;
+        --fc-button-hover-bg-color: #5a5a5a;
+        --fc-button-hover-border-color: #5a5a5a;
+        --fc-button-active-bg-color: #3d78cc;
+        --fc-button-active-border-color: #3d78cc;
+        --fc-event-bg-color: #3d78cc;
+        --fc-event-border-color: #3d78cc;
         --fc-event-text-color: #fff;
         --fc-event-selected-overlay-color: rgba(0, 0, 0, 0.25);
-        --fc-more-link-bg-color: #222;
+        --fc-more-link-bg-color: rgba(80, 80, 80, 0.7);
         --fc-more-link-text-color: #fff;
         --fc-highlight-color: rgba(188, 232, 241, 0.3);
-        --fc-non-business-color: rgba(255, 255, 255, 0.05);
-        --fc-bg-event-color: rgba(60, 120, 180, 0.3);
+        --fc-non-business-color: rgba(20, 20, 20, 0.1);
+        --fc-bg-event-color: rgba(60, 120, 216, 0.3);
         --fc-bg-event-opacity: 0.3;
-        --fc-popover-bg-color: #333;
-        --fc-popover-border-color: #444;
+        --fc-popover-bg-color: #2a2a2a;
+        --fc-popover-border-color: #3a3a3a;
         --fc-daygrid-event-dot-width: 8px;
+        
+        /* Custom color variables */
+        --villa-color: #ff5a5f;
+        --cabin-color: #d88c00;
+        --apartment-color: #34c759;
+        --other-color: #5e5ce6;
+        --trash-color: #8e8e93;
+        --recycling-color: #30d158;
     }
     
+    body {
+        background-color: #161616;
+        color: rgba(255, 255, 255, 0.9);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    
+    .container {
+        padding-top: 20px;
+        padding-bottom: 40px;
+    }
+    
+    /* Calendar structure styling */
+    .calendar-container {
+        background-color: #1e1e1e;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        border: 1px solid rgba(80, 80, 80, 0.2);
+    }
+    
+    /* FullCalendar overrides */
     .fc {
         color: rgba(255, 255, 255, 0.9);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     
-    .fc-theme-standard td, .fc-theme-standard th {
-        border-color: var(--fc-border-color);
+    .fc .fc-col-header {
+        background-color: rgba(30, 30, 30, 0.6);
     }
     
-    .fc-daygrid-day-number, .fc-col-header-cell-cushion {
+    .fc .fc-col-header-cell {
+        padding: 8px 0;
+    }
+    
+    .fc .fc-col-header-cell-cushion,
+    .fc .fc-daygrid-day-number {
         color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+        padding: 8px;
     }
     
-    .fc-day-today {
-        background-color: var(--fc-today-bg-color) !important;
+    /* Make today's date stand out with a circle like Apple Calendar */
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: transparent !important;
     }
     
+    .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+        height: 30px;
+        width: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #3d78cc;
+        border-radius: 50%;
+        color: white;
+        font-weight: 500;
+        margin: 4px;
+    }
+    
+    /* Style days from other months */
+    .fc .fc-daygrid-day.fc-day-other {
+        background-color: rgba(25, 25, 25, 0.4);
+    }
+    
+    .fc .fc-daygrid-day.fc-day-other .fc-daygrid-day-number {
+        opacity: 0.6;
+    }
+    
+    /* Event styling */
     .fc-event {
         cursor: pointer;
-        border-radius: 6px;
-        padding: 3px 5px;
-        margin-bottom: 2px;
+        border-radius: 8px;
+        padding: 4px 8px;
+        margin-bottom: 3px;
         font-weight: 500;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        overflow: hidden;
-        border-left: 4px solid var(--event-color, var(--fc-event-border-color));
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        border: none;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    
+    .fc-event:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Property type colors */
+    .fc-event.villa-type {
+        background-color: var(--villa-color);
+        border-left: 4px solid var(--villa-color);
+    }
+    
+    .fc-event.cabin-type {
+        background-color: var(--cabin-color);
+        border-left: 4px solid var(--cabin-color);
+    }
+    
+    .fc-event.apartment-type {
+        background-color: var(--apartment-color);
+        border-left: 4px solid var(--apartment-color);
+    }
+    
+    .fc-event.other-type {
+        background-color: var(--other-color);
+        border-left: 4px solid var(--other-color);
+    }
+    
+    .fc-event.trash-type {
+        background-color: var(--trash-color);
+        border-left: 4px solid var(--trash-color);
+    }
+    
+    .fc-event.recycling-type {
+        background-color: var(--recycling-color);
+        border-left: 4px solid var(--recycling-color);
     }
     
     .fc-event-title {
@@ -65,6 +163,8 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        font-size: 0.9em;
+        line-height: 1.4;
     }
     
     .fc-event-time {
@@ -76,57 +176,155 @@
     }
     
     .event-icon {
-        margin-right: 5px;
+        margin-right: 6px;
         opacity: 0.9;
     }
     
-    .fc-more-link {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.9);
-        border-radius: 4px;
-        padding: 2px 5px;
-        font-size: 0.85em;
-        font-weight: 600;
+    .checkout-date {
+        font-size: 0.8em;
+        opacity: 0.8;
+        margin-left: 4px;
+        font-weight: normal;
     }
     
-    .calendar-container {
-        background-color: #2A2A2A;
+    /* More events link styling */
+    .fc-more-link {
+        background-color: rgba(80, 80, 80, 0.7);
+        color: rgba(255, 255, 255, 0.9);
         border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        padding: 2px 8px;
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+    
+    /* FullCalendar button styling */
+    .fc .fc-toolbar-title {
+        font-size: 1.4em;
+        font-weight: 700;
+    }
+    
+    .fc .fc-button {
+        border-radius: 8px;
+        padding: 0.4em 0.85em;
+        font-weight: 500;
+    }
+    
+    .fc .fc-button-primary.fc-button-active {
+        background-color: #3d78cc;
+        border-color: #3d78cc;
+    }
+    
+    /* Apple-style custom toolbar */
+    .apple-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        background-color: #1a1a1a;
+        border-bottom: 1px solid rgba(80, 80, 80, 0.2);
+    }
+    
+    .toolbar-left,
+    .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .toolbar-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 0 15px;
+        color: #fff;
+    }
+    
+    .today-btn {
+        background-color: #3d78cc;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+    
+    .today-btn:hover {
+        background-color: #2c62b0;
+    }
+    
+    .nav-btn {
+        background-color: #333;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+    }
+    
+    .nav-btn:hover {
+        background-color: #444;
+    }
+    
+    .view-selector {
+        display: flex;
+        background-color: #333;
+        border-radius: 6px;
         overflow: hidden;
     }
     
-    .calendar-header {
-        background-color: #222;
-        color: #fff;
-        padding: 20px;
-        border-bottom: 1px solid #333;
+    .view-btn {
+        background-color: transparent;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        font-weight: 500;
+        transition: background-color 0.2s;
     }
     
-    .calendar-title {
+    .view-btn.active {
+        background-color: #3d78cc;
+    }
+    
+    .search-bar {
         position: relative;
-        padding-bottom: 12px;
-        margin-bottom: 16px;
-        color: #fff;
     }
     
-    .calendar-title:after {
-        content: '';
+    .search-bar input {
+        background-color: #333;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 12px 8px 34px;
+        color: white;
+        width: 200px;
+        transition: width 0.3s;
+    }
+    
+    .search-bar input:focus {
+        width: 250px;
+        outline: none;
+    }
+    
+    .search-bar i {
         position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 50px;
-        height: 3px;
-        background-color: #3788d8;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
     }
     
+    /* Sidebar styling */
     .calendar-legend {
-        background-color: #2A2A2A;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        background-color: #1e1e1e;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
         padding: 20px;
         margin-bottom: 20px;
         color: #fff;
+        border: 1px solid rgba(80, 80, 80, 0.2);
     }
     
     .legend-item {
@@ -138,7 +336,7 @@
     .legend-color {
         width: 18px;
         height: 18px;
-        border-radius: 4px;
+        border-radius: 6px;
         margin-right: 8px;
         display: inline-block;
     }
@@ -158,18 +356,20 @@
         font-weight: 500;
     }
     
+    /* Card styling */
     .card-dashboard {
         border: none;
-        border-radius: 12px;
-        background-color: #2A2A2A;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        border-radius: 16px;
+        background-color: #1e1e1e;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
         transition: transform 0.3s, box-shadow 0.3s;
         margin-bottom: 20px;
+        border: 1px solid rgba(80, 80, 80, 0.2);
     }
     
     .card-dashboard:hover {
         transform: translateY(-5px);
-        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.2);
     }
     
     .card-header-dashboard {
@@ -177,7 +377,7 @@
         color: #fff;
         border-bottom: none;
         padding: 16px 20px;
-        border-radius: 12px 12px 0 0;
+        border-radius: 16px 16px 0 0;
     }
     
     .card-body-dashboard {
@@ -185,83 +385,54 @@
         color: rgba(255, 255, 255, 0.9);
     }
     
+    /* Button styling */
     .btn-primary {
-        background-color: #3788d8;
-        border-color: #3788d8;
+        background-color: #3d78cc;
+        border-color: #3d78cc;
+        border-radius: 8px;
     }
     
     .btn-primary:hover {
-        background-color: #2b6faf;
-        border-color: #2b6faf;
+        background-color: #326cb8;
+        border-color: #326cb8;
     }
     
     .btn-outline-primary {
-        color: #3788d8;
-        border-color: #3788d8;
+        color: #3d78cc;
+        border-color: #3d78cc;
+        border-radius: 8px;
     }
     
     .btn-outline-primary:hover {
-        background-color: #3788d8;
-        border-color: #3788d8;
+        background-color: #3d78cc;
+        border-color: #3d78cc;
     }
     
     .btn-outline-secondary {
-        color: rgba(255, 255, 255, 0.7);
-        border-color: rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.8);
+        border-color: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
     }
     
     .btn-outline-secondary:hover {
         background-color: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.9);
+        color: rgba(255, 255, 255, 1);
     }
     
-    .btn-nav {
-        background-color: #444;
-        color: #fff;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-weight: 500;
-    }
-    
-    .btn-nav:hover {
-        background-color: #555;
-    }
-    
-    .btn-today {
-        background-color: #3788d8;
-        color: #fff;
-    }
-    
-    .btn-today:hover {
-        background-color: #2b6faf;
-    }
-    
-    .breadcrumb {
-        background-color: transparent;
-    }
-    
-    .breadcrumb-item a {
-        color: #3788d8;
-    }
-    
-    .breadcrumb-item.active {
-        color: rgba(255, 255, 255, 0.7);
-    }
-    
+    /* Modal styling */
     .modal-content {
-        background-color: #2A2A2A;
+        background-color: #1e1e1e;
         color: #fff;
-        border-radius: 12px;
-        border: 1px solid #444;
+        border-radius: 16px;
+        border: 1px solid #333;
     }
     
     .modal-header {
-        border-bottom: 1px solid #444;
+        border-bottom: 1px solid #333;
     }
     
     .modal-footer {
-        border-top: 1px solid #444;
+        border-top: 1px solid #333;
     }
     
     .btn-close {
@@ -271,23 +442,38 @@
     
     .event-modal-property {
         font-weight: bold;
-        color: #3788d8;
+        color: #3d78cc;
     }
     
-    .checkout-date {
-        font-size: 0.85em;
+    /* Navigation */
+    .breadcrumb {
+        background-color: transparent;
+    }
+    
+    .breadcrumb-item a {
+        color: #3d78cc;
+    }
+    
+    .breadcrumb-item.active {
         color: rgba(255, 255, 255, 0.7);
-        margin-left: 5px;
     }
     
-    body {
-        background-color: #1a1a1a;
-        color: rgba(255, 255, 255, 0.9);
+    .calendar-title {
+        position: relative;
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+        color: #fff;
+        font-weight: 700;
     }
     
-    .container {
-        padding-top: 20px;
-        padding-bottom: 40px;
+    .calendar-title:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 50px;
+        height: 3px;
+        background-color: #3d78cc;
     }
 </style>
 {% endblock %}
@@ -325,6 +511,7 @@
                             <input type="checkbox" class="property-checkbox" 
                                    id="property-{{ property.id }}" 
                                    data-property-id="{{ property.id }}"
+                                   data-color="{{ property.color }}"
                                    checked>
                             <label for="property-{{ property.id }}" class="legend-item">
                                 <span class="legend-color" style="background-color: {{ property.color }};"></span>
@@ -342,30 +529,6 @@
                 <div>
                     <button class="btn btn-sm btn-outline-secondary mb-2" id="selectAllProperties">Select All</button>
                     <button class="btn btn-sm btn-outline-secondary mb-2" id="deselectAllProperties">Deselect All</button>
-                </div>
-                
-                <div class="mt-3">
-                    <h6>Calendar Navigation</h6>
-                    <div class="d-grid gap-2 mt-2">
-                        <button class="btn btn-sm btn-today" id="goToToday">Today</button>
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-nav" id="prevMonth">
-                                <i class="fas fa-chevron-left"></i> Previous
-                            </button>
-                            <button class="btn btn-sm btn-nav" id="nextMonth">
-                                Next <i class="fas fa-chevron-right"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mt-4">
-                    <h6>Calendar Views</h6>
-                    <div class="btn-group d-flex mt-2">
-                        <button class="btn btn-sm btn-nav active" id="viewMonth">Month</button>
-                        <button class="btn btn-sm btn-nav" id="viewWeek">Week</button>
-                        <button class="btn btn-sm btn-nav" id="viewDay">Day</button>
-                    </div>
                 </div>
             </div>
             
@@ -392,6 +555,30 @@
         
         <div class="col-md-9">
             <div class="card-dashboard calendar-container">
+                <!-- Apple-style custom toolbar -->
+                <div class="apple-toolbar">
+                    <div class="toolbar-left">
+                        <button class="today-btn" id="apple-today-btn">Today</button>
+                        <div>
+                            <button class="nav-btn" id="apple-prev-btn"><i class="fas fa-chevron-left"></i></button>
+                            <button class="nav-btn" id="apple-next-btn"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <h2 class="toolbar-title" id="apple-title">April 2025</h2>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="view-selector">
+                            <button class="view-btn active" data-view="dayGridMonth">Month</button>
+                            <button class="view-btn" data-view="timeGridWeek">Week</button>
+                            <button class="view-btn" data-view="timeGridDay">Day</button>
+                            <button class="view-btn" data-view="listMonth">List</button>
+                        </div>
+                        <div class="search-bar">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Search events" id="event-search">
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Calendar container -->
                 <div id="calendar" class="p-3"></div>
             </div>
@@ -440,7 +627,7 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var events = {{ events|tojson|safe }};
@@ -448,67 +635,166 @@ document.addEventListener('DOMContentLoaded', function() {
     var allEvents = events;
     var calendar;
     
+    // Initialize Apple-style toolbar
+    updateAppleToolbarTitle(new Date());
+    
+    document.getElementById('apple-today-btn').addEventListener('click', function() {
+        calendar.today();
+        updateAppleToolbarTitle(calendar.getDate());
+    });
+    
+    document.getElementById('apple-prev-btn').addEventListener('click', function() {
+        calendar.prev();
+        updateAppleToolbarTitle(calendar.getDate());
+    });
+    
+    document.getElementById('apple-next-btn').addEventListener('click', function() {
+        calendar.next();
+        updateAppleToolbarTitle(calendar.getDate());
+    });
+    
+    // View buttons
+    document.querySelectorAll('.view-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            document.querySelectorAll('.view-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Change calendar view
+            calendar.changeView(this.getAttribute('data-view'));
+        });
+    });
+    
+    // Event search functionality
+    document.getElementById('event-search').addEventListener('input', function(e) {
+        var searchTerm = e.target.value.toLowerCase();
+        
+        if (searchTerm === '') {
+            // If search is empty, show all events
+            updateCalendarEvents(enhanceEvents(allEvents));
+            return;
+        }
+        
+        // Filter events based on search term
+        var filteredEvents = allEvents.filter(function(event) {
+            var title = event.title ? event.title.toLowerCase() : '';
+            var propertyName = event.extendedProps?.property_name ? 
+                event.extendedProps.property_name.toLowerCase() : '';
+            
+            return title.includes(searchTerm) || propertyName.includes(searchTerm);
+        });
+        
+        updateCalendarEvents(enhanceEvents(filteredEvents));
+    });
+    
     // Initialize FullCalendar
     initCalendar();
+    
+    // Add sample trash and recycling events
+    function addUtilityEvents() {
+        // Get current date for calculations
+        var today = new Date();
+        var currentMonth = today.getMonth();
+        var currentYear = today.getFullYear();
+        
+        // Create trash day events (example: every Monday)
+        var trashEvents = [];
+        var recyclingEvents = [];
+        
+        // Loop through days in this month
+        var daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        
+        for (var day = 1; day <= daysInMonth; day++) {
+            var date = new Date(currentYear, currentMonth, day);
+            var dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            
+            // Trash pickup on Mondays
+            if (dayOfWeek === 1) {
+                trashEvents.push({
+                    title: 'Trash Day',
+                    start: date.toISOString().split('T')[0],
+                    end: date.toISOString().split('T')[0],
+                    allDay: true,
+                    extendedProps: {
+                        event_type: 'trash',
+                        service: 'utility',
+                        property_name: 'All Properties'
+                    }
+                });
+            }
+            
+            // Recycling pickup on alternate Wednesdays
+            if (dayOfWeek === 3 && Math.floor(day / 7) % 2 === 0) {
+                recyclingEvents.push({
+                    title: 'Recycling Day',
+                    start: date.toISOString().split('T')[0],
+                    end: date.toISOString().split('T')[0], 
+                    allDay: true,
+                    extendedProps: {
+                        event_type: 'recycling',
+                        service: 'utility',
+                        property_name: 'All Properties'
+                    }
+                });
+            }
+        }
+        
+        // Add events to the calendar
+        return [...trashEvents, ...recyclingEvents];
+    }
     
     function initCalendar() {
         if (calendar) {
             calendar.destroy();
         }
         
-        // Add checkout dates and icons to the events
-        var enhancedEvents = allEvents.map(function(event) {
-            // Calculate checkout date
-            var endDate = new Date(event.end);
-            // Convert to locale date string in short format
-            var checkoutDateStr = endDate.toLocaleDateString(undefined, {
-                month: 'numeric',
-                day: 'numeric'
-            });
-            
-            // Determine icon based on property type or service
-            var iconClass = 'fas fa-home';
-            if (event.extendedProps.service) {
-                if (event.extendedProps.service.toLowerCase().includes('cleaning')) {
-                    iconClass = 'fas fa-broom';
-                } else if (event.extendedProps.service.toLowerCase().includes('maintenance')) {
-                    iconClass = 'fas fa-tools';
-                }
-            }
-            
-            // Create enhanced event
-            return {
-                ...event,
-                title: event.extendedProps.property_name + ' (out: ' + checkoutDateStr + ')',
-                backgroundColor: event.backgroundColor || '#3788d8',
-                textColor: '#fff',
-                borderColor: event.borderColor || '#3788d8',
-                classNames: ['custom-event'],
-                display: 'block',
-                extendedProps: {
-                    ...event.extendedProps,
-                    iconClass: iconClass,
-                    checkoutDate: checkoutDateStr
-                }
-            };
-        });
+        // Add utility events to the existing events
+        var combinedEvents = [...allEvents, ...addUtilityEvents()];
+        
+        // Enhanced events with Apple-style formatting
+        var enhancedEvents = enhanceEvents(combinedEvents);
         
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            },
+            headerToolbar: false, // We're using our custom Apple-style toolbar
             events: enhancedEvents,
             height: 'auto',
             themeSystem: 'standard',
             dayMaxEvents: true, // allow "more" link when too many events
+            navLinks: true, // can click day/week names to navigate views
+            businessHours: false,
+            nowIndicator: true,
             eventTimeFormat: {
                 hour: '2-digit',
                 minute: '2-digit',
                 meridiem: false,
                 hour12: false
+            },
+            eventClassNames: function(arg) {
+                var event = arg.event;
+                var extendedProps = event.extendedProps;
+                var classes = [];
+                
+                // Apply different classes based on property type or ID
+                if (extendedProps.event_type === 'trash') {
+                    classes.push('trash-type');
+                } else if (extendedProps.event_type === 'recycling') {
+                    classes.push('recycling-type');
+                } else if (extendedProps.property_id % 4 === 0) {
+                    classes.push('villa-type');
+                } else if (extendedProps.property_id % 4 === 1) {
+                    classes.push('cabin-type');
+                } else if (extendedProps.property_id % 4 === 2) {
+                    classes.push('apartment-type');
+                } else {
+                    classes.push('other-type');
+                }
+                
+                return classes;
             },
             eventContent: function(arg) {
                 var event = arg.event;
@@ -524,10 +810,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     content.appendChild(icon);
                 }
                 
-                // Add title (property name)
+                // Add property name
                 var titleEl = document.createElement('span');
                 titleEl.className = 'fc-event-title';
                 titleEl.innerHTML = event.title;
+                
+                // Add checkout date in parentheses
+                if (extendedProps.checkoutDate) {
+                    var checkoutEl = document.createElement('span');
+                    checkoutEl.className = 'checkout-date';
+                    checkoutEl.innerHTML = '(out: ' + extendedProps.checkoutDate + ')';
+                    titleEl.appendChild(checkoutEl);
+                }
+                
                 content.appendChild(titleEl);
                 
                 return { domNodes: [content] };
@@ -542,6 +837,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Get extended props safely
                     var extendedProps = event.extendedProps || {};
+                    
+                    // For trash and recycling events, show a simple alert instead of modal
+                    if (extendedProps.event_type === 'trash' || extendedProps.event_type === 'recycling') {
+                        alert(title + ' for all properties on ' + startDate);
+                        return;
+                    }
+                    
                     var propertyName = extendedProps.property_name || 'Unknown';
                     var propertyId = extendedProps.property_id || '';
                     var service = extendedProps.service || 'Unknown';
@@ -570,10 +872,74 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch (err) {
                     console.error("Error showing event details:", err);
                 }
+            },
+            datesSet: function(dateInfo) {
+                updateAppleToolbarTitle(dateInfo.view.calendar.getDate());
             }
         });
         
         calendar.render();
+    }
+    
+    function updateAppleToolbarTitle(date) {
+        var title = date.toLocaleString('default', { 
+            month: 'long', 
+            year: 'numeric' 
+        });
+        document.getElementById('apple-title').textContent = title;
+    }
+    
+    function enhanceEvents(events) {
+        return events.map(function(event) {
+            // Calculate checkout date
+            var endDate = new Date(event.end);
+            // Convert to locale date string in short format
+            var checkoutDateStr = endDate.toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric'
+            });
+            
+            // Determine icon based on property type or service
+            var iconClass = 'fas fa-home';
+            var title = event.title || (event.extendedProps ? event.extendedProps.property_name : '');
+            
+            if (event.extendedProps) {
+                if (event.extendedProps.event_type === 'trash') {
+                    iconClass = 'fas fa-trash-alt';
+                    title = 'Trash Day';
+                } else if (event.extendedProps.event_type === 'recycling') {
+                    iconClass = 'fas fa-recycle';
+                    title = 'Recycling Day';
+                } else if (event.extendedProps.service) {
+                    if (event.extendedProps.service.toLowerCase().includes('cleaning')) {
+                        iconClass = 'fas fa-broom';
+                    } else if (event.extendedProps.service.toLowerCase().includes('maintenance')) {
+                        iconClass = 'fas fa-tools';
+                    }
+                }
+            }
+            
+            // Create enhanced event
+            return {
+                ...event,
+                title: title,
+                classNames: ['custom-event'],
+                display: 'block',
+                extendedProps: {
+                    ...event.extendedProps,
+                    iconClass: iconClass,
+                    checkoutDate: event.extendedProps && 
+                                 (event.extendedProps.event_type === 'trash' || 
+                                  event.extendedProps.event_type === 'recycling') 
+                                 ? null : checkoutDateStr
+                }
+            };
+        });
+    }
+    
+    function updateCalendarEvents(events) {
+        calendar.removeAllEvents();
+        calendar.addEventSource(events);
     }
     
     // Property filters
@@ -595,43 +961,9 @@ document.addEventListener('DOMContentLoaded', function() {
         updateVisibleProperties();
     });
     
-    document.getElementById('goToToday').addEventListener('click', function() {
-        calendar.today();
-    });
-    
-    document.getElementById('prevMonth').addEventListener('click', function() {
-        calendar.prev();
-    });
-    
-    document.getElementById('nextMonth').addEventListener('click', function() {
-        calendar.next();
-    });
-    
-    document.getElementById('viewMonth').addEventListener('click', function() {
-        setActiveView(this);
-        calendar.changeView('dayGridMonth');
-    });
-    
-    document.getElementById('viewWeek').addEventListener('click', function() {
-        setActiveView(this);
-        calendar.changeView('timeGridWeek');
-    });
-    
-    document.getElementById('viewDay').addEventListener('click', function() {
-        setActiveView(this);
-        calendar.changeView('timeGridDay');
-    });
-    
     document.getElementById('refreshCalendar').addEventListener('click', function() {
         window.location.reload();
     });
-    
-    function setActiveView(element) {
-        document.querySelectorAll('.btn-nav').forEach(function(btn) {
-            btn.classList.remove('active');
-        });
-        element.classList.add('active');
-    }
     
     // Filter events based on selected properties
     function updateVisibleProperties() {
@@ -640,49 +972,19 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedPropertyIds.push(parseInt(checkbox.dataset.propertyId));
         });
         
-        // Filter events based on selected properties
+        // Filter events based on selected properties, but keep utility events
         var filteredEvents = allEvents.filter(function(event) {
-            return selectedPropertyIds.includes(event.extendedProps.property_id);
+            return selectedPropertyIds.includes(event.extendedProps.property_id) || 
+                  (event.extendedProps && 
+                   (event.extendedProps.event_type === 'trash' || 
+                    event.extendedProps.event_type === 'recycling'));
         });
         
-        // Convert filtered events to enhanced events
-        var enhancedFilteredEvents = filteredEvents.map(function(event) {
-            // Calculate checkout date
-            var endDate = new Date(event.end);
-            var checkoutDateStr = endDate.toLocaleDateString(undefined, {
-                month: 'numeric',
-                day: 'numeric'
-            });
-            
-            // Determine icon
-            var iconClass = 'fas fa-home';
-            if (event.extendedProps.service) {
-                if (event.extendedProps.service.toLowerCase().includes('cleaning')) {
-                    iconClass = 'fas fa-broom';
-                } else if (event.extendedProps.service.toLowerCase().includes('maintenance')) {
-                    iconClass = 'fas fa-tools';
-                }
-            }
-            
-            return {
-                ...event,
-                title: event.extendedProps.property_name + ' (out: ' + checkoutDateStr + ')',
-                backgroundColor: event.backgroundColor || '#3788d8',
-                textColor: '#fff',
-                borderColor: event.borderColor || '#3788d8',
-                classNames: ['custom-event'],
-                display: 'block',
-                extendedProps: {
-                    ...event.extendedProps,
-                    iconClass: iconClass,
-                    checkoutDate: checkoutDateStr
-                }
-            };
-        });
+        // Add utility events
+        var combinedEvents = [...filteredEvents, ...addUtilityEvents()];
         
         // Update the calendar with filtered events
-        calendar.removeAllEvents();
-        calendar.addEventSource(enhancedFilteredEvents);
+        updateCalendarEvents(enhanceEvents(combinedEvents));
     }
     
     // Date formatting helper function

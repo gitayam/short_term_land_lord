@@ -6,7 +6,7 @@ from app.invoicing.forms import (
     TaskPriceForm, InvoiceForm, InvoiceItemForm, InvoiceFilterForm,
     InvoiceCommentForm, PaymentForm, ReportFilterForm
 )
-from app.models import User, Property, Task, CleaningSession, ServiceType, UserRoles, TaskAssignment, PropertyManager
+from app.models import User, Property, Task, CleaningSession, ServiceType, UserRoles, TaskAssignment
 from app.models_modules.invoicing import TaskPrice, Invoice, InvoiceItem, PricingModel, InvoiceStatus
 from app.auth.decorators import property_owner_required, admin_required, invoice_access_required
 from datetime import datetime, timedelta, date
@@ -982,9 +982,9 @@ def financial_reports():
     elif current_user.is_property_manager():
         # Property managers see properties they manage
         managed_properties = Property.query.join(
-            PropertyManager, PropertyManager.property_id == Property.id
+            TaskAssignment, TaskAssignment.property_id == Property.id
         ).filter(
-            PropertyManager.user_id == current_user.id
+            TaskAssignment.user_id == current_user.id
         )
         form.property.query = managed_properties
         
@@ -996,9 +996,9 @@ def financial_reports():
         ).join(
             'properties'
         ).join(
-            PropertyManager, PropertyManager.property_id == Property.id
+            TaskAssignment, TaskAssignment.property_id == Property.id
         ).filter(
-            PropertyManager.user_id == current_user.id,
+            TaskAssignment.user_id == current_user.id,
             User.role.in_([UserRoles.MAINTENANCE, UserRoles.CLEANER])
         ).distinct()
         form.service_provider.query = service_providers
