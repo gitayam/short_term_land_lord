@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+<style>
+    .fc-event {
+        cursor: pointer;
+    }
+    .airbnb-event {
+        background-color: #FF5A5F;
+        border-color: #FF5A5F;
+    }
+    .vrbo-event {
+        background-color: #3D67FF;
+        border-color: #3D67FF;
+    }
+    .booking-event {
+        background-color: #003580;
+        border-color: #003580;
+    }
+    .other-event {
+        background-color: #767676;
+        border-color: #767676;
+    }
+    .room-tag {
+        font-size: 0.8em;
+        font-style: italic;
+        margin-top: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Calendar for {{ property.name }}</h4>
+                    <div>
+                        <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-sm btn-outline-secondary">Back to Property</a>
+                        <a href="{{ url_for('property.manage_calendars', id=property.id) }}" class="btn btn-sm btn-outline-primary">Manage Calendars</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if calendars %}
+                        <div id="calendar"></div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <h5>No calendars added yet</h5>
+                            <p>You haven't added any calendars to this property yet.</p>
+                            {% if property.user_id == current_user.id %}
+                                <a href="{{ url_for('property.add_calendar', id=property.id) }}" class="btn btn-primary">Add a Calendar</a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalLabel">Booking Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Title:</strong> <span id="eventTitle"></span></p>
+                <p><strong>Dates:</strong> <span id="eventDates"></span></p>
+                <p><strong>Service:</strong> <span id="eventService"></span></p>
+                {% if not property.is_entire_property %}
+                <p><strong>Room/Area:</strong> <span id="eventRoom"></span></p>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if calendars %}
+            var calendarEl = document.getElementById('calendar');
+            
+            // Pass events data from Flask to JavaScript
+            var eventsData = {{ events|tojson|safe }};
+            
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek'
+                },
+                events: eventsData,
+                eventClick: function(info) {
+                    // Show modal with event details
+                    document.getElementById('eventTitle').textContent = info.event.title;
+                    document.getElementById('eventDates').textContent = formatDateRange(info.event.start, info.event.end);
+                    document.getElementById('eventService').textContent = info.event.extendedProps.service;
+                    
+                    if (document.getElementById('eventRoom')) {
+                        document.getElementById('eventRoom').textContent = info.event.extendedProps.room || 'Entire Property';
+                    }
+                    
+                    var modal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    modal.show();
+                }
+            });
+            
+            calendar.render();
+            
+            // Helper function to format date range
+            function formatDateRange(start, end) {
+                var options = { month: 'short', day: 'numeric', year: 'numeric' };
+                var startDate = new Date(start).toLocaleDateString('en-US', options);
+                
+                // Subtract one day from end date for display purposes (since iCal end dates are exclusive)
+                var endDate = new Date(end);
+                endDate.setDate(endDate.getDate() - 1);
+                var formattedEndDate = endDate.toLocaleDateString('en-US', options);
+                
+                return startDate + ' - ' + formattedEndDate;
+            }
+        {% endif %}
+    });
+</script>
+{% endblock %} 
