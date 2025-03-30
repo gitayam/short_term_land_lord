@@ -85,6 +85,7 @@ class User(UserMixin, db.Model):
     assigned_tasks = db.relationship('TaskAssignment', backref='assignee', lazy='dynamic')
     cleaning_sessions = db.relationship('CleaningSession', foreign_keys='CleaningSession.cleaner_id', backref='assigned_cleaner', lazy='dynamic')
     user_notifications = db.relationship('Notification', backref='recipient', lazy='dynamic', foreign_keys='Notification.user_id')
+    task_assignments = db.relationship('TaskAssignment', backref='user', lazy='dynamic', overlaps="assigned_tasks,assignee")
     
     def __repr__(self):
         return f'<User {self.email}>'
@@ -441,8 +442,8 @@ class CleaningSession(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships with clear distinct names
-    associated_property = db.relationship('Property', foreign_keys=[property_id])
-    associated_task = db.relationship('Task', foreign_keys=[task_id])
+    associated_property = db.relationship('Property', foreign_keys=[property_id], overlaps="cleaning_sessions")
+    associated_task = db.relationship('Task', foreign_keys=[task_id], overlaps="associated_cleaning_sessions")
     
     def __repr__(self):
         return f'<CleaningSession {self.id} by {self.assigned_cleaner.get_full_name()} at {self.associated_property.name}>'
@@ -656,8 +657,8 @@ class Notification(db.Model):
     read_at = db.Column(db.DateTime, nullable=True)
     
     # Relationships
-    user = db.relationship('User', backref='notifications')
-    task = db.relationship('Task', backref='notifications')
+    user = db.relationship('User', foreign_keys=[user_id], overlaps="recipient,user_notifications")
+    task = db.relationship('Task', foreign_keys=[task_id], overlaps="related_task,task_notifications")
     
     def __repr__(self):
         return f'<Notification {self.id} to {self.user.email} via {self.channel.value}>'
