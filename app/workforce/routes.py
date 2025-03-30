@@ -233,7 +233,7 @@ def send_worker_invitation(user, password, service_type, custom_message=None):
         body += f"\n\nAdditional message from the administrator:\n{custom_message}"
     
     # Send the email
-    send_email(subject, sender=current_app.config['MAIL_DEFAULT_SENDER'], recipients=[user.email], text_body=body)
+    send_email(subject, recipients=[user.email], text_body=body, html_body=body)
     
     # Also create an in-app notification
     create_notification(
