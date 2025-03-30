@@ -167,6 +167,11 @@
                     
                     <div class="mt-4">
                         <h6>🏠 Room Details</h6>
+                        <div class="mb-2">
+                            <a href="{{ url_for('property.edit', id=property.id) }}#rooms-section" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-plus"></i> Add/Edit Rooms
+                            </a>
+                        </div>
                         {% if property.rooms.count() > 0 %}
                             <div class="accordion" id="roomsAccordion">
                                 {% for room in property.rooms %}

@@ -462,7 +462,7 @@ def set_primary_image(image_id):
     flash('Primary image updated successfully!', 'success')
     return redirect(url_for('property.manage_images', id=property.id))
 
-@bp.route('/property/<int:id>/calendars')
+@bp.route('/<int:id>/calendars')
 @login_required
 def manage_calendars(id):
     property = Property.query.get_or_404(id)
@@ -476,13 +476,13 @@ def manage_calendars(id):
     
     return render_template('property/calendars.html', property=property, calendars=calendars)
 
-@bp.route('/property/<int:id>/calendar/add', methods=['GET', 'POST'])
+@bp.route('/<int:id>/calendar/add', methods=['GET', 'POST'])
 @login_required
 def add_calendar(id):
     property = Property.query.get_or_404(id)
     
     # Check if user is authorized to edit this property
-    if property.user_id != current_user.id:
+    if property.owner_id != current_user.id:
         abort(403)
     
     form = PropertyCalendarForm()
@@ -522,14 +522,14 @@ def add_calendar(id):
     
     return render_template('property/calendar_form.html', form=form, property=property, title='Add Calendar')
 
-@bp.route('/property/<int:property_id>/calendar/<int:calendar_id>/edit', methods=['GET', 'POST'])
+@bp.route('/<int:property_id>/calendar/<int:calendar_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_calendar(property_id, calendar_id):
     property = Property.query.get_or_404(property_id)
     calendar = PropertyCalendar.query.get_or_404(calendar_id)
     
     # Check if user is authorized to edit this property
-    if property.user_id != current_user.id:
+    if property.owner_id != current_user.id:
         abort(403)
     
     # Check if calendar belongs to this property
@@ -570,14 +570,14 @@ def edit_calendar(property_id, calendar_id):
     
     return render_template('property/calendar_form.html', form=form, property=property, title='Edit Calendar')
 
-@bp.route('/property/<int:property_id>/calendar/<int:calendar_id>/delete', methods=['POST'])
+@bp.route('/<int:property_id>/calendar/<int:calendar_id>/delete', methods=['POST'])
 @login_required
 def delete_calendar(property_id, calendar_id):
     property = Property.query.get_or_404(property_id)
     calendar = PropertyCalendar.query.get_or_404(calendar_id)
     
     # Check if user is authorized to edit this property
-    if property.user_id != current_user.id:
+    if property.owner_id != current_user.id:
         abort(403)
     
     # Check if calendar belongs to this property
@@ -590,14 +590,14 @@ def delete_calendar(property_id, calendar_id):
     flash('Calendar deleted successfully!', 'success')
     return redirect(url_for('property.manage_calendars', id=property_id))
 
-@bp.route('/property/<int:property_id>/calendar/<int:calendar_id>/sync', methods=['POST'])
+@bp.route('/<int:property_id>/calendar/<int:calendar_id>/sync', methods=['POST'])
 @login_required
 def sync_calendar(property_id, calendar_id):
     property = Property.query.get_or_404(property_id)
     calendar = PropertyCalendar.query.get_or_404(calendar_id)
     
     # Check if user is authorized to edit this property
-    if property.user_id != current_user.id:
+    if property.owner_id != current_user.id:
         abort(403)
     
     # Check if calendar belongs to this property
@@ -630,7 +630,7 @@ def sync_calendar(property_id, calendar_id):
     
     return redirect(url_for('property.manage_calendars', id=property_id))
 
-@bp.route('/property/<int:id>/calendar')
+@bp.route('/<int:id>/calendar')
 @login_required
 def view_calendar(id):
     property = Property.query.get_or_404(id)
