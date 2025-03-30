@@ -156,7 +156,7 @@
     </div>
 </div>
 
-<!-- Event Details Modal -->
+<!-- Event Modal -->
 <div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -165,10 +165,18 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <h5 id="eventTitle"></h5>
-                <p><strong>Dates:</strong> <span id="eventDates"></span></p>
-                <p><strong>Source:</strong> <span id="eventService"></span></p>
-                <p><strong>Location:</strong> <span id="eventRoom">Entire Property</span></p>
+                <div class="mb-3">
+                    <strong>Dates:</strong>
+                    <span id="eventDates"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Service:</strong>
+                    <span id="eventService"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Room:</strong>
+                    <span id="eventRoom"></span>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

@@ -10,6 +10,7 @@ class UserRoles(enum.Enum):
     PROPERTY_OWNER = "property_owner"
     CLEANER = "cleaner"
     MAINTENANCE = "maintenance"
+    ADMIN = "admin"
 
 class TaskStatus(enum.Enum):
     PENDING = "pending"
@@ -133,6 +134,9 @@ class User(UserMixin, db.Model):
     
     def is_maintenance(self):
         return self.role == UserRoles.MAINTENANCE
+    
+    def is_admin(self):
+        return self.role == UserRoles.ADMIN
 
 class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)

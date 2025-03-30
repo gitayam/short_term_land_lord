@@ -365,13 +365,34 @@
             // Create WiFi network string in format: WIFI:S:<SSID>;T:<WPA|WEP|>;P:<password>;;
             const wifiString = "WIFI:S:" + ssid + ";T:WPA;P:" + password + ";;";
             
-            // Generate QR code
-            const qr = qrcode(0, 'M');
-            qr.addData(wifiString);
-            qr.make();
-            
-            // Render QR code
-            wifiQRContainer.innerHTML = qr.createImgTag(4);
+            try {
+                // Initialize TypeNumber dynamically
+                let qr;
+                let typeNumber = 0;  // Start with the smallest type
+                
+                // Try creating the QR code, increasing type number if needed
+                while (typeNumber < 20) {  // Limit to prevent infinite loop
+                    try {
+                        qr = qrcode(typeNumber, 'L');  // L = Low error correction
+                        qr.addData(wifiString);
+                        qr.make();
+                        break;  // Success, exit loop
+                    } catch (e) {
+                        typeNumber++;
+                        // If we've tried all type numbers and still failed, throw the error
+                        if (typeNumber >= 20) throw e;
+                    }
+                }
+                
+                // Render QR code
+                wifiQRContainer.innerHTML = qr.createImgTag(4);
+                
+                // Log success for debugging
+                console.log("QR code successfully generated");
+            } catch (error) {
+                console.error("Error generating QR code:", error);
+                wifiQRContainer.innerHTML = '<div class="alert alert-warning">Could not generate QR code</div>';
+            }
         }
         {% endif %}
     });
