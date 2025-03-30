@@ -5,9 +5,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard-to-guess-string'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'sqlite:///' + os.path.join(basedir, 'app.db')
+    """Base configuration class"""
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///app.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Email configuration for password reset
@@ -19,8 +19,8 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
     
     # Notification settings
-    NOTIFICATION_EMAIL_ENABLED = os.environ.get('NOTIFICATION_EMAIL_ENABLED', 'True').lower() == 'true'
-    NOTIFICATION_SMS_ENABLED = os.environ.get('NOTIFICATION_SMS_ENABLED', 'True').lower() == 'true'
+    NOTIFICATION_EMAIL_ENABLED = True
+    NOTIFICATION_SMS_ENABLED = True
     NOTIFICATION_REMINDER_HOURS = int(os.environ.get('NOTIFICATION_REMINDER_HOURS', 24))
     
     # Twilio SMS configuration
@@ -52,6 +52,10 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH') or 50 * 1024 * 1024)  # 50MB default
     ALLOWED_PHOTO_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
     ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'mov', 'avi', 'webm'}
+    
+    # Additional configuration
+    ADMINS = ['admin@shortermlandlord.com']
+    REQUIRE_CLEANING_VIDEOS = False
 
 class TestConfig(Config):
     TESTING = True

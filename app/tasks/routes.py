@@ -3,12 +3,14 @@ from flask_login import login_required, current_user
 from app import db
 from app.tasks import bp
 from app.tasks.forms import (TaskForm, TaskAssignmentForm, TaskFilterForm, VideoUploadForm, 
-                           IssueReportForm, CleaningFeedbackForm, RepairRequestForm, ConvertToTaskForm)
+                           IssueReportForm, CleaningFeedbackForm, RepairRequestForm, ConvertToTaskForm,
+                           TaskTemplateForm)
 from app.models import (Task, TaskAssignment, TaskProperty, Property, User, 
                        TaskStatus, TaskPriority, RecurrencePattern, UserRoles, ServiceType,
                        PropertyCalendar, CleaningSession, CleaningMedia, MediaType,
                        IssueReport, StorageBackend, CleaningFeedback, InventoryTransaction, TransactionType,
-                       RepairRequest, RepairRequestMedia, RepairRequestStatus, RepairRequestSeverity)
+                       RepairRequest, RepairRequestMedia, RepairRequestStatus, RepairRequestSeverity,
+                       TaskTemplate)
 from app.tasks.media import save_file_to_storage, allowed_file
 from app.notifications.service import send_task_assignment_notification, send_repair_request_notification
 from datetime import datetime, timedelta
@@ -1269,3 +1271,172 @@ def reorder_tasks(property_id):
                           title=f'Reorder Tasks for {property.name}',
                           property=property,
                           tasks=property_tasks)
+
+
+@bp.route('/templates')
+@login_required
+def templates():
+    """View and manage task templates"""
+    # Get templates owned by the user or global templates
+    templates = TaskTemplate.query.filter(
+        db.or_(
+            TaskTemplate.creator_id == current_user.id,
+            TaskTemplate.is_global == True
+        )
+    ).order_by(TaskTemplate.sequence_number.asc()).all()
+    
+    return render_template('tasks/templates.html', 
+                          title='Task Templates',
+                          templates=templates)
+
+
+@bp.route('/templates/create', methods=['GET', 'POST'])
+@login_required
+def create_template():
+    """Create a new task template"""
+    form = TaskTemplateForm()
+    
+    if form.validate_on_submit():
+        # Get the highest sequence number for this user's templates
+        max_seq = db.session.query(db.func.max(TaskTemplate.sequence_number)).filter(
+            TaskTemplate.creator_id == current_user.id
+        ).scalar() or 0
+        
+        template = TaskTemplate(
+            title=form.title.data,
+            description=form.description.data,
+            category=form.category.data,
+            is_global=form.is_global.data if current_user.is_admin() else False,
+            sequence_number=max_seq + 1,
+            creator_id=current_user.id
+        )
+        
+        db.session.add(template)
+        db.session.commit()
+        
+        flash('Task template created successfully.', 'success')
+        return redirect(url_for('tasks.templates'))
+    
+    return render_template('tasks/template_form.html',
+                          title='Create Task Template',
+                          form=form)
+
+
+@bp.route('/templates/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_template(id):
+    """Edit an existing task template"""
+    template = TaskTemplate.query.get_or_404(id)
+    
+    # Check if user can edit this template
+    if template.creator_id != current_user.id and not current_user.is_admin():
+        flash('You do not have permission to edit this template.', 'danger')
+        return redirect(url_for('tasks.templates'))
+    
+    form = TaskTemplateForm(obj=template)
+    
+    if form.validate_on_submit():
+        template.title = form.title.data
+        template.description = form.description.data
+        template.category = form.category.data
+        
+        # Only admins can change global status
+        if current_user.is_admin():
+            template.is_global = form.is_global.data
+        
+        db.session.commit()
+        
+        flash('Task template updated successfully.', 'success')
+        return redirect(url_for('tasks.templates'))
+    
+    return render_template('tasks/template_form.html',
+                          title='Edit Task Template',
+                          form=form)
+
+
+@bp.route('/templates/delete/<int:id>', methods=['POST'])
+@login_required
+def delete_template(id):
+    """Delete a task template"""
+    template = TaskTemplate.query.get_or_404(id)
+    
+    # Check if user can delete this template
+    if template.creator_id != current_user.id and not current_user.is_admin():
+        flash('You do not have permission to delete this template.', 'danger')
+        return redirect(url_for('tasks.templates'))
+    
+    db.session.delete(template)
+    db.session.commit()
+    
+    flash('Task template deleted successfully.', 'success')
+    return redirect(url_for('tasks.templates'))
+
+
+@bp.route('/templates/reorder', methods=['POST'])
+@login_required
+def reorder_templates():
+    """Update the order of task templates"""
+    template_order = request.json.get('template_order', [])
+    
+    for i, template_id in enumerate(template_order):
+        template = TaskTemplate.query.get(template_id)
+        
+        # Only update templates the user owns
+        if template and (template.creator_id == current_user.id or current_user.is_admin()):
+            template.sequence_number = i
+    
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+
+@bp.route('/templates/apply/<int:template_id>', methods=['GET', 'POST'])
+@login_required
+def apply_template(template_id):
+    """Apply a task template to create a new task"""
+    template = TaskTemplate.query.get_or_404(template_id)
+    
+    # Initialize form with template data
+    form = TaskForm()
+    
+    if request.method == 'GET':
+        form.title.data = template.title
+        form.description.data = template.description
+    
+    if form.validate_on_submit():
+        # Create the task using form data
+        task = Task(
+            title=form.title.data,
+            description=form.description.data,
+            due_date=form.due_date.data,
+            priority=form.priority.data,
+            status=TaskStatus.PENDING,
+            creator_id=current_user.id
+        )
+        
+        # Handle recurrence if enabled
+        if form.is_recurring.data:
+            task.is_recurring = True
+            task.recurrence_pattern = form.recurrence_pattern.data
+            task.recurrence_interval = form.recurrence_interval.data
+            task.recurrence_end_date = form.recurrence_end_date.data
+        
+        db.session.add(task)
+        
+        # Associate with property if selected
+        if form.property_id.data:
+            task_property = TaskProperty(
+                property_id=form.property_id.data
+            )
+            task.properties.append(task_property)
+        
+        db.session.commit()
+        
+        flash('Task created successfully from template.', 'success')
+        return redirect(url_for('tasks.view', id=task.id))
+    
+    return render_template('tasks/create.html', 
+                           title='Create Task from Template',
+                           form=form,
+                           from_template=True,
+                           template=template)

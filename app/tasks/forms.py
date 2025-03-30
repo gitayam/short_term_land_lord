@@ -213,3 +213,11 @@ class ConvertToTaskForm(FlaskForm):
         # Set up recurrence pattern choices
         self.recurrence_pattern.choices = [(pattern.value, pattern.name.replace('_', ' ').title()) 
                                           for pattern in RecurrencePattern]
+
+
+class TaskTemplateForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired(), Length(max=100)])
+    description = TextAreaField('Description', validators=[Length(max=2000)])
+    category = StringField('Category', validators=[Length(max=50)])
+    is_global = BooleanField('Make Global Template')
+    submit = SubmitField('Save Template')
