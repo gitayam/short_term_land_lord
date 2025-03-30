@@ -22,6 +22,9 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/short-term-
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/properties', require('./routes/properties'));
+app.use('/api/calendar', require('./routes/calendar'));
+app.use('/api/cleaning-tasks', require('./routes/cleaningTasks'));
 
 // Default route
 app.get('/', (req, res) => {
