@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">Record Inventory Transaction</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>Item Details</h5>
+                        <p class="mb-1"><strong>Item:</strong> {{ item.name }}</p>
+                        <p class="mb-1"><strong>Current Quantity:</strong> {{ item.current_quantity }} {{ item.unit_of_measure }}</p>
+                        <p class="mb-0"><strong>Location:</strong> {{ item.storage_location or 'Not specified' }}</p>
+                    </div>
+                    
+                    <form method="post" novalidate>
+                        {{ form.hidden_tag() }}
+                        {{ form.item_id }}
+                        
+                        <div class="form-group mb-3">
+                            {{ form.transaction_type.label(class="form-label") }}
+                            {{ form.transaction_type(class="form-select" + (" is-invalid" if form.transaction_type.errors else "")) }}
+                            {% for error in form.transaction_type.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">
+                                <ul class="mt-2">
+                                    <li><strong>Restock:</strong> Add items to inventory (increases quantity)</li>
+                                    <li><strong>Usage:</strong> Record items used during cleaning (decreases quantity)</li>
+                                    <li><strong>Adjustment:</strong> Correct inventory count (sets to exact quantity)</li>
+                                </ul>
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.quantity.label(class="form-label") }}
+                            {{ form.quantity(class="form-control" + (" is-invalid" if form.quantity.errors else ""), type="number", step="0.01", min="0.01") }}
+                            {% for error in form.quantity.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted" id="quantity-help">
+                                For restock/usage: Enter the amount to add/remove.<br>
+                                For adjustment: Enter the new total quantity.
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.notes.label(class="form-label") }}
+                            {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=3, placeholder="Optional notes about this transaction") }}
+                            {% for error in form.notes.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    // Update help text based on transaction type
+    document.addEventListener('DOMContentLoaded', function() {
+        const transactionTypeSelect = document.getElementById('transaction_type');
+        const quantityHelp = document.getElementById('quantity-help');
+        
+        function updateHelp() {
+            const selectedValue = transactionTypeSelect.value;
+            if (selectedValue === 'restock') {
+                quantityHelp.innerHTML = 'Enter the amount to add to inventory.';
+            } else if (selectedValue === 'usage') {
+                quantityHelp.innerHTML = 'Enter the amount that was used or consumed.';
+            } else if (selectedValue === 'adjustment') {
+                quantityHelp.innerHTML = 'Enter the new total quantity (will override current count).';
+            }
+        }
+        
+        transactionTypeSelect.addEventListener('change', updateHelp);
+        updateHelp(); // Run once on page load
+    });
+</script>
+{% endblock %}
+{% endblock %}

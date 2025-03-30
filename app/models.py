@@ -38,11 +38,28 @@ class StorageBackend(enum.Enum):
     S3 = "s3"
     RCLONE = "rclone"
 
+class ItemCategory(enum.Enum):
+    CLEANING = "cleaning"
+    BATHROOM = "bathroom"
+    KITCHEN = "kitchen"
+    BEDROOM = "bedroom"
+    LAUNDRY = "laundry"
+    GENERAL = "general"
+    OTHER = "other"
+
+class TransactionType(enum.Enum):
+    RESTOCK = "restock"
+    USAGE = "usage"
+    TRANSFER_IN = "transfer_in"
+    TRANSFER_OUT = "transfer_out"
+    ADJUSTMENT = "adjustment"
+
 class NotificationType(enum.Enum):
     TASK_ASSIGNMENT = "task_assignment"
     TASK_REMINDER = "task_reminder"
     CALENDAR_UPDATE = "calendar_update"
     TASK_COMPLETED = "task_completed"
+    INVENTORY_LOW = "inventory_low"
 
 class NotificationChannel(enum.Enum):
     EMAIL = "email"
@@ -54,7 +71,7 @@ class User(UserMixin, db.Model):
     first_name = db.Column(db.String(64), nullable=False)
     last_name = db.Column(db.String(64), nullable=False)
     email = db.Column(db.String(120), index=True, unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))
+    password_hash = db.Column(db.String(512))
     role = db.Column(db.Enum(UserRoles), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -132,6 +149,7 @@ class Property(db.Model):
     tasks = db.relationship('TaskProperty', back_populates='property', cascade='all, delete-orphan')
     rooms = db.relationship('Room', back_populates='property', lazy='dynamic', cascade='all, delete-orphan')
     cleaning_sessions = db.relationship('CleaningSession', foreign_keys='CleaningSession.property_id', lazy='dynamic', cascade='all, delete-orphan')
+    inventory_items = db.relationship('InventoryItem', back_populates='property', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Property {self.name}>'
@@ -519,6 +537,84 @@ class IssueReport(db.Model):
     
     def __repr__(self):
         return f'<IssueReport {self.id} for session {self.cleaning_session_id}>'
+
+class InventoryItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Basic information
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.Enum(ItemCategory), default=ItemCategory.GENERAL, nullable=False)
+    current_quantity = db.Column(db.Float, default=0, nullable=False)
+    unit_of_measure = db.Column(db.String(20), default="units", nullable=False)
+    storage_location = db.Column(db.String(100), nullable=True)
+    
+    # Detailed information
+    sku = db.Column(db.String(50), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    reorder_threshold = db.Column(db.Float, nullable=True)
+    unit_cost = db.Column(db.Float, nullable=True)
+    purchase_link = db.Column(db.String(500), nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    property = db.relationship('Property', back_populates='inventory_items')
+    transactions = db.relationship('InventoryTransaction', back_populates='item', lazy='dynamic', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<InventoryItem {self.name} ({self.current_quantity} {self.unit_of_measure}) at {self.property.name}>'
+    
+    def is_low_stock(self):
+        """Check if the item is below its reorder threshold"""
+        if self.reorder_threshold is None:
+            return False
+        return self.current_quantity <= self.reorder_threshold
+    
+    def update_quantity(self, amount, transaction_type):
+        """Update the item quantity based on transaction type"""
+        if transaction_type in [TransactionType.RESTOCK, TransactionType.TRANSFER_IN]:
+            self.current_quantity += amount
+        elif transaction_type in [TransactionType.USAGE, TransactionType.TRANSFER_OUT]:
+            self.current_quantity = max(0, self.current_quantity - amount)
+        elif transaction_type == TransactionType.ADJUSTMENT:
+            self.current_quantity = amount
+        
+        self.updated_at = datetime.utcnow()
+
+class InventoryTransaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=False)
+    
+    # Transaction details
+    transaction_type = db.Column(db.Enum(TransactionType), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    previous_quantity = db.Column(db.Float, nullable=False)
+    new_quantity = db.Column(db.Float, nullable=False)
+    
+    # For transfers between properties
+    source_property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
+    destination_property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
+    
+    # User who performed the transaction
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Additional information
+    notes = db.Column(db.Text, nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    item = db.relationship('InventoryItem', back_populates='transactions')
+    user = db.relationship('User', backref='inventory_transactions')
+    source_property = db.relationship('Property', foreign_keys=[source_property_id], backref='outgoing_transfers')
+    destination_property = db.relationship('Property', foreign_keys=[destination_property_id], backref='incoming_transfers')
+    
+    def __repr__(self):
+        return f'<InventoryTransaction {self.transaction_type.value} of {self.quantity} {self.item.unit_of_measure} of {self.item.name}>'
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)

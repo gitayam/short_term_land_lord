@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Transaction History</h1>
+        <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Inventory
+        </a>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Item Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Item Name:</strong> {{ item.name }}</p>
+                    <p><strong>Category:</strong> {{ item.category.value|capitalize }}</p>
+                    <p><strong>Current Quantity:</strong> {{ item.current_quantity }} {{ item.unit_of_measure }}</p>
+                    <p><strong>Storage Location:</strong> {{ item.storage_location or 'Not specified' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Reorder Threshold:</strong> {{ item.reorder_threshold or 'Not set' }} {% if item.reorder_threshold %}{{ item.unit_of_measure }}{% endif %}</p>
+                    <p><strong>SKU/Item Code:</strong> {{ item.sku or 'Not specified' }}</p>
+                    <p><strong>Unit Cost:</strong> {% if item.unit_cost %}${{ "%.2f"|format(item.unit_cost) }}{% else %}Not specified{% endif %}</p>
+                    <p><strong>Status:</strong> 
+                        {% if item.is_low_stock() %}
+                        <span class="badge bg-warning text-dark">Low Stock</span>
+                        {% else %}
+                        <span class="badge bg-success">In Stock</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            {% if item.description %}
+            <div class="row mt-2">
+                <div class="col-12">
+                    <p><strong>Description:</strong> {{ item.description }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Transaction History</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if transactions %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Transaction Type</th>
+                            <th>Quantity</th>
+                            <th>Previous</th>
+                            <th>New</th>
+                            <th>User</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                {% if transaction.transaction_type.value == 'restock' %}
+                                <span class="badge bg-success">Restock</span>
+                                {% elif transaction.transaction_type.value == 'usage' %}
+                                <span class="badge bg-primary">Usage</span>
+                                {% elif transaction.transaction_type.value == 'adjustment' %}
+                                <span class="badge bg-info">Adjustment</span>
+                                {% elif transaction.transaction_type.value == 'transfer_in' %}
+                                <span class="badge bg-success">Transfer In</span>
+                                {% elif transaction.transaction_type.value == 'transfer_out' %}
+                                <span class="badge bg-warning text-dark">Transfer Out</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ transaction.quantity }} {{ item.unit_of_measure }}</td>
+                            <td>{{ transaction.previous_quantity }} {{ item.unit_of_measure }}</td>
+                            <td>{{ transaction.new_quantity }} {{ item.unit_of_measure }}</td>
+                            <td>{{ transaction.user.get_full_name() }}</td>
+                            <td>
+                                {% if transaction.transaction_type.value in ['transfer_in', 'transfer_out'] %}
+                                    {% if transaction.transaction_type.value == 'transfer_in' %}
+                                    <span>From: {{ transaction.source_property.name }}</span>
+                                    {% else %}
+                                    <span>To: {{ transaction.destination_property.name }}</span>
+                                    {% endif %}
+                                    {% if transaction.notes %}
+                                    <br><small>{{ transaction.notes }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    {{ transaction.notes or '-' }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center p-4">
+                <p class="mb-0">No transaction history found for this item.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

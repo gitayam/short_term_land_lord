@@ -216,6 +216,50 @@ def send_sms_notification(phone_number, message):
         logger.error(f"Failed to send SMS notification: {str(e)}")
         return False
 
+def send_inventory_low_notification(item, property, user):
+    """Send notification when an inventory item falls below its reorder threshold"""
+    if not user or not item or not property:
+        logger.error("Cannot send inventory notification: missing user, item, or property")
+        return False
+    
+    # Create notification content
+    title = f"Low Inventory Alert: {item.name}"
+    message = f"The inventory level for {item.name} at {property.name} is low.\n"
+    message += f"Current quantity: {item.current_quantity} {item.unit_of_measure}\n"
+    message += f"Reorder threshold: {item.reorder_threshold} {item.unit_of_measure}\n"
+    message += f"Please restock this item soon."
+    
+    # Create in-app notification
+    create_notification(
+        user_id=user.id,
+        task_id=None,
+        notification_type=NotificationType.INVENTORY_LOW,
+        channel=NotificationChannel.IN_APP,
+        title=title,
+        message=message
+    )
+    
+    # Send email notification if enabled
+    if current_app.config.get('NOTIFICATION_EMAIL_ENABLED', True):
+        send_email_notification(
+            user=user,
+            subject=title,
+            text_body=message,
+            html_body=f"<p>The inventory level for <strong>{item.name}</strong> at <strong>{property.name}</strong> is low.</p>"
+                     f"<p>Current quantity: {item.current_quantity} {item.unit_of_measure}<br>"
+                     f"Reorder threshold: {item.reorder_threshold} {item.unit_of_measure}</p>"
+                     f"<p>Please restock this item soon.</p>"
+        )
+    
+    # Send SMS notification if enabled and user has a phone number
+    if current_app.config.get('NOTIFICATION_SMS_ENABLED', True) and hasattr(user, 'phone'):
+        send_sms_notification(
+            phone_number=user.phone,
+            message=f"Low inventory alert: {item.name} at {property.name} is below threshold ({item.current_quantity}/{item.reorder_threshold} {item.unit_of_measure})."
+        )
+    
+    return True
+
 def check_upcoming_tasks():
     """Check for tasks due soon and send reminders"""
     # Get reminder hours from config
