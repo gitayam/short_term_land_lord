@@ -197,6 +197,23 @@ class User(UserMixin, db.Model):
     
     def is_maintenance(self):
         return self.role == UserRoles.SERVICE_STAFF
+    
+    def can_complete_task(self, task):
+        """Check if the user can complete a task"""
+        # Task creator can always complete their own tasks
+        if task.creator_id == self.id:
+            return True
+        
+        # Check if user is assigned to this task
+        for assignment in task.assignments:
+            if assignment.user_id == self.id:
+                return True
+        
+        # Admins can complete any task
+        if self.is_admin():
+            return True
+            
+        return False
 
 class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)

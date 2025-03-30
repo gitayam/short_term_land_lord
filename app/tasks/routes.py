@@ -56,7 +56,9 @@ def index():
     elif current_user.is_service_staff():
         # Service staff can filter by properties they have tasks for
         property_ids = db.session.query(TaskProperty.property_id).join(
-            Task, TaskAssignment
+            Task, Task.id == TaskProperty.task_id
+        ).join(
+            TaskAssignment, TaskAssignment.task_id == Task.id
         ).filter(
             TaskAssignment.user_id == current_user.id
         ).distinct().all()
