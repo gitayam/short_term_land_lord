@@ -23,6 +23,13 @@ def create_app(config_class=Config):
     mail.init_app(app)
     migrate.init_app(app, db)
     
+    # Register custom Jinja2 filters
+    @app.template_filter('nl2br')
+    def nl2br_filter(s):
+        if s:
+            return s.replace('\n', '<br>')
+        return s
+    
     # Register blueprints
     from app.auth import bp as auth_bp
     app.register_blueprint(auth_bp, url_prefix='/auth')

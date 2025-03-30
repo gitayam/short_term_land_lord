@@ -10,6 +10,7 @@
                     <a href="{{ url_for('property.edit', id=property.id) }}" class="btn btn-sm btn-primary">Edit Property</a>
                     <a href="{{ url_for('property.manage_images', id=property.id) }}" class="btn btn-sm btn-outline-primary">Manage Images</a>
                     <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-sm btn-outline-info">View Calendar</a>
+                    <a href="{{ url_for('property.manage_guest_access', id=property.id) }}" class="btn btn-sm btn-outline-success">Guest Access</a>
                     <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-sm btn-outline-success">Manage Inventory</a>
                     <a href="{{ url_for('tasks.property_tasks', property_id=property.id) }}" class="btn btn-sm btn-outline-warning">View Tasks</a>
                 </div>
@@ -291,6 +292,29 @@
                     </div>
                 </div>
                 
+                <!-- Guest Access Section -->
+                <div class="card mt-3">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Guest Access</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if property.guest_access_enabled and property.guest_access_token %}
+                            <p>Guest access is <strong>enabled</strong> for this property.</p>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control form-control-sm" value="{{ url_for('property.guest_view', token=property.guest_access_token, _external=True) }}" id="guest-url" readonly>
+                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="copyGuestUrl()">
+                                    <i class="bi bi-clipboard"></i> Copy
+                                </button>
+                            </div>
+                        {% else %}
+                            <p>Guest access is <strong>disabled</strong> for this property.</p>
+                        {% endif %}
+                        <a href="{{ url_for('property.manage_guest_access', id=property.id) }}" class="btn btn-success">
+                            <i class="bi bi-gear"></i> Manage Guest Access
+                        </a>
+                    </div>
+                </div>
+                
                 {% if current_user.is_cleaner() or current_user.is_maintenance() %}
                 <!-- Repair Request Section -->
                 <div class="card mt-3">
@@ -351,5 +375,21 @@
         }
         {% endif %}
     });
+    
+    function copyGuestUrl() {
+        const guestUrlInput = document.getElementById('guest-url');
+        if (guestUrlInput) {
+            guestUrlInput.select();
+            document.execCommand('copy');
+            
+            // Show a temporary "Copied!" tooltip or message
+            const copyBtn = guestUrlInput.nextElementSibling;
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText;
+            }, 2000);
+        }
+    }
 </script>
 {% endblock %}

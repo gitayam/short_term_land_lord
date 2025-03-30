@@ -111,7 +111,7 @@ class User(UserMixin, db.Model):
     assigned_tasks = db.relationship('TaskAssignment', backref='assignee', lazy='dynamic')
     cleaning_sessions = db.relationship('CleaningSession', foreign_keys='CleaningSession.cleaner_id', backref='assigned_cleaner', lazy='dynamic')
     user_notifications = db.relationship('Notification', backref='recipient', lazy='dynamic', foreign_keys='Notification.user_id')
-    task_assignments = db.relationship('TaskAssignment', backref='user', lazy='dynamic', overlaps="assigned_tasks,assignee")
+    task_assignments = db.relationship('TaskAssignment', foreign_keys='TaskAssignment.user_id', lazy='dynamic', overlaps="assigned_tasks,assignee")
     
     def __repr__(self):
         return f'<User {self.email}>'
@@ -168,6 +168,16 @@ class Property(db.Model):
     special_instructions = db.Column(db.Text, comment='Any special instructions for cleaners')
     entry_instructions = db.Column(db.Text, comment='Instructions for entering the property (key codes, etc.)')
     
+    # Guest-specific information
+    guest_access_token = db.Column(db.String(64), unique=True, nullable=True, comment='Unique token for guest access link')
+    guest_rules = db.Column(db.Text, nullable=True, comment='House rules for guests')
+    guest_checkin_instructions = db.Column(db.Text, nullable=True, comment='Check-in instructions for guests')
+    guest_checkout_instructions = db.Column(db.Text, nullable=True, comment='Check-out instructions for guests')
+    guest_wifi_instructions = db.Column(db.Text, nullable=True, comment='WiFi instructions for guests')
+    local_attractions = db.Column(db.Text, nullable=True, comment='Information about local attractions')
+    emergency_contact = db.Column(db.String(255), nullable=True, comment='Emergency contact information')
+    guest_access_enabled = db.Column(db.Boolean, default=False, comment='Whether guest access is enabled')
+    
     # Ownership and timestamps
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -208,6 +218,18 @@ class Property(db.Model):
         if user.is_cleaner() or user.is_maintenance():
             return True
         return False
+    
+    def generate_guest_access_token(self):
+        """Generate a unique token for guest access"""
+        if not self.guest_access_token:
+            self.guest_access_token = secrets.token_urlsafe(32)
+        return self.guest_access_token
+    
+    def get_guest_access_url(self):
+        """Get the full URL for guest access"""
+        if not self.guest_access_token:
+            return None
+        return f"/guest/{self.guest_access_token}"
 
 class PropertyImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -632,7 +654,7 @@ class RepairRequest(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    property = db.relationship('Property', backref='repair_requests')
+    property = db.relationship('Property', foreign_keys=[property_id])
     reporter = db.relationship('User', backref='submitted_repair_requests')
     task = db.relationship('Task', backref='source_repair_request')
     media = db.relationship('RepairRequestMedia', backref='repair_request', cascade='all, delete-orphan')
@@ -738,7 +760,7 @@ class InventoryTransaction(db.Model):
     
     # Relationships
     item = db.relationship('InventoryItem', back_populates='transactions')
-    user = db.relationship('User', backref='inventory_transactions')
+    user = db.relationship('User', foreign_keys=[user_id])
     source_property = db.relationship('Property', foreign_keys=[source_property_id], backref='outgoing_transfers')
     destination_property = db.relationship('Property', foreign_keys=[destination_property_id], backref='incoming_transfers')
     
@@ -757,7 +779,7 @@ class Notification(db.Model):
     sent_at = db.Column(db.DateTime, default=datetime.utcnow)
     read_at = db.Column(db.DateTime, nullable=True)
     
-    # Relationships
+    # Relationships - fixed overlapping issues
     user = db.relationship('User', foreign_keys=[user_id], overlaps="recipient,user_notifications")
     task = db.relationship('Task', foreign_keys=[task_id], overlaps="related_task,task_notifications")
     

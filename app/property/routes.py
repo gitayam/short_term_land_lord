@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
 from app.property import bp
-from app.property.forms import PropertyForm, PropertyImageForm, PropertyCalendarForm, RoomForm
+from app.property.forms import PropertyForm, PropertyImageForm, PropertyCalendarForm, RoomForm, GuestAccessForm
 from app.models import Property, PropertyImage, UserRoles, PropertyCalendar, Room
 from datetime import datetime, timedelta
 import os
@@ -461,6 +461,48 @@ def set_primary_image(image_id):
     
     flash('Primary image updated successfully!', 'success')
     return redirect(url_for('property.manage_images', id=property.id))
+
+@bp.route('/<int:id>/guest-access', methods=['GET', 'POST'])
+@property_owner_required
+def manage_guest_access(id):
+    property = Property.query.get_or_404(id)
+    # Ensure the current user is the owner
+    if property.owner_id != current_user.id:
+        flash('Access denied. You can only manage guest access for your own properties.', 'danger')
+        return redirect(url_for('property.index'))
+    
+    form = GuestAccessForm(obj=property)
+    
+    if form.validate_on_submit():
+        form.populate_obj(property)
+        
+        # Generate a new token if requested or if enabling access for the first time
+        if form.regenerate_token.data or (property.guest_access_enabled and not property.guest_access_token):
+            property.generate_guest_access_token()
+        
+        db.session.commit()
+        flash('Guest access settings updated successfully!', 'success')
+        return redirect(url_for('property.view', id=property.id))
+    
+    # Generate guest access URL for display
+    guest_url = None
+    if property.guest_access_token:
+        guest_url = url_for('property.guest_view', token=property.guest_access_token, _external=True)
+    
+    return render_template('property/guest_access.html', 
+                          title=f'Guest Access - {property.name}',
+                          form=form, 
+                          property=property,
+                          guest_url=guest_url)
+
+@bp.route('/guest/<token>')
+def guest_view(token):
+    # Find property by guest access token
+    property = Property.query.filter_by(guest_access_token=token, guest_access_enabled=True).first_or_404()
+    
+    return render_template('property/guest_view.html', 
+                          title=f'Welcome to {property.name}',
+                          property=property)
 
 @bp.route('/<int:id>/calendars')
 @login_required

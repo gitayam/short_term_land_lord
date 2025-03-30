@@ -118,3 +118,23 @@ class PropertyCalendarForm(FlaskForm):
     ], validators=[DataRequired()])
     
     submit = SubmitField('Save Calendar 💾')
+
+class GuestAccessForm(FlaskForm):
+    guest_access_enabled = BooleanField('Enable Guest Access 🔓', default=False)
+    guest_rules = TextAreaField('House Rules 📜', validators=[Optional()], 
+                               description='Rules guests should follow during their stay')
+    guest_checkin_instructions = TextAreaField('Check-in Instructions 🔑', validators=[Optional()],
+                                             description='Instructions for guests on how to check in')
+    guest_checkout_instructions = TextAreaField('Check-out Instructions 🧹', validators=[Optional()],
+                                              description='Instructions for guests on how to check out')
+    guest_wifi_instructions = TextAreaField('WiFi Instructions 📶', validators=[Optional()],
+                                          description='Instructions for connecting to WiFi')
+    local_attractions = TextAreaField('Local Attractions & Recommendations 🏖️', validators=[Optional()],
+                                    description='Information about nearby attractions, restaurants, etc.')
+    emergency_contact = StringField('Emergency Contact Information 🚑', validators=[Optional(), Length(max=255)],
+                                  description='Contact information for emergencies')
+    
+    regenerate_token = BooleanField('Regenerate Access Link 🔄', default=False,
+                                  description='Check this to create a new access link (invalidates the old one)')
+    
+    submit = SubmitField('Save Guest Access Settings 💾')
