@@ -3,7 +3,7 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, DateTimeField, SelectField, BooleanField, SubmitField, IntegerField, TelField, RadioField
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 from wtforms_sqlalchemy.fields import QuerySelectField, QuerySelectMultipleField
-from app.models import User, Property, TaskStatus, TaskPriority, RecurrencePattern, UserRoles, MediaType, RepairRequestSeverity
+from app.models import User, Property, TaskStatus, TaskPriority, RecurrencePattern, UserRoles, MediaType, RepairRequestSeverity, ServiceType
 
 
 class TaskForm(FlaskForm):
@@ -73,6 +73,11 @@ class TaskAssignmentForm(FlaskForm):
     assign_to_user = BooleanField('Assign to Existing User', default=True)
     user = QuerySelectField('User', get_label=lambda u: f"{u.get_full_name()} ({u.email})", validators=[Optional()])
     
+    # Service type for service staff assignments
+    service_type = SelectField('Service Type', choices=[(t.value, t.name.replace('_', ' ').title()) 
+                                                      for t in ServiceType], 
+                             validators=[Optional()])
+    
     # Option to assign to external person
     external_name = StringField('Name', validators=[Optional(), Length(max=100)])
     external_phone = TelField('Phone Number', validators=[Optional(), Length(max=20)])
@@ -93,6 +98,11 @@ class TaskAssignmentForm(FlaskForm):
                 self.external_name.errors.append('Name is required for external assignment')
             if not self.external_phone.data:
                 self.external_phone.errors.append('Phone number is required for external assignment')
+            return False
+            
+        # Service type is required when assigning to service staff
+        if self.assign_to_user.data and self.user.data and self.user.data.is_service_staff() and not self.service_type.data:
+            self.service_type.errors.append('Service type is required when assigning to service staff')
             return False
             
         return True

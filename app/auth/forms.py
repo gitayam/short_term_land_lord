@@ -23,8 +23,8 @@ class RegistrationForm(FlaskForm):
     ])
     role = SelectField('Role', choices=[
         (UserRoles.PROPERTY_OWNER.value, 'Property Owner'),
-        (UserRoles.CLEANER.value, 'Cleaner'),
-        (UserRoles.MAINTENANCE.value, 'Maintenance Personnel')
+        (UserRoles.SERVICE_STAFF.value, 'Service Staff'),
+        (UserRoles.PROPERTY_MANAGER.value, 'Property Manager')
     ], validators=[DataRequired()])
     submit = SubmitField('Register')
     

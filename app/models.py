@@ -8,8 +8,8 @@ from app import db, login_manager
 
 class UserRoles(enum.Enum):
     PROPERTY_OWNER = "property_owner"
-    CLEANER = "cleaner"
-    MAINTENANCE = "maintenance"
+    SERVICE_STAFF = "service_staff"
+    PROPERTY_MANAGER = "property_manager"
     ADMIN = "admin"
 
 class TaskStatus(enum.Enum):
@@ -62,6 +62,14 @@ class ItemCategory(enum.Enum):
     BEDROOM = "bedroom"
     LAUNDRY = "laundry"
     GENERAL = "general"
+    OTHER = "other"
+
+class ServiceType(enum.Enum):
+    CLEANING = "cleaning"
+    HANDYMAN = "handyman"
+    LAWN_CARE = "lawn_care"
+    POOL_MAINTENANCE = "pool_maintenance"
+    GENERAL_MAINTENANCE = "general_maintenance"
     OTHER = "other"
 
 class InventoryCatalogItem(db.Model):
@@ -160,14 +168,21 @@ class User(UserMixin, db.Model):
     def is_property_owner(self):
         return self.role == UserRoles.PROPERTY_OWNER
     
-    def is_cleaner(self):
-        return self.role == UserRoles.CLEANER
+    def is_property_manager(self):
+        return self.role == UserRoles.PROPERTY_MANAGER
     
-    def is_maintenance(self):
-        return self.role == UserRoles.MAINTENANCE
+    def is_service_staff(self):
+        return self.role == UserRoles.SERVICE_STAFF
     
     def is_admin(self):
         return self.role == UserRoles.ADMIN
+        
+    # Legacy methods for backward compatibility
+    def is_cleaner(self):
+        return self.role == UserRoles.SERVICE_STAFF
+    
+    def is_maintenance(self):
+        return self.role == UserRoles.SERVICE_STAFF
 
 class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -505,7 +520,8 @@ class Task(db.Model):
             new_assignment = TaskAssignment(
                 user_id=assignment.user_id,
                 external_name=assignment.external_name,
-                external_phone=assignment.external_phone
+                external_phone=assignment.external_phone,
+                service_type=assignment.service_type
             )
             new_task.assignments.append(new_assignment)
             
@@ -521,13 +537,17 @@ class TaskAssignment(db.Model):
     external_name = db.Column(db.String(100), nullable=True)
     external_phone = db.Column(db.String(20), nullable=True)
     
+    # Service type for service staff assignments
+    service_type = db.Column(db.Enum(ServiceType), nullable=True)
+    
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def __repr__(self):
         if self.user_id:
-            return f'<TaskAssignment to User {self.user_id}>'
+            service_info = f" ({self.service_type.value})" if self.service_type else ""
+            return f'<TaskAssignment to User {self.user_id}{service_info}>'
         else:
             return f'<TaskAssignment to {self.external_name}>'
 

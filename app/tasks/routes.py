@@ -5,7 +5,7 @@ from app.tasks import bp
 from app.tasks.forms import (TaskForm, TaskAssignmentForm, TaskFilterForm, VideoUploadForm, 
                            IssueReportForm, CleaningFeedbackForm, RepairRequestForm, ConvertToTaskForm)
 from app.models import (Task, TaskAssignment, TaskProperty, Property, User, 
-                       TaskStatus, TaskPriority, RecurrencePattern, UserRoles,
+                       TaskStatus, TaskPriority, RecurrencePattern, UserRoles, ServiceType,
                        PropertyCalendar, CleaningSession, CleaningMedia, MediaType,
                        IssueReport, StorageBackend, CleaningFeedback, InventoryTransaction, TransactionType,
                        RepairRequest, RepairRequestMedia, RepairRequestStatus, RepairRequestSeverity)
@@ -20,33 +20,25 @@ from werkzeug.utils import secure_filename
 
 
 def cleaner_required(f):
-    """Decorator to restrict access to cleaner users only"""
+    """Decorator to restrict access to users who can perform cleaning tasks"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_cleaner():
-            flash('This feature is only available to cleaners.', 'danger')
+        if not current_user.is_service_staff():
+            flash('This feature is only available to cleaning staff.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
     return decorated_function
 
 
-def maintenance_required(f):
-    """Decorator to restrict access to maintenance users only"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_maintenance():
-            flash('This feature is only available to maintenance personnel.', 'danger')
-            return redirect(url_for('main.index'))
-        return f(*args, **kwargs)
-    return decorated_function
+# The maintenance_required decorator is no longer needed as we now use service_staff_required
 
 
 def service_staff_required(f):
-    """Decorator to restrict access to cleaners and maintenance users"""
+    """Decorator to restrict access to service staff users"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not (current_user.is_cleaner() or current_user.is_maintenance()):
-            flash('This feature is only available to cleaners and maintenance personnel.', 'danger')
+        if not current_user.is_service_staff():
+            flash('This feature is only available to service staff.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
     return decorated_function
@@ -58,21 +50,21 @@ def index():
     # Initialize filter form
     form = TaskFilterForm()
     form.property.query = Property.query
-    form.assignee.query = User.query.filter(User.role.in_([UserRoles.CLEANER, UserRoles.MAINTENANCE]))
+    form.assignee.query = User.query.filter(User.role == UserRoles.SERVICE_STAFF)
     
     # Base query - tasks that the current user can see
     query = Task.query
     
     # Property owners see tasks for their properties
-    if current_user.is_property_owner():
+    if current_user.is_property_owner() or current_user.is_property_manager():
         # Get all properties owned by the current user
         owned_property_ids = [p.id for p in current_user.properties]
         
         # Find tasks associated with these properties
         query = query.join(TaskProperty).filter(TaskProperty.property_id.in_(owned_property_ids))
     
-    # Cleaners and maintenance personnel see tasks assigned to them
-    elif current_user.is_cleaner() or current_user.is_maintenance():
+    # Service staff see tasks assigned to them
+    elif current_user.is_service_staff():
         query = query.join(TaskAssignment).filter(TaskAssignment.user_id == current_user.id)
     
     # Apply filters if form is submitted
@@ -118,9 +110,9 @@ def index():
     # Order by due date (most urgent first) and then by priority
     tasks = query.order_by(Task.due_date.asc(), Task.priority.desc()).all()
     
-    # Get active cleaning session for current user if they are a cleaner
+    # Get active cleaning session for current user if they are service staff
     active_session = None
-    if current_user.is_cleaner():
+    if current_user.is_service_staff():
         active_session = CleaningSession.get_active_session(current_user.id)
     
     return render_template('tasks/index.html', title='Tasks', tasks=tasks, form=form, active_session=active_session)
@@ -199,7 +191,7 @@ def view(id):
     # Get active cleaning session for current user if they are a cleaner
     active_session = None
     cleaning_history = []
-    if current_user.is_cleaner():
+    if current_user.is_service_staff():
         active_session = CleaningSession.get_active_session(current_user.id)
         # Get cleaning history for this task
         cleaning_history = CleaningSession.query.filter_by(
@@ -321,8 +313,8 @@ def assign(id):
     
     form = TaskAssignmentForm()
     
-    # Set up query for users who can be assigned tasks (cleaners and maintenance)
-    form.user.query = User.query.filter(User.role.in_([UserRoles.CLEANER, UserRoles.MAINTENANCE]))
+    # Set up query for users who can be assigned tasks (service staff)
+    form.user.query = User.query.filter(User.role == UserRoles.SERVICE_STAFF)
     
     if form.validate_on_submit():
         # Create new assignment
@@ -330,7 +322,8 @@ def assign(id):
             # Assign to existing user
             assignment = TaskAssignment(
                 task_id=task.id,
-                user_id=form.user.data.id
+                user_id=form.user.data.id,
+                service_type=ServiceType(form.service_type.data) if form.service_type.data else None
             )
             
             # Send notification to the assigned user
@@ -421,7 +414,8 @@ def assign_tasks_to_next_cleaner(property_id, cleaner_id):
             # Create a new assignment
             assignment = TaskAssignment(
                 task_id=task.id,
-                user_id=cleaner_id
+                user_id=cleaner_id,
+                service_type=ServiceType.CLEANING  # Default to cleaning service type
             )
             db.session.add(assignment)
             
@@ -628,7 +622,7 @@ def property_tasks(property_id):
     property = Property.query.get_or_404(property_id)
     
     # Check permissions
-    if not current_user.is_admin() and property.owner_id != current_user.id and not current_user.is_cleaner():
+    if not current_user.is_admin() and property.owner_id != current_user.id and not current_user.is_service_staff() and not current_user.is_property_manager():
         flash('You do not have permission to view tasks for this property.', 'danger')
         return redirect(url_for('property.view', id=property_id))
     
@@ -855,7 +849,7 @@ def repair_requests(status):
         query = query.filter(RepairRequest.property_id.in_(owned_property_ids))
     
     # Cleaners and maintenance personnel see requests they submitted
-    elif current_user.is_cleaner() or current_user.is_maintenance():
+    elif current_user.is_service_staff():
         query = query.filter(RepairRequest.reporter_id == current_user.id)
     
     # Order by created date (newest first) and severity
