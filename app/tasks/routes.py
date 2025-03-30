@@ -49,56 +49,81 @@ def service_staff_required(f):
 def index():
     # Initialize filter form
     form = TaskFilterForm()
-    form.property.query = Property.query
-    form.assignee.query = User.query.filter(User.role == UserRoles.SERVICE_STAFF)
     
-    # Base query - tasks that the current user can see
+    # Set up query for properties that the user is allowed to filter by
+    if current_user.is_property_owner():
+        form.property.query = Property.query.filter_by(owner_id=current_user.id)
+    elif current_user.is_service_staff():
+        # Service staff can filter by properties they have tasks for
+        property_ids = db.session.query(TaskProperty.property_id).join(
+            Task, TaskAssignment
+        ).filter(
+            TaskAssignment.user_id == current_user.id
+        ).distinct().all()
+        property_ids = [p[0] for p in property_ids]
+        form.property.query = Property.query.filter(Property.id.in_(property_ids))
+    else:
+        form.property.query = Property.query.filter(False)  # Empty query
+    
+    # Set up query for assignees that the user is allowed to filter by
+    if current_user.is_property_owner():
+        # Property owners can filter by all service staff
+        form.assignee.query = User.query.filter(User.role == UserRoles.SERVICE_STAFF)
+    else:
+        # Other users can only filter by themselves
+        form.assignee.query = User.query.filter(User.id == current_user.id)
+    
+    # Build the query based on the user's role
     query = Task.query
     
     # Property owners see tasks for their properties
-    if current_user.is_property_owner() or current_user.is_property_manager():
-        # Get all properties owned by the current user
-        owned_property_ids = [p.id for p in current_user.properties]
-        
-        # Find tasks associated with these properties
-        query = query.join(TaskProperty).filter(TaskProperty.property_id.in_(owned_property_ids))
+    if current_user.is_property_owner():
+        property_ids = [p.id for p in current_user.properties]
+        query = query.join(TaskProperty).filter(TaskProperty.property_id.in_(property_ids))
     
     # Service staff see tasks assigned to them
     elif current_user.is_service_staff():
         query = query.join(TaskAssignment).filter(TaskAssignment.user_id == current_user.id)
     
-    # Apply filters if form is submitted
+    # Apply filters
     if request.args:
-        # Filter by status
+        # Status filter
         status = request.args.get('status')
         if status:
-            query = query.filter(Task.status == TaskStatus(status))
-            
-        # Filter by priority
+            query = query.filter(Task.status == status)
+        
+        # Priority filter
         priority = request.args.get('priority')
         if priority:
-            query = query.filter(Task.priority == TaskPriority(priority))
-            
-        # Filter by property
+            query = query.filter(Task.priority == priority)
+        
+        # Property filter
         property_id = request.args.get('property')
         if property_id and property_id.isdigit():
-            query = query.join(TaskProperty).filter(TaskProperty.property_id == int(property_id))
-            
-        # Filter by assignee
+            # If we're already filtering by property owner, no need to join again
+            if not current_user.is_property_owner():
+                query = query.join(TaskProperty)
+            query = query.filter(TaskProperty.property_id == int(property_id))
+        
+        # Assignee filter
         assignee_id = request.args.get('assignee')
         if assignee_id and assignee_id.isdigit():
-            query = query.join(TaskAssignment).filter(TaskAssignment.user_id == int(assignee_id))
-            
-        # Filter by due date range
+            # If service staff is looking at their own tasks, no need to join again
+            if not (current_user.is_service_staff() and int(assignee_id) == current_user.id):
+                query = query.join(TaskAssignment)
+            query = query.filter(TaskAssignment.user_id == int(assignee_id))
+        
+        # Due date range filter
         due_date_from = request.args.get('due_date_from')
+        due_date_to = request.args.get('due_date_to')
+        
         if due_date_from:
             try:
                 from_date = datetime.strptime(due_date_from, '%Y-%m-%d')
                 query = query.filter(Task.due_date >= from_date)
             except ValueError:
                 pass
-                
-        due_date_to = request.args.get('due_date_to')
+        
         if due_date_to:
             try:
                 to_date = datetime.strptime(due_date_to, '%Y-%m-%d')
@@ -107,15 +132,61 @@ def index():
             except ValueError:
                 pass
     
-    # Order by due date (most urgent first) and then by priority
+    # For service staff, we need to make sure we get property info - ensure we have the right joins
+    if current_user.is_service_staff():
+        # Use aliased joins to avoid duplicate table issues
+        from sqlalchemy.orm import aliased
+        task_assignment_alias = aliased(TaskAssignment)
+        task_property_alias = aliased(TaskProperty)
+        
+        query = Task.query.join(
+            task_assignment_alias, Task.id == task_assignment_alias.task_id
+        ).filter(
+            task_assignment_alias.user_id == current_user.id
+        ).join(
+            task_property_alias, Task.id == task_property_alias.task_id
+        )
+        
+        # Apply filters again with aliased tables
+        property_id = request.args.get('property')
+        if property_id and property_id.isdigit():
+            query = query.filter(task_property_alias.property_id == int(property_id))
+    
+    # Get tasks and sort by due date and priority
     tasks = query.order_by(Task.due_date.asc(), Task.priority.desc()).all()
     
-    # Get active cleaning session for current user if they are service staff
-    active_session = None
-    if current_user.is_service_staff():
-        active_session = CleaningSession.get_active_session(current_user.id)
+    # For service staff, we need property info for their tasks
+    property_info = {}
+    if current_user.is_service_staff() and tasks:
+        task_ids = [task.id for task in tasks]
+        task_properties = db.session.query(
+            TaskProperty.task_id, Property.id, Property.name, Property.street_address, Property.city
+        ).join(
+            Property, TaskProperty.property_id == Property.id
+        ).filter(
+            TaskProperty.task_id.in_(task_ids)
+        ).all()
+        
+        for tp in task_properties:
+            task_id, prop_id, prop_name, address, city = tp
+            property_info[task_id] = {
+                'id': prop_id,
+                'name': prop_name,
+                'address': address,
+                'city': city
+            }
     
-    return render_template('tasks/index.html', title='Tasks', tasks=tasks, form=form, active_session=active_session)
+    # Prepare filter values for the template
+    filter_values = {}
+    for key in request.args:
+        filter_values[key] = request.args.get(key)
+    
+    return render_template('tasks/index.html', 
+                          title='Tasks', 
+                          tasks=tasks, 
+                          form=form, 
+                          filter_values=filter_values,
+                          property_info=property_info)
 
 
 @bp.route('/create', methods=['GET', 'POST'])
@@ -313,40 +384,63 @@ def assign(id):
     
     form = TaskAssignmentForm()
     
-    # Set up query for users who can be assigned tasks (service staff)
+    # Set up query for users that can be assigned to tasks
     form.user.query = User.query.filter(User.role == UserRoles.SERVICE_STAFF)
     
+    assignments = task.assignments.all()
+    
     if form.validate_on_submit():
-        # Create new assignment
         if form.assign_to_user.data:
-            # Assign to existing user
-            assignment = TaskAssignment(
+            # Creating assignment for existing user
+            task_assignment = TaskAssignment(
                 task_id=task.id,
                 user_id=form.user.data.id,
                 service_type=ServiceType(form.service_type.data) if form.service_type.data else None
             )
             
-            # Send notification to the assigned user
+            # Send notification to the assignee
             send_task_assignment_notification(task, form.user.data)
         else:
-            # Assign to external person
-            assignment = TaskAssignment(
-                task_id=task.id,
-                external_name=form.external_name.data,
-                external_phone=form.external_phone.data
-            )
+            # Check if a user exists with this email or phone
+            external_email = request.form.get('external_email')
+            if external_email:
+                user = User.query.filter_by(email=external_email).first()
+                if user:
+                    # User found, create assignment for this user
+                    task_assignment = TaskAssignment(
+                        task_id=task.id,
+                        user_id=user.id,
+                        service_type=ServiceType(form.service_type.data) if form.service_type.data else None
+                    )
+                    
+                    # Send notification to the assignee
+                    send_task_assignment_notification(task, user)
+                    flash(f'Task assigned to existing user: {user.get_full_name()}', 'success')
+                else:
+                    # Creating assignment for external person
+                    task_assignment = TaskAssignment(
+                        task_id=task.id,
+                        external_name=form.external_name.data,
+                        external_phone=form.external_phone.data,
+                        external_email=external_email,
+                        service_type=ServiceType(form.service_type.data) if form.service_type.data else None
+                    )
+            else:
+                # Creating assignment for external person without email
+                task_assignment = TaskAssignment(
+                    task_id=task.id,
+                    external_name=form.external_name.data,
+                    external_phone=form.external_phone.data,
+                    service_type=ServiceType(form.service_type.data) if form.service_type.data else None
+                )
         
-        db.session.add(assignment)
+        db.session.add(task_assignment)
         db.session.commit()
         
         flash('Task assigned successfully!', 'success')
         return redirect(url_for('tasks.view', id=task.id))
     
-    # Get existing assignments
-    assignments = task.assignments.all()
-    
-    return render_template('tasks/assign.html', title=f'Assign Task: {task.title}', 
-                          form=form, task=task, assignments=assignments)
+    return render_template('tasks/assign.html', title='Assign Task', task=task, form=form, assignments=assignments)
 
 
 @bp.route('/<int:task_id>/assignment/<int:assignment_id>/remove', methods=['POST'])
@@ -617,22 +711,73 @@ def cleaning_history():
 
 @bp.route('/property/<int:property_id>')
 @login_required
-def property_tasks(property_id):
+def view_for_property(property_id):
     # Get the property
     property = Property.query.get_or_404(property_id)
     
-    # Check permissions
-    if not current_user.is_admin() and property.owner_id != current_user.id and not current_user.is_service_staff() and not current_user.is_property_manager():
-        flash('You do not have permission to view tasks for this property.', 'danger')
-        return redirect(url_for('property.view', id=property_id))
+    # Permission check
+    can_view = False
     
-    # Get tasks for this property
-    tasks = Task.query.join(TaskProperty).filter(TaskProperty.property_id == property_id).order_by(Task.due_date.asc()).all()
+    # Property owners can view tasks for their properties
+    if current_user.is_property_owner() and property.owner_id == current_user.id:
+        can_view = True
+    # Service staff can view tasks for properties they have tasks for
+    elif current_user.is_service_staff():
+        # Check if the service staff has any assigned tasks for this property
+        assigned_tasks = db.session.query(Task).join(
+            TaskProperty, TaskProperty.task_id == Task.id
+        ).join(
+            TaskAssignment, TaskAssignment.task_id == Task.id
+        ).filter(
+            TaskProperty.property_id == property_id,
+            TaskAssignment.user_id == current_user.id
+        ).first()
+        
+        if assigned_tasks:
+            can_view = True
+    
+    if not can_view:
+        flash('You do not have permission to view tasks for this property.', 'danger')
+        return redirect(url_for('main.index'))
+    
+    # Get all tasks for this property
+    tasks = db.session.query(Task).join(
+        TaskProperty, TaskProperty.task_id == Task.id
+    ).filter(
+        TaskProperty.property_id == property_id
+    ).order_by(Task.due_date.asc(), Task.priority.desc()).all()
+    
+    # If service staff, filter to only show their assigned tasks
+    if current_user.is_service_staff():
+        service_staff_tasks = []
+        for task in tasks:
+            # Check if current user is assigned to this task
+            assignment = TaskAssignment.query.filter_by(
+                task_id=task.id,
+                user_id=current_user.id
+            ).first()
+            
+            if assignment:
+                service_staff_tasks.append(task)
+        
+        tasks = service_staff_tasks
+    
+    # Get all task assignments for these tasks
+    task_ids = [task.id for task in tasks]
+    assignments = {}
+    
+    if task_ids:
+        task_assignments = TaskAssignment.query.filter(TaskAssignment.task_id.in_(task_ids)).all()
+        for assignment in task_assignments:
+            if assignment.task_id not in assignments:
+                assignments[assignment.task_id] = []
+            assignments[assignment.task_id].append(assignment)
     
     return render_template('tasks/property_tasks.html', 
-                           title=f'Tasks for {property.name}', 
-                           property=property, 
-                           tasks=tasks)
+                          title=f'Tasks for {property.name}',
+                          property=property,
+                          tasks=tasks,
+                          assignments=assignments)
 
 
 @bp.route('/<int:session_id>/upload_video', methods=['GET', 'POST'])

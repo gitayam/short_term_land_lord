@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.property import bp
 from app.property.forms import PropertyForm, PropertyImageForm, PropertyCalendarForm, RoomForm, GuestAccessForm
-from app.models import Property, PropertyImage, UserRoles, PropertyCalendar, Room, RoomFurniture
+from app.models import Property, PropertyImage, UserRoles, PropertyCalendar, Room, RoomFurniture, Task, TaskProperty, CleaningSession, RepairRequest, ServiceType, GuestReview, TaskAssignment
 from datetime import datetime, timedelta
 import os
 import uuid
@@ -187,22 +187,79 @@ def create():
     
     return render_template('property/create.html', title='Add Property', form=form, rooms=[])
 
-@bp.route('/<int:id>')
-@property_owner_required
+@bp.route('/<int:id>/view')
+@login_required
 def view(id):
     property = Property.query.get_or_404(id)
-    # Ensure the current user is the owner
-    if property.owner_id != current_user.id:
-        flash('Access denied. You can only view your own properties.', 'danger')
-        return redirect(url_for('property.index'))
     
-    # Get guest review count for display
-    guest_review_count = property.guest_reviews.count()
+    # Permission check
+    can_view = False
+    
+    # Property owners can view their own properties
+    if current_user.is_property_owner() and property.owner_id == current_user.id:
+        can_view = True
+    # Service staff can view properties they have tasks for
+    elif current_user.is_service_staff():
+        # Check if the service staff has any assigned tasks for this property
+        assigned_tasks = db.session.query(Task).join(
+            TaskProperty, TaskProperty.task_id == Task.id
+        ).join(
+            TaskAssignment, TaskAssignment.task_id == Task.id
+        ).filter(
+            TaskProperty.property_id == property.id,
+            TaskAssignment.user_id == current_user.id
+        ).first()
+        
+        if assigned_tasks:
+            can_view = True
+    
+    if not can_view:
+        flash('You do not have permission to view this property.', 'danger')
+        return redirect(url_for('main.index'))
+    
+    # Get guest review counts
+    reviews_count = GuestReview.query.filter_by(property_id=id).count()
+    
+    # Get service history
+    service_history = {}
+    
+    # Get tasks for this property
+    tasks = db.session.query(Task).join(
+        TaskProperty, TaskProperty.task_id == Task.id
+    ).filter(
+        TaskProperty.property_id == id
+    ).all()
+    service_history['tasks'] = tasks
+    
+    # Get cleaning sessions for this property
+    cleaning_sessions = CleaningSession.query.filter_by(property_id=id).all()
+    service_history['cleaning_sessions'] = cleaning_sessions
+    
+    # Get repair requests for this property
+    repair_requests = RepairRequest.query.filter_by(property_id=id).all()
+    service_history['repair_requests'] = repair_requests
+    
+    # Get other services for this property
+    other_services = []  # Add query for other services if available
+    service_history['other_services'] = other_services
+    
+    # For service staff, also get their specific assigned tasks
+    service_staff_tasks = []
+    if current_user.is_service_staff():
+        service_staff_tasks = db.session.query(Task).join(
+            TaskProperty, TaskProperty.task_id == Task.id
+        ).join(
+            TaskAssignment, TaskAssignment.task_id == Task.id
+        ).filter(
+            TaskProperty.property_id == id,
+            TaskAssignment.user_id == current_user.id
+        ).all()
     
     return render_template('property/view.html', 
-                          title=property.name, 
-                          property=property,
-                          guest_review_count=guest_review_count)
+                          property=property, 
+                          reviews_count=reviews_count,
+                          service_history=service_history,
+                          service_staff_tasks=service_staff_tasks)
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @property_owner_required

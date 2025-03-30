@@ -575,6 +575,7 @@ class TaskAssignment(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     external_name = db.Column(db.String(100), nullable=True)
     external_phone = db.Column(db.String(20), nullable=True)
+    external_email = db.Column(db.String(120), nullable=True)
     
     # Service type for service staff assignments
     service_type = db.Column(db.Enum(ServiceType), nullable=True)
@@ -588,7 +589,13 @@ class TaskAssignment(db.Model):
             service_info = f" ({self.service_type.value})" if self.service_type else ""
             return f'<TaskAssignment to User {self.user_id}{service_info}>'
         else:
-            return f'<TaskAssignment to {self.external_name}>'
+            contact_info = []
+            if self.external_phone:
+                contact_info.append(f"Phone: {self.external_phone}")
+            if self.external_email:
+                contact_info.append(f"Email: {self.external_email}")
+            contact_str = f" ({', '.join(contact_info)})" if contact_info else ""
+            return f'<TaskAssignment to {self.external_name}{contact_str}>'
 
 class TaskProperty(db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), primary_key=True)

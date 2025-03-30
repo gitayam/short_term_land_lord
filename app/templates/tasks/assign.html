@@ -27,7 +27,12 @@
                             {% else %}
                             <div>
                                 <strong>{{ assignment.external_name }}</strong>
-                                <div class="text-muted">{{ assignment.external_phone }}</div>
+                                {% if assignment.external_phone %}
+                                <div class="text-muted">📞 {{ assignment.external_phone }}</div>
+                                {% endif %}
+                                {% if assignment.external_email %}
+                                <div class="text-muted">📧 {{ assignment.external_email }}</div>
+                                {% endif %}
                                 <div class="badge bg-secondary">External</div>
                             </div>
                             {% endif %}
@@ -69,6 +74,14 @@
                                 <span class="text-danger">{{ error }}</span>
                                 {% endfor %}
                             </div>
+                            
+                            <div class="form-group mb-3">
+                                {{ form.service_type.label(class="form-label") }}
+                                {{ form.service_type(class="form-select") }}
+                                {% for error in form.service_type.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
                         </div>
                         
                         <div id="external-assignment">
@@ -83,7 +96,25 @@
                             <div class="form-group mb-3">
                                 {{ form.external_phone.label(class="form-label") }}
                                 {{ form.external_phone(class="form-control") }}
+                                <div class="form-text">Enter phone number to send SMS notifications</div>
                                 {% for error in form.external_phone.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                {{ form.external_email.label(class="form-label") }}
+                                {{ form.external_email(class="form-control") }}
+                                <div class="form-text">Enter email to send email notifications or find existing users</div>
+                                {% for error in form.external_email.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                {{ form.service_type.label(class="form-label") }}
+                                {{ form.service_type(class="form-select") }}
+                                {% for error in form.service_type.errors %}
                                 <span class="text-danger">{{ error }}</span>
                                 {% endfor %}
                             </div>

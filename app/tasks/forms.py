@@ -81,6 +81,7 @@ class TaskAssignmentForm(FlaskForm):
     # Option to assign to external person
     external_name = StringField('Name', validators=[Optional(), Length(max=100)])
     external_phone = TelField('Phone Number', validators=[Optional(), Length(max=20)])
+    external_email = StringField('Email', validators=[Optional(), Length(max=120)])
     
     submit = SubmitField('Assign Task')
     
@@ -93,11 +94,14 @@ class TaskAssignmentForm(FlaskForm):
             self.user.errors.append('Please select a user')
             return False
             
-        if not self.assign_to_user.data and (not self.external_name.data or not self.external_phone.data):
-            if not self.external_name.data:
-                self.external_name.errors.append('Name is required for external assignment')
-            if not self.external_phone.data:
-                self.external_phone.errors.append('Phone number is required for external assignment')
+        if not self.assign_to_user.data and not self.external_name.data:
+            self.external_name.errors.append('Name is required for external assignment')
+            return False
+            
+        if not self.assign_to_user.data and not (self.external_phone.data or self.external_email.data):
+            if not self.external_phone.data and not self.external_email.data:
+                self.external_phone.errors.append('Either phone number or email is required')
+                self.external_email.errors.append('Either phone number or email is required')
             return False
             
         # Service type is required when assigning to service staff

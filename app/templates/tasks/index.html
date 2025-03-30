@@ -1,162 +1,173 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    {% if current_user.is_cleaner() and active_session %}
-    <div class="alert alert-info mb-4">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <strong>Cleaning in progress:</strong> 
-                {{ active_session.property.name }} 
-                <span class="text-muted">since {{ active_session.start_time.strftime('%H:%M') }}</span>
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1>Tasks</h1>
+        
+        <!-- Task Filters -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Filter Tasks</h5>
             </div>
-            <a href="{{ url_for('tasks.view', id=active_session.task_id) }}" class="btn btn-sm btn-primary">Continue Cleaning</a>
+            <div class="card-body">
+                <form method="get" action="{{ url_for('tasks.index') }}" class="row">
+                    <!-- Status Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="">All Statuses</option>
+                            {% for status in form.status.choices %}
+                            <option value="{{ status[0] }}" {% if filter_values and filter_values.get('status') == status[0] %}selected{% endif %}>{{ status[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Priority Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label for="priority" class="form-label">Priority</label>
+                        <select name="priority" id="priority" class="form-select">
+                            <option value="">All Priorities</option>
+                            {% for priority in form.priority.choices %}
+                            <option value="{{ priority[0] }}" {% if filter_values and filter_values.get('priority') == priority[0] %}selected{% endif %}>{{ priority[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Property Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label for="property" class="form-label">Property</label>
+                        <select name="property" id="property" class="form-select">
+                            <option value="">All Properties</option>
+                            {% for property in form.property.query.all() %}
+                            <option value="{{ property.id }}" {% if filter_values and filter_values.get('property') == property.id|string %}selected{% endif %}>{{ property.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Assignee Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label for="assignee" class="form-label">Assignee</label>
+                        <select name="assignee" id="assignee" class="form-select">
+                            <option value="">All Assignees</option>
+                            {% for assignee in form.assignee.query.all() %}
+                            <option value="{{ assignee.id }}" {% if filter_values and filter_values.get('assignee') == assignee.id|string %}selected{% endif %}>{{ assignee.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Due Date From Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label for="due_date_from" class="form-label">Due Date From</label>
+                        <input type="date" name="due_date_from" id="due_date_from" class="form-control" value="{{ filter_values.get('due_date_from', '') if filter_values }}">
+                    </div>
+                    
+                    <!-- Due Date To Filter -->
+                    <div class="col-md-3 mb-3">
+                        <label for="due_date_to" class="form-label">Due Date To</label>
+                        <input type="date" name="due_date_to" id="due_date_to" class="form-control" value="{{ filter_values.get('due_date_to', '') if filter_values }}">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                        <a href="{{ url_for('tasks.index') }}" class="btn btn-outline-secondary">Clear Filters</a>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
-    {% endif %}
-    
-    <h1>Tasks</h1>
-    
-    {% if current_user.is_property_owner() %}
-    <div class="mb-4">
-        <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">Create New Task</a>
-    </div>
-    {% endif %}
-    
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Filter Tasks</h5>
+
+        {% if current_user.is_property_owner() %}
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Task
+            </a>
         </div>
-        <div class="card-body">
-            <form method="get" action="{{ url_for('tasks.index') }}">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        {{ form.status.label }}
-                        {{ form.status(class="form-control") }}
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        {{ form.priority.label }}
-                        {{ form.priority(class="form-control") }}
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        {{ form.property.label }}
-                        {{ form.property(class="form-control") }}
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        {{ form.assignee.label }}
-                        {{ form.assignee(class="form-control") }}
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        {{ form.due_date_from.label }}
-                        {{ form.due_date_from(class="form-control", type="date") }}
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        {{ form.due_date_to.label }}
-                        {{ form.due_date_to(class="form-control", type="date") }}
-                    </div>
-                </div>
-                <div class="text-end">
-                    <button type="submit" class="btn btn-primary">{{ form.submit.label }}</button>
-                    <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary">Clear Filters</a>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    {% if tasks %}
-    <div class="table-responsive">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Properties</th>
-                    <th>Due Date</th>
-                    <th>Status</th>
-                    <th>Priority</th>
-                    <th>Assigned To</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for task in tasks %}
-                <tr>
-                    <td>{{ task.title }}</td>
-                    <td>
-                        {% for tp in task.properties %}
-                        <span class="badge bg-info">{{ tp.property.name }}</span>
-                        {% endfor %}
-                    </td>
-                    <td>
-                        {% if task.due_date %}
-                        {{ task.due_date.strftime('%Y-%m-%d %H:%M') }}
-                        {% else %}
-                        No due date
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if task.status.value == 'pending' %}
-                        <span class="badge bg-warning">Pending</span>
-                        {% elif task.status.value == 'in_progress' %}
-                        <span class="badge bg-primary">In Progress</span>
-                        {% elif task.status.value == 'completed' %}
-                        <span class="badge bg-success">Completed</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if task.priority.value == 'low' %}
-                        <span class="badge bg-secondary">Low</span>
-                        {% elif task.priority.value == 'medium' %}
-                        <span class="badge bg-info">Medium</span>
-                        {% elif task.priority.value == 'high' %}
-                        <span class="badge bg-warning">High</span>
-                        {% elif task.priority.value == 'urgent' %}
-                        <span class="badge bg-danger">Urgent</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if task.assignments.count() > 0 %}
-                        {% for assignment in task.assignments %}
-                        <div>
-                            {% if assignment.user %}
-                            {{ assignment.user.get_full_name() }}
-                            {% else %}
-                            {{ assignment.external_name }} (External)
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                        {% else %}
-                        <span class="text-muted">Unassigned</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-info">View</a>
-                        {% if task.status.value != 'completed' %}
-                            {% if current_user.is_cleaner() %}
-                                {% if active_session and active_session.task_id == task.id %}
-                                    <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-success">Continue Cleaning</a>
-                                {% elif not active_session %}
-                                    <form method="post" action="{{ url_for('tasks.start_cleaning', id=task.id) }}" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-primary">Start Cleaning</button>
-                                    </form>
+        {% endif %}
+        
+        <!-- Tasks List -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">All Tasks</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if tasks %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                {% if current_user.is_service_staff() %}
+                                <th>Property</th>
                                 {% endif %}
-                            {% else %}
-                                <form method="post" action="{{ url_for('tasks.complete', id=task.id) }}" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-success">Complete</button>
-                                </form>
-                            {% endif %}
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                            <tr class="align-middle {% if task.is_overdue() %}table-danger{% elif task.status == 'COMPLETED' %}table-success{% endif %}">
+                                <td>
+                                    <strong>{{ task.title }}</strong>
+                                    <div class="small text-muted">{{ task.description|truncate(50) }}</div>
+                                </td>
+                                
+                                {% if current_user.is_service_staff() %}
+                                <td>
+                                    {% if property_info.get(task.id) %}
+                                    <a href="{{ url_for('property.view', id=property_info[task.id]['id']) }}">
+                                        <strong>{{ property_info[task.id]['name'] }}</strong>
+                                    </a>
+                                    <div class="small text-muted">
+                                        {{ property_info[task.id]['address'] }}, {{ property_info[task.id]['city'] }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                
+                                <td>
+                                    <span class="badge {% if task.status == 'PENDING' %}bg-warning{% elif task.status == 'IN_PROGRESS' %}bg-info{% elif task.status == 'COMPLETED' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ task.get_status_display() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {% if task.priority == 'HIGH' %}bg-danger{% elif task.priority == 'MEDIUM' %}bg-warning{% else %}bg-info{% endif %}">
+                                        {{ task.get_priority_display() }}
+                                    </span>
+                                </td>
+                                <td class="{% if task.is_overdue() %}text-danger fw-bold{% endif %}">
+                                    {{ task.due_date.strftime('%Y-%m-%d') if task.due_date }}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if current_user.is_property_owner() or current_user.can_edit_task(task) %}
+                                        <a href="{{ url_for('tasks.edit', id=task.id) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if current_user.can_complete_task(task) and task.status != 'COMPLETED' %}
+                                        <a href="{{ url_for('tasks.complete', id=task.id) }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-check"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info m-3">
+                    No tasks found. {% if current_user.is_property_owner() %}<a href="{{ url_for('tasks.create') }}">Create a new task</a>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-    {% else %}
-    <div class="alert alert-info">
-        No tasks found. {% if current_user.is_property_owner() %}Create a new task to get started.{% endif %}
-    </div>
-    {% endif %}
 </div>
 {% endblock %}
