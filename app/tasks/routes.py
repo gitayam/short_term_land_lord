@@ -2,11 +2,12 @@ from flask import render_template, redirect, url_for, flash, request, current_ap
 from flask_login import login_required, current_user
 from app import db
 from app.tasks import bp
-from app.tasks.forms import TaskForm, TaskAssignmentForm, TaskFilterForm, VideoUploadForm, IssueReportForm
+from app.tasks.forms import (TaskForm, TaskAssignmentForm, TaskFilterForm, VideoUploadForm, 
+                           IssueReportForm, CleaningFeedbackForm)
 from app.models import (Task, TaskAssignment, TaskProperty, Property, User, 
                        TaskStatus, TaskPriority, RecurrencePattern, UserRoles,
                        PropertyCalendar, CleaningSession, CleaningMedia, MediaType,
-                       IssueReport, StorageBackend)
+                       IssueReport, StorageBackend, CleaningFeedback, InventoryTransaction, TransactionType)
 from app.tasks.media import save_file_to_storage, allowed_file
 from app.notifications.service import send_task_assignment_notification
 from datetime import datetime, timedelta
@@ -176,6 +177,11 @@ def view(id):
     if current_user.is_cleaner():
         active_session = CleaningSession.get_active_session(current_user.id)
         # Get cleaning history for this task
+        cleaning_history = CleaningSession.query.filter_by(
+            task_id=task.id
+        ).order_by(CleaningSession.start_time.desc()).all()
+    elif current_user.is_property_owner():
+        # Property owners also see cleaning history
         cleaning_history = CleaningSession.query.filter_by(
             task_id=task.id
         ).order_by(CleaningSession.start_time.desc()).all()
@@ -493,7 +499,89 @@ def complete_cleaning(id):
     db.session.commit()
     
     flash(f'Cleaning completed! Total time: {session.get_duration_display()}', 'success')
-    return redirect(url_for('tasks.view', id=id))
+    
+    # Redirect to feedback form
+    return redirect(url_for('tasks.feedback', session_id=session.id))
+
+
+@bp.route('/<int:session_id>/feedback', methods=['GET', 'POST'])
+@login_required
+@cleaner_required
+def feedback(session_id):
+    # Get the cleaning session
+    session = CleaningSession.query.get_or_404(session_id)
+    
+    # Check if the current user is the assigned cleaner
+    if session.cleaner_id != current_user.id:
+        flash('You can only provide feedback for your own cleaning sessions.', 'danger')
+        return redirect(url_for('tasks.index'))
+    
+    # Check if feedback already exists
+    existing_feedback = CleaningFeedback.query.filter_by(cleaning_session_id=session_id).first()
+    if existing_feedback:
+        flash('You have already provided feedback for this cleaning session.', 'info')
+        return redirect(url_for('tasks.view', id=session.task_id))
+    
+    form = CleaningFeedbackForm()
+    
+    if form.validate_on_submit():
+        # Create feedback record
+        feedback = CleaningFeedback(
+            cleaning_session_id=session_id,
+            rating=form.rating.data,
+            notes=form.notes.data
+        )
+        
+        db.session.add(feedback)
+        db.session.commit()
+        
+        flash('Thank you for your feedback!', 'success')
+        return redirect(url_for('tasks.view', id=session.task_id))
+    
+    return render_template('tasks/feedback_form.html', 
+                          title='Cleaning Feedback', 
+                          form=form, 
+                          session=session)
+
+
+@bp.route('/<int:session_id>/submit_feedback', methods=['POST'])
+@login_required
+@cleaner_required
+def submit_feedback(session_id):
+    # Get the cleaning session
+    session = CleaningSession.query.get_or_404(session_id)
+    
+    # Check if the current user is the assigned cleaner
+    if session.cleaner_id != current_user.id:
+        flash('You can only provide feedback for your own cleaning sessions.', 'danger')
+        return redirect(url_for('tasks.index'))
+    
+    # Check if feedback already exists
+    existing_feedback = CleaningFeedback.query.filter_by(cleaning_session_id=session_id).first()
+    if existing_feedback:
+        flash('You have already provided feedback for this cleaning session.', 'info')
+        return redirect(url_for('tasks.view', id=session.task_id))
+    
+    form = CleaningFeedbackForm()
+    
+    if form.validate_on_submit():
+        # Create feedback record
+        feedback = CleaningFeedback(
+            cleaning_session_id=session_id,
+            rating=form.rating.data,
+            notes=form.notes.data
+        )
+        
+        db.session.add(feedback)
+        db.session.commit()
+        
+        flash('Thank you for your feedback!', 'success')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{getattr(form, field).label.text}: {error}', 'danger')
+    
+    return redirect(url_for('tasks.view', id=session.task_id))
 
 
 @bp.route('/cleaning_history')
@@ -508,30 +596,24 @@ def cleaning_history():
     return render_template('tasks/cleaning_history.html', title='Cleaning History', sessions=sessions)
 
 
-@bp.route('/property/<int:property_id>/tasks')
+@bp.route('/property/<int:property_id>')
 @login_required
 def property_tasks(property_id):
     # Get the property
     property = Property.query.get_or_404(property_id)
     
-    # Check if user has permission to view this property
-    if not property.is_visible_to(current_user):
-        flash('You do not have permission to view this property.', 'danger')
-        return redirect(url_for('main.index'))
+    # Check permissions
+    if not current_user.is_admin() and property.owner_id != current_user.id and not current_user.is_cleaner():
+        flash('You do not have permission to view tasks for this property.', 'danger')
+        return redirect(url_for('property.view', id=property_id))
     
-    # Get all tasks for this property
-    tasks = Task.query.join(TaskProperty).filter(TaskProperty.property_id == property_id).all()
-    
-    # Get active cleaning session for current user if they are a cleaner
-    active_session = None
-    if current_user.is_cleaner():
-        active_session = CleaningSession.get_active_session(current_user.id)
+    # Get tasks for this property
+    tasks = Task.query.join(TaskProperty).filter(TaskProperty.property_id == property_id).order_by(Task.due_date.asc()).all()
     
     return render_template('tasks/property_tasks.html', 
-                          title=f'Tasks for {property.name}', 
-                          property=property, 
-                          tasks=tasks,
-                          active_session=active_session)
+                           title=f'Tasks for {property.name}', 
+                           property=property, 
+                           tasks=tasks)
 
 
 @bp.route('/<int:session_id>/upload_video', methods=['GET', 'POST'])
@@ -689,6 +771,44 @@ def session_media(session_id):
                           session=session,
                           videos=videos,
                           issues=issues)
+
+
+@bp.route('/<int:session_id>/report')
+@login_required
+def cleaning_report(session_id):
+    # Get the cleaning session
+    session = CleaningSession.query.get_or_404(session_id)
+    
+    # Check if user has permission to view this report
+    if not (current_user.id == session.cleaner_id or 
+            current_user.id == session.associated_property.owner_id or
+            current_user.is_property_owner() and session.associated_property.owner_id == current_user.id):
+        flash('You do not have permission to view this report.', 'danger')
+        return redirect(url_for('tasks.index'))
+    
+    # Get all media for this session
+    videos = CleaningMedia.query.filter_by(
+        cleaning_session_id=session_id,
+        media_type=MediaType.VIDEO
+    ).all()
+    
+    # Get all issue reports
+    issues = IssueReport.query.filter_by(cleaning_session_id=session_id).all()
+    
+    # Get inventory items used during this cleaning
+    inventory_used = InventoryTransaction.query.filter(
+        InventoryTransaction.user_id == session.cleaner_id,
+        InventoryTransaction.transaction_type == TransactionType.USAGE,
+        InventoryTransaction.created_at >= session.start_time,
+        InventoryTransaction.created_at <= (session.end_time or datetime.utcnow())
+    ).all()
+    
+    return render_template('tasks/cleaning_report.html',
+                          title='Cleaning Report',
+                          session=session,
+                          videos=videos,
+                          issues=issues,
+                          inventory_used=inventory_used)
 
 
 def can_view_task(task, user):

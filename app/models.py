@@ -490,6 +490,20 @@ class CleaningSession(db.Model):
             is_start_video=False
         ).first() is not None
 
+class CleaningFeedback(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    cleaning_session_id = db.Column(db.Integer, db.ForeignKey('cleaning_session.id'), nullable=False, unique=True)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5 star rating
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    cleaning_session = db.relationship('CleaningSession', backref=db.backref('feedback', uselist=False))
+    
+    def __repr__(self):
+        return f'<CleaningFeedback {self.id} for session {self.cleaning_session_id} - Rating: {self.rating}>'
+
 class CleaningMedia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cleaning_session_id = db.Column(db.Integer, db.ForeignKey('cleaning_session.id'), nullable=False)

@@ -120,3 +120,12 @@ class IssueReportForm(FlaskForm):
         FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')
     ])
     submit = SubmitField('Submit Issue Report')
+
+
+class CleaningFeedbackForm(FlaskForm):
+    rating = SelectField('Rate your cleaning (1-5 stars)', 
+                        choices=[(1, '1 - Poor'), (2, '2 - Fair'), (3, '3 - Good'), (4, '4 - Very Good'), (5, '5 - Excellent')],
+                        validators=[DataRequired()], 
+                        coerce=int)
+    notes = TextAreaField('Notes about this cleaning (optional)', validators=[Optional(), Length(max=1000)])
+    submit = SubmitField('Submit Feedback')

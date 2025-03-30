@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Cleaning Report</h1>
+        <div>
+            <a href="{{ url_for('tasks.view', id=session.task_id) }}" class="btn btn-secondary">Back to Task</a>
+            {% if current_user.is_property_owner() %}
+            <a href="{{ url_for('property.view', id=session.property_id) }}" class="btn btn-primary">View Property</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Cleaning Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Property:</div>
+                        <div class="col-md-9">{{ session.associated_property.name }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Cleaner:</div>
+                        <div class="col-md-9">{{ session.assigned_cleaner.get_full_name() }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Date:</div>
+                        <div class="col-md-9">{{ session.start_time.strftime('%Y-%m-%d') }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Start Time:</div>
+                        <div class="col-md-9">{{ session.start_time.strftime('%H:%M') }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">End Time:</div>
+                        <div class="col-md-9">{{ session.end_time.strftime('%H:%M') if session.end_time else 'In Progress' }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Duration:</div>
+                        <div class="col-md-9">{{ session.get_duration_display() }}</div>
+                    </div>
+                    
+                    {% if session.feedback %}
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Cleaner Rating:</div>
+                        <div class="col-md-9">
+                            {% for i in range(1, 6) %}
+                                {% if i <= session.feedback.rating %}
+                                    <i class="fas fa-star text-warning"></i>
+                                {% else %}
+                                    <i class="far fa-star text-warning"></i>
+                                {% endif %}
+                            {% endfor %}
+                            ({{ session.feedback.rating }}/5)
+                        </div>
+                    </div>
+                    
+                    {% if session.feedback.notes %}
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Cleaner Notes:</div>
+                        <div class="col-md-9">{{ session.feedback.notes }}</div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    
+                    {% if session.notes %}
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Additional Notes:</div>
+                        <div class="col-md-9">{{ session.notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if inventory_used %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Supplies Used</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Category</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in inventory_used %}
+                                <tr>
+                                    <td>{{ transaction.item.name }}</td>
+                                    <td>{{ transaction.quantity }} {{ transaction.item.unit_of_measure }}</td>
+                                    <td>{{ transaction.item.category.value }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if issues %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Issues Reported</h5>
+                </div>
+                <div class="card-body">
+                    {% for issue in issues %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ issue.location }}</h6>
+                            <p class="card-text">{{ issue.description }}</p>
+                            {% if issue.additional_notes %}
+                            <p class="card-text text-muted"><small>{{ issue.additional_notes }}</small></p>
+                            {% endif %}
+                            
+                            {% if issue.media %}
+                            <div class="row mt-2">
+                                {% for media in issue.media %}
+                                <div class="col-md-3 mb-2">
+                                    <a href="{{ media.get_url() }}" target="_blank">
+                                        <img src="{{ media.get_url() }}" class="img-thumbnail" alt="Issue photo">
+                                    </a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Cleaning Media</h5>
+                </div>
+                <div class="card-body">
+                    {% if videos %}
+                    <h6 class="mb-2">Videos</h6>
+                    <ul class="list-group mb-3">
+                        {% for video in videos %}
+                        <li class="list-group-item">
+                            <a href="{{ video.get_url() }}" target="_blank">
+                                {% if video.is_start_video %}
+                                <i class="fas fa-play-circle"></i> Start of Cleaning
+                                {% else %}
+                                <i class="fas fa-check-circle"></i> End of Cleaning
+                                {% endif %}
+                            </a>
+                            <div class="text-muted small">
+                                {{ video.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No videos uploaded for this cleaning session.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-3">
+                        <a href="{{ url_for('tasks.session_media', session_id=session.id) }}" class="btn btn-sm btn-primary">
+                            View All Media
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
