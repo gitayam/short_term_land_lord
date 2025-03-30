@@ -47,174 +47,34 @@ def service_staff_required(f):
 @bp.route('/')
 @login_required
 def index():
-    # Initialize filter form
-    form = TaskFilterForm()
+    """Show all tasks"""
     
-    # Set up query for properties that the user is allowed to filter by
+    # Get current user's role
+    user_role = current_user.role.name if current_user.role else None
+    
+    # Get all tasks the user has access to
     if current_user.is_property_owner():
-        form.property.query = Property.query.filter_by(owner_id=current_user.id)
+        # For property owners, show all tasks related to their properties
+        owned_property_ids = [p.id for p in current_user.properties]
+        tasks = db.session.query(Task).join(
+            TaskProperty, TaskProperty.task_id == Task.id
+        ).filter(
+            TaskProperty.property_id.in_(owned_property_ids)
+        ).distinct().all()
     elif current_user.is_service_staff():
-        # Service staff can filter by properties they have tasks for
-        property_ids = db.session.query(TaskProperty.property_id).join(
-            Task, Task.id == TaskProperty.task_id
-        ).join(
+        # For service staff, show tasks assigned to them
+        tasks = db.session.query(Task).join(
             TaskAssignment, TaskAssignment.task_id == Task.id
         ).filter(
             TaskAssignment.user_id == current_user.id
-        ).distinct().all()
-        property_ids = [p[0] for p in property_ids]
-        form.property.query = Property.query.filter(Property.id.in_(property_ids))
-    else:
-        form.property.query = Property.query.filter(False)  # Empty query
-    
-    # Set up query for assignees that the user is allowed to filter by
-    if current_user.is_property_owner():
-        # Property owners can filter by all service staff
-        form.assignee.query = User.query.filter(User.role == UserRoles.SERVICE_STAFF)
-    else:
-        # Other users can only filter by themselves
-        form.assignee.query = User.query.filter(User.id == current_user.id)
-    
-    # Build the query based on the user's role
-    query = Task.query
-    
-    # Property owners see tasks for their properties
-    if current_user.is_property_owner():
-        property_ids = [p.id for p in current_user.properties]
-        query = query.join(TaskProperty).filter(TaskProperty.property_id.in_(property_ids))
-    
-    # Service staff see tasks assigned to them
-    elif current_user.is_service_staff():
-        query = query.join(TaskAssignment).filter(TaskAssignment.user_id == current_user.id)
-    
-    # Apply filters
-    if request.args:
-        # Status filter
-        status = request.args.get('status')
-        if status:
-            query = query.filter(Task.status == status)
-        
-        # Priority filter
-        priority = request.args.get('priority')
-        if priority:
-            query = query.filter(Task.priority == priority)
-        
-        # Property filter
-        property_id = request.args.get('property')
-        if property_id and property_id.isdigit():
-            # If we're already filtering by property owner, no need to join again
-            if not current_user.is_property_owner():
-                query = query.join(TaskProperty)
-            query = query.filter(TaskProperty.property_id == int(property_id))
-        
-        # Assignee filter
-        assignee_id = request.args.get('assignee')
-        if assignee_id and assignee_id.isdigit():
-            # If service staff is looking at their own tasks, no need to join again
-            if not (current_user.is_service_staff() and int(assignee_id) == current_user.id):
-                query = query.join(TaskAssignment)
-            query = query.filter(TaskAssignment.user_id == int(assignee_id))
-        
-        # Due date range filter
-        due_date_from = request.args.get('due_date_from')
-        due_date_to = request.args.get('due_date_to')
-        
-        if due_date_from:
-            try:
-                from_date = datetime.strptime(due_date_from, '%Y-%m-%d')
-                query = query.filter(Task.due_date >= from_date)
-            except ValueError:
-                pass
-        
-        if due_date_to:
-            try:
-                to_date = datetime.strptime(due_date_to, '%Y-%m-%d')
-                to_date = to_date.replace(hour=23, minute=59, second=59)
-                query = query.filter(Task.due_date <= to_date)
-            except ValueError:
-                pass
-    
-    # For service staff, we need to make sure we get property info - ensure we have the right joins
-    if current_user.is_service_staff():
-        # Use aliased joins to avoid duplicate table issues
-        from sqlalchemy.orm import aliased
-        task_assignment_alias = aliased(TaskAssignment)
-        task_property_alias = aliased(TaskProperty)
-        
-        # Rebuild the query with proper aliases to avoid duplicate table name errors
-        query = Task.query
-        
-        # First join for filtering by user assignments
-        query = query.join(
-            task_assignment_alias, Task.id == task_assignment_alias.task_id
-        ).filter(
-            task_assignment_alias.user_id == current_user.id
-        )
-        
-        # Then join for property information
-        query = query.join(
-            task_property_alias, Task.id == task_property_alias.task_id
-        )
-        
-        # Apply filters again with aliased tables
-        property_id = request.args.get('property')
-        if property_id and property_id.isdigit():
-            query = query.filter(task_property_alias.property_id == int(property_id))
-        
-        # Due date filter with aliased tables
-        due_date_from = request.args.get('due_date_from')
-        due_date_to = request.args.get('due_date_to')
-        
-        if due_date_from:
-            try:
-                from_date = datetime.strptime(due_date_from, '%Y-%m-%d')
-                query = query.filter(Task.due_date >= from_date)
-            except ValueError:
-                pass
-        
-        if due_date_to:
-            try:
-                to_date = datetime.strptime(due_date_to, '%Y-%m-%d')
-                to_date = to_date.replace(hour=23, minute=59, second=59)
-                query = query.filter(Task.due_date <= to_date)
-            except ValueError:
-                pass
-    
-    # Get tasks and sort by due date and priority
-    tasks = query.order_by(Task.due_date.asc(), Task.priority.desc()).all()
-    
-    # For service staff, we need property info for their tasks
-    property_info = {}
-    if current_user.is_service_staff() and tasks:
-        task_ids = [task.id for task in tasks]
-        task_properties = db.session.query(
-            TaskProperty.task_id, Property.id, Property.name, Property.street_address, Property.city
-        ).join(
-            Property, TaskProperty.property_id == Property.id
-        ).filter(
-            TaskProperty.task_id.in_(task_ids)
         ).all()
-        
-        for tp in task_properties:
-            task_id, prop_id, prop_name, address, city = tp
-            property_info[task_id] = {
-                'id': prop_id,
-                'name': prop_name,
-                'address': address,
-                'city': city
-            }
-    
-    # Prepare filter values for the template
-    filter_values = {}
-    for key in request.args:
-        filter_values[key] = request.args.get(key)
+    else:
+        # For other users (like admins), show all tasks
+        tasks = Task.query.all()
     
     return render_template('tasks/index.html', 
                           title='Tasks', 
-                          tasks=tasks, 
-                          form=form, 
-                          filter_values=filter_values,
-                          property_info=property_info)
+                          tasks=tasks)
 
 
 @bp.route('/create', methods=['GET', 'POST'])
