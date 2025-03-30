@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<style>
+    .fc-event {
+        cursor: pointer;
+    }
+    .priority-high {
+        border-left: 5px solid #fd7e14 !important;
+    }
+    .priority-urgent {
+        border-left: 5px solid #dc3545 !important;
+    }
+    .calendar-container {
+        height: calc(100vh - 250px);
+        min-height: 600px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('property.view', id=property.id) }}">{{ property.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Calendar</li>
+                </ol>
+            </nav>
+            <h1 class="mb-4">{{ property.name }} - Calendar</h1>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="btn-group">
+                <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Property
+                </a>
+                {% if current_user.is_property_owner() %}
+                <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Task
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body calendar-container" id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listMonth'
+        },
+        events: '{{ url_for("calendar.property_tasks_api", property_id=property.id) }}',
+        eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        },
+        eventDidMount: function(info) {
+            // Add priority class
+            if (info.event.extendedProps.priority === 'HIGH') {
+                info.el.classList.add('priority-high');
+            } else if (info.event.extendedProps.priority === 'URGENT') {
+                info.el.classList.add('priority-urgent');
+            }
+            
+            // Add tooltips
+            var content = '';
+            content += '<strong>Status:</strong> ' + info.event.extendedProps.status + '<br>';
+            content += '<strong>Priority:</strong> ' + info.event.extendedProps.priority + '<br>';
+            if (info.event.extendedProps.assignedTo) {
+                content += '<strong>Assigned to:</strong> ' + info.event.extendedProps.assignedTo;
+            } else {
+                content += '<strong>Unassigned</strong>';
+            }
+            
+            $(info.el).tooltip({
+                title: content,
+                html: true,
+                placement: 'top',
+                container: 'body'
+            });
+        }
+    });
+    calendar.render();
+});
+</script>
+{% endblock %} 

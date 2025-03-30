@@ -502,6 +502,31 @@ class Task(db.Model):
     def __repr__(self):
         return f'<Task {self.title}>'
     
+    def is_overdue(self):
+        """Check if the task is overdue"""
+        if not self.due_date:
+            return False
+        return self.due_date < datetime.utcnow() and self.status != TaskStatus.COMPLETED
+    
+    def get_status_display(self):
+        """Return a user-friendly display of the task status"""
+        status_map = {
+            TaskStatus.PENDING: "Pending",
+            TaskStatus.IN_PROGRESS: "In Progress",
+            TaskStatus.COMPLETED: "Completed"
+        }
+        return status_map.get(self.status, str(self.status))
+    
+    def get_priority_display(self):
+        """Return a user-friendly display of the task priority"""
+        priority_map = {
+            TaskPriority.LOW: "Low",
+            TaskPriority.MEDIUM: "Medium",
+            TaskPriority.HIGH: "High",
+            TaskPriority.URGENT: "Urgent"
+        }
+        return priority_map.get(self.priority, str(self.priority))
+    
     def mark_completed(self, user_id=None):
         self.status = TaskStatus.COMPLETED
         self.completed_at = datetime.utcnow()
@@ -778,7 +803,7 @@ class RepairRequest(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    property = db.relationship('Property', foreign_keys=[property_id])
+    property = db.relationship('Property', foreign_keys=[property_id], overlaps="associated_property,repair_requests")
     reporter = db.relationship('User', backref='submitted_repair_requests')
     task = db.relationship('Task', backref='source_repair_request')
     media = db.relationship('RepairRequestMedia', backref='repair_request', cascade='all, delete-orphan')

@@ -22,6 +22,7 @@ services:
                fi &&
                flask db migrate -m 'Initial migration' || true &&
                flask db upgrade || true &&
+               python fix_site_settings.py || true &&
                flask run --host=0.0.0.0"
 
   db:

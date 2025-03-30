@@ -12,7 +12,7 @@
                     <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-sm btn-outline-info">View Calendar</a>
                     <a href="{{ url_for('property.manage_guest_access', id=property.id) }}" class="btn btn-sm btn-outline-success">Guest Access</a>
                     <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-sm btn-outline-success">Manage Inventory</a>
-                    <a href="{{ url_for('tasks.property_tasks', property_id=property.id) }}" class="btn btn-sm btn-outline-warning">View Tasks</a>
+                    <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-sm btn-outline-warning">View Tasks</a>
                 </div>
             </div>
             
@@ -749,7 +749,7 @@
                     </div>
                     <div class="card-body">
                         <p>Manage cleaning tasks specific to this property.</p>
-                        <a href="{{ url_for('tasks.property_tasks', property_id=property.id) }}" class="btn btn-primary">
+                        <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-primary">
                             <i class="fas fa-tasks"></i> View Property Tasks
                         </a>
                     </div>

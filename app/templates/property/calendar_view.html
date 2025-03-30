@@ -4,51 +4,159 @@
 {{ super() }}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
 <style>
+    /* Calendar Layout Enhancements */
+    #calendar {
+        height: 800px; /* Taller calendar */
+        margin-bottom: 30px;
+    }
+    
+    /* Make cells more square-like */
+    .fc-daygrid-day {
+        min-height: 120px !important;
+        height: auto !important;
+    }
+    
+    /* Improve day cell appearance */
+    .fc .fc-daygrid-day-frame {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Make day number more prominent */
+    .fc .fc-daygrid-day-top {
+        display: flex;
+        flex-direction: row-reverse;
+        font-weight: bold;
+        font-size: 1.2em;
+        padding: 4px;
+        align-items: flex-start;
+    }
+    
+    /* Better event styling */
     .fc-event {
         cursor: pointer;
+        margin: 1px 2px;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        line-height: 1.3;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
     }
+    
+    /* Better hover effect */
+    .fc-event:hover {
+        opacity: 0.9;
+        transform: scale(1.02);
+        transition: all 0.1s ease;
+        z-index: 10;
+    }
+    
+    /* Event source colors with better contrast */
     .airbnb-event {
         background-color: #FF5A5F;
         border-color: #FF5A5F;
+        color: white;
+        border-left: 4px solid #cc4146;
     }
+    
     .vrbo-event {
         background-color: #3D67FF;
         border-color: #3D67FF;
+        color: white;
+        border-left: 4px solid #2c4bc7;
     }
+    
     .booking-event {
         background-color: #003580;
         border-color: #003580;
+        color: white; 
+        border-left: 4px solid #002254;
     }
+    
     .other-event {
         background-color: #767676;
         border-color: #767676;
+        color: white;
+        border-left: 4px solid #5a5a5a;
     }
+    
+    /* Room indicator styling */
     .room-tag {
         font-size: 0.8em;
         font-style: italic;
         margin-top: 2px;
+        display: block;
     }
+    
+    /* Calendar legend styling */
     .calendar-key {
         display: flex;
+        flex-wrap: wrap;
         justify-content: center;
-        margin-bottom: 1rem;
+        gap: 15px;
+        margin-bottom: 1.5rem;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 8px;
     }
+    
     .calendar-key-item {
         display: flex;
         align-items: center;
-        margin: 0 1rem;
+        padding: 5px 10px;
+        background-color: rgba(0,0,0,0.03);
+        border-radius: 5px;
     }
+    
     .color-box {
-        width: 15px;
-        height: 15px;
+        width: 18px;
+        height: 18px;
         display: inline-block;
-        margin-right: 5px;
+        margin-right: 8px;
+        border-radius: 3px;
+    }
+    
+    /* Month/week view toggle buttons */
+    .fc .fc-button-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+    
+    .fc .fc-button-primary:not(:disabled):active,
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+    
+    /* Today highlight */
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: rgba(0, 123, 255, 0.15);
+    }
+    
+    /* Weekend days */
+    .fc-day-sat, .fc-day-sun {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        #calendar {
+            height: auto;
+            min-height: 600px;
+        }
+        
+        .fc-daygrid-day {
+            min-height: 80px !important;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -217,7 +325,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 center: 'title',
                 right: 'dayGridMonth,timeGridWeek'
             },
+            height: 'auto', // Let the container control height
+            aspectRatio: 1.35, // More square-like aspect ratio
+            dayMaxEvents: false, // Allow "more" link when too many events
             events: eventsData || [],
+            eventTimeFormat: {
+                hour: 'numeric',
+                minute: '2-digit',
+                meridiem: 'short'
+            },
+            eventDisplay: 'block', // Makes events more visible
+            displayEventEnd: true,
+            eventDidMount: function(info) {
+                // Add room info to event element if available
+                if (info.event.extendedProps && info.event.extendedProps.room) {
+                    var roomElement = document.createElement('div');
+                    roomElement.className = 'room-tag';
+                    roomElement.innerText = info.event.extendedProps.room;
+                    info.el.appendChild(roomElement);
+                }
+            },
             eventClick: function(info) {
                 try {
                     // Get event data
