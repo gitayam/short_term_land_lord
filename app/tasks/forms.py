@@ -44,8 +44,28 @@ class TaskForm(FlaskForm):
                                 for priority in TaskPriority]
         
         # Set up recurrence pattern choices
-        self.recurrence_pattern.choices = [(pattern.value, pattern.name.replace('_', ' ').title()) 
-                                          for pattern in RecurrencePattern]
+        # First, add standard patterns
+        standard_patterns = [(pattern.value, pattern.name.replace('_', ' ').title()) 
+                            for pattern in RecurrencePattern]
+        
+        # Then add custom cleaning patterns
+        cleaning_patterns = []
+        for pattern in RecurrencePattern.get_cleaning_patterns():
+            cleaning_patterns.append((pattern["value"], pattern["name"]))
+            
+        # Use standard patterns but replace any duplicates with cleaning patterns
+        final_patterns = []
+        added_values = set()
+        
+        for pattern in cleaning_patterns:
+            final_patterns.append(pattern)
+            added_values.add(pattern[0])
+            
+        for pattern in standard_patterns:
+            if pattern[0] not in added_values:
+                final_patterns.append(pattern)
+                
+        self.recurrence_pattern.choices = final_patterns
 
 
 class TaskAssignmentForm(FlaskForm):

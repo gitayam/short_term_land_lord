@@ -28,9 +28,22 @@ class RecurrencePattern(enum.Enum):
     WEEKLY = "weekly"
     MONTHLY = "monthly"
     CUSTOM = "custom"
-    EVERY_CLEANING = "every_cleaning"
-    WEEKLY_CLEANING = "weekly_cleaning"
-    MONTHLY_CLEANING = "monthly_cleaning"
+    # Comment out the problematic values for now
+    # EVERY_CLEANING = "every_cleaning"
+    # WEEKLY_CLEANING = "weekly_cleaning"
+    # MONTHLY_CLEANING = "monthly_cleaning"
+    
+    # Instead, use the existing values but interpret them differently in the UI
+    # This preserves database compatibility
+    
+    @classmethod
+    def get_cleaning_patterns(cls):
+        """Return cleaning-specific patterns for display in the UI"""
+        return [
+            {"value": cls.CUSTOM.value, "name": "Every Cleaning", "description": "Task applies to every cleaning session"},
+            {"value": cls.WEEKLY.value, "name": "Weekly Cleaning", "description": "Task recurs weekly if there's a cleaning scheduled"},
+            {"value": cls.MONTHLY.value, "name": "Monthly Cleaning", "description": "Task recurs monthly if there's a cleaning scheduled"},
+        ]
 
 class MediaType(enum.Enum):
     PHOTO = "photo"
@@ -351,11 +364,9 @@ class Task(db.Model):
         elif self.recurrence_pattern == RecurrencePattern.MONTHLY:
             # Add months - this is a simplification
             next_due_date = self.due_date + timedelta(days=30 * self.recurrence_interval)
-        elif self.recurrence_pattern in [RecurrencePattern.EVERY_CLEANING, 
-                                        RecurrencePattern.WEEKLY_CLEANING, 
-                                        RecurrencePattern.MONTHLY_CLEANING]:
-            # For cleaning-specific patterns, the next occurrence will be created
-            # when a cleaning is scheduled, not immediately
+        elif self.recurrence_pattern == RecurrencePattern.CUSTOM:
+            # For custom patterns (which includes the cleaning-specific patterns),
+            # the next occurrence will be created when a cleaning is scheduled
             return None
         
         # Check if we've reached the end date
