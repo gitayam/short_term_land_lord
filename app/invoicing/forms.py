@@ -3,7 +3,7 @@ from wtforms import StringField, TextAreaField, SelectField, FloatField, DateFie
 from wtforms.validators import DataRequired, Optional, NumberRange, Length
 from wtforms_sqlalchemy.fields import QuerySelectField, QuerySelectMultipleField
 from app.models import Property, ServiceType
-from app.models.invoicing import PricingModel, InvoiceStatus
+from app.models_modules.invoicing import PricingModel, InvoiceStatus
 
 
 class TaskPriceForm(FlaskForm):

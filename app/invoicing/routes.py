@@ -4,7 +4,7 @@ from app import db
 from app.invoicing import bp
 from app.invoicing.forms import TaskPriceForm, InvoiceForm, InvoiceItemForm, InvoiceFilterForm
 from app.models import User, Property, Task, CleaningSession, ServiceType, UserRoles
-from app.models.invoicing import TaskPrice, Invoice, InvoiceItem, PricingModel, InvoiceStatus
+from app.models_modules.invoicing import TaskPrice, Invoice, InvoiceItem, PricingModel, InvoiceStatus
 from app.auth.decorators import property_owner_required, admin_required
 from datetime import datetime, timedelta
 from sqlalchemy import or_, and_
@@ -656,9 +656,8 @@ def generate_from_tasks():
             elif price.pricing_model == PricingModel.HOURLY:
                 # Look for cleaning sessions associated with this task
                 cleaning_session = CleaningSession.query.filter_by(
-                    task_id=task.id,
-                    end_time.isnot(None)
-                ).first()
+                    task_id=task.id
+                ).filter(CleaningSession.end_time.isnot(None)).first()
                 
                 if cleaning_session and cleaning_session.duration_minutes:
                     amount = price.calculate_price(cleaning_session.duration_minutes)
@@ -759,9 +758,8 @@ def add_task_to_invoice(invoice_id, task_id):
     elif price.pricing_model == PricingModel.HOURLY:
         # Look for cleaning sessions associated with this task
         cleaning_session = CleaningSession.query.filter_by(
-            task_id=task.id,
-            end_time.isnot(None)
-        ).first()
+            task_id=task.id
+        ).filter(CleaningSession.end_time.isnot(None)).first()
         
         if cleaning_session and cleaning_session.duration_minutes:
             amount = price.calculate_price(cleaning_session.duration_minutes)
