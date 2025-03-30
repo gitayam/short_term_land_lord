@@ -343,35 +343,23 @@
                     </div>
                 </div>
                 
-                {% if current_user.is_cleaner() or current_user.is_maintenance() %}
-                <!-- Repair Request Section -->
+                <!-- Combined Repair Request Section (available to all users) -->
                 <div class="card mt-3">
                     <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0">Report an Issue</h5>
+                        <h5 class="mb-0">Property Repairs</h5>
                     </div>
                     <div class="card-body">
                         <p>Found something that needs repair or maintenance?</p>
-                        <a href="{{ url_for('tasks.submit_repair_request', property_id=property.id) }}" class="btn btn-warning">
-                            <i class="fas fa-tools"></i> Submit Repair Request
-                        </a>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('tasks.submit_repair_request', property_id=property.id) }}" class="btn btn-warning">
+                                <i class="fas fa-tools"></i> Create Repair Request
+                            </a>
+                            <a href="{{ url_for('tasks.repair_requests') }}" class="btn btn-info">
+                                <i class="fas fa-clipboard-list"></i> View Repair Requests
+                            </a>
+                        </div>
                     </div>
                 </div>
-                {% endif %}
-                
-                {% if current_user.is_property_owner() and current_user.id == property.owner_id %}
-                <!-- View Repair Requests Section -->
-                <div class="card mt-3">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">Repair Requests</h5>
-                    </div>
-                    <div class="card-body">
-                        <p>View and manage repair requests for this property.</p>
-                        <a href="{{ url_for('tasks.repair_requests') }}" class="btn btn-info">
-                            <i class="fas fa-clipboard-list"></i> View Repair Requests
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>

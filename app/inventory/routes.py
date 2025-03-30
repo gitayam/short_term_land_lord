@@ -2,11 +2,12 @@ from flask import render_template, redirect, url_for, flash, request, current_ap
 from flask_login import login_required, current_user
 from app import db
 from app.inventory import bp
-from app.inventory.forms import InventoryItemForm, InventoryTransactionForm, InventoryTransferForm, InventoryFilterForm, InventoryCatalogItemForm
+from app.inventory.forms import InventoryItemForm, InventoryTransactionForm, InventoryTransferForm, InventoryFilterForm, InventoryCatalogItemForm, BarcodeSearchForm
 from app.models import Property, InventoryItem, InventoryTransaction, ItemCategory, TransactionType, User, UserRoles, NotificationType, NotificationChannel, InventoryCatalogItem
 from app.notifications.service import create_notification
 from datetime import datetime
 import json
+from app.auth.decorators import property_owner_required, admin_required
 
 def property_owner_required(f):
     """Decorator to ensure only property owners can access a route"""
@@ -138,9 +139,16 @@ def add_catalog_item():
     form = InventoryCatalogItemForm()
     
     if form.validate_on_submit():
+        # Convert the category string to an ItemCategory enum instance
+        try:
+            category = ItemCategory(form.category.data)
+        except ValueError:
+            flash(f'Invalid category: {form.category.data}', 'danger')
+            return render_template('inventory/catalog_form.html', title='Add Catalog Item', form=form)
+            
         catalog_item = InventoryCatalogItem(
             name=form.name.data,
-            category=form.category.data,
+            category=category,
             unit_of_measure=form.unit_of_measure.data,
             sku=form.sku.data,
             barcode=form.barcode.data,
@@ -172,7 +180,21 @@ def edit_catalog_item(item_id):
     form = InventoryCatalogItemForm(obj=catalog_item)
     
     if form.validate_on_submit():
-        form.populate_obj(catalog_item)
+        # Get form data
+        catalog_item.name = form.name.data
+        try:
+            catalog_item.category = ItemCategory(form.category.data)
+        except ValueError:
+            flash(f'Invalid category: {form.category.data}', 'danger')
+            return render_template('inventory/catalog_form.html', title='Edit Catalog Item', form=form, item=catalog_item)
+            
+        catalog_item.unit_of_measure = form.unit_of_measure.data
+        catalog_item.sku = form.sku.data
+        catalog_item.barcode = form.barcode.data
+        catalog_item.description = form.description.data
+        catalog_item.unit_cost = form.unit_cost.data
+        catalog_item.purchase_link = form.purchase_link.data
+        
         db.session.commit()
         
         flash(f'Catalog item "{catalog_item.name}" updated successfully!', 'success')
