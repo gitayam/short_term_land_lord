@@ -54,6 +54,13 @@
                    name="tv_details" value="{{ room_form.tv_details.data or '' }}">
         </div>
         
+        <!-- Add private bathroom option for any room -->
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input has-bathroom-checkbox" id="has_bathroom_{{ room_id or 'new_' + index|string }}" 
+                   name="has_bathroom" value="{{ room_id or 'new_' + index|string }}" {% if room_form.has_bathroom.data %}checked{% endif %}>
+            <label class="form-check-label" for="has_bathroom_{{ room_id or 'new_' + index|string }}">Has Private Bathroom 🚿</label>
+        </div>
+        
         <!-- Bedroom-specific options -->
         <div class="bedroom-options" {% if room_form.room_type.data != 'bedroom' %}style="display: none;"{% endif %}>
             <div class="mb-3">
@@ -88,6 +95,54 @@
             </div>
         </div>
         
+        <!-- Furniture Section -->
+        <div class="furniture-section mt-4">
+            <h6>Room Furniture 🪑</h6>
+            <div class="furniture-items">
+                <!-- Existing furniture will be inserted here in edit mode -->
+                {% if room_id and room_form and room_form.furniture %}
+                    {% for furniture in room_form.furniture %}
+                    <div class="furniture-item card mb-2">
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <select class="form-select furniture-type" name="furniture_type_{{ room_id or 'new_' + index|string }}[]">
+                                        <option value="">Select Type</option>
+                                        <option value="bed" {% if furniture.furniture_type == 'bed' %}selected{% endif %}>🛏️ Bed</option>
+                                        <option value="couch" {% if furniture.furniture_type == 'couch' %}selected{% endif %}>🛋️ Couch</option>
+                                        <option value="chair" {% if furniture.furniture_type == 'chair' %}selected{% endif %}>🪑 Office Chair</option>
+                                        <option value="desk" {% if furniture.furniture_type == 'desk' %}selected{% endif %}>🖥️ Desk</option>
+                                        <option value="table" {% if furniture.furniture_type == 'table' %}selected{% endif %}>🪓 Table</option>
+                                        <option value="dresser" {% if furniture.furniture_type == 'dresser' %}selected{% endif %}>🗄️ Dresser</option>
+                                        <option value="other" {% if furniture.furniture_type == 'other' %}selected{% endif %}>📦 Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control furniture-details" 
+                                           name="furniture_details_{{ room_id or 'new_' + index|string }}[]" 
+                                           placeholder="Details (size, color, etc.)" 
+                                           value="{{ furniture.details or '' }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="number" class="form-control furniture-quantity" 
+                                           name="furniture_quantity_{{ room_id or 'new_' + index|string }}[]" 
+                                           placeholder="Qty" min="1" value="{{ furniture.quantity or 1 }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-sm btn-danger remove-furniture">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-sm btn-success add-furniture-btn mt-2" 
+                    data-room-id="{{ room_id or 'new_' + index|string }}">
+                <i class="fas fa-plus"></i> Add Furniture
+            </button>
+        </div>
+        
         {% if room_id %}
         <div class="mb-3 form-check">
             <input type="checkbox" class="form-check-input delete-room-checkbox" id="delete_{{ room_id }}" 
@@ -96,4 +151,39 @@
         </div>
         {% endif %}
     </div>
-</div> 
+</div>
+
+<!-- Template for adding new furniture items (hidden) -->
+<template id="furniture-item-template">
+    <div class="furniture-item card mb-2">
+        <div class="card-body p-3">
+            <div class="row">
+                <div class="col-md-4">
+                    <select class="form-select furniture-type" name="furniture_type_ROOM_ID[]">
+                        <option value="">Select Type</option>
+                        <option value="bed">🛏️ Bed</option>
+                        <option value="couch">🛋️ Couch</option>
+                        <option value="chair">🪑 Office Chair</option>
+                        <option value="desk">🖥️ Desk</option>
+                        <option value="table">🪓 Table</option>
+                        <option value="dresser">🗄️ Dresser</option>
+                        <option value="other">📦 Other</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control furniture-details" 
+                           name="furniture_details_ROOM_ID[]" 
+                           placeholder="Details (size, color, etc.)">
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control furniture-quantity" 
+                           name="furniture_quantity_ROOM_ID[]" 
+                           placeholder="Qty" min="1" value="1">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-sm btn-danger remove-furniture">Remove</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template> 

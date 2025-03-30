@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.property import bp
 from app.property.forms import PropertyForm, PropertyImageForm, PropertyCalendarForm, RoomForm, GuestAccessForm
-from app.models import Property, PropertyImage, UserRoles, PropertyCalendar, Room
+from app.models import Property, PropertyImage, UserRoles, PropertyCalendar, Room, RoomFurniture
 from datetime import datetime, timedelta
 import os
 import uuid
@@ -68,6 +68,7 @@ def create():
         bed_types = request.form.getlist('bed_type')
         has_showers = request.form.getlist('has_shower')
         has_tubs = request.form.getlist('has_tub')
+        has_bathrooms = request.form.getlist('has_bathroom')
         
         # Create rooms
         for i in range(len(room_names)):
@@ -81,9 +82,26 @@ def create():
                     tv_details=tv_details[i] if i < len(tv_details) and f"new_{i}" in has_tvs else None,
                     bed_type=bed_types[i] if i < len(bed_types) and bed_types[i] else None,
                     has_shower=f"new_{i}" in has_showers,
-                    has_tub=f"new_{i}" in has_tubs
+                    has_tub=f"new_{i}" in has_tubs,
+                    has_bathroom=f"new_{i}" in has_bathrooms
                 )
                 db.session.add(room)
+                db.session.flush()  # To get the room ID
+                
+                # Process furniture items for this room
+                furniture_types = request.form.getlist(f'furniture_type_new_{i}[]')
+                furniture_details = request.form.getlist(f'furniture_details_new_{i}[]')
+                furniture_quantities = request.form.getlist(f'furniture_quantity_new_{i}[]')
+                
+                for j in range(len(furniture_types)):
+                    if furniture_types[j]:  # Only create items with a type
+                        furniture = RoomFurniture(
+                            room_id=room.id,
+                            furniture_type=furniture_types[j],
+                            details=furniture_details[j] if j < len(furniture_details) else None,
+                            quantity=int(furniture_quantities[j]) if j < len(furniture_quantities) and furniture_quantities[j] else 1
+                        )
+                        db.session.add(furniture)
         
         # Update property totals based on room data (re-query to get newly added rooms)
         db.session.commit()
@@ -208,6 +226,7 @@ def edit(id):
         bed_types = request.form.getlist('bed_type')
         has_showers = request.form.getlist('has_shower')
         has_tubs = request.form.getlist('has_tub')
+        has_bathrooms = request.form.getlist('has_bathroom')
         room_deletes = request.form.getlist('room_delete')
         
         # Update existing rooms and create new ones
@@ -229,6 +248,26 @@ def edit(id):
                         room.bed_type = bed_types[i] if bed_types[i] else None
                         room.has_shower = str(room_id) in has_showers
                         room.has_tub = str(room_id) in has_tubs
+                        room.has_bathroom = str(room_id) in has_bathrooms
+                        
+                        # Process furniture items for this room
+                        # First, delete all existing furniture
+                        RoomFurniture.query.filter_by(room_id=room_id).delete()
+                        
+                        # Then add new furniture items
+                        furniture_types = request.form.getlist(f'furniture_type_{room_id}[]')
+                        furniture_details = request.form.getlist(f'furniture_details_{room_id}[]')
+                        furniture_quantities = request.form.getlist(f'furniture_quantity_{room_id}[]')
+                        
+                        for j in range(len(furniture_types)):
+                            if furniture_types[j]:  # Only create items with a type
+                                furniture = RoomFurniture(
+                                    room_id=room_id,
+                                    furniture_type=furniture_types[j],
+                                    details=furniture_details[j] if j < len(furniture_details) else None,
+                                    quantity=int(furniture_quantities[j]) if j < len(furniture_quantities) and furniture_quantities[j] else 1
+                                )
+                                db.session.add(furniture)
             else:  # This is a new room
                 room = Room(
                     property_id=property.id,
@@ -239,10 +278,27 @@ def edit(id):
                     tv_details=tv_details[i] if f"new_{i}" in has_tvs else None,
                     bed_type=bed_types[i] if bed_types[i] else None,
                     has_shower=f"new_{i}" in has_showers,
-                    has_tub=f"new_{i}" in has_tubs
+                    has_tub=f"new_{i}" in has_tubs,
+                    has_bathroom=f"new_{i}" in has_bathrooms
                 )
                 db.session.add(room)
+                db.session.flush()  # To get the room ID
                 
+                # Process furniture items for this room
+                furniture_types = request.form.getlist(f'furniture_type_new_{i}[]')
+                furniture_details = request.form.getlist(f'furniture_details_new_{i}[]')
+                furniture_quantities = request.form.getlist(f'furniture_quantity_new_{i}[]')
+                
+                for j in range(len(furniture_types)):
+                    if furniture_types[j]:  # Only create items with a type
+                        furniture = RoomFurniture(
+                            room_id=room.id,
+                            furniture_type=furniture_types[j],
+                            details=furniture_details[j] if j < len(furniture_details) else None,
+                            quantity=int(furniture_quantities[j]) if j < len(furniture_quantities) and furniture_quantities[j] else 1
+                        )
+                        db.session.add(furniture)
+        
         # Update property totals based on room data
         bed_count = 0
         tv_count = 0

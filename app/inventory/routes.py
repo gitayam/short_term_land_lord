@@ -20,11 +20,11 @@ def property_owner_required(f):
     return decorated_function
 
 def admin_required(f):
-    """Decorator to ensure only property owners can access a route"""
+    """Decorator to ensure only admins can access a route"""
     @login_required
     def decorated_function(*args, **kwargs):
-        if not current_user.is_property_owner():
-            flash('Access denied. You must be a property owner to view this page.', 'danger')
+        if not current_user.role == UserRoles.ADMIN:
+            flash('Access denied. You must be an admin to view this page.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
     decorated_function.__name__ = f.__name__
@@ -102,7 +102,7 @@ def index(property_id):
                           is_property_owner=current_user.is_property_owner())
 
 @bp.route('/catalog')
-@admin_required
+@property_owner_required
 def catalog_index():
     """Display the global inventory catalog"""
     # Initialize filter form
@@ -132,7 +132,7 @@ def catalog_index():
                           filter_form=filter_form)
 
 @bp.route('/catalog/add', methods=['GET', 'POST'])
-@admin_required
+@property_owner_required
 def add_catalog_item():
     """Add a new item to the global catalog"""
     form = InventoryCatalogItemForm()
@@ -165,7 +165,7 @@ def add_catalog_item():
                           form=form)
 
 @bp.route('/catalog/<int:item_id>/edit', methods=['GET', 'POST'])
-@admin_required
+@property_owner_required
 def edit_catalog_item(item_id):
     """Edit an existing catalog item"""
     catalog_item = InventoryCatalogItem.query.get_or_404(item_id)
@@ -184,7 +184,7 @@ def edit_catalog_item(item_id):
                           item=catalog_item)
 
 @bp.route('/catalog/<int:item_id>/delete', methods=['POST'])
-@admin_required
+@property_owner_required
 def delete_catalog_item(item_id):
     """Delete a catalog item"""
     catalog_item = InventoryCatalogItem.query.get_or_404(item_id)

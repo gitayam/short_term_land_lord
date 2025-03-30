@@ -253,6 +253,62 @@
                 const tvDetails = roomForm.querySelector('.tv-details');
                 tvDetails.style.display = this.checked ? 'block' : 'none';
             });
+            
+            // Add furniture button handler
+            const addFurnitureBtn = roomForm.querySelector('.add-furniture-btn');
+            if (addFurnitureBtn) {
+                addFurnitureBtn.addEventListener('click', function() {
+                    addFurnitureItem(this.dataset.roomId);
+                });
+            }
+            
+            // Set up handlers for existing furniture remove buttons
+            const removeFurnitureBtns = roomForm.querySelectorAll('.remove-furniture');
+            removeFurnitureBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.furniture-item').remove();
+                });
+            });
+        }
+        
+        // Function to add a new furniture item
+        function addFurnitureItem(roomId) {
+            // Clone the template
+            const template = document.getElementById('furniture-item-template');
+            const clone = template.content.cloneNode(true);
+            
+            // Replace the placeholder with the actual room ID
+            const selects = clone.querySelectorAll('select');
+            const inputs = clone.querySelectorAll('input');
+            
+            selects.forEach(select => {
+                select.name = select.name.replace('ROOM_ID', roomId);
+            });
+            
+            inputs.forEach(input => {
+                if (input.name) {
+                    input.name = input.name.replace('ROOM_ID', roomId);
+                }
+            });
+            
+            // Add remove button handler
+            const removeBtn = clone.querySelector('.remove-furniture');
+            removeBtn.addEventListener('click', function() {
+                this.closest('.furniture-item').remove();
+            });
+            
+            // Find the furniture items container for this room
+            let roomForm;
+            if (roomId.startsWith('new_')) {
+                roomForm = document.querySelector(`.room-form[data-room-id="${roomId}"]`);
+            } else {
+                roomForm = document.querySelector(`.room-form[data-room-id="${roomId}"]`);
+            }
+            
+            if (roomForm) {
+                const furnitureItemsContainer = roomForm.querySelector('.furniture-items');
+                furnitureItemsContainer.appendChild(clone);
+            }
         }
     });
 </script>

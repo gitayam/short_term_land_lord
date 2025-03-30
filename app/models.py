@@ -374,15 +374,38 @@ class Room(db.Model):
     has_shower = db.Column(db.Boolean, default=False)
     has_tub = db.Column(db.Boolean, default=False)
     
+    # New field - does this room have a private bathroom
+    has_bathroom = db.Column(db.Boolean, default=False)
+    
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationship
     property = db.relationship('Property', back_populates='rooms')
+    furniture = db.relationship('RoomFurniture', back_populates='room', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Room {self.name} ({self.room_type}) in {self.property.name}>'
+
+class RoomFurniture(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=False)
+    
+    # Furniture details
+    furniture_type = db.Column(db.String(50), nullable=False)  # bed, couch, chair, desk, etc.
+    details = db.Column(db.String(100), nullable=True)  # Size, material, color, etc.
+    quantity = db.Column(db.Integer, default=1)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    room = db.relationship('Room', back_populates='furniture')
+    
+    def __repr__(self):
+        return f'<RoomFurniture {self.furniture_type} in Room {self.room.name}>'
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)

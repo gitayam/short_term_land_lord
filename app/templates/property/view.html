@@ -237,6 +237,12 @@
                                                     </p>
                                                     {% endif %}
                                                     
+                                                    {% if room.has_bathroom %}
+                                                    <p>
+                                                        <strong>Private Bathroom:</strong> 🚿 Yes
+                                                    </p>
+                                                    {% endif %}
+                                                    
                                                     {% if room.room_type == 'bathroom' %}
                                                     <p>
                                                         <strong>Facilities:</strong>
@@ -245,6 +251,28 @@
                                                         {% if room.has_tub %}🛁 Bathtub{% endif %}
                                                         {% if not room.has_shower and not room.has_tub %}None specified{% endif %}
                                                     </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if room.furniture and room.furniture|length > 0 %}
+                                                    <div class="mt-3">
+                                                        <strong>Furniture:</strong>
+                                                        <ul class="list-unstyled mt-1">
+                                                            {% for item in room.furniture %}
+                                                            <li>
+                                                                {% if item.furniture_type == 'bed' %}🛏️
+                                                                {% elif item.furniture_type == 'couch' %}🛋️
+                                                                {% elif item.furniture_type == 'chair' %}🪑
+                                                                {% elif item.furniture_type == 'desk' %}🖥️
+                                                                {% elif item.furniture_type == 'table' %}🪓
+                                                                {% elif item.furniture_type == 'dresser' %}🗄️
+                                                                {% else %}📦
+                                                                {% endif %}
+                                                                {{ item.quantity }}x {{ item.furniture_type|title }}
+                                                                {% if item.details %} ({{ item.details }}){% endif %}
+                                                            </li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </div>
                                                     {% endif %}
                                                 </div>
                                             </div>
@@ -358,8 +386,8 @@
         // Generate WiFi QR Code
         const wifiQRContainer = document.getElementById('wifi-qrcode');
         if (wifiQRContainer) {
-            const ssid = "{{ property.wifi_network|e('js') }}";
-            const password = "{{ property.wifi_password|e('js') }}";
+            const ssid = {{ property.wifi_network|tojson|safe }};
+            const password = {{ property.wifi_password|tojson|safe }};
             
             // Create WiFi network string in format: WIFI:S:<SSID>;T:<WPA|WEP|>;P:<password>;;
             const wifiString = "WIFI:S:" + ssid + ";T:WPA;P:" + password + ";;";
