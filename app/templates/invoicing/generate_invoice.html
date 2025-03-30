@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Generate Invoice from Tasks</h2>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">
+                        This will create a new invoice for completed tasks within the selected date range.
+                        The system will automatically calculate prices based on your configured task prices.
+                    </p>
+                    
+                    <form method="post">
+                        <div class="form-group">
+                            <label for="property_id">Property</label>
+                            <select name="property_id" id="property_id" class="form-control" required>
+                                <option value="">Select a property</option>
+                                {% for property in properties %}
+                                <option value="{{ property.id }}">{{ property.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="date_from">Date From</label>
+                                    <input type="date" name="date_from" id="date_from" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="date_to">Date To</label>
+                                    <input type="date" name="date_to" id="date_to" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Generate Invoice</button>
+                            <a href="{{ url_for('invoicing.invoices') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default date range (last 30 days)
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        document.getElementById('date_to').value = today.toISOString().split('T')[0];
+        document.getElementById('date_from').value = thirtyDaysAgo.toISOString().split('T')[0];
+    });
+</script>
+{% endblock %}

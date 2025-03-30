@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Invoice: {{ invoice.invoice_number }}</h1>
+        <div>
+            {% if invoice.status.value == 'draft' %}
+            <a href="{{ url_for('invoicing.edit_invoice', id=invoice.id) }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Edit Invoice
+            </a>
+            {% endif %}
+            <a href="{{ url_for('invoicing.invoices') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Invoices
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>{{ invoice.title }}</h3>
+                    <p>{{ invoice.description }}</p>
+                    
+                    <h5 class="mt-4">Property</h5>
+                    <p>{{ invoice.property.name }}<br>
+                    {{ invoice.property.get_full_address() }}</p>
+                    
+                    <h5 class="mt-4">Date Range</h5>
+                    <p>
+                        {% if invoice.date_from and invoice.date_to %}
+                        {{ invoice.date_from.strftime('%b %d, %Y') }} to {{ invoice.date_to.strftime('%b %d, %Y') }}
+                        {% else %}
+                        Not specified
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="text-right">
+                        <h5>Status</h5>
+                        <p>
+                            {% if invoice.status.value == 'draft' %}
+                            <span class="badge badge-secondary">Draft</span>
+                            {% elif invoice.status.value == 'sent' %}
+                            <span class="badge badge-primary">Sent</span>
+                            {% elif invoice.status.value == 'paid' %}
+                            <span class="badge badge-success">Paid</span>
+                            {% elif invoice.status.value == 'overdue' %}
+                            <span class="badge badge-danger">Overdue</span>
+                            {% elif invoice.status.value == 'cancelled' %}
+                            <span class="badge badge-dark">Cancelled</span>
+                            {% endif %}
+                        </p>
+                        
+                        <h5 class="mt-4">Invoice Date</h5>
+                        <p>{{ invoice.created_at.strftime('%b %d, %Y') }}</p>
+                        
+                        <h5 class="mt-4">Due Date</h5>
+                        <p>
+                            {% if invoice.due_date %}
+                            {{ invoice.due_date.strftime('%b %d, %Y') }}
+                            {% else %}
+                            Not specified
+                            {% endif %}
+                        </p>
+                        
+                        {% if invoice.paid_date %}
+                        <h5 class="mt-4">Paid Date</h5>
+                        <p>{{ invoice.paid_date.strftime('%b %d, %Y') }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <h5>Invoice Items</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th class="text-right">Quantity</th>
+                                <th class="text-right">Unit Price</th>
+                                <th class="text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>{{ item.description }}</td>
+                                <td class="text-right">{{ item.quantity }}</td>
+                                <td class="text-right">${{ "%.2f"|format(item.unit_price) }}</td>
+                                <td class="text-right">${{ "%.2f"|format(item.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-right"><strong>Subtotal</strong></td>
+                                <td class="text-right">${{ "%.2f"|format(invoice.subtotal) }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-right"><strong>Tax ({{ "%.1f"|format(invoice.tax_rate * 100) }}%)</strong></td>
+                                <td class="text-right">${{ "%.2f"|format(invoice.tax_amount) }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-right"><strong>Total</strong></td>
+                                <td class="text-right"><strong>${{ "%.2f"|format(invoice.total) }}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            
+            {% if invoice.payment_notes %}
+            <div class="mt-4">
+                <h5>Payment Notes</h5>
+                <p>{{ invoice.payment_notes }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="mt-4">
+                {% if invoice.status.value == 'draft' %}
+                <form action="{{ url_for('invoicing.send_invoice', id=invoice.id) }}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-primary" onclick="return confirm('Are you sure you want to mark this invoice as sent? You will not be able to edit it after this.')">
+                        <i class="fas fa-paper-plane"></i> Mark as Sent
+                    </button>
+                </form>
+                
+                <form action="{{ url_for('invoicing.delete_invoice', id=invoice.id) }}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this invoice? This action cannot be undone.')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </form>
+                {% elif invoice.status.value in ['sent', 'overdue'] %}
+                <form action="{{ url_for('invoicing.mark_invoice_paid', id=invoice.id) }}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to mark this invoice as paid?')">
+                        <i class="fas fa-check"></i> Mark as Paid
+                    </button>
+                </form>
+                
+                <form action="{{ url_for('invoicing.cancel_invoice', id=invoice.id) }}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to cancel this invoice?')">
+                        <i class="fas fa-ban"></i> Cancel
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

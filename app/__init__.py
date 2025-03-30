@@ -52,6 +52,9 @@ def create_app(config_class=Config):
     from app.inventory import bp as inventory_bp
     app.register_blueprint(inventory_bp, url_prefix='/inventory')
     
+    from app.invoicing import bp as invoicing_bp
+    app.register_blueprint(invoicing_bp, url_prefix='/invoicing')
+    
     return app
 
 from app import models
