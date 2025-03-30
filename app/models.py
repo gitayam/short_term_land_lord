@@ -43,6 +43,7 @@ class User(UserMixin, db.Model):
     password_resets = db.relationship('PasswordReset', backref='user', lazy='dynamic')
     properties = db.relationship('Property', backref='owner', lazy='dynamic')
     assigned_tasks = db.relationship('TaskAssignment', backref='assignee', lazy='dynamic')
+    cleaning_sessions = db.relationship('CleaningSession', foreign_keys='CleaningSession.cleaner_id', backref='assigned_cleaner', lazy='dynamic')
     
     def __repr__(self):
         return f'<User {self.email}>'
@@ -109,6 +110,7 @@ class Property(db.Model):
     calendars = db.relationship('PropertyCalendar', backref='property', lazy='dynamic', cascade='all, delete-orphan')
     tasks = db.relationship('TaskProperty', back_populates='property', cascade='all, delete-orphan')
     rooms = db.relationship('Room', back_populates='property', lazy='dynamic', cascade='all, delete-orphan')
+    cleaning_sessions = db.relationship('CleaningSession', backref='property', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Property {self.name}>'
@@ -276,6 +278,7 @@ class Task(db.Model):
     calendar = db.relationship('PropertyCalendar', backref='linked_tasks')
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic', cascade='all, delete-orphan')
     properties = db.relationship('TaskProperty', back_populates='task', cascade='all, delete-orphan')
+    cleaning_sessions = db.relationship('CleaningSession', backref='task', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Task {self.title}>'
@@ -369,6 +372,52 @@ class TaskProperty(db.Model):
     # Relationships
     task = db.relationship('Task', back_populates='properties')
     property = db.relationship('Property', back_populates='tasks')
+
+class CleaningSession(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    cleaner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
+    
+    start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    end_time = db.Column(db.DateTime, nullable=True)
+    duration_minutes = db.Column(db.Integer, nullable=True)
+    
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    property = db.relationship('Property', backref='cleaning_sessions')
+    task = db.relationship('Task', backref='cleaning_sessions')
+    
+    def __repr__(self):
+        return f'<CleaningSession {self.id} by {self.assigned_cleaner.get_full_name()} at {self.property.name}>'
+    
+    def complete(self):
+        """Complete the cleaning session and calculate duration"""
+        self.end_time = datetime.utcnow()
+        if self.start_time:
+            # Calculate duration in minutes
+            delta = self.end_time - self.start_time
+            self.duration_minutes = int(delta.total_seconds() / 60)
+        return self.duration_minutes
+    
+    def get_duration_display(self):
+        """Return a human-readable duration"""
+        if not self.duration_minutes:
+            return "Unknown"
+        
+        hours, minutes = divmod(self.duration_minutes, 60)
+        if hours > 0:
+            return f"{hours} hour{'s' if hours != 1 else ''} {minutes} minute{'s' if minutes != 1 else ''}"
+        else:
+            return f"{minutes} minute{'s' if minutes != 1 else ''}"
+    
+    @classmethod
+    def get_active_session(cls, cleaner_id):
+        """Get the active cleaning session for a cleaner if one exists"""
+        return cls.query.filter_by(cleaner_id=cleaner_id, end_time=None).first()
 
 @login_manager.user_loader
 def load_user(id):

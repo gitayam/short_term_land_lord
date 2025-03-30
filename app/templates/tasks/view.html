@@ -131,13 +131,81 @@
                     
                     {% if task.status.value != 'completed' %}
                     <div class="mt-4">
-                        <form method="post" action="{{ url_for('tasks.complete', id=task.id) }}">
-                            <button type="submit" class="btn btn-success">Mark as Completed</button>
-                        </form>
+                        {% if current_user.is_cleaner() %}
+                            {% if active_session and active_session.task_id == task.id %}
+                                <form method="post" action="{{ url_for('tasks.complete_cleaning', id=task.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-success">Complete Cleaning</button>
+                                </form>
+                                <div class="mt-2 text-muted">
+                                    <small>Cleaning in progress since {{ active_session.start_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                                </div>
+                            {% elif not active_session %}
+                                <form method="post" action="{{ url_for('tasks.start_cleaning', id=task.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-primary">Start Cleaning</button>
+                                </form>
+                            {% else %}
+                                <div class="alert alert-warning">
+                                    You have an active cleaning session for another task. 
+                                    <a href="{{ url_for('tasks.view', id=active_session.task_id) }}">Go to active session</a>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <form method="post" action="{{ url_for('tasks.complete', id=task.id) }}">
+                                <button type="submit" class="btn btn-success">Mark as Completed</button>
+                            </form>
+                        {% endif %}
                     </div>
                     {% endif %}
                 </div>
             </div>
+            
+            {% if current_user.is_cleaner() or current_user.is_property_owner() %}
+                {% if cleaning_history %}
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Cleaning History</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Cleaner</th>
+                                            <th>Start Time</th>
+                                            <th>End Time</th>
+                                            <th>Duration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for session in cleaning_history %}
+                                        <tr>
+                                            <td>{{ session.assigned_cleaner.get_full_name() }}</td>
+                                            <td>{{ session.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                            <td>
+                                                {% if session.end_time %}
+                                                    {{ session.end_time.strftime('%Y-%m-%d %H:%M') }}
+                                                {% else %}
+                                                    <span class="badge bg-primary">In Progress</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if session.duration_minutes %}
+                                                    {{ session.get_duration_display() }}
+                                                {% elif not session.end_time %}
+                                                    <span class="badge bg-primary">In Progress</span>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
         </div>
         
         <div class="col-md-4">

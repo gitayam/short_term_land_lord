@@ -2,6 +2,19 @@
 
 {% block content %}
 <div class="container">
+    {% if current_user.is_cleaner() and active_session %}
+    <div class="alert alert-info mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Cleaning in progress:</strong> 
+                {{ active_session.property.name }} 
+                <span class="text-muted">since {{ active_session.start_time.strftime('%H:%M') }}</span>
+            </div>
+            <a href="{{ url_for('tasks.view', id=active_session.task_id) }}" class="btn btn-sm btn-primary">Continue Cleaning</a>
+        </div>
+    </div>
+    {% endif %}
+    
     <h1>Tasks</h1>
     
     {% if current_user.is_property_owner() %}
@@ -120,9 +133,19 @@
                     <td>
                         <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-info">View</a>
                         {% if task.status.value != 'completed' %}
-                        <form method="post" action="{{ url_for('tasks.complete', id=task.id) }}" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-success">Complete</button>
-                        </form>
+                            {% if current_user.is_cleaner() %}
+                                {% if active_session and active_session.task_id == task.id %}
+                                    <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-success">Continue Cleaning</a>
+                                {% elif not active_session %}
+                                    <form method="post" action="{{ url_for('tasks.start_cleaning', id=task.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-primary">Start Cleaning</button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <form method="post" action="{{ url_for('tasks.complete', id=task.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-success">Complete</button>
+                                </form>
+                            {% endif %}
                         {% endif %}
                     </td>
                 </tr>

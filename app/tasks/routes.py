@@ -5,9 +5,21 @@ from app.tasks import bp
 from app.tasks.forms import TaskForm, TaskAssignmentForm, TaskFilterForm
 from app.models import (Task, TaskAssignment, TaskProperty, Property, User, 
                        TaskStatus, TaskPriority, RecurrencePattern, UserRoles,
-                       PropertyCalendar)
+                       PropertyCalendar, CleaningSession)
 from datetime import datetime, timedelta
 from sqlalchemy import or_
+from functools import wraps
+
+
+def cleaner_required(f):
+    """Decorator to restrict access to cleaner users only"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_cleaner():
+            flash('This feature is only available to cleaners.', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @bp.route('/')
@@ -76,7 +88,12 @@ def index():
     # Order by due date (most urgent first) and then by priority
     tasks = query.order_by(Task.due_date.asc(), Task.priority.desc()).all()
     
-    return render_template('tasks/index.html', title='Tasks', tasks=tasks, form=form)
+    # Get active cleaning session for current user if they are a cleaner
+    active_session = None
+    if current_user.is_cleaner():
+        active_session = CleaningSession.get_active_session(current_user.id)
+    
+    return render_template('tasks/index.html', title='Tasks', tasks=tasks, form=form, active_session=active_session)
 
 
 @bp.route('/create', methods=['GET', 'POST'])
@@ -148,8 +165,19 @@ def view(id):
     # Get assignments for this task
     assignments = task.assignments.all()
     
+    # Get active cleaning session for current user if they are a cleaner
+    active_session = None
+    cleaning_history = []
+    if current_user.is_cleaner():
+        active_session = CleaningSession.get_active_session(current_user.id)
+        # Get cleaning history for this task
+        cleaning_history = CleaningSession.query.filter_by(
+            task_id=task.id
+        ).order_by(CleaningSession.start_time.desc()).all()
+    
     return render_template('tasks/view.html', title=task.title, task=task, 
-                          properties=properties, assignments=assignments)
+                          properties=properties, assignments=assignments,
+                          active_session=active_session, cleaning_history=cleaning_history)
 
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
@@ -326,6 +354,92 @@ def complete(id):
     
     flash('Task marked as completed!', 'success')
     return redirect(url_for('tasks.view', id=task.id))
+
+
+@bp.route('/<int:id>/start_cleaning', methods=['POST'])
+@login_required
+@cleaner_required
+def start_cleaning(id):
+    task = Task.query.get_or_404(id)
+    
+    # Check if user has permission to view this task
+    if not can_view_task(task, current_user):
+        flash('You do not have permission to view this task.', 'danger')
+        return redirect(url_for('tasks.index'))
+    
+    # Check if user already has an active cleaning session
+    active_session = CleaningSession.get_active_session(current_user.id)
+    if active_session:
+        flash('You already have an active cleaning session. Please complete it before starting a new one.', 'warning')
+        return redirect(url_for('tasks.view', id=active_session.task_id or id))
+    
+    # Get the property associated with this task
+    property = None
+    if task.properties:
+        property = task.properties[0].property
+    
+    if not property:
+        flash('This task is not associated with any property.', 'danger')
+        return redirect(url_for('tasks.view', id=id))
+    
+    # Create new cleaning session
+    session = CleaningSession(
+        cleaner_id=current_user.id,
+        property_id=property.id,
+        task_id=task.id,
+        start_time=datetime.utcnow()
+    )
+    
+    # Update task status to in progress
+    task.status = TaskStatus.IN_PROGRESS
+    
+    db.session.add(session)
+    db.session.commit()
+    
+    flash('Cleaning session started!', 'success')
+    return redirect(url_for('tasks.view', id=id))
+
+
+@bp.route('/<int:id>/complete_cleaning', methods=['POST'])
+@login_required
+@cleaner_required
+def complete_cleaning(id):
+    task = Task.query.get_or_404(id)
+    
+    # Check if user has permission to view this task
+    if not can_view_task(task, current_user):
+        flash('You do not have permission to view this task.', 'danger')
+        return redirect(url_for('tasks.index'))
+    
+    # Get the active cleaning session
+    session = CleaningSession.get_active_session(current_user.id)
+    
+    if not session:
+        flash('You do not have an active cleaning session.', 'warning')
+        return redirect(url_for('tasks.view', id=id))
+    
+    # Complete the session
+    duration = session.complete()
+    
+    # Mark task as completed
+    task.mark_completed(current_user.id)
+    
+    db.session.commit()
+    
+    flash(f'Cleaning completed! Total time: {session.get_duration_display()}', 'success')
+    return redirect(url_for('tasks.view', id=id))
+
+
+@bp.route('/cleaning_history')
+@login_required
+@cleaner_required
+def cleaning_history():
+    # Get all cleaning sessions for the current user
+    sessions = CleaningSession.query.filter_by(
+        cleaner_id=current_user.id
+    ).order_by(CleaningSession.start_time.desc()).all()
+    
+    return render_template('tasks/cleaning_history.html', title='Cleaning History', sessions=sessions)
 
 
 def can_view_task(task, user):
