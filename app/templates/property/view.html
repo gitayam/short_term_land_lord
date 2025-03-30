@@ -352,7 +352,6 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         {% if property.wifi_network and property.wifi_password %}
@@ -365,34 +364,20 @@
             // Create WiFi network string in format: WIFI:S:<SSID>;T:<WPA|WEP|>;P:<password>;;
             const wifiString = "WIFI:S:" + ssid + ";T:WPA;P:" + password + ";;";
             
-            try {
-                // Initialize TypeNumber dynamically
-                let qr;
-                let typeNumber = 0;  // Start with the smallest type
-                
-                // Try creating the QR code, increasing type number if needed
-                while (typeNumber < 20) {  // Limit to prevent infinite loop
-                    try {
-                        qr = qrcode(typeNumber, 'L');  // L = Low error correction
-                        qr.addData(wifiString);
-                        qr.make();
-                        break;  // Success, exit loop
-                    } catch (e) {
-                        typeNumber++;
-                        // If we've tried all type numbers and still failed, throw the error
-                        if (typeNumber >= 20) throw e;
-                    }
-                }
-                
-                // Render QR code
-                wifiQRContainer.innerHTML = qr.createImgTag(4);
-                
-                // Log success for debugging
-                console.log("QR code successfully generated");
-            } catch (error) {
-                console.error("Error generating QR code:", error);
-                wifiQRContainer.innerHTML = '<div class="alert alert-warning">Could not generate QR code</div>';
-            }
+            // Use Google Charts API to generate QR code - more reliable than client-side libraries
+            const googleChartUrl = "https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=" + 
+                                   encodeURIComponent(wifiString);
+            
+            // Create and append image
+            const qrImg = document.createElement('img');
+            qrImg.src = googleChartUrl;
+            qrImg.alt = "WiFi QR Code";
+            qrImg.style.width = "150px";
+            qrImg.style.height = "150px";
+            
+            // Clear container and add the image
+            wifiQRContainer.innerHTML = '';
+            wifiQRContainer.appendChild(qrImg);
         }
         {% endif %}
     });
