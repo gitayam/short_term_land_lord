@@ -5,12 +5,13 @@ from app.models import (User, UserRoles, Task, TaskAssignment, TaskStatus,
                        TaskPriority, TaskProperty, Property, RecurrencePattern)
 from app.tasks.routes import (can_view_task, can_edit_task, can_delete_task, 
                             can_complete_task, assign_tasks_to_next_cleaner)
+from config import TestConfig
 
 
 class TestTaskServiceFunctions(unittest.TestCase):
     def setUp(self):
         # Configure the app for testing
-        self.app = create_app()  # Use default config
+        self.app = create_app(TestConfig)  # Use TestConfig for testing
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()

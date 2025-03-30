@@ -5,12 +5,13 @@ from app.models import (User, UserRoles, Task, TaskAssignment, TaskStatus,
                       ServiceType)
 from flask import url_for
 from app.tasks.routes import can_view_task, can_edit_task, can_delete_task, can_complete_task
+from config import TestConfig
 
 
 @pytest.fixture(scope='function')
 def app():
     """Create and configure a Flask app for testing."""
-    app = create_app()  # Use default config
+    app = create_app(TestConfig)  # Use TestConfig for testing
     
     # Disable CSRF protection for testing
     app.config['WTF_CSRF_ENABLED'] = False

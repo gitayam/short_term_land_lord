@@ -6,13 +6,13 @@ from app.models import (User, UserRoles, Task, TaskAssignment, TaskStatus,
                        ServiceType, RepairRequest)
 from flask import url_for
 import json
+from config import TestConfig
 
 
 class TestTaskRoutes(unittest.TestCase):
     def setUp(self):
         # Configure the app for testing
-        self.app = create_app()  # Use default config
-        self.app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for testing
+        self.app = create_app(TestConfig)  # Use TestConfig for testing
         self.app_context = self.app.app_context()
         self.app_context.push()
         self.client = self.app.test_client(use_cookies=True)
@@ -269,8 +269,7 @@ class TestTaskRoutes(unittest.TestCase):
 class TestPropertyRoutes(unittest.TestCase):
     def setUp(self):
         # Configure the app for testing
-        self.app = create_app()  # Use default config
-        self.app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for testing
+        self.app = create_app(TestConfig)  # Use TestConfig for testing
         self.app_context = self.app.app_context()
         self.app_context.push()
         self.client = self.app.test_client(use_cookies=True)
