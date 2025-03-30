@@ -3,6 +3,8 @@ from app import create_app, db
 from app.models import (User, UserRoles, Task, TaskAssignment, TaskStatus, 
                       TaskPriority, TaskProperty, Property, RecurrencePattern,
                       ServiceType)
+from flask import url_for
+from app.tasks.routes import can_view_task, can_edit_task, can_delete_task, can_complete_task
 
 
 @pytest.fixture(scope='function')
@@ -10,6 +12,14 @@ def app():
     """Create and configure a Flask app for testing."""
     app = create_app()  # Use default config
     app.config['WTF_CSRF_ENABLED'] = False
+    
+    # Add task permission functions to Jinja environment
+    app.jinja_env.globals.update(
+        can_view_task=can_view_task,
+        can_edit_task=can_edit_task,
+        can_delete_task=can_delete_task,
+        can_complete_task=can_complete_task
+    )
     
     # Create a test context
     with app.app_context():
