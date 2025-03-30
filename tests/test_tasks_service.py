@@ -10,7 +10,7 @@ from app.tasks.routes import (can_view_task, can_edit_task, can_delete_task,
 class TestTaskServiceFunctions(unittest.TestCase):
     def setUp(self):
         # Configure the app for testing
-        self.app = create_app('testing')
+        self.app = create_app()  # Use default config
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()

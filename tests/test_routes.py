@@ -11,7 +11,7 @@ import json
 class TestTaskRoutes(unittest.TestCase):
     def setUp(self):
         # Configure the app for testing
-        self.app = create_app('testing')
+        self.app = create_app()  # Use default config
         self.app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for testing
         self.app_context = self.app.app_context()
         self.app_context.push()
@@ -269,7 +269,7 @@ class TestTaskRoutes(unittest.TestCase):
 class TestPropertyRoutes(unittest.TestCase):
     def setUp(self):
         # Configure the app for testing
-        self.app = create_app('testing')
+        self.app = create_app()  # Use default config
         self.app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for testing
         self.app_context = self.app.app_context()
         self.app_context.push()
