@@ -1,8 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, DateTimeField, SelectField, BooleanField, SubmitField, IntegerField, TelField
+from flask_wtf.file import FileField, FileAllowed, FileRequired
+from wtforms import StringField, TextAreaField, DateTimeField, SelectField, BooleanField, SubmitField, IntegerField, TelField, RadioField
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 from wtforms_sqlalchemy.fields import QuerySelectField, QuerySelectMultipleField
-from app.models import User, Property, TaskStatus, TaskPriority, RecurrencePattern, UserRoles
+from app.models import User, Property, TaskStatus, TaskPriority, RecurrencePattern, UserRoles, MediaType
 
 
 class TaskForm(FlaskForm):
@@ -93,3 +94,26 @@ class TaskFilterForm(FlaskForm):
         
         self.priority.choices = [('', 'All')] + [(priority.value, priority.name.title()) 
                                                 for priority in TaskPriority]
+
+
+class VideoUploadForm(FlaskForm):
+    video = FileField('Video', validators=[
+        FileRequired(),
+        FileAllowed(['mp4', 'mov', 'avi', 'webm'], 'Videos only!')
+    ])
+    video_type = RadioField('Video Type', choices=[
+        ('start', 'Start of Cleaning'),
+        ('end', 'End of Cleaning')
+    ], validators=[DataRequired()])
+    submit = SubmitField('Upload Video')
+
+
+class IssueReportForm(FlaskForm):
+    description = TextAreaField('Description of Issue', validators=[DataRequired(), Length(min=10, max=500)])
+    location = StringField('Location in Property', validators=[DataRequired(), Length(min=3, max=255)])
+    additional_notes = TextAreaField('Additional Notes', validators=[Optional(), Length(max=1000)])
+    photos = FileField('Photos', validators=[
+        FileRequired(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')
+    ])
+    submit = SubmitField('Submit Issue Report')

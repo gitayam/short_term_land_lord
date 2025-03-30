@@ -29,6 +29,15 @@ class RecurrencePattern(enum.Enum):
     MONTHLY = "monthly"
     CUSTOM = "custom"
 
+class MediaType(enum.Enum):
+    PHOTO = "photo"
+    VIDEO = "video"
+
+class StorageBackend(enum.Enum):
+    LOCAL = "local"
+    S3 = "s3"
+    RCLONE = "rclone"
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(64), nullable=False)
@@ -110,7 +119,7 @@ class Property(db.Model):
     calendars = db.relationship('PropertyCalendar', backref='property', lazy='dynamic', cascade='all, delete-orphan')
     tasks = db.relationship('TaskProperty', back_populates='property', cascade='all, delete-orphan')
     rooms = db.relationship('Room', back_populates='property', lazy='dynamic', cascade='all, delete-orphan')
-    cleaning_sessions = db.relationship('CleaningSession', backref='property', lazy='dynamic', cascade='all, delete-orphan')
+    cleaning_sessions = db.relationship('CleaningSession', foreign_keys='CleaningSession.property_id', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Property {self.name}>'
@@ -278,7 +287,7 @@ class Task(db.Model):
     calendar = db.relationship('PropertyCalendar', backref='linked_tasks')
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic', cascade='all, delete-orphan')
     properties = db.relationship('TaskProperty', back_populates='task', cascade='all, delete-orphan')
-    cleaning_sessions = db.relationship('CleaningSession', backref='task', lazy='dynamic', cascade='all, delete-orphan')
+    associated_cleaning_sessions = db.relationship('CleaningSession', foreign_keys='CleaningSession.task_id', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Task {self.title}>'
@@ -387,12 +396,12 @@ class CleaningSession(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
-    property = db.relationship('Property', backref='cleaning_sessions')
-    task = db.relationship('Task', backref='cleaning_sessions')
+    # Relationships with clear distinct names
+    associated_property = db.relationship('Property', foreign_keys=[property_id])
+    associated_task = db.relationship('Task', foreign_keys=[task_id])
     
     def __repr__(self):
-        return f'<CleaningSession {self.id} by {self.assigned_cleaner.get_full_name()} at {self.property.name}>'
+        return f'<CleaningSession {self.id} by {self.assigned_cleaner.get_full_name()} at {self.associated_property.name}>'
     
     def complete(self):
         """Complete the cleaning session and calculate duration"""
@@ -418,6 +427,85 @@ class CleaningSession(db.Model):
     def get_active_session(cls, cleaner_id):
         """Get the active cleaning session for a cleaner if one exists"""
         return cls.query.filter_by(cleaner_id=cleaner_id, end_time=None).first()
+    
+    @property
+    def has_start_video(self):
+        """Check if this session has a start video"""
+        return CleaningMedia.query.filter_by(
+            cleaning_session_id=self.id,
+            media_type=MediaType.VIDEO,
+            is_start_video=True
+        ).first() is not None
+    
+    @property
+    def has_end_video(self):
+        """Check if this session has an end video"""
+        return CleaningMedia.query.filter_by(
+            cleaning_session_id=self.id,
+            media_type=MediaType.VIDEO,
+            is_start_video=False
+        ).first() is not None
+
+class CleaningMedia(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    cleaning_session_id = db.Column(db.Integer, db.ForeignKey('cleaning_session.id'), nullable=False)
+    media_type = db.Column(db.Enum(MediaType), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    storage_backend = db.Column(db.Enum(StorageBackend), default=StorageBackend.LOCAL, nullable=False)
+    
+    # For videos, track if it's a start or end video
+    is_start_video = db.Column(db.Boolean, nullable=True)
+    
+    # Metadata
+    original_filename = db.Column(db.String(255), nullable=True)
+    file_size = db.Column(db.Integer, nullable=True)  # Size in bytes
+    mime_type = db.Column(db.String(100), nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    cleaning_session = db.relationship('CleaningSession', backref='media')
+    
+    def __repr__(self):
+        return f'<CleaningMedia {self.id} ({self.media_type.value}) for session {self.cleaning_session_id}>'
+    
+    def get_url(self):
+        """Return the URL to access this media file based on storage backend"""
+        if self.storage_backend == StorageBackend.LOCAL:
+            return self.file_path
+        elif self.storage_backend == StorageBackend.S3:
+            # This would be expanded with actual S3 URL construction
+            return self.file_path
+        elif self.storage_backend == StorageBackend.RCLONE:
+            # This would be expanded with actual rclone URL construction
+            return self.file_path
+        return self.file_path
+
+# Junction table for issue reports and media
+issue_media = db.Table('issue_media',
+    db.Column('issue_id', db.Integer, db.ForeignKey('issue_report.id'), primary_key=True),
+    db.Column('media_id', db.Integer, db.ForeignKey('cleaning_media.id'), primary_key=True),
+    db.Column('created_at', db.DateTime, default=datetime.utcnow)
+)
+
+class IssueReport(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    cleaning_session_id = db.Column(db.Integer, db.ForeignKey('cleaning_session.id'), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    location = db.Column(db.String(255), nullable=False)  # Location within the property
+    additional_notes = db.Column(db.Text, nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    cleaning_session = db.relationship('CleaningSession', backref='issues')
+    media = db.relationship('CleaningMedia', secondary='issue_media', backref='issues')
+    
+    def __repr__(self):
+        return f'<IssueReport {self.id} for session {self.cleaning_session_id}>'
 
 @login_manager.user_loader
 def load_user(id):

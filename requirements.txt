@@ -16,3 +16,5 @@ icalendar
 python-dateutil
 pytz
 gunicorn
+boto3
+python-magic

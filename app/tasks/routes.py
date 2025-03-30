@@ -1,14 +1,17 @@
-from flask import render_template, redirect, url_for, flash, request, current_app, abort
+from flask import render_template, redirect, url_for, flash, request, current_app, abort, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.tasks import bp
-from app.tasks.forms import TaskForm, TaskAssignmentForm, TaskFilterForm
+from app.tasks.forms import TaskForm, TaskAssignmentForm, TaskFilterForm, VideoUploadForm, IssueReportForm
 from app.models import (Task, TaskAssignment, TaskProperty, Property, User, 
                        TaskStatus, TaskPriority, RecurrencePattern, UserRoles,
-                       PropertyCalendar, CleaningSession)
+                       PropertyCalendar, CleaningSession, CleaningMedia, MediaType,
+                       IssueReport, StorageBackend)
+from app.tasks.media import save_file_to_storage, allowed_file
 from datetime import datetime, timedelta
 from sqlalchemy import or_
 from functools import wraps
+import os
 
 
 def cleaner_required(f):
@@ -418,6 +421,20 @@ def complete_cleaning(id):
         flash('You do not have an active cleaning session.', 'warning')
         return redirect(url_for('tasks.view', id=id))
     
+    # Check if start and end videos are required
+    require_videos = current_app.config.get('REQUIRE_CLEANING_VIDEOS', False)
+    
+    if require_videos:
+        # Check if start video exists
+        if not session.has_start_video:
+            flash('You must upload a start video before completing the cleaning.', 'warning')
+            return redirect(url_for('tasks.upload_video', session_id=session.id))
+        
+        # Check if end video exists
+        if not session.has_end_video:
+            flash('You must upload an end video before completing the cleaning.', 'warning')
+            return redirect(url_for('tasks.upload_video', session_id=session.id))
+    
     # Complete the session
     duration = session.complete()
     
@@ -440,6 +457,163 @@ def cleaning_history():
     ).order_by(CleaningSession.start_time.desc()).all()
     
     return render_template('tasks/cleaning_history.html', title='Cleaning History', sessions=sessions)
+
+
+@bp.route('/<int:session_id>/upload_video', methods=['GET', 'POST'])
+@login_required
+@cleaner_required
+def upload_video(session_id):
+    # Get the cleaning session
+    session = CleaningSession.query.get_or_404(session_id)
+    
+    # Check if the current user is the assigned cleaner
+    if session.cleaner_id != current_user.id:
+        flash('You can only upload videos for your own cleaning sessions.', 'danger')
+        return redirect(url_for('tasks.index'))
+    
+    form = VideoUploadForm()
+    
+    if form.validate_on_submit():
+        video_file = form.video.data
+        is_start_video = form.video_type.data == 'start'
+        
+        # Check if a video of this type already exists
+        existing_video = CleaningMedia.query.filter_by(
+            cleaning_session_id=session_id,
+            media_type=MediaType.VIDEO,
+            is_start_video=is_start_video
+        ).first()
+        
+        if existing_video:
+            flash(f'A {"start" if is_start_video else "end"} video already exists for this session.', 'warning')
+            return redirect(url_for('tasks.view', id=session.task_id))
+        
+        # Save the video file
+        try:
+            file_path, storage_backend, file_size, mime_type = save_file_to_storage(
+                video_file, session_id, MediaType.VIDEO, is_start_video
+            )
+            
+            # Create database record
+            media = CleaningMedia(
+                cleaning_session_id=session_id,
+                media_type=MediaType.VIDEO,
+                file_path=file_path,
+                storage_backend=storage_backend,
+                is_start_video=is_start_video,
+                original_filename=video_file.filename,
+                file_size=file_size,
+                mime_type=mime_type
+            )
+            
+            db.session.add(media)
+            db.session.commit()
+            
+            flash('Video uploaded successfully!', 'success')
+            return redirect(url_for('tasks.view', id=session.task_id))
+            
+        except Exception as e:
+            flash(f'Error uploading video: {str(e)}', 'danger')
+    
+    return render_template('tasks/upload_video.html', 
+                          title='Upload Video', 
+                          form=form, 
+                          session=session)
+
+
+@bp.route('/<int:session_id>/report_issue', methods=['GET', 'POST'])
+@login_required
+@cleaner_required
+def report_issue(session_id):
+    # Get the cleaning session
+    session = CleaningSession.query.get_or_404(session_id)
+    
+    # Check if the current user is the assigned cleaner
+    if session.cleaner_id != current_user.id:
+        flash('You can only report issues for your own cleaning sessions.', 'danger')
+        return redirect(url_for('tasks.index'))
+    
+    form = IssueReportForm()
+    
+    if form.validate_on_submit():
+        # Create the issue report
+        issue = IssueReport(
+            cleaning_session_id=session_id,
+            description=form.description.data,
+            location=form.location.data,
+            additional_notes=form.additional_notes.data
+        )
+        
+        db.session.add(issue)
+        db.session.flush()  # Get the issue ID without committing
+        
+        # Handle multiple photo uploads
+        photos = request.files.getlist('photos')
+        
+        for photo in photos:
+            if photo and allowed_file(photo.filename, current_app.config['ALLOWED_PHOTO_EXTENSIONS']):
+                try:
+                    file_path, storage_backend, file_size, mime_type = save_file_to_storage(
+                        photo, session_id, MediaType.PHOTO
+                    )
+                    
+                    # Create media record
+                    media = CleaningMedia(
+                        cleaning_session_id=session_id,
+                        media_type=MediaType.PHOTO,
+                        file_path=file_path,
+                        storage_backend=storage_backend,
+                        original_filename=photo.filename,
+                        file_size=file_size,
+                        mime_type=mime_type
+                    )
+                    
+                    db.session.add(media)
+                    db.session.flush()
+                    
+                    # Associate media with issue
+                    issue.media.append(media)
+                    
+                except Exception as e:
+                    flash(f'Error uploading photo: {str(e)}', 'warning')
+        
+        db.session.commit()
+        flash('Issue reported successfully!', 'success')
+        return redirect(url_for('tasks.view', id=session.task_id))
+    
+    return render_template('tasks/report_issue.html', 
+                          title='Report Issue', 
+                          form=form, 
+                          session=session)
+
+
+@bp.route('/<int:session_id>/media')
+@login_required
+def session_media(session_id):
+    # Get the cleaning session
+    session = CleaningSession.query.get_or_404(session_id)
+    
+    # Check if user has permission to view this session
+    if not (current_user.id == session.cleaner_id or 
+            current_user.id == session.property.owner_id or
+            current_user.is_property_owner() and session.property.owner_id == current_user.id):
+        flash('You do not have permission to view this media.', 'danger')
+        return redirect(url_for('tasks.index'))
+    
+    # Get all media for this session
+    videos = CleaningMedia.query.filter_by(
+        cleaning_session_id=session_id,
+        media_type=MediaType.VIDEO
+    ).all()
+    
+    # Get all issue reports with their photos
+    issues = IssueReport.query.filter_by(cleaning_session_id=session_id).all()
+    
+    return render_template('tasks/session_media.html',
+                          title='Cleaning Media',
+                          session=session,
+                          videos=videos,
+                          issues=issues)
 
 
 def can_view_task(task, user):
