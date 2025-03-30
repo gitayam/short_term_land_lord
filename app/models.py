@@ -445,9 +445,6 @@ class TaskAssignment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationship to user (if assigned to a user)
-    user = db.relationship('User', backref='task_assignments')
-    
     def __repr__(self):
         if self.user_id:
             return f'<TaskAssignment to User {self.user_id}>'
@@ -482,7 +479,17 @@ class CleaningSession(db.Model):
     associated_task = db.relationship('Task', foreign_keys=[task_id], overlaps="associated_cleaning_sessions")
     
     def __repr__(self):
-        return f'<CleaningSession {self.id} by {self.assigned_cleaner.get_full_name()} at {self.associated_property.name}>'
+        if hasattr(self, 'assigned_cleaner') and self.assigned_cleaner:
+            cleaner_name = self.assigned_cleaner.get_full_name()
+        else:
+            cleaner_name = f"User #{self.cleaner_id}"
+            
+        if hasattr(self, 'associated_property') and self.associated_property:
+            property_name = self.associated_property.name
+        else:
+            property_name = f"Property #{self.property_id}"
+            
+        return f'<CleaningSession {self.id} by {cleaner_name} at {property_name}>'
     
     def complete(self):
         """Complete the cleaning session and calculate duration"""

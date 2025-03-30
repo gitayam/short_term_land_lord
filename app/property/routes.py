@@ -664,16 +664,50 @@ def view_calendar(id):
                     for component in cal.walk():
                         if component.name == "VEVENT":
                             try:
-                                # Get event details
-                                summary = str(component.get('summary', 'Booking'))
-                                start_date = component.get('dtstart').dt
-                                end_date = component.get('dtend').dt
+                                # Get event details with extensive error checking
+                                summary = ''
+                                start_date = None
+                                end_date = None
+                                
+                                # Try to get summary safely
+                                if hasattr(component, 'get') and callable(component.get):
+                                    summary_value = component.get('summary')
+                                    if summary_value:
+                                        summary = str(summary_value)
+                                    else:
+                                        summary = 'Booking'
+                                else:
+                                    summary = 'Booking'
+                                
+                                # Try to get start date safely
+                                dtstart = component.get('dtstart')
+                                if dtstart and hasattr(dtstart, 'dt'):
+                                    start_date = dtstart.dt
+                                else:
+                                    # Skip this event if no start date
+                                    current_app.logger.warning(f"Event missing start date in calendar {calendar.id}")
+                                    continue
+                                
+                                # Try to get end date safely
+                                dtend = component.get('dtend')
+                                if dtend and hasattr(dtend, 'dt'):
+                                    end_date = dtend.dt
+                                else:
+                                    # If no end date, use start date + 1 day
+                                    if isinstance(start_date, datetime):
+                                        end_date = start_date + timedelta(days=1)
+                                    else:
+                                        end_date = start_date + timedelta(days=1)
                                 
                                 # Convert datetime objects to date if necessary
                                 if isinstance(start_date, datetime):
                                     start_date = start_date.date()
                                 if isinstance(end_date, datetime):
                                     end_date = end_date.date()
+                                
+                                # Make sure both dates are valid
+                                if not (start_date and end_date):
+                                    continue
                                 
                                 # Add event to the list
                                 event = {
@@ -688,7 +722,7 @@ def view_calendar(id):
                                 }
                                 events.append(event)
                                 success = True
-                            except (KeyError, AttributeError) as e:
+                            except (KeyError, AttributeError, ValueError, TypeError) as e:
                                 # Just skip this event if there's a problem with it
                                 current_app.logger.error(f"Error parsing event in calendar {calendar.id}: {str(e)}")
                                 continue
@@ -731,6 +765,16 @@ def view_calendar(id):
     # If we couldn't fetch any valid events, inform the user
     if not success and calendars:
         flash('Could not fetch calendar data from any of the configured sources. Please check your calendar URLs and try again.', 'warning')
+    
+    # Ensure events data is JSON serializable
+    try:
+        import json
+        # Attempt to serialize to verify it's valid JSON
+        json.dumps(events)
+    except (TypeError, ValueError) as e:
+        current_app.logger.error(f"Error serializing events data: {str(e)}")
+        flash('Error preparing calendar data for display. Some events may not be shown.', 'warning')
+        events = []  # Reset to empty list as fallback
     
     return render_template('property/calendar_view.html', property=property, calendars=calendars, events=events)
 
