@@ -92,6 +92,13 @@
                                 <div class="form-group">
                                     {{ form.recurrence_pattern.label(class="form-label") }}
                                     {{ form.recurrence_pattern(class="form-control") }}
+                                    <small class="form-text text-muted">
+                                        <ul class="mt-2 ps-3">
+                                            <li><strong>Every Cleaning</strong>: Task applies to every cleaning session</li>
+                                            <li><strong>Weekly Cleaning</strong>: Task recurs weekly if there's a cleaning scheduled</li>
+                                            <li><strong>Monthly Cleaning</strong>: Task recurs monthly if there's a cleaning scheduled</li>
+                                        </ul>
+                                    </small>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -122,6 +129,21 @@
                             {{ form.calendar_id.label(class="form-label") }}
                             {{ form.calendar_id(class="form-control") }}
                             <small class="form-text text-muted">Tasks will be automatically created after guest checkouts</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Assignment Options</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            {{ form.assign_to_next_cleaner(class="form-check-input") }}
+                            {{ form.assign_to_next_cleaner.label(class="form-check-label") }}
+                            <small class="form-text text-muted d-block">
+                                When enabled, this task will be automatically assigned to the next cleaner who starts a cleaning session for this property.
+                            </small>
                         </div>
                     </div>
                 </div>

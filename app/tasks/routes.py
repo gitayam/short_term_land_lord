@@ -136,6 +136,7 @@ def create():
             recurrence_end_date=form.recurrence_end_date.data,
             linked_to_checkout=form.linked_to_checkout.data,
             calendar_id=form.calendar_id.data if form.calendar_id.data != -1 else None,
+            assign_to_next_cleaner=form.assign_to_next_cleaner.data,
             creator_id=current_user.id
         )
         
@@ -221,6 +222,7 @@ def edit(id):
         task.recurrence_end_date = form.recurrence_end_date.data
         task.linked_to_checkout = form.linked_to_checkout.data
         task.calendar_id = form.calendar_id.data if form.calendar_id.data != -1 else None
+        task.assign_to_next_cleaner = form.assign_to_next_cleaner.data
         
         # Update properties
         # First, remove all existing property associations
@@ -250,6 +252,7 @@ def edit(id):
         form.recurrence_end_date.data = task.recurrence_end_date
         form.linked_to_checkout.data = task.linked_to_checkout
         form.calendar_id.data = task.calendar_id if task.calendar_id else -1
+        form.assign_to_next_cleaner.data = task.assign_to_next_cleaner
         
         # Set selected properties
         form.properties.data = [tp.property for tp in task.properties]
@@ -363,6 +366,43 @@ def complete(id):
     return redirect(url_for('tasks.view', id=task.id))
 
 
+def assign_tasks_to_next_cleaner(property_id, cleaner_id):
+    """
+    Assign all tasks marked for 'next cleaner' to the specified cleaner
+    for the given property.
+    """
+    # Find all tasks for this property that are marked for next cleaner assignment
+    tasks = Task.query.join(TaskProperty).filter(
+        TaskProperty.property_id == property_id,
+        Task.assign_to_next_cleaner == True,
+        Task.status != TaskStatus.COMPLETED
+    ).all()
+    
+    # Assign each task to the cleaner
+    for task in tasks:
+        # Check if the task is already assigned to this cleaner
+        existing_assignment = TaskAssignment.query.filter_by(
+            task_id=task.id,
+            user_id=cleaner_id
+        ).first()
+        
+        if not existing_assignment:
+            # Create a new assignment
+            assignment = TaskAssignment(
+                task_id=task.id,
+                user_id=cleaner_id
+            )
+            db.session.add(assignment)
+            
+            # Send notification to the assigned user
+            cleaner = User.query.get(cleaner_id)
+            if cleaner:
+                send_task_assignment_notification(task, cleaner)
+    
+    db.session.commit()
+    return len(tasks)
+
+
 @bp.route('/<int:id>/start_cleaning', methods=['POST'])
 @login_required
 @cleaner_required
@@ -402,6 +442,11 @@ def start_cleaning(id):
     
     db.session.add(session)
     db.session.commit()
+    
+    # Assign any tasks marked for "next cleaner" to this cleaner
+    assigned_count = assign_tasks_to_next_cleaner(property.id, current_user.id)
+    if assigned_count > 0:
+        flash(f'{assigned_count} additional tasks have been assigned to you as the current cleaner.', 'info')
     
     flash('Cleaning session started!', 'success')
     return redirect(url_for('tasks.view', id=id))
@@ -461,6 +506,32 @@ def cleaning_history():
     ).order_by(CleaningSession.start_time.desc()).all()
     
     return render_template('tasks/cleaning_history.html', title='Cleaning History', sessions=sessions)
+
+
+@bp.route('/property/<int:property_id>/tasks')
+@login_required
+def property_tasks(property_id):
+    # Get the property
+    property = Property.query.get_or_404(property_id)
+    
+    # Check if user has permission to view this property
+    if not property.is_visible_to(current_user):
+        flash('You do not have permission to view this property.', 'danger')
+        return redirect(url_for('main.index'))
+    
+    # Get all tasks for this property
+    tasks = Task.query.join(TaskProperty).filter(TaskProperty.property_id == property_id).all()
+    
+    # Get active cleaning session for current user if they are a cleaner
+    active_session = None
+    if current_user.is_cleaner():
+        active_session = CleaningSession.get_active_session(current_user.id)
+    
+    return render_template('tasks/property_tasks.html', 
+                          title=f'Tasks for {property.name}', 
+                          property=property, 
+                          tasks=tasks,
+                          active_session=active_session)
 
 
 @bp.route('/<int:session_id>/upload_video', methods=['GET', 'POST'])

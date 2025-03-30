@@ -27,6 +27,9 @@ class TaskForm(FlaskForm):
     linked_to_checkout = BooleanField('Link to Calendar Checkout')
     calendar_id = SelectField('Calendar', coerce=int, validators=[Optional()])
     
+    # Dynamic assignment
+    assign_to_next_cleaner = BooleanField('Assign to Next Cleaner')
+    
     submit = SubmitField('Save Task')
     
     def __init__(self, *args, **kwargs):

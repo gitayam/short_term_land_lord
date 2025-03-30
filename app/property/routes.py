@@ -708,3 +708,16 @@ def room_form_template():
                           is_new=True)
     
     return jsonify(html=html)
+
+# Fix for the duplicated property in URL
+@bp.route('/property/<int:id>/calendar')
+@login_required
+def redirect_to_calendar(id):
+    # Redirect to the correct calendar URL
+    return redirect(url_for('property.view_calendar', id=id))
+
+@bp.route('/property/<int:id>/calendars')
+@login_required
+def redirect_to_calendars(id):
+    # Redirect to the correct calendars URL
+    return redirect(url_for('property.manage_calendars', id=id))

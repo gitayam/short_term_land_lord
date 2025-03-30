@@ -10,6 +10,7 @@
                     <a href="{{ url_for('property.edit', id=property.id) }}" class="btn btn-sm btn-primary">Edit Property</a>
                     <a href="{{ url_for('property.manage_images', id=property.id) }}" class="btn btn-sm btn-outline-primary">Manage Images</a>
                     <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-sm btn-outline-info">View Calendar</a>
+                    <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-sm btn-outline-success">Manage Inventory</a>
                 </div>
             </div>
             
@@ -276,10 +277,17 @@
                 <p><strong>Added:</strong> {{ property.created_at.strftime('%B %d, %Y') }}</p>
                 <p><strong>Last Updated:</strong> {{ property.updated_at.strftime('%B %d, %Y') }}</p>
                 
-                <!-- Placeholder for future task assignment functionality -->
-                <div class="alert alert-secondary">
-                    <h6>Tasks</h6>
-                    <p class="mb-0">Task assignment functionality will be available soon.</p>
+                <!-- Property Tasks Section -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Property Tasks</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Manage cleaning tasks specific to this property.</p>
+                        <a href="{{ url_for('tasks.property_tasks', property_id=property.id) }}" class="btn btn-primary">
+                            <i class="fas fa-tasks"></i> View Property Tasks
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

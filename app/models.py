@@ -28,6 +28,9 @@ class RecurrencePattern(enum.Enum):
     WEEKLY = "weekly"
     MONTHLY = "monthly"
     CUSTOM = "custom"
+    EVERY_CLEANING = "every_cleaning"
+    WEEKLY_CLEANING = "weekly_cleaning"
+    MONTHLY_CLEANING = "monthly_cleaning"
 
 class MediaType(enum.Enum):
     PHOTO = "photo"
@@ -304,6 +307,9 @@ class Task(db.Model):
     linked_to_checkout = db.Column(db.Boolean, default=False)
     calendar_id = db.Column(db.Integer, db.ForeignKey('property_calendar.id'), nullable=True)
     
+    # Dynamic assignment to next cleaner
+    assign_to_next_cleaner = db.Column(db.Boolean, default=False)
+    
     # Creator information
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
@@ -344,6 +350,12 @@ class Task(db.Model):
         elif self.recurrence_pattern == RecurrencePattern.MONTHLY:
             # Add months - this is a simplification
             next_due_date = self.due_date + timedelta(days=30 * self.recurrence_interval)
+        elif self.recurrence_pattern in [RecurrencePattern.EVERY_CLEANING, 
+                                        RecurrencePattern.WEEKLY_CLEANING, 
+                                        RecurrencePattern.MONTHLY_CLEANING]:
+            # For cleaning-specific patterns, the next occurrence will be created
+            # when a cleaning is scheduled, not immediately
+            return None
         
         # Check if we've reached the end date
         if self.recurrence_end_date and next_due_date > self.recurrence_end_date:
@@ -362,6 +374,7 @@ class Task(db.Model):
             recurrence_end_date=self.recurrence_end_date,
             linked_to_checkout=self.linked_to_checkout,
             calendar_id=self.calendar_id,
+            assign_to_next_cleaner=self.assign_to_next_cleaner,
             creator_id=self.creator_id
         )
         
