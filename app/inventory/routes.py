@@ -9,28 +9,6 @@ from datetime import datetime
 import json
 from app.auth.decorators import property_owner_required, admin_required
 
-def property_owner_required(f):
-    """Decorator to ensure only property owners can access a route"""
-    @login_required
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_property_owner():
-            flash('Access denied. You must be a property owner to view this page.', 'danger')
-            return redirect(url_for('main.index'))
-        return f(*args, **kwargs)
-    decorated_function.__name__ = f.__name__
-    return decorated_function
-
-def admin_required(f):
-    """Decorator to ensure only admins can access a route"""
-    @login_required
-    def decorated_function(*args, **kwargs):
-        if not current_user.role == UserRoles.ADMIN:
-            flash('Access denied. You must be an admin to view this page.', 'danger')
-            return redirect(url_for('main.index'))
-        return f(*args, **kwargs)
-    decorated_function.__name__ = f.__name__
-    return decorated_function
-
 def can_manage_inventory(property_id):
     """Check if the current user can manage inventory for this property"""
     property = Property.query.get_or_404(property_id)
