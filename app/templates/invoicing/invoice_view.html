@@ -121,6 +121,13 @@
             </div>
             {% endif %}
             
+            {% if invoice.comments %}
+            <div class="mt-4">
+                <h5>Comments</h5>
+                <p>{{ invoice.comments }}</p>
+            </div>
+            {% endif %}
+            
             <div class="mt-4">
                 {% if invoice.status.value == 'draft' %}
                 <form action="{{ url_for('invoicing.send_invoice', id=invoice.id) }}" method="post" class="d-inline">
@@ -135,11 +142,9 @@
                     </button>
                 </form>
                 {% elif invoice.status.value in ['sent', 'overdue'] %}
-                <form action="{{ url_for('invoicing.mark_invoice_paid', id=invoice.id) }}" method="post" class="d-inline">
-                    <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to mark this invoice as paid?')">
-                        <i class="fas fa-check"></i> Mark as Paid
-                    </button>
-                </form>
+                <a href="{{ url_for('invoicing.mark_invoice_paid', id=invoice.id) }}" class="btn btn-success">
+                    <i class="fas fa-check"></i> Mark as Paid
+                </a>
                 
                 <form action="{{ url_for('invoicing.cancel_invoice', id=invoice.id) }}" method="post" class="d-inline">
                     <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to cancel this invoice?')">
@@ -147,6 +152,10 @@
                     </button>
                 </form>
                 {% endif %}
+                
+                <a href="{{ url_for('invoicing.add_invoice_comment', id=invoice.id) }}" class="btn btn-info">
+                    <i class="fas fa-comment"></i> {% if invoice.comments %}Edit{% else %}Add{% endif %} Comments
+                </a>
             </div>
         </div>
     </div>

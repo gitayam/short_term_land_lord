@@ -93,6 +93,9 @@ class Invoice(db.Model):
     paid_date = db.Column(db.Date, nullable=True)
     payment_notes = db.Column(db.Text, nullable=True)
     
+    # Comments for record-keeping
+    comments = db.Column(db.Text, nullable=True)
+    
     # Who created the invoice
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
@@ -118,10 +121,10 @@ class Invoice(db.Model):
         self.total = self.subtotal + self.tax_amount
         return self.total
     
-    def mark_as_paid(self):
-        """Mark the invoice as paid"""
+    def mark_as_paid(self, payment_date=None):
+        """Mark the invoice as paid with optional payment date"""
         self.status = InvoiceStatus.PAID
-        self.paid_date = datetime.utcnow().date()
+        self.paid_date = payment_date if payment_date else datetime.utcnow().date()
         return True
     
     @classmethod

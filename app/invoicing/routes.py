@@ -1,23 +1,29 @@
-from flask import render_template, redirect, url_for, flash, request, current_app, abort
+from flask import render_template, redirect, url_for, flash, request, current_app, abort, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.invoicing import bp
-from app.invoicing.forms import TaskPriceForm, InvoiceForm, InvoiceItemForm, InvoiceFilterForm
-from app.models import User, Property, Task, CleaningSession, ServiceType, UserRoles
+from app.invoicing.forms import (
+    TaskPriceForm, InvoiceForm, InvoiceItemForm, InvoiceFilterForm,
+    InvoiceCommentForm, PaymentForm, ReportFilterForm
+)
+from app.models import User, Property, Task, CleaningSession, ServiceType, UserRoles, TaskAssignment, PropertyManager
 from app.models_modules.invoicing import TaskPrice, Invoice, InvoiceItem, PricingModel, InvoiceStatus
-from app.auth.decorators import property_owner_required, admin_required
-from datetime import datetime, timedelta
-from sqlalchemy import or_, and_
+from app.auth.decorators import property_owner_required, admin_required, invoice_access_required
+from datetime import datetime, timedelta, date
+from sqlalchemy import or_, and_, func, extract
 from functools import wraps
+from calendar import monthrange
+import pandas as pd
 
 
-def invoice_access_required(f):
-    """Decorator to ensure only users who can manage invoices can access a route"""
+def maintenance_staff_required(f):
+    """Decorator to ensure only maintenance staff or higher roles can access a route"""
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        if not (current_user.is_property_owner() or current_user.is_property_manager() or current_user.is_admin()):
-            flash('Access denied. You must be a property owner, property manager, or admin to view this page.', 'danger')
+        if not (current_user.is_maintenance() or current_user.is_property_manager() or 
+                current_user.is_property_owner() or current_user.is_admin()):
+            flash('Access denied. You must be maintenance staff or higher to view this page.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
     return decorated_function
@@ -381,6 +387,34 @@ def edit_invoice(id):
                           tasks=tasks,
                           cleaning_sessions=cleaning_sessions)
 
+@bp.route('/invoices/<int:id>/add_comment', methods=['GET', 'POST'])
+@invoice_access_required
+def add_invoice_comment(id):
+    """Add comments to an invoice"""
+    invoice = Invoice.query.get_or_404(id)
+    
+    # Check if user has permission to edit this invoice
+    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+        flash('You do not have permission to edit this invoice.', 'danger')
+        return redirect(url_for('invoicing.invoices'))
+    
+    form = InvoiceCommentForm()
+    
+    if form.validate_on_submit():
+        invoice.comments = form.comments.data
+        db.session.commit()
+        
+        flash('Comments added to invoice successfully!', 'success')
+        return redirect(url_for('invoicing.view_invoice', id=invoice.id))
+    
+    elif request.method == 'GET':
+        form.comments.data = invoice.comments
+    
+    return render_template('invoicing/invoice_comment.html', 
+                          title=f'Add Comments to Invoice: {invoice.invoice_number}', 
+                          form=form,
+                          invoice=invoice)
+
 @bp.route('/invoices/<int:id>/add_item', methods=['POST'])
 @invoice_access_required
 def add_invoice_item(id):
@@ -494,10 +528,10 @@ def send_invoice(id):
     flash('Invoice marked as sent!', 'success')
     return redirect(url_for('invoicing.view_invoice', id=invoice.id))
 
-@bp.route('/invoices/<int:id>/mark_paid', methods=['POST'])
+@bp.route('/invoices/<int:id>/mark_paid', methods=['GET', 'POST'])
 @invoice_access_required
 def mark_invoice_paid(id):
-    """Mark an invoice as paid"""
+    """Mark an invoice as paid with payment date"""
     invoice = Invoice.query.get_or_404(id)
     
     # Check if user has permission to edit this invoice
@@ -510,12 +544,26 @@ def mark_invoice_paid(id):
         flash('This invoice cannot be marked as paid because it has not been sent or is already paid.', 'warning')
         return redirect(url_for('invoicing.view_invoice', id=invoice.id))
     
-    # Mark as paid
-    invoice.mark_as_paid()
-    db.session.commit()
+    form = PaymentForm()
     
-    flash('Invoice marked as paid!', 'success')
-    return redirect(url_for('invoicing.view_invoice', id=invoice.id))
+    if form.validate_on_submit():
+        # Mark as paid with the specified payment date
+        invoice.mark_as_paid(payment_date=form.payment_date.data)
+        invoice.payment_notes = form.payment_notes.data
+        db.session.commit()
+        
+        flash('Invoice marked as paid!', 'success')
+        return redirect(url_for('invoicing.view_invoice', id=invoice.id))
+    
+    elif request.method == 'GET':
+        # Pre-populate with today's date
+        form.payment_date.data = datetime.utcnow().date()
+        form.payment_notes.data = invoice.payment_notes
+    
+    return render_template('invoicing/mark_paid.html', 
+                          title=f'Mark Invoice as Paid: {invoice.invoice_number}', 
+                          form=form,
+                          invoice=invoice)
 
 @bp.route('/invoices/<int:id>/cancel', methods=['POST'])
 @invoice_access_required
@@ -871,3 +919,203 @@ def add_session_to_invoice(invoice_id, session_id):
     
     flash('Cleaning session added to invoice successfully!', 'success')
     return redirect(url_for('invoicing.edit_invoice', id=invoice.id))
+
+def get_date_range_for_report(report_type, year=None, month=None, week=None, date_from=None, date_to=None):
+    """Get the date range for a report based on the report type and parameters"""
+    today = datetime.utcnow().date()
+    
+    if report_type == 'custom' and date_from and date_to:
+        return date_from, date_to
+    
+    if not year:
+        year = today.year
+    
+    if report_type == 'weekly' and week:
+        # Calculate the first day of the year
+        first_day = date(year, 1, 1)
+        # Calculate the first day of the week (Monday)
+        first_monday = first_day + timedelta(days=(7 - first_day.weekday()) % 7)
+        # Calculate the start date of the specified week
+        start_date = first_monday + timedelta(weeks=week-1)
+        # End date is 6 days after start date
+        end_date = start_date + timedelta(days=6)
+        return start_date, end_date
+    
+    elif report_type == 'monthly' and month:
+        # Get the last day of the month
+        _, last_day = monthrange(year, month)
+        return date(year, month, 1), date(year, month, last_day)
+    
+    elif report_type == 'annual':
+        return date(year, 1, 1), date(year, 12, 31)
+    
+    # Default to current month if no valid parameters
+    return date(today.year, today.month, 1), today
+
+@bp.route('/reports', methods=['GET', 'POST'])
+@maintenance_staff_required
+def financial_reports():
+    """View financial reports with role-based access controls"""
+    form = ReportFilterForm()
+    
+    # Set up property choices based on user role
+    if current_user.is_admin():
+        form.property.query = Property.query
+        form.service_provider.query = User.query.filter(
+            User.role.in_([UserRoles.MAINTENANCE, UserRoles.CLEANER])
+        )
+    elif current_user.is_property_owner():
+        # Property owners see only their properties
+        form.property.query = Property.query.filter_by(owner_id=current_user.id)
+        # Property owners can see all service providers who worked on their properties
+        service_providers = User.query.join(
+            TaskAssignment, TaskAssignment.user_id == User.id
+        ).join(
+            Task, Task.id == TaskAssignment.task_id
+        ).join(
+            'properties'
+        ).filter(
+            Property.owner_id == current_user.id,
+            User.role.in_([UserRoles.MAINTENANCE, UserRoles.CLEANER])
+        ).distinct()
+        form.service_provider.query = service_providers
+    elif current_user.is_property_manager():
+        # Property managers see properties they manage
+        managed_properties = Property.query.join(
+            PropertyManager, PropertyManager.property_id == Property.id
+        ).filter(
+            PropertyManager.user_id == current_user.id
+        )
+        form.property.query = managed_properties
+        
+        # Property managers can see service providers who worked on properties they manage
+        service_providers = User.query.join(
+            TaskAssignment, TaskAssignment.user_id == User.id
+        ).join(
+            Task, Task.id == TaskAssignment.task_id
+        ).join(
+            'properties'
+        ).join(
+            PropertyManager, PropertyManager.property_id == Property.id
+        ).filter(
+            PropertyManager.user_id == current_user.id,
+            User.role.in_([UserRoles.MAINTENANCE, UserRoles.CLEANER])
+        ).distinct()
+        form.service_provider.query = service_providers
+    else:
+        # Maintenance staff can only see their own data
+        form.property.query = Property.query.filter(Property.id.in_([]))  # Empty query
+        form.service_provider.query = User.query.filter(User.id == current_user.id)
+    
+    # Initialize report data
+    report_data = []
+    total_earnings = 0
+    date_from = None
+    date_to = None
+    
+    if request.method == 'POST' and form.validate():
+        # Get date range based on report type
+        date_from, date_to = get_date_range_for_report(
+            form.report_type.data,
+            year=form.year.data,
+            month=form.month.data if form.report_type.data == 'monthly' else None,
+            week=form.week.data if form.report_type.data == 'weekly' else None,
+            date_from=form.date_from.data,
+            date_to=form.date_to.data
+        )
+        
+        # Base query for invoices
+        query = Invoice.query.filter(
+            Invoice.status == InvoiceStatus.PAID,
+            Invoice.paid_date >= date_from,
+            Invoice.paid_date <= date_to
+        )
+        
+        # Apply property filter if specified
+        if form.property.data:
+            query = query.filter(Invoice.property_id == form.property.data.id)
+        
+        # Apply role-based access controls
+        if current_user.is_admin():
+            # Admins can see all invoices
+            pass
+        elif current_user.is_property_owner():
+            # Property owners see invoices for their properties
+            owned_property_ids = [p.id for p in current_user.properties]
+            query = query.filter(Invoice.property_id.in_(owned_property_ids))
+        elif current_user.is_property_manager():
+            # Property managers see invoices for properties they manage
+            managed_property_ids = [p.id for p in form.property.query.all()]
+            query = query.filter(Invoice.property_id.in_(managed_property_ids))
+        else:
+            # Maintenance staff see only invoices for tasks they worked on
+            query = query.join(
+                InvoiceItem, InvoiceItem.invoice_id == Invoice.id
+            ).join(
+                Task, Task.id == InvoiceItem.task_id
+            ).join(
+                TaskAssignment, TaskAssignment.task_id == Task.id
+            ).filter(
+                TaskAssignment.user_id == current_user.id
+            )
+        
+        # Apply service provider filter if specified (for admins, property owners, managers)
+        if form.service_provider.data and (current_user.is_admin() or 
+                                          current_user.is_property_owner() or 
+                                          current_user.is_property_manager()):
+            query = query.join(
+                InvoiceItem, InvoiceItem.invoice_id == Invoice.id
+            ).join(
+                Task, Task.id == InvoiceItem.task_id
+            ).join(
+                TaskAssignment, TaskAssignment.task_id == Task.id
+            ).filter(
+                TaskAssignment.user_id == form.service_provider.data.id
+            )
+        
+        # Get invoices
+        invoices = query.distinct().all()
+        
+        # Process invoices for report
+        for invoice in invoices:
+            # For maintenance staff, only include items they worked on
+            if current_user.role in [UserRoles.MAINTENANCE, UserRoles.CLEANER]:
+                items = []
+                for item in invoice.items:
+                    if item.task_id:
+                        # Check if this staff worked on this task
+                        assignment = TaskAssignment.query.filter_by(
+                            task_id=item.task_id,
+                            user_id=current_user.id
+                        ).first()
+                        if assignment:
+                            items.append(item)
+                
+                if not items:
+                    continue  # Skip invoices where staff didn't work on any items
+                
+                # Calculate total for just this staff's items
+                staff_total = sum(item.amount for item in items)
+                
+                report_data.append({
+                    'invoice': invoice,
+                    'items': items,
+                    'total': staff_total
+                })
+                total_earnings += staff_total
+            else:
+                # For other roles, include all items
+                report_data.append({
+                    'invoice': invoice,
+                    'items': invoice.items.all(),
+                    'total': invoice.total
+                })
+                total_earnings += invoice.total
+    
+    return render_template('invoicing/reports.html',
+                          title='Financial Reports',
+                          form=form,
+                          report_data=report_data,
+                          total_earnings=total_earnings,
+                          date_from=date_from,
+                          date_to=date_to)
