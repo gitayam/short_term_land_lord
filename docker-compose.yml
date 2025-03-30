@@ -1,0 +1,26 @@
+services:
+  app:
+    build: .
+    ports:
+      - "5888:5888"
+    depends_on:
+      - mongodb
+    environment:
+      - PORT=5888
+      - MONGO_URI=mongodb://mongodb:27017/short-term-land-lord
+      - JWT_SECRET=f8e75cb4922691ce6d41b79db33e01ee45b362916ad8f59ec8c53715a5ea5f62
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:4.4
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
