@@ -81,12 +81,16 @@
                     <div class="row mb-3">
                         <div class="col-md-3 fw-bold">Properties:</div>
                         <div class="col-md-9">
-                            {% for property in properties %}
-                            <div class="mb-1">
-                                <a href="{{ url_for('property.view', id=property.id) }}">{{ property.name }}</a>
-                                <small class="text-muted">{{ property.get_full_address() }}</small>
-                            </div>
-                            {% endfor %}
+                            {% if properties %}
+                                {% for property in properties %}
+                                <div class="mb-1">
+                                    <a href="{{ url_for('property.view', id=property.id) }}">{{ property.name }}</a>
+                                    <small class="text-muted">{{ property.get_full_address() }}</small>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <em>No properties assigned</em>
+                            {% endif %}
                         </div>
                     </div>
                     

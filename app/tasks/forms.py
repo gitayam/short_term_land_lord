@@ -15,7 +15,7 @@ class TaskForm(FlaskForm):
     notes = TextAreaField('Notes')
     
     # Property selection
-    properties = QuerySelectMultipleField('Properties', get_label='name', validators=[DataRequired()])
+    properties = QuerySelectMultipleField('Properties', get_label='name', validators=[Optional()])
     
     # Recurrence options
     is_recurring = BooleanField('Recurring Task')

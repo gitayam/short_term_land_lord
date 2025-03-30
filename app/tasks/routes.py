@@ -55,12 +55,21 @@ def index():
     # Get all tasks the user has access to
     if current_user.is_property_owner():
         # For property owners, show all tasks related to their properties
+        # and tasks they created (even if not assigned to a property)
         owned_property_ids = [p.id for p in current_user.properties]
-        tasks = db.session.query(Task).join(
+        
+        # Get tasks related to properties
+        property_tasks = db.session.query(Task).join(
             TaskProperty, TaskProperty.task_id == Task.id
         ).filter(
             TaskProperty.property_id.in_(owned_property_ids)
-        ).distinct().all()
+        ).distinct()
+        
+        # Get tasks created by this user
+        created_tasks = Task.query.filter(Task.creator_id == current_user.id)
+        
+        # Combine both querysets
+        tasks = property_tasks.union(created_tasks).all()
     elif current_user.is_service_staff():
         # For service staff, show tasks assigned to them
         tasks = db.session.query(Task).join(
@@ -117,10 +126,11 @@ def create():
             creator_id=current_user.id
         )
         
-        # Add properties to the task
-        for property in form.properties.data:
-            task_property = TaskProperty(property=property)
-            task.properties.append(task_property)
+        # Add properties to the task if any were selected
+        if form.properties.data:
+            for property in form.properties.data:
+                task_property = TaskProperty(property=property)
+                task.properties.append(task_property)
         
         db.session.add(task)
         db.session.commit()
@@ -211,9 +221,10 @@ def edit(id):
         TaskProperty.query.filter_by(task_id=task.id).delete()
         
         # Then add the new ones
-        for property in form.properties.data:
-            task_property = TaskProperty(task=task, property=property)
-            db.session.add(task_property)
+        if form.properties.data:
+            for property in form.properties.data:
+                task_property = TaskProperty(task=task, property=property)
+                db.session.add(task_property)
         
         db.session.commit()
         
@@ -1141,8 +1152,8 @@ def can_view_task(task, user):
     if task.creator_id == user.id:
         return True
     
-    # Property owners can view tasks for their properties
-    if user.is_property_owner():
+    # Property owners can view tasks for their properties (if the task has properties)
+    if user.is_property_owner() and task.properties:
         # Get all properties owned by the user
         owned_property_ids = [p.id for p in user.properties]
         
