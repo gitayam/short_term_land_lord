@@ -5,77 +5,6 @@
     <div class="col-md-12">
         <h1>Tasks</h1>
         
-        <!-- Task Filters -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Filter Tasks</h5>
-            </div>
-            <div class="card-body">
-                <form method="get" action="{{ url_for('tasks.index') }}" class="row">
-                    <!-- Status Filter -->
-                    <div class="col-md-3 mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select name="status" id="status" class="form-select">
-                            <option value="">All Statuses</option>
-                            {% for status in form.status.choices %}
-                            <option value="{{ status[0] }}" {% if filter_values and filter_values.get('status') == status[0] %}selected{% endif %}>{{ status[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <!-- Priority Filter -->
-                    <div class="col-md-3 mb-3">
-                        <label for="priority" class="form-label">Priority</label>
-                        <select name="priority" id="priority" class="form-select">
-                            <option value="">All Priorities</option>
-                            {% for priority in form.priority.choices %}
-                            <option value="{{ priority[0] }}" {% if filter_values and filter_values.get('priority') == priority[0] %}selected{% endif %}>{{ priority[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <!-- Property Filter -->
-                    <div class="col-md-3 mb-3">
-                        <label for="property" class="form-label">Property</label>
-                        <select name="property" id="property" class="form-select">
-                            <option value="">All Properties</option>
-                            {% for property in form.property.query.all() %}
-                            <option value="{{ property.id }}" {% if filter_values and filter_values.get('property') == property.id|string %}selected{% endif %}>{{ property.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <!-- Assignee Filter -->
-                    <div class="col-md-3 mb-3">
-                        <label for="assignee" class="form-label">Assignee</label>
-                        <select name="assignee" id="assignee" class="form-select">
-                            <option value="">All Assignees</option>
-                            {% for assignee in form.assignee.query.all() %}
-                            <option value="{{ assignee.id }}" {% if filter_values and filter_values.get('assignee') == assignee.id|string %}selected{% endif %}>{{ assignee.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    
-                    <!-- Due Date From Filter -->
-                    <div class="col-md-3 mb-3">
-                        <label for="due_date_from" class="form-label">Due Date From</label>
-                        <input type="date" name="due_date_from" id="due_date_from" class="form-control" value="{{ filter_values.get('due_date_from', '') if filter_values }}">
-                    </div>
-                    
-                    <!-- Due Date To Filter -->
-                    <div class="col-md-3 mb-3">
-                        <label for="due_date_to" class="form-label">Due Date To</label>
-                        <input type="date" name="due_date_to" id="due_date_to" class="form-control" value="{{ filter_values.get('due_date_to', '') if filter_values }}">
-                    </div>
-                    
-                    <div class="col-md-6 mb-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
-                        <a href="{{ url_for('tasks.index') }}" class="btn btn-outline-secondary">Clear Filters</a>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         {% if current_user.is_property_owner() %}
         <div class="d-flex justify-content-end mb-3">
             <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
@@ -96,9 +25,6 @@
                         <thead>
                             <tr>
                                 <th>Title</th>
-                                {% if current_user.is_service_staff() %}
-                                <th>Property</th>
-                                {% endif %}
                                 <th>Status</th>
                                 <th>Priority</th>
                                 <th>Due Date</th>
@@ -113,19 +39,6 @@
                                     <strong>{{ task.title }}</strong>
                                     <div class="small text-muted">{{ task.description|truncate(50) }}</div>
                                 </td>
-                                
-                                {% if current_user.is_service_staff() %}
-                                <td>
-                                    {% if property_info.get(task.id) %}
-                                    <a href="{{ url_for('property.view', id=property_info[task.id]['id']) }}">
-                                        <strong>{{ property_info[task.id]['name'] }}</strong>
-                                    </a>
-                                    <div class="small text-muted">
-                                        {{ property_info[task.id]['address'] }}, {{ property_info[task.id]['city'] }}
-                                    </div>
-                                    {% endif %}
-                                </td>
-                                {% endif %}
                                 
                                 <td>
                                     <span class="badge {% if task.status == 'PENDING' %}bg-warning{% elif task.status == 'IN_PROGRESS' %}bg-info{% elif task.status == 'COMPLETED' %}bg-success{% else %}bg-secondary{% endif %}">
