@@ -93,15 +93,13 @@ def index():
 def create():
     form = TaskForm()
     
-    # Set up empty choices for form.properties
-    form.properties.choices = []
-    
-    # For property owners, only show their properties in the dropdown
+    # Initialize properties field with a query_factory
     if current_user.is_property_owner():
-        form.properties.choices = [(p.id, p.name) for p in current_user.properties]
+        form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
     elif current_user.is_admin() or current_user.is_property_manager():
-        # For admins and managers, show all properties
-        form.properties.choices = [(p.id, p.name) for p in Property.query.all()]
+        form.properties.query_factory = lambda: Property.query.all()
+    else:
+        form.properties.query_factory = lambda: []
     
     # Set up calendar choices
     calendar_choices = []
@@ -1420,15 +1418,13 @@ def apply_template(template_id):
     # Initialize form with template data
     form = TaskForm()
     
-    # Set up empty choices for form.properties
-    form.properties.choices = []
-    
-    # For property owners, only show their properties in the dropdown
+    # Initialize properties field with a query_factory
     if current_user.is_property_owner():
-        form.properties.choices = [(p.id, p.name) for p in current_user.properties]
+        form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
     elif current_user.is_admin() or current_user.is_property_manager():
-        # For admins and managers, show all properties
-        form.properties.choices = [(p.id, p.name) for p in Property.query.all()]
+        form.properties.query_factory = lambda: Property.query.all()
+    else:
+        form.properties.query_factory = lambda: []
     
     # Set up calendar choices
     calendar_choices = []
