@@ -197,8 +197,7 @@
                 fetch("{{ url_for('tasks.reorder_templates') }}", {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         template_order: order
