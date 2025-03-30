@@ -511,34 +511,40 @@
 
 {% block scripts %}
 {{ super() }}
+<!-- Add QRCode.js library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        {% if property.wifi_network and property.wifi_password %}
-        // Generate WiFi QR Code
-        const wifiQRContainer = document.getElementById('wifi-qrcode');
-        if (wifiQRContainer) {
-            const ssid = {{ property.wifi_network|tojson|safe }};
-            const password = {{ property.wifi_password|tojson|safe }};
+        // Generate WiFi QR code if the element exists
+        const wifiQRCodeElement = document.getElementById('wifi-qrcode');
+        if (wifiQRCodeElement) {
+            const ssid = "{{ property.wifi_network|default('') }}";
+            const password = "{{ property.wifi_password|default('') }}";
             
-            // Create WiFi network string in format: WIFI:S:<SSID>;T:<WPA|WEP|>;P:<password>;;
-            const wifiString = "WIFI:S:" + ssid + ";T:WPA;P:" + password + ";;";
-            
-            // Use Google Charts API to generate QR code - more reliable than client-side libraries
-            const googleChartUrl = "https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=" + 
-                                   encodeURIComponent(wifiString);
-            
-            // Create and append image
-            const qrImg = document.createElement('img');
-            qrImg.src = googleChartUrl;
-            qrImg.alt = "WiFi QR Code";
-            qrImg.style.width = "150px";
-            qrImg.style.height = "150px";
-            
-            // Clear container and add the image
-            wifiQRContainer.innerHTML = '';
-            wifiQRContainer.appendChild(qrImg);
+            if (ssid && password) {
+                // WiFi QR code format: WIFI:S:<SSID>;T:<WPA|WEP|>;P:<password>;;
+                const wifiQRContent = `WIFI:S:${ssid};T:WPA;P:${password};;`;
+                
+                // Generate QR code
+                const qr = qrcode(0, 'L');
+                qr.addData(wifiQRContent);
+                qr.make();
+                
+                // Display QR code in the element
+                wifiQRCodeElement.innerHTML = qr.createImgTag(5);
+                
+                // Add title for better UX
+                const img = wifiQRCodeElement.querySelector('img');
+                if (img) {
+                    img.title = `Connect to ${ssid} WiFi`;
+                    img.alt = `QR code for ${ssid} WiFi network`;
+                    img.style.width = '100%';
+                    img.style.height = 'auto';
+                }
+            } else {
+                wifiQRCodeElement.innerHTML = '<p class="text-muted">WiFi network name or password not provided</p>';
+            }
         }
-        {% endif %}
     });
     
     function copyGuestUrl() {

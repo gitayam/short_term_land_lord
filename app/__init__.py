@@ -60,8 +60,14 @@ def create_app(config_class=Config):
     
     # Initialize site settings
     with app.app_context():
-        from app.models import migrate_site_settings
-        migrate_site_settings()
+        try:
+            from app.models import migrate_site_settings
+            migrate_site_settings()
+        except Exception as e:
+            # Handle the case where site_settings table doesn't exist yet
+            app.logger.warning(f"Could not initialize site settings: {str(e)}")
+            app.logger.info("You may need to run 'flask db upgrade' if this is a new installation")
+    
     return app
 
 from app import models

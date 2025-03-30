@@ -71,6 +71,52 @@
                                 </div>
                             </div>
                         </div>
+
+                        <h5 class="mt-4 mb-3">⏰ Check-in/Check-out Times</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.checkin_time.label(class="form-label") }}
+                                    {{ form.checkin_time(class="form-control", placeholder="15:00") }}
+                                    {% for error in form.checkin_time.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">Standard check-in time (e.g., "15:00")</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.checkout_time.label(class="form-label") }}
+                                    {{ form.checkout_time(class="form-control", placeholder="11:00") }}
+                                    {% for error in form.checkout_time.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">Standard check-out time (e.g., "11:00")</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3">🗑️ Waste Collection Schedule</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.trash_day.label(class="form-label") }}
+                                    {{ form.trash_day(class="form-select") }}
+                                    {% for error in form.trash_day.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.recycling_day.label(class="form-label") }}
+                                    {{ form.recycling_day(class="form-select") }}
+                                    {% for error in form.recycling_day.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
                         
                         <h5 class="mt-4 mb-3">🏠 Address Information</h5>
                         <div class="row">
@@ -153,6 +199,145 @@
                             {% endfor %}
                         </div>
                         
+                        <h5 class="mt-4 mb-3">🔌 Utility Information</h5>
+                        <div class="accordion mb-3" id="utilitiesAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="internetHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#internetCollapse" aria-expanded="false" aria-controls="internetCollapse">
+                                        🌐 Internet Service
+                                    </button>
+                                </h2>
+                                <div id="internetCollapse" class="accordion-collapse collapse" aria-labelledby="internetHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.internet_provider.label(class="form-label") }}
+                                                    {{ form.internet_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.internet_account.label(class="form-label") }}
+                                                    {{ form.internet_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.internet_contact.label(class="form-label") }}
+                                                    {{ form.internet_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="electricityHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#electricityCollapse" aria-expanded="false" aria-controls="electricityCollapse">
+                                        ⚡ Electricity Service
+                                    </button>
+                                </h2>
+                                <div id="electricityCollapse" class="accordion-collapse collapse" aria-labelledby="electricityHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.electric_provider.label(class="form-label") }}
+                                                    {{ form.electric_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.electric_account.label(class="form-label") }}
+                                                    {{ form.electric_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.electric_contact.label(class="form-label") }}
+                                                    {{ form.electric_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="waterHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#waterCollapse" aria-expanded="false" aria-controls="waterCollapse">
+                                        💧 Water Service
+                                    </button>
+                                </h2>
+                                <div id="waterCollapse" class="accordion-collapse collapse" aria-labelledby="waterHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.water_provider.label(class="form-label") }}
+                                                    {{ form.water_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.water_account.label(class="form-label") }}
+                                                    {{ form.water_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.water_contact.label(class="form-label") }}
+                                                    {{ form.water_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="trashHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#trashCollapse" aria-expanded="false" aria-controls="trashCollapse">
+                                        🗑️ Trash Service
+                                    </button>
+                                </h2>
+                                <div id="trashCollapse" class="accordion-collapse collapse" aria-labelledby="trashHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.trash_provider.label(class="form-label") }}
+                                                    {{ form.trash_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.trash_account.label(class="form-label") }}
+                                                    {{ form.trash_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.trash_contact.label(class="form-label") }}
+                                                    {{ form.trash_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <h5 class="mt-4 mb-3">🧹 Cleaning Information</h5>
                         <div class="mb-3">
                             {{ form.cleaning_supplies_location.label(class="form-label") }}
@@ -210,11 +395,14 @@
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = data.html;
                     
+                    // Get the actual room form element
+                    const roomForm = tempDiv.firstElementChild;
+                    
                     // Append the new room form to the container
-                    roomsContainer.appendChild(tempDiv.firstChild);
+                    roomsContainer.appendChild(roomForm);
                     
                     // Set up event handlers for the new room form
-                    setupRoomFormHandlers(tempDiv.firstChild);
+                    setupRoomFormHandlers(roomForm);
                     
                     roomCounter++;
                 })
@@ -224,41 +412,52 @@
         // Function to set up event handlers for a room form
         function setupRoomFormHandlers(roomForm) {
             // Remove room button
-            roomForm.querySelector('.remove-room').addEventListener('click', function() {
-                roomForm.remove();
-            });
+            const removeRoomBtn = roomForm.querySelector('.remove-room');
+            if (removeRoomBtn) {
+                removeRoomBtn.addEventListener('click', function() {
+                    roomForm.remove();
+                });
+            }
             
             // Room type change handler
             const roomTypeSelect = roomForm.querySelector('.room-type-select');
-            roomTypeSelect.addEventListener('change', function() {
-                const roomId = roomForm.dataset.roomId;
-                const bedroomOptions = roomForm.querySelector('.bedroom-options');
-                const bathroomOptions = roomForm.querySelector('.bathroom-options');
-                
-                if (this.value === 'bedroom') {
-                    bedroomOptions.style.display = 'block';
-                    bathroomOptions.style.display = 'none';
-                } else if (this.value === 'bathroom') {
-                    bedroomOptions.style.display = 'none';
-                    bathroomOptions.style.display = 'block';
-                } else {
-                    bedroomOptions.style.display = 'none';
-                    bathroomOptions.style.display = 'none';
-                }
-            });
+            if (roomTypeSelect) {
+                roomTypeSelect.addEventListener('change', function() {
+                    const bedroomOptions = roomForm.querySelector('.bedroom-options');
+                    const bathroomOptions = roomForm.querySelector('.bathroom-options');
+                    
+                    if (bedroomOptions && bathroomOptions) {
+                        if (this.value === 'bedroom') {
+                            bedroomOptions.style.display = 'block';
+                            bathroomOptions.style.display = 'none';
+                        } else if (this.value === 'bathroom') {
+                            bedroomOptions.style.display = 'none';
+                            bathroomOptions.style.display = 'block';
+                        } else {
+                            bedroomOptions.style.display = 'none';
+                            bathroomOptions.style.display = 'none';
+                        }
+                    }
+                });
+            }
             
             // Has TV checkbox change handler
             const hasTvCheckbox = roomForm.querySelector('.has-tv-checkbox');
-            hasTvCheckbox.addEventListener('change', function() {
-                const tvDetails = roomForm.querySelector('.tv-details');
-                tvDetails.style.display = this.checked ? 'block' : 'none';
-            });
+            if (hasTvCheckbox) {
+                hasTvCheckbox.addEventListener('change', function() {
+                    const tvDetails = roomForm.querySelector('.tv-details');
+                    if (tvDetails) {
+                        tvDetails.style.display = this.checked ? 'block' : 'none';
+                    }
+                });
+            }
             
             // Add furniture button handler
             const addFurnitureBtn = roomForm.querySelector('.add-furniture-btn');
             if (addFurnitureBtn) {
                 addFurnitureBtn.addEventListener('click', function() {
-                    addFurnitureItem(this.dataset.roomId);
+                    const roomId = roomForm.dataset.roomId;
+                    addFurnitureItem(roomId, roomForm);
                 });
             }
             
@@ -266,25 +465,33 @@
             const removeFurnitureBtns = roomForm.querySelectorAll('.remove-furniture');
             removeFurnitureBtns.forEach(btn => {
                 btn.addEventListener('click', function() {
-                    this.closest('.furniture-item').remove();
+                    const furnitureItem = this.closest('.furniture-item');
+                    if (furnitureItem) {
+                        furnitureItem.remove();
+                    }
                 });
             });
         }
         
         // Function to add a new furniture item
-        function addFurnitureItem(roomId) {
-            // Clone the template
+        function addFurnitureItem(roomId, roomForm) {
+            // Make sure we have a valid furniture template
             const template = document.getElementById('furniture-item-template');
+            if (!template) {
+                console.error('Furniture item template not found');
+                return;
+            }
+            
+            // Clone the template
             const clone = template.content.cloneNode(true);
             
             // Replace the placeholder with the actual room ID
             const selects = clone.querySelectorAll('select');
-            const inputs = clone.querySelectorAll('input');
-            
             selects.forEach(select => {
                 select.name = select.name.replace('ROOM_ID', roomId);
             });
             
+            const inputs = clone.querySelectorAll('input');
             inputs.forEach(input => {
                 if (input.name) {
                     input.name = input.name.replace('ROOM_ID', roomId);
@@ -293,21 +500,21 @@
             
             // Add remove button handler
             const removeBtn = clone.querySelector('.remove-furniture');
-            removeBtn.addEventListener('click', function() {
-                this.closest('.furniture-item').remove();
-            });
-            
-            // Find the furniture items container for this room
-            let roomForm;
-            if (roomId.startsWith('new_')) {
-                roomForm = document.querySelector(`.room-form[data-room-id="${roomId}"]`);
-            } else {
-                roomForm = document.querySelector(`.room-form[data-room-id="${roomId}"]`);
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    const furnitureItem = this.closest('.furniture-item');
+                    if (furnitureItem) {
+                        furnitureItem.remove();
+                    }
+                });
             }
             
-            if (roomForm) {
-                const furnitureItemsContainer = roomForm.querySelector('.furniture-items');
+            // Find the furniture items container for this room
+            const furnitureItemsContainer = roomForm.querySelector('.furniture-items');
+            if (furnitureItemsContainer) {
                 furnitureItemsContainer.appendChild(clone);
+            } else {
+                console.error('Furniture items container not found for room', roomId);
             }
         }
     });
