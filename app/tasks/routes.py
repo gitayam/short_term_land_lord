@@ -863,7 +863,6 @@ def repair_requests(status):
 
 @bp.route('/property/<int:property_id>/repair-request', methods=['GET', 'POST'])
 @login_required
-@service_staff_required
 def submit_repair_request(property_id):
     """Submit a repair request for a property"""
     # Get the property
