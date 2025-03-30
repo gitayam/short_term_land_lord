@@ -10,7 +10,8 @@ from logging.handlers import RotatingFileHandler
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from app import create_app, db
-from app.models import PropertyCalendar
+from app.models import PropertyCalendar, Task
+from app.tasks.notifications import notify_calendar_changes
 from icalendar import Calendar
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -38,6 +39,7 @@ def sync_calendars():
         
         success_count = 0
         error_count = 0
+        updated_calendars = []
         
         for calendar in calendars:
             try:
@@ -53,6 +55,9 @@ def sync_calendars():
                     calendar.last_synced = datetime.utcnow()
                     calendar.sync_status = 'Success'
                     calendar.sync_error = None
+                    
+                    # Track updated calendars for notifications
+                    updated_calendars.append(calendar.id)
                     
                     logger.info(f"Calendar {calendar.id} synced successfully")
                     success_count += 1
@@ -81,6 +86,19 @@ def sync_calendars():
             except SQLAlchemyError as e:
                 db.session.rollback()
                 logger.error(f"Database error while updating calendar {calendar.id}: {str(e)}")
+        
+        # Send notifications for tasks affected by calendar changes
+        if updated_calendars:
+            try:
+                # Find tasks linked to the updated calendars
+                affected_tasks = Task.query.filter(Task.calendar_id.in_(updated_calendars)).all()
+                affected_task_ids = [task.id for task in affected_tasks]
+                
+                if affected_task_ids:
+                    logger.info(f"Sending notifications for {len(affected_task_ids)} affected tasks")
+                    notify_calendar_changes(affected_task_ids)
+            except Exception as e:
+                logger.error(f"Error sending calendar update notifications: {str(e)}")
         
         logger.info(f"Calendar sync completed. Success: {success_count}, Errors: {error_count}")
 

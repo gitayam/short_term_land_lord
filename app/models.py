@@ -38,6 +38,17 @@ class StorageBackend(enum.Enum):
     S3 = "s3"
     RCLONE = "rclone"
 
+class NotificationType(enum.Enum):
+    TASK_ASSIGNMENT = "task_assignment"
+    TASK_REMINDER = "task_reminder"
+    CALENDAR_UPDATE = "calendar_update"
+    TASK_COMPLETED = "task_completed"
+
+class NotificationChannel(enum.Enum):
+    EMAIL = "email"
+    SMS = "sms"
+    IN_APP = "in_app"
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(64), nullable=False)
@@ -53,6 +64,7 @@ class User(UserMixin, db.Model):
     properties = db.relationship('Property', backref='owner', lazy='dynamic')
     assigned_tasks = db.relationship('TaskAssignment', backref='assignee', lazy='dynamic')
     cleaning_sessions = db.relationship('CleaningSession', foreign_keys='CleaningSession.cleaner_id', backref='assigned_cleaner', lazy='dynamic')
+    user_notifications = db.relationship('Notification', backref='recipient', lazy='dynamic', foreign_keys='Notification.user_id')
     
     def __repr__(self):
         return f'<User {self.email}>'
@@ -288,6 +300,7 @@ class Task(db.Model):
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic', cascade='all, delete-orphan')
     properties = db.relationship('TaskProperty', back_populates='task', cascade='all, delete-orphan')
     associated_cleaning_sessions = db.relationship('CleaningSession', foreign_keys='CleaningSession.task_id', lazy='dynamic', cascade='all, delete-orphan')
+    task_notifications = db.relationship('Notification', backref='related_task', lazy='dynamic', foreign_keys='Notification.task_id')
     
     def __repr__(self):
         return f'<Task {self.title}>'
@@ -506,6 +519,29 @@ class IssueReport(db.Model):
     
     def __repr__(self):
         return f'<IssueReport {self.id} for session {self.cleaning_session_id}>'
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
+    notification_type = db.Column(db.Enum(NotificationType), nullable=False)
+    channel = db.Column(db.Enum(NotificationChannel), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    read_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='notifications')
+    task = db.relationship('Task', backref='notifications')
+    
+    def __repr__(self):
+        return f'<Notification {self.id} to {self.user.email} via {self.channel.value}>'
+    
+    def mark_as_read(self):
+        self.is_read = True
+        self.read_at = datetime.utcnow()
 
 @login_manager.user_loader
 def load_user(id):

@@ -8,6 +8,7 @@ from app.models import (Task, TaskAssignment, TaskProperty, Property, User,
                        PropertyCalendar, CleaningSession, CleaningMedia, MediaType,
                        IssueReport, StorageBackend)
 from app.tasks.media import save_file_to_storage, allowed_file
+from app.notifications.service import send_task_assignment_notification
 from datetime import datetime, timedelta
 from sqlalchemy import or_
 from functools import wraps
@@ -297,6 +298,9 @@ def assign(id):
                 task_id=task.id,
                 user_id=form.user.data.id
             )
+            
+            # Send notification to the assigned user
+            send_task_assignment_notification(task, form.user.data)
         else:
             # Assign to external person
             assignment = TaskAssignment(

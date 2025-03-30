@@ -18,6 +18,16 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER')
     
+    # Notification settings
+    NOTIFICATION_EMAIL_ENABLED = os.environ.get('NOTIFICATION_EMAIL_ENABLED', 'True').lower() == 'true'
+    NOTIFICATION_SMS_ENABLED = os.environ.get('NOTIFICATION_SMS_ENABLED', 'True').lower() == 'true'
+    NOTIFICATION_REMINDER_HOURS = int(os.environ.get('NOTIFICATION_REMINDER_HOURS', 24))
+    
+    # Twilio SMS configuration
+    TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+    TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+    TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
+    
     # Admin user
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
     
