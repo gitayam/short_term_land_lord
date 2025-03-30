@@ -139,11 +139,18 @@ def index():
         task_assignment_alias = aliased(TaskAssignment)
         task_property_alias = aliased(TaskProperty)
         
-        query = Task.query.join(
+        # Rebuild the query with proper aliases to avoid duplicate table name errors
+        query = Task.query
+        
+        # First join for filtering by user assignments
+        query = query.join(
             task_assignment_alias, Task.id == task_assignment_alias.task_id
         ).filter(
             task_assignment_alias.user_id == current_user.id
-        ).join(
+        )
+        
+        # Then join for property information
+        query = query.join(
             task_property_alias, Task.id == task_property_alias.task_id
         )
         
@@ -151,6 +158,25 @@ def index():
         property_id = request.args.get('property')
         if property_id and property_id.isdigit():
             query = query.filter(task_property_alias.property_id == int(property_id))
+        
+        # Due date filter with aliased tables
+        due_date_from = request.args.get('due_date_from')
+        due_date_to = request.args.get('due_date_to')
+        
+        if due_date_from:
+            try:
+                from_date = datetime.strptime(due_date_from, '%Y-%m-%d')
+                query = query.filter(Task.due_date >= from_date)
+            except ValueError:
+                pass
+        
+        if due_date_to:
+            try:
+                to_date = datetime.strptime(due_date_to, '%Y-%m-%d')
+                to_date = to_date.replace(hour=23, minute=59, second=59)
+                query = query.filter(Task.due_date <= to_date)
+            except ValueError:
+                pass
     
     # Get tasks and sort by due date and priority
     tasks = query.order_by(Task.due_date.asc(), Task.priority.desc()).all()
@@ -723,14 +749,20 @@ def view_for_property(property_id):
         can_view = True
     # Service staff can view tasks for properties they have tasks for
     elif current_user.is_service_staff():
+        # Use aliases to avoid duplicate table errors
+        from sqlalchemy.orm import aliased
+        task_property_alias = aliased(TaskProperty)
+        task_assignment_alias = aliased(TaskAssignment)
+        
         # Check if the service staff has any assigned tasks for this property
         assigned_tasks = db.session.query(Task).join(
-            TaskProperty, TaskProperty.task_id == Task.id
-        ).join(
-            TaskAssignment, TaskAssignment.task_id == Task.id
+            task_property_alias, Task.id == task_property_alias.task_id
         ).filter(
-            TaskProperty.property_id == property_id,
-            TaskAssignment.user_id == current_user.id
+            task_property_alias.property_id == property_id
+        ).join(
+            task_assignment_alias, Task.id == task_assignment_alias.task_id
+        ).filter(
+            task_assignment_alias.user_id == current_user.id
         ).first()
         
         if assigned_tasks:

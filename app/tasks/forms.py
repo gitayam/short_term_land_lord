@@ -85,7 +85,7 @@ class TaskAssignmentForm(FlaskForm):
     
     submit = SubmitField('Assign Task')
     
-    def validate(self):
+    def validate(self, extra_validators=None):
         if not super(TaskAssignmentForm, self).validate():
             return False
             

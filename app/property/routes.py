@@ -12,6 +12,7 @@ import requests
 from icalendar import Calendar
 from dateutil import rrule, parser
 import pytz
+from sqlalchemy.orm import aliased
 
 def property_owner_required(f):
     """Decorator to ensure only property owners can access a route"""
@@ -200,14 +201,19 @@ def view(id):
         can_view = True
     # Service staff can view properties they have tasks for
     elif current_user.is_service_staff():
+        # Use aliases to avoid duplicate table errors
+        task_property_alias = aliased(TaskProperty)
+        task_assignment_alias = aliased(TaskAssignment)
+        
         # Check if the service staff has any assigned tasks for this property
         assigned_tasks = db.session.query(Task).join(
-            TaskProperty, TaskProperty.task_id == Task.id
-        ).join(
-            TaskAssignment, TaskAssignment.task_id == Task.id
+            task_property_alias, Task.id == task_property_alias.task_id
         ).filter(
-            TaskProperty.property_id == property.id,
-            TaskAssignment.user_id == current_user.id
+            task_property_alias.property_id == property.id
+        ).join(
+            task_assignment_alias, Task.id == task_assignment_alias.task_id
+        ).filter(
+            task_assignment_alias.user_id == current_user.id
         ).first()
         
         if assigned_tasks:
