@@ -1,0 +1,99 @@
+<div class="room-form card mb-3" data-room-id="{{ room_id or 'new_' + index|string }}">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            {% if room_id %}Room #{{ loop.index }}{% else %}New Room{% endif %}
+        </h5>
+        <div>
+            <button type="button" class="btn-close remove-room" aria-label="Remove room"></button>
+        </div>
+    </div>
+    <div class="card-body">
+        <input type="hidden" name="room_id" value="{{ room_id or '' }}">
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="room_name_{{ room_id or 'new_' + index|string }}" class="form-label">Room Name 📝</label>
+                    <input type="text" class="form-control" id="room_name_{{ room_id or 'new_' + index|string }}" 
+                           name="room_name" value="{{ room_form.name.data or '' }}" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="room_type_{{ room_id or 'new_' + index|string }}" class="form-label">Room Type 🏠</label>
+                    <select class="form-select room-type-select" id="room_type_{{ room_id or 'new_' + index|string }}" 
+                            name="room_type" required>
+                        <option value="">Select Room Type</option>
+                        <option value="bedroom" {% if room_form.room_type.data == 'bedroom' %}selected{% endif %}>🛏️ Bedroom</option>
+                        <option value="living_room" {% if room_form.room_type.data == 'living_room' %}selected{% endif %}>🛋️ Living Room</option>
+                        <option value="dining_room" {% if room_form.room_type.data == 'dining_room' %}selected{% endif %}>🍽️ Dining Room</option>
+                        <option value="kitchen" {% if room_form.room_type.data == 'kitchen' %}selected{% endif %}>🍳 Kitchen</option>
+                        <option value="bathroom" {% if room_form.room_type.data == 'bathroom' %}selected{% endif %}>🚿 Bathroom</option>
+                        <option value="office" {% if room_form.room_type.data == 'office' %}selected{% endif %}>💼 Office</option>
+                        <option value="other" {% if room_form.room_type.data == 'other' %}selected{% endif %}>📦 Other</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label for="room_sqft_{{ room_id or 'new_' + index|string }}" class="form-label">Approximate Square Footage 📏</label>
+            <input type="number" class="form-control" id="room_sqft_{{ room_id or 'new_' + index|string }}" 
+                   name="room_sqft" value="{{ room_form.square_feet.data or '' }}">
+        </div>
+        
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input has-tv-checkbox" id="has_tv_{{ room_id or 'new_' + index|string }}" 
+                   name="has_tv" value="{{ room_id or 'new_' + index|string }}" {% if room_form.has_tv.data %}checked{% endif %}>
+            <label class="form-check-label" for="has_tv_{{ room_id or 'new_' + index|string }}">Has TV 📺</label>
+        </div>
+        
+        <div class="mb-3 tv-details" {% if not room_form.has_tv.data %}style="display: none;"{% endif %}>
+            <label for="tv_details_{{ room_id or 'new_' + index|string }}" class="form-label">TV Details (size, type) 📋</label>
+            <input type="text" class="form-control" id="tv_details_{{ room_id or 'new_' + index|string }}" 
+                   name="tv_details" value="{{ room_form.tv_details.data or '' }}">
+        </div>
+        
+        <!-- Bedroom-specific options -->
+        <div class="bedroom-options" {% if room_form.room_type.data != 'bedroom' %}style="display: none;"{% endif %}>
+            <div class="mb-3">
+                <label for="bed_type_{{ room_id or 'new_' + index|string }}" class="form-label">Bed Type 🛏️</label>
+                <select class="form-select" id="bed_type_{{ room_id or 'new_' + index|string }}" name="bed_type">
+                    <option value="">Select Bed Type</option>
+                    <option value="king" {% if room_form.bed_type.data == 'king' %}selected{% endif %}>👑 King</option>
+                    <option value="queen" {% if room_form.bed_type.data == 'queen' %}selected{% endif %}>👸 Queen</option>
+                    <option value="full" {% if room_form.bed_type.data == 'full' %}selected{% endif %}>🛌 Full/Double</option>
+                    <option value="twin" {% if room_form.bed_type.data == 'twin' %}selected{% endif %}>🛏️ Twin</option>
+                    <option value="bunk" {% if room_form.bed_type.data == 'bunk' %}selected{% endif %}>🏗️ Bunk Bed</option>
+                    <option value="sofa" {% if room_form.bed_type.data == 'sofa' %}selected{% endif %}>🛋️ Sofa Bed</option>
+                    <option value="air" {% if room_form.bed_type.data == 'air' %}selected{% endif %}>💨 Air Mattress</option>
+                    <option value="crib" {% if room_form.bed_type.data == 'crib' %}selected{% endif %}>👶 Crib</option>
+                    <option value="other" {% if room_form.bed_type.data == 'other' %}selected{% endif %}>🛏️ Other</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Bathroom-specific options -->
+        <div class="bathroom-options" {% if room_form.room_type.data != 'bathroom' %}style="display: none;"{% endif %}>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="has_shower_{{ room_id or 'new_' + index|string }}" 
+                       name="has_shower" value="{{ room_id or 'new_' + index|string }}" {% if room_form.has_shower.data %}checked{% endif %}>
+                <label class="form-check-label" for="has_shower_{{ room_id or 'new_' + index|string }}">Has Shower 🚿</label>
+            </div>
+            
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="has_tub_{{ room_id or 'new_' + index|string }}" 
+                       name="has_tub" value="{{ room_id or 'new_' + index|string }}" {% if room_form.has_tub.data %}checked{% endif %}>
+                <label class="form-check-label" for="has_tub_{{ room_id or 'new_' + index|string }}">Has Bathtub 🛁</label>
+            </div>
+        </div>
+        
+        {% if room_id %}
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input delete-room-checkbox" id="delete_{{ room_id }}" 
+                   name="room_delete" value="{{ room_id }}">
+            <label class="form-check-label" for="delete_{{ room_id }}">Delete this room ❌</label>
+        </div>
+        {% endif %}
+    </div>
+</div> 

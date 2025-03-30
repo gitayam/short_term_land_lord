@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ task.title }}</h1>
+        <div>
+            <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary">Back to Tasks</a>
+            {% if task.creator_id == current_user.id %}
+            <a href="{{ url_for('tasks.edit', id=task.id) }}" class="btn btn-primary">Edit Task</a>
+            <form method="post" action="{{ url_for('tasks.delete', id=task.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this task?');">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Task Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Status:</div>
+                        <div class="col-md-9">
+                            {% if task.status.value == 'pending' %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% elif task.status.value == 'in_progress' %}
+                            <span class="badge bg-primary">In Progress</span>
+                            {% elif task.status.value == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Priority:</div>
+                        <div class="col-md-9">
+                            {% if task.priority.value == 'low' %}
+                            <span class="badge bg-secondary">Low</span>
+                            {% elif task.priority.value == 'medium' %}
+                            <span class="badge bg-info">Medium</span>
+                            {% elif task.priority.value == 'high' %}
+                            <span class="badge bg-warning">High</span>
+                            {% elif task.priority.value == 'urgent' %}
+                            <span class="badge bg-danger">Urgent</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Due Date:</div>
+                        <div class="col-md-9">
+                            {% if task.due_date %}
+                            {{ task.due_date.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                            No due date set
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Created By:</div>
+                        <div class="col-md-9">{{ task.creator.get_full_name() }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Created On:</div>
+                        <div class="col-md-9">{{ task.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                    </div>
+                    
+                    {% if task.completed_at %}
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Completed On:</div>
+                        <div class="col-md-9">{{ task.completed_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Properties:</div>
+                        <div class="col-md-9">
+                            {% for property in properties %}
+                            <div class="mb-1">
+                                <a href="{{ url_for('property.view', id=property.id) }}">{{ property.name }}</a>
+                                <small class="text-muted">{{ property.get_full_address() }}</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    {% if task.is_recurring %}
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Recurrence:</div>
+                        <div class="col-md-9">
+                            Every {{ task.recurrence_interval }} 
+                            {% if task.recurrence_pattern.value == 'daily' %}day(s)
+                            {% elif task.recurrence_pattern.value == 'weekly' %}week(s)
+                            {% elif task.recurrence_pattern.value == 'monthly' %}month(s)
+                            {% elif task.recurrence_pattern.value == 'custom' %}custom period
+                            {% endif %}
+                            
+                            {% if task.recurrence_end_date %}
+                            until {{ task.recurrence_end_date.strftime('%Y-%m-%d') }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if task.linked_to_checkout and task.calendar %}
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Linked to Calendar:</div>
+                        <div class="col-md-9">
+                            {{ task.calendar.property.name }} - {{ task.calendar.name }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Description:</div>
+                        <div class="col-md-9">{{ task.description or 'No description provided' }}</div>
+                    </div>
+                    
+                    {% if task.notes %}
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Notes:</div>
+                        <div class="col-md-9">{{ task.notes }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if task.status.value != 'completed' %}
+                    <div class="mt-4">
+                        <form method="post" action="{{ url_for('tasks.complete', id=task.id) }}">
+                            <button type="submit" class="btn btn-success">Mark as Completed</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Assignments</h5>
+                    {% if task.creator_id == current_user.id %}
+                    <a href="{{ url_for('tasks.assign', id=task.id) }}" class="btn btn-sm btn-primary">Assign</a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if assignments %}
+                    <ul class="list-group">
+                        {% for assignment in assignments %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {% if assignment.user %}
+                            <div>
+                                <strong>{{ assignment.user.get_full_name() }}</strong>
+                                <div class="text-muted">{{ assignment.user.email }}</div>
+                                <div class="badge bg-info">{{ assignment.user.role.value }}</div>
+                            </div>
+                            {% else %}
+                            <div>
+                                <strong>{{ assignment.external_name }}</strong>
+                                <div class="text-muted">{{ assignment.external_phone }}</div>
+                                <div class="badge bg-secondary">External</div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if task.creator_id == current_user.id %}
+                            <form method="post" action="{{ url_for('tasks.remove_assignment', task_id=task.id, assignment_id=assignment.id) }}" onsubmit="return confirm('Are you sure you want to remove this assignment?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                            </form>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="alert alert-info">
+                        This task is not assigned to anyone.
+                        {% if task.creator_id == current_user.id %}
+                        <a href="{{ url_for('tasks.assign', id=task.id) }}">Assign now</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

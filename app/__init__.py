@@ -36,6 +36,9 @@ def create_app(config_class=Config):
     from app.property import bp as property_bp
     app.register_blueprint(property_bp, url_prefix='/property')
     
+    from app.tasks import bp as tasks_bp
+    app.register_blueprint(tasks_bp, url_prefix='/tasks')
+    
     return app
 
 from app import models

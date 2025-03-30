@@ -1,0 +1,95 @@
+from flask_wtf import FlaskForm
+from wtforms import StringField, TextAreaField, DateTimeField, SelectField, BooleanField, SubmitField, IntegerField, TelField
+from wtforms.validators import DataRequired, Length, Optional, ValidationError
+from wtforms_sqlalchemy.fields import QuerySelectField, QuerySelectMultipleField
+from app.models import User, Property, TaskStatus, TaskPriority, RecurrencePattern, UserRoles
+
+
+class TaskForm(FlaskForm):
+    title = StringField('Task Title', validators=[DataRequired(), Length(min=2, max=100)])
+    description = TextAreaField('Description')
+    due_date = DateTimeField('Due Date/Time', format='%Y-%m-%d %H:%M', validators=[Optional()])
+    status = SelectField('Status', validators=[DataRequired()], coerce=str)
+    priority = SelectField('Priority', validators=[DataRequired()], coerce=str)
+    notes = TextAreaField('Notes')
+    
+    # Property selection
+    properties = QuerySelectMultipleField('Properties', get_label='name', validators=[DataRequired()])
+    
+    # Recurrence options
+    is_recurring = BooleanField('Recurring Task')
+    recurrence_pattern = SelectField('Recurrence Pattern', coerce=str)
+    recurrence_interval = IntegerField('Repeat Every', default=1)
+    recurrence_end_date = DateTimeField('End Date', format='%Y-%m-%d', validators=[Optional()])
+    
+    # Calendar link
+    linked_to_checkout = BooleanField('Link to Calendar Checkout')
+    calendar_id = SelectField('Calendar', coerce=int, validators=[Optional()])
+    
+    submit = SubmitField('Save Task')
+    
+    def __init__(self, *args, **kwargs):
+        super(TaskForm, self).__init__(*args, **kwargs)
+        
+        # Set up status choices
+        self.status.choices = [(status.value, status.name.replace('_', ' ').title()) 
+                              for status in TaskStatus]
+        
+        # Set up priority choices
+        self.priority.choices = [(priority.value, priority.name.title()) 
+                                for priority in TaskPriority]
+        
+        # Set up recurrence pattern choices
+        self.recurrence_pattern.choices = [(pattern.value, pattern.name.replace('_', ' ').title()) 
+                                          for pattern in RecurrencePattern]
+
+
+class TaskAssignmentForm(FlaskForm):
+    # Option to assign to existing user
+    assign_to_user = BooleanField('Assign to Existing User', default=True)
+    user = QuerySelectField('User', get_label=lambda u: f"{u.get_full_name()} ({u.email})", validators=[Optional()])
+    
+    # Option to assign to external person
+    external_name = StringField('Name', validators=[Optional(), Length(max=100)])
+    external_phone = TelField('Phone Number', validators=[Optional(), Length(max=20)])
+    
+    submit = SubmitField('Assign Task')
+    
+    def validate(self):
+        if not super(TaskAssignmentForm, self).validate():
+            return False
+            
+        # Either user or external info must be provided
+        if self.assign_to_user.data and not self.user.data:
+            self.user.errors.append('Please select a user')
+            return False
+            
+        if not self.assign_to_user.data and (not self.external_name.data or not self.external_phone.data):
+            if not self.external_name.data:
+                self.external_name.errors.append('Name is required for external assignment')
+            if not self.external_phone.data:
+                self.external_phone.errors.append('Phone number is required for external assignment')
+            return False
+            
+        return True
+
+
+class TaskFilterForm(FlaskForm):
+    status = SelectField('Status', validators=[Optional()], coerce=str)
+    priority = SelectField('Priority', validators=[Optional()], coerce=str)
+    property = QuerySelectField('Property', get_label='name', validators=[Optional()])
+    assignee = QuerySelectField('Assigned To', get_label=lambda u: f"{u.get_full_name()}", validators=[Optional()])
+    due_date_from = DateTimeField('Due From', format='%Y-%m-%d', validators=[Optional()])
+    due_date_to = DateTimeField('Due To', format='%Y-%m-%d', validators=[Optional()])
+    
+    submit = SubmitField('Filter')
+    
+    def __init__(self, *args, **kwargs):
+        super(TaskFilterForm, self).__init__(*args, **kwargs)
+        
+        # Add an "All" option to status and priority
+        self.status.choices = [('', 'All')] + [(status.value, status.name.replace('_', ' ').title()) 
+                                              for status in TaskStatus]
+        
+        self.priority.choices = [('', 'All')] + [(priority.value, priority.name.title()) 
+                                                for priority in TaskPriority]

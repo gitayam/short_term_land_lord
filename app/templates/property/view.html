@@ -84,6 +84,19 @@
                             {{ property.city }}, {{ property.state }} {{ property.zip_code }}<br>
                             {{ property.country }}
                         </address>
+                        
+                        <div class="mt-2 mb-3">
+                            <div class="d-flex gap-2">
+                                <a href="https://www.google.com/maps/search/?api=1&query={{ property.get_full_address()|urlencode }}" 
+                                   class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+                                   <i class="bi bi-geo-alt-fill"></i> Google Maps
+                                </a>
+                                <a href="https://maps.apple.com/?q={{ property.get_full_address()|urlencode }}" 
+                                   class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
+                                   <i class="bi bi-apple"></i> Apple Maps
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -128,6 +141,15 @@
                                 <strong>WiFi Password:</strong> 
                                 <span>{{ property.wifi_password or 'Not specified' }}</span>
                             </div>
+                            
+                            {% if property.wifi_network and property.wifi_password %}
+                            <div class="mb-3">
+                                <strong>WiFi QR Code:</strong>
+                                <div id="wifi-qrcode" class="mt-2" style="width: 150px; height: 150px;"></div>
+                                <p class="small text-muted mt-1">Scan with your phone camera to connect to WiFi</p>
+                            </div>
+                            {% endif %}
+                            
                             <div>
                                 <strong>Entry Instructions:</strong>
                                 <p class="small mb-0">{{ property.entry_instructions or 'Not specified' }}</p>
@@ -141,6 +163,91 @@
                         
                         <h6>Special Instructions</h6>
                         <p class="mb-0">{{ property.special_instructions or 'No special instructions provided.' }}</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6>🏠 Room Details</h6>
+                        {% if property.rooms.count() > 0 %}
+                            <div class="accordion" id="roomsAccordion">
+                                {% for room in property.rooms %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="room-heading-{{ room.id }}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                data-bs-target="#room-collapse-{{ room.id }}" aria-expanded="false" 
+                                                aria-controls="room-collapse-{{ room.id }}">
+                                            {% if room.room_type == 'bedroom' %}🛏️
+                                            {% elif room.room_type == 'bathroom' %}🚿
+                                            {% elif room.room_type == 'living_room' %}🛋️
+                                            {% elif room.room_type == 'kitchen' %}🍳
+                                            {% elif room.room_type == 'dining_room' %}🍽️
+                                            {% elif room.room_type == 'office' %}💼
+                                            {% else %}📦
+                                            {% endif %}
+                                            {{ room.name }} ({{ room.room_type|replace('_', ' ')|title }})
+                                        </button>
+                                    </h2>
+                                    <div id="room-collapse-{{ room.id }}" class="accordion-collapse collapse" 
+                                         aria-labelledby="room-heading-{{ room.id }}" data-bs-parent="#roomsAccordion">
+                                        <div class="accordion-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <p><strong>Room Type:</strong> 
+                                                        {% if room.room_type == 'bedroom' %}🛏️ Bedroom
+                                                        {% elif room.room_type == 'bathroom' %}🚿 Bathroom
+                                                        {% elif room.room_type == 'living_room' %}🛋️ Living Room
+                                                        {% elif room.room_type == 'kitchen' %}🍳 Kitchen
+                                                        {% elif room.room_type == 'dining_room' %}🍽️ Dining Room
+                                                        {% elif room.room_type == 'office' %}💼 Office
+                                                        {% else %}📦 {{ room.room_type|title }}
+                                                        {% endif %}
+                                                    </p>
+                                                    {% if room.square_feet %}
+                                                    <p><strong>Size:</strong> 📏 {{ room.square_feet }} sq ft</p>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="col-md-6">
+                                                    {% if room.room_type == 'bedroom' and room.bed_type %}
+                                                    <p>
+                                                        <strong>Bed Type:</strong> 
+                                                        {% if room.bed_type == 'king' %}👑 King
+                                                        {% elif room.bed_type == 'queen' %}👸 Queen
+                                                        {% elif room.bed_type == 'full' %}🛌 Full/Double
+                                                        {% elif room.bed_type == 'twin' %}🛏️ Twin
+                                                        {% elif room.bed_type == 'bunk' %}🏗️ Bunk Bed
+                                                        {% elif room.bed_type == 'sofa' %}🛋️ Sofa Bed
+                                                        {% elif room.bed_type == 'air' %}💨 Air Mattress
+                                                        {% elif room.bed_type == 'crib' %}👶 Crib
+                                                        {% else %}🛏️ {{ room.bed_type|title }}
+                                                        {% endif %}
+                                                    </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if room.has_tv %}
+                                                    <p>
+                                                        <strong>TV:</strong> 📺 Yes
+                                                        {% if room.tv_details %} ({{ room.tv_details }}){% endif %}
+                                                    </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if room.room_type == 'bathroom' %}
+                                                    <p>
+                                                        <strong>Facilities:</strong>
+                                                        {% if room.has_shower %}🚿 Shower{% endif %}
+                                                        {% if room.has_shower and room.has_tub %}, {% endif %}
+                                                        {% if room.has_tub %}🛁 Bathtub{% endif %}
+                                                        {% if not room.has_shower and not room.has_tub %}None specified{% endif %}
+                                                    </p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No room details have been added yet.</p>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
@@ -173,4 +280,32 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if property.wifi_network and property.wifi_password %}
+        // Generate WiFi QR Code
+        const wifiQRContainer = document.getElementById('wifi-qrcode');
+        if (wifiQRContainer) {
+            const ssid = "{{ property.wifi_network|e('js') }}";
+            const password = "{{ property.wifi_password|e('js') }}";
+            
+            // Create WiFi network string in format: WIFI:S:<SSID>;T:<WPA|WEP|>;P:<password>;;
+            const wifiString = "WIFI:S:" + ssid + ";T:WPA;P:" + password + ";;";
+            
+            // Generate QR code
+            const qr = qrcode(0, 'M');
+            qr.addData(wifiString);
+            qr.make();
+            
+            // Render QR code
+            wifiQRContainer.innerHTML = qr.createImgTag(4);
+        }
+        {% endif %}
+    });
+</script>
 {% endblock %}

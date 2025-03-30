@@ -11,6 +11,24 @@ class UserRoles(enum.Enum):
     CLEANER = "cleaner"
     MAINTENANCE = "maintenance"
 
+class TaskStatus(enum.Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+class TaskPriority(enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
+class RecurrencePattern(enum.Enum):
+    NONE = "none"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    CUSTOM = "custom"
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(64), nullable=False)
@@ -24,6 +42,7 @@ class User(UserMixin, db.Model):
     # Relationships
     password_resets = db.relationship('PasswordReset', backref='user', lazy='dynamic')
     properties = db.relationship('Property', backref='owner', lazy='dynamic')
+    assigned_tasks = db.relationship('TaskAssignment', backref='assignee', lazy='dynamic')
     
     def __repr__(self):
         return f'<User {self.email}>'
@@ -65,6 +84,9 @@ class Property(db.Model):
     square_feet = db.Column(db.Integer)
     year_built = db.Column(db.Integer)
     
+    # Direct calendar URL
+    ical_url = db.Column(db.String(500), nullable=True)
+    
     # Cleaner-specific information
     total_beds = db.Column(db.Integer, comment='Total number of beds in the property')
     bed_sizes = db.Column(db.String(255), comment='Description of bed sizes (e.g., "1 King, 2 Queen, 1 Twin")')
@@ -85,6 +107,8 @@ class Property(db.Model):
     # Relationships
     images = db.relationship('PropertyImage', backref='property', lazy='dynamic', cascade='all, delete-orphan')
     calendars = db.relationship('PropertyCalendar', backref='property', lazy='dynamic', cascade='all, delete-orphan')
+    tasks = db.relationship('TaskProperty', back_populates='property', cascade='all, delete-orphan')
+    rooms = db.relationship('Room', back_populates='property', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Property {self.name}>'
@@ -102,6 +126,16 @@ class Property(db.Model):
     
     def get_full_address(self):
         return f"{self.street_address}, {self.city}, {self.state} {self.zip_code}, {self.country}"
+    
+    def is_visible_to(self, user):
+        """Check if property is visible to the given user"""
+        # Property owners can see their own properties
+        if self.owner_id == user.id:
+            return True
+        # Cleaners and maintenance staff can see all properties
+        if user.is_cleaner() or user.is_maintenance():
+            return True
+        return False
 
 class PropertyImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -171,6 +205,7 @@ class PropertyCalendar(db.Model):
     # Last synchronization information
     last_synced = db.Column(db.DateTime, nullable=True)
     sync_status = db.Column(db.String(50), nullable=True)
+    sync_error = db.Column(db.String(255), nullable=True)
     
     # When the calendar was added
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -178,6 +213,162 @@ class PropertyCalendar(db.Model):
     
     def __repr__(self):
         return f'<PropertyCalendar {self.name} for {self.property.name}>'
+
+class Room(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Room details
+    name = db.Column(db.String(100), nullable=False)
+    room_type = db.Column(db.String(50), nullable=False)  # bedroom, living_room, dining_room, kitchen, bathroom, etc.
+    square_feet = db.Column(db.Integer, nullable=True)
+    
+    # For bedrooms
+    bed_type = db.Column(db.String(50), nullable=True)  # king, queen, full, twin, bunk, sofa, etc.
+    
+    # For rooms with TVs
+    has_tv = db.Column(db.Boolean, default=False)
+    tv_details = db.Column(db.String(100), nullable=True)
+    
+    # For bathrooms
+    has_shower = db.Column(db.Boolean, default=False)
+    has_tub = db.Column(db.Boolean, default=False)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    property = db.relationship('Property', back_populates='rooms')
+    
+    def __repr__(self):
+        return f'<Room {self.name} ({self.room_type}) in {self.property.name}>'
+
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    due_date = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.Enum(TaskStatus), default=TaskStatus.PENDING, nullable=False)
+    priority = db.Column(db.Enum(TaskPriority), default=TaskPriority.MEDIUM, nullable=False)
+    notes = db.Column(db.Text)
+    
+    # Recurrence information
+    is_recurring = db.Column(db.Boolean, default=False)
+    recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE)
+    recurrence_interval = db.Column(db.Integer, default=1)  # e.g., every 2 weeks
+    recurrence_end_date = db.Column(db.DateTime, nullable=True)
+    
+    # Calendar event link
+    linked_to_checkout = db.Column(db.Boolean, default=False)
+    calendar_id = db.Column(db.Integer, db.ForeignKey('property_calendar.id'), nullable=True)
+    
+    # Creator information
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    creator = db.relationship('User', foreign_keys=[creator_id], backref='created_tasks')
+    calendar = db.relationship('PropertyCalendar', backref='linked_tasks')
+    assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic', cascade='all, delete-orphan')
+    properties = db.relationship('TaskProperty', back_populates='task', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<Task {self.title}>'
+    
+    def mark_completed(self, user_id=None):
+        self.status = TaskStatus.COMPLETED
+        self.completed_at = datetime.utcnow()
+        
+        # If this is a recurring task, create the next occurrence
+        if self.is_recurring and self.recurrence_pattern != RecurrencePattern.NONE:
+            self.create_next_occurrence()
+    
+    def create_next_occurrence(self):
+        # Calculate the next due date based on recurrence pattern
+        if not self.due_date:
+            return None
+            
+        next_due_date = None
+        if self.recurrence_pattern == RecurrencePattern.DAILY:
+            next_due_date = self.due_date + timedelta(days=self.recurrence_interval)
+        elif self.recurrence_pattern == RecurrencePattern.WEEKLY:
+            next_due_date = self.due_date + timedelta(weeks=self.recurrence_interval)
+        elif self.recurrence_pattern == RecurrencePattern.MONTHLY:
+            # Add months - this is a simplification
+            next_due_date = self.due_date + timedelta(days=30 * self.recurrence_interval)
+        
+        # Check if we've reached the end date
+        if self.recurrence_end_date and next_due_date > self.recurrence_end_date:
+            return None
+            
+        # Create a new task instance
+        new_task = Task(
+            title=self.title,
+            description=self.description,
+            due_date=next_due_date,
+            priority=self.priority,
+            notes=self.notes,
+            is_recurring=self.is_recurring,
+            recurrence_pattern=self.recurrence_pattern,
+            recurrence_interval=self.recurrence_interval,
+            recurrence_end_date=self.recurrence_end_date,
+            linked_to_checkout=self.linked_to_checkout,
+            calendar_id=self.calendar_id,
+            creator_id=self.creator_id
+        )
+        
+        # Copy property associations
+        for task_property in self.properties:
+            new_task_property = TaskProperty(property_id=task_property.property_id)
+            new_task.properties.append(new_task_property)
+        
+        # Copy assignments
+        for assignment in self.assignments:
+            new_assignment = TaskAssignment(
+                user_id=assignment.user_id,
+                external_name=assignment.external_name,
+                external_phone=assignment.external_phone
+            )
+            new_task.assignments.append(new_assignment)
+            
+        db.session.add(new_task)
+        return new_task
+
+class TaskAssignment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
+    
+    # Assignment can be to a user OR to an external person (not in the system)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    external_name = db.Column(db.String(100), nullable=True)
+    external_phone = db.Column(db.String(20), nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship to user (if assigned to a user)
+    user = db.relationship('User', backref='task_assignments')
+    
+    def __repr__(self):
+        if self.user_id:
+            return f'<TaskAssignment to User {self.user_id}>'
+        else:
+            return f'<TaskAssignment to {self.external_name}>'
+
+class TaskProperty(db.Model):
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    task = db.relationship('Task', back_populates='properties')
+    property = db.relationship('Property', back_populates='tasks')
 
 @login_manager.user_loader
 def load_user(id):

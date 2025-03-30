@@ -1,181 +1,147 @@
 {% extends "base.html" %}
 
+{% block styles %}
+{{ super() }}
+<style>
+    .room-title {
+        font-weight: bold;
+    }
+    .room-form {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-10">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">Add New Property</h4>
-            </div>
-            <div class="card-body">
-                <form method="post" novalidate>
-                    {{ form.hidden_tag() }}
-                    
-                    <h5 class="mb-3">Basic Information</h5>
-                    <div class="mb-3">
-                        {{ form.name.label(class="form-label") }}
-                        {{ form.name(class="form-control") }}
-                        {% for error in form.name.errors %}
-                        <div class="text-danger">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.description.label(class="form-label") }}
-                        {{ form.description(class="form-control", rows=4) }}
-                        {% for error in form.description.errors %}
-                        <div class="text-danger">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                    
-                    <h5 class="mb-3 mt-4">Address Information</h5>
-                    <div class="mb-3">
-                        {{ form.street_address.label(class="form-label") }}
-                        {{ form.street_address(class="form-control") }}
-                        {% for error in form.street_address.errors %}
-                        <div class="text-danger">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            {{ form.city.label(class="form-label") }}
-                            {{ form.city(class="form-control") }}
-                            {% for error in form.city.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        <div class="col-md-4">
-                            {{ form.state.label(class="form-label") }}
-                            {{ form.state(class="form-control") }}
-                            {% for error in form.state.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        <div class="col-md-4">
-                            {{ form.zip_code.label(class="form-label") }}
-                            {{ form.zip_code(class="form-control") }}
-                            {% for error in form.zip_code.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.country.label(class="form-label") }}
-                        {{ form.country(class="form-control") }}
-                        {% for error in form.country.errors %}
-                        <div class="text-danger">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                    
-                    <h5 class="mb-3 mt-4">Property Specifications</h5>
-                    <div class="mb-3">
-                        {{ form.property_type.label(class="form-label") }}
-                        {{ form.property_type(class="form-select") }}
-                        {% for error in form.property_type.errors %}
-                        <div class="text-danger">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-3">
-                            {{ form.bedrooms.label(class="form-label") }}
-                            {{ form.bedrooms(class="form-control") }}
-                            {% for error in form.bedrooms.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        <div class="col-md-3">
-                            {{ form.bathrooms.label(class="form-label") }}
-                            {{ form.bathrooms(class="form-control") }}
-                            {% for error in form.bathrooms.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        <div class="col-md-3">
-                            {{ form.square_feet.label(class="form-label") }}
-                            {{ form.square_feet(class="form-control") }}
-                            {% for error in form.square_feet.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        <div class="col-md-3">
-                            {{ form.year_built.label(class="form-label") }}
-                            {{ form.year_built(class="form-control") }}
-                            {% for error in form.year_built.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    
-                    <h5 class="mb-3 mt-4">Cleaner Information</h5>
-                    <div class="card card-body bg-light mb-3">
-                        <p class="small text-muted mb-3">This information is specifically for cleaners to help them better understand the property.</p>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">🏠 Add New Property</h4>
+                    <a href="{{ url_for('property.index') }}" class="btn btn-sm btn-outline-secondary">Back to Properties</a>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {{ form.hidden_tag() }}
                         
-                        <div class="row mb-3">
+                        <h5 class="mt-0 mb-3">📋 Basic Information</h5>
+                        <div class="row">
                             <div class="col-md-6">
-                                {{ form.total_beds.label(class="form-label") }}
-                                {{ form.total_beds(class="form-control") }}
-                                {% for error in form.total_beds.errors %}
-                                <div class="text-danger">{{ error }}</div>
-                                {% endfor %}
+                                <div class="mb-3">
+                                    {{ form.name.label(class="form-label") }}
+                                    {{ form.name(class="form-control") }}
+                                    {% for error in form.name.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                {{ form.bed_sizes.label(class="form-label") }}
-                                {{ form.bed_sizes(class="form-control") }}
-                                {% for error in form.bed_sizes.errors %}
-                                <div class="text-danger">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                {{ form.number_of_tvs.label(class="form-label") }}
-                                {{ form.number_of_tvs(class="form-control") }}
-                                {% for error in form.number_of_tvs.errors %}
-                                <div class="text-danger">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                            <div class="col-md-4">
-                                {{ form.number_of_showers.label(class="form-label") }}
-                                {{ form.number_of_showers(class="form-control") }}
-                                {% for error in form.number_of_showers.errors %}
-                                <div class="text-danger">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                            <div class="col-md-4">
-                                {{ form.number_of_tubs.label(class="form-label") }}
-                                {{ form.number_of_tubs(class="form-control") }}
-                                {% for error in form.number_of_tubs.errors %}
-                                <div class="text-danger">{{ error }}</div>
-                                {% endfor %}
+                                <div class="mb-3">
+                                    {{ form.property_type.label(class="form-label") }}
+                                    {{ form.property_type(class="form-select") }}
+                                    {% for error in form.property_type.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            {{ form.cleaning_supplies_location.label(class="form-label") }}
-                            {{ form.cleaning_supplies_location(class="form-control", rows=2) }}
-                            {% for error in form.cleaning_supplies_location.errors %}
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows=3) }}
+                            {% for error in form.description.errors %}
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
                         
-                        <div class="row mb-3">
+                        <h5 class="mt-4 mb-3">📆 Calendar Integration</h5>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form.ical_url.label(class="form-label") }}
+                                    {{ form.ical_url(class="form-control") }}
+                                    {% for error in form.ical_url.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">
+                                        Adding a calendar URL here will automatically create a main calendar for this property. You can add more calendars later.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3">🏠 Address Information</h5>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form.street_address.label(class="form-label") }}
+                                    {{ form.street_address(class="form-control") }}
+                                    {% for error in form.street_address.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.city.label(class="form-label") }}
+                                    {{ form.city(class="form-control") }}
+                                    {% for error in form.city.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.state.label(class="form-label") }}
+                                    {{ form.state(class="form-control") }}
+                                    {% for error in form.state.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    {{ form.zip_code.label(class="form-label") }}
+                                    {{ form.zip_code(class="form-control") }}
+                                    {% for error in form.zip_code.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.country.label(class="form-label") }}
+                                    {{ form.country(class="form-control") }}
+                                    {% for error in form.country.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3">🔑 Property Access Information</h5>
+                        <div class="row">
                             <div class="col-md-6">
-                                {{ form.wifi_network.label(class="form-label") }}
-                                {{ form.wifi_network(class="form-control") }}
-                                {% for error in form.wifi_network.errors %}
-                                <div class="text-danger">{{ error }}</div>
-                                {% endfor %}
+                                <div class="mb-3">
+                                    {{ form.wifi_network.label(class="form-label") }}
+                                    {{ form.wifi_network(class="form-control") }}
+                                    {% for error in form.wifi_network.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                {{ form.wifi_password.label(class="form-label") }}
-                                {{ form.wifi_password(class="form-control") }}
-                                {% for error in form.wifi_password.errors %}
-                                <div class="text-danger">{{ error }}</div>
-                                {% endfor %}
+                                <div class="mb-3">
+                                    {{ form.wifi_password.label(class="form-label") }}
+                                    {{ form.wifi_password(class="form-control") }}
+                                    {% for error in form.wifi_password.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                         
@@ -187,6 +153,15 @@
                             {% endfor %}
                         </div>
                         
+                        <h5 class="mt-4 mb-3">🧹 Cleaning Information</h5>
+                        <div class="mb-3">
+                            {{ form.cleaning_supplies_location.label(class="form-label") }}
+                            {{ form.cleaning_supplies_location(class="form-control", rows=2) }}
+                            {% for error in form.cleaning_supplies_location.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
                         <div class="mb-3">
                             {{ form.special_instructions.label(class="form-label") }}
                             {{ form.special_instructions(class="form-control", rows=3) }}
@@ -194,15 +169,91 @@
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
-                    </div>
-                    
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="{{ url_for('property.index') }}" class="btn btn-secondary">Cancel</a>
-                        {{ form.submit(class="btn btn-primary") }}
-                    </div>
-                </form>
+                        
+                        <h5 class="mt-4 mb-3">🛏️ Rooms and Amenities</h5>
+                        <p class="mb-3">Add rooms to your property with their amenities. This helps cleaners know what to expect at each property.</p>
+                        
+                        <div id="rooms-container">
+                            <!-- Room forms will be added here dynamically -->
+                        </div>
+                        
+                        <button type="button" id="add-room" class="btn btn-outline-primary mb-4">
+                            <i class="bi bi-plus-circle"></i> Add Room 🏠
+                        </button>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('property.index') }}" class="btn btn-secondary">Cancel</a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const roomsContainer = document.getElementById('rooms-container');
+        const addRoomButton = document.getElementById('add-room');
+        let roomCounter = 0;
+        
+        // Add room button click handler
+        addRoomButton.addEventListener('click', function() {
+            fetch("{{ url_for('property.room_form_template') }}?index=" + roomCounter)
+                .then(response => response.json())
+                .then(data => {
+                    // Create a temporary div to hold the HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = data.html;
+                    
+                    // Append the new room form to the container
+                    roomsContainer.appendChild(tempDiv.firstChild);
+                    
+                    // Set up event handlers for the new room form
+                    setupRoomFormHandlers(tempDiv.firstChild);
+                    
+                    roomCounter++;
+                })
+                .catch(error => console.error('Error fetching room form template:', error));
+        });
+        
+        // Function to set up event handlers for a room form
+        function setupRoomFormHandlers(roomForm) {
+            // Remove room button
+            roomForm.querySelector('.remove-room').addEventListener('click', function() {
+                roomForm.remove();
+            });
+            
+            // Room type change handler
+            const roomTypeSelect = roomForm.querySelector('.room-type-select');
+            roomTypeSelect.addEventListener('change', function() {
+                const roomId = roomForm.dataset.roomId;
+                const bedroomOptions = roomForm.querySelector('.bedroom-options');
+                const bathroomOptions = roomForm.querySelector('.bathroom-options');
+                
+                if (this.value === 'bedroom') {
+                    bedroomOptions.style.display = 'block';
+                    bathroomOptions.style.display = 'none';
+                } else if (this.value === 'bathroom') {
+                    bedroomOptions.style.display = 'none';
+                    bathroomOptions.style.display = 'block';
+                } else {
+                    bedroomOptions.style.display = 'none';
+                    bathroomOptions.style.display = 'none';
+                }
+            });
+            
+            // Has TV checkbox change handler
+            const hasTvCheckbox = roomForm.querySelector('.has-tv-checkbox');
+            hasTvCheckbox.addEventListener('change', function() {
+                const tvDetails = roomForm.querySelector('.tv-details');
+                tvDetails.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+    });
+</script>
 {% endblock %}

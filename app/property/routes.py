@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, abort
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, abort, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
 from app.property import bp
-from app.property.forms import PropertyForm, PropertyImageForm, PropertyCalendarForm
-from app.models import Property, PropertyImage, UserRoles, PropertyCalendar
+from app.property.forms import PropertyForm, PropertyImageForm, PropertyCalendarForm, RoomForm
+from app.models import Property, PropertyImage, UserRoles, PropertyCalendar, Room
 from datetime import datetime, timedelta
 import os
 import uuid
@@ -48,13 +48,105 @@ def create():
             bathrooms=form.bathrooms.data,
             square_feet=form.square_feet.data,
             year_built=form.year_built.data,
+            ical_url=form.ical_url.data,
+            cleaning_supplies_location=form.cleaning_supplies_location.data,
+            wifi_network=form.wifi_network.data,
+            wifi_password=form.wifi_password.data,
+            special_instructions=form.special_instructions.data,
+            entry_instructions=form.entry_instructions.data,
             owner_id=current_user.id
         )
         db.session.add(property)
         db.session.commit()
-        flash('Property created successfully!', 'success')
+        
+        # Process room data from the form
+        room_names = request.form.getlist('room_name')
+        room_types = request.form.getlist('room_type')
+        room_sqft = request.form.getlist('room_sqft')
+        has_tvs = request.form.getlist('has_tv')
+        tv_details = request.form.getlist('tv_details')
+        bed_types = request.form.getlist('bed_type')
+        has_showers = request.form.getlist('has_shower')
+        has_tubs = request.form.getlist('has_tub')
+        
+        # Create rooms
+        for i in range(len(room_names)):
+            if room_names[i]:  # Only create rooms with names
+                room = Room(
+                    property_id=property.id,
+                    name=room_names[i],
+                    room_type=room_types[i] if i < len(room_types) else 'other',
+                    square_feet=int(room_sqft[i]) if i < len(room_sqft) and room_sqft[i] else None,
+                    has_tv=f"new_{i}" in has_tvs,
+                    tv_details=tv_details[i] if i < len(tv_details) and f"new_{i}" in has_tvs else None,
+                    bed_type=bed_types[i] if i < len(bed_types) and bed_types[i] else None,
+                    has_shower=f"new_{i}" in has_showers,
+                    has_tub=f"new_{i}" in has_tubs
+                )
+                db.session.add(room)
+        
+        # Update property totals based on room data (re-query to get newly added rooms)
+        db.session.commit()
+        
+        # Calculate totals
+        bed_count = 0
+        tv_count = 0
+        shower_count = 0
+        tub_count = 0
+        bed_sizes_list = []
+        
+        rooms = Room.query.filter_by(property_id=property.id).all()
+        for room in rooms:
+            if room.bed_type:
+                bed_count += 1
+                bed_sizes_list.append(f"1 {room.bed_type.title()}")
+            if room.has_tv:
+                tv_count += 1
+            if room.has_shower:
+                shower_count += 1
+            if room.has_tub:
+                tub_count += 1
+        
+        property.total_beds = bed_count
+        property.bed_sizes = ", ".join(bed_sizes_list) if bed_sizes_list else None
+        property.number_of_tvs = tv_count
+        property.number_of_showers = shower_count
+        property.number_of_tubs = tub_count
+        
+        # If a main calendar URL was added, create a property calendar
+        if property.ical_url:
+            main_calendar = PropertyCalendar(
+                property_id=property.id,
+                name='Main Property Calendar',
+                ical_url=property.ical_url,
+                service='other',  # Default as "other" since we don't know the source
+                is_entire_property=True
+            )
+            db.session.add(main_calendar)
+            
+            # Try to sync the calendar
+            try:
+                response = requests.get(property.ical_url)
+                if response.status_code == 200:
+                    # Try to parse the iCal data to validate
+                    cal = Calendar.from_ical(response.text)
+                    
+                    # Set sync status
+                    main_calendar.last_synced = datetime.utcnow()
+                    main_calendar.sync_status = 'Success'
+                    main_calendar.sync_error = None
+                else:
+                    main_calendar.sync_status = 'Error'
+                    main_calendar.sync_error = f"HTTP error: {response.status_code}"
+            except Exception as e:
+                main_calendar.sync_status = 'Failed'
+                main_calendar.sync_error = str(e)[:255]  # Limit error message length
+        
+        db.session.commit()
+        flash('Property created successfully! 🎉', 'success')
         return redirect(url_for('property.view', id=property.id))
-    return render_template('property/create.html', title='Add Property', form=form)
+    
+    return render_template('property/create.html', title='Add Property', form=form, rooms=[])
 
 @bp.route('/<int:id>')
 @property_owner_required
@@ -76,6 +168,11 @@ def edit(id):
         return redirect(url_for('property.index'))
     
     form = PropertyForm()
+    
+    # Get all rooms for this property
+    rooms = Room.query.filter_by(property_id=id).all()
+    room_forms = []
+    
     if form.validate_on_submit():
         property.name = form.name.data
         property.description = form.description.data
@@ -89,12 +186,133 @@ def edit(id):
         property.bathrooms = form.bathrooms.data
         property.square_feet = form.square_feet.data
         property.year_built = form.year_built.data
+        property.ical_url = form.ical_url.data
+        
+        # Update cleaner-specific info
+        property.cleaning_supplies_location = form.cleaning_supplies_location.data
+        property.wifi_network = form.wifi_network.data
+        property.wifi_password = form.wifi_password.data
+        property.special_instructions = form.special_instructions.data
+        property.entry_instructions = form.entry_instructions.data
+        
         property.updated_at = datetime.utcnow()
         
+        # Process room data from the form
+        existing_room_ids = [room.id for room in rooms]
+        room_data = request.form.getlist('room_id')
+        room_names = request.form.getlist('room_name')
+        room_types = request.form.getlist('room_type')
+        room_sqft = request.form.getlist('room_sqft')
+        has_tvs = request.form.getlist('has_tv')
+        tv_details = request.form.getlist('tv_details')
+        bed_types = request.form.getlist('bed_type')
+        has_showers = request.form.getlist('has_shower')
+        has_tubs = request.form.getlist('has_tub')
+        room_deletes = request.form.getlist('room_delete')
+        
+        # Update existing rooms and create new ones
+        for i in range(len(room_names)):
+            if i < len(room_data) and room_data[i]:  # This is an existing room
+                room_id = int(room_data[i])
+                if str(room_id) in room_deletes:  # Delete the room
+                    room = Room.query.get(room_id)
+                    if room and room.property_id == property.id:
+                        db.session.delete(room)
+                else:  # Update the room
+                    room = Room.query.get(room_id)
+                    if room and room.property_id == property.id:
+                        room.name = room_names[i]
+                        room.room_type = room_types[i]
+                        room.square_feet = int(room_sqft[i]) if room_sqft[i] else None
+                        room.has_tv = str(room_id) in has_tvs
+                        room.tv_details = tv_details[i] if str(room_id) in has_tvs else None
+                        room.bed_type = bed_types[i] if bed_types[i] else None
+                        room.has_shower = str(room_id) in has_showers
+                        room.has_tub = str(room_id) in has_tubs
+            else:  # This is a new room
+                room = Room(
+                    property_id=property.id,
+                    name=room_names[i],
+                    room_type=room_types[i],
+                    square_feet=int(room_sqft[i]) if room_sqft[i] else None,
+                    has_tv=f"new_{i}" in has_tvs,
+                    tv_details=tv_details[i] if f"new_{i}" in has_tvs else None,
+                    bed_type=bed_types[i] if bed_types[i] else None,
+                    has_shower=f"new_{i}" in has_showers,
+                    has_tub=f"new_{i}" in has_tubs
+                )
+                db.session.add(room)
+                
+        # Update property totals based on room data
+        bed_count = 0
+        tv_count = 0
+        shower_count = 0
+        tub_count = 0
+        bed_sizes_list = []
+        
+        for room in property.rooms:
+            if room.bed_type:
+                bed_count += 1
+                bed_sizes_list.append(f"1 {room.bed_type.title()}")
+            if room.has_tv:
+                tv_count += 1
+            if room.has_shower:
+                shower_count += 1
+            if room.has_tub:
+                tub_count += 1
+        
+        property.total_beds = bed_count
+        property.bed_sizes = ", ".join(bed_sizes_list) if bed_sizes_list else None
+        property.number_of_tvs = tv_count
+        property.number_of_showers = shower_count
+        property.number_of_tubs = tub_count
+        
+        # If a main calendar URL was added, create or update a property calendar
+        if property.ical_url:
+            # Check if a main calendar already exists
+            main_calendar = PropertyCalendar.query.filter_by(
+                property_id=property.id, 
+                is_entire_property=True,
+                name='Main Property Calendar'
+            ).first()
+            
+            if main_calendar:
+                # Update existing calendar
+                main_calendar.ical_url = property.ical_url
+            else:
+                # Create new calendar
+                main_calendar = PropertyCalendar(
+                    property_id=property.id,
+                    name='Main Property Calendar',
+                    ical_url=property.ical_url,
+                    service='other',  # Default as "other" since we don't know the source
+                    is_entire_property=True
+                )
+                db.session.add(main_calendar)
+                
+            # Try to sync the calendar
+            try:
+                response = requests.get(property.ical_url)
+                if response.status_code == 200:
+                    # Try to parse the iCal data to validate
+                    cal = Calendar.from_ical(response.text)
+                    
+                    # Set sync status
+                    main_calendar.last_synced = datetime.utcnow()
+                    main_calendar.sync_status = 'Success'
+                    main_calendar.sync_error = None
+                else:
+                    main_calendar.sync_status = 'Error'
+                    main_calendar.sync_error = f"HTTP error: {response.status_code}"
+            except Exception as e:
+                main_calendar.sync_status = 'Failed'
+                main_calendar.sync_error = str(e)[:255]  # Limit error message length
+            
         db.session.commit()
-        flash('Property updated successfully!', 'success')
+        flash('Property updated successfully! 🎉', 'success')
         return redirect(url_for('property.view', id=property.id))
     elif request.method == 'GET':
+        # Populate the form with existing data
         form.name.data = property.name
         form.description.data = property.description
         form.street_address.data = property.street_address
@@ -107,8 +325,30 @@ def edit(id):
         form.bathrooms.data = property.bathrooms
         form.square_feet.data = property.square_feet
         form.year_built.data = property.year_built
+        form.ical_url.data = property.ical_url
+        
+        # Populate cleaner-specific info
+        form.cleaning_supplies_location.data = property.cleaning_supplies_location
+        form.wifi_network.data = property.wifi_network
+        form.wifi_password.data = property.wifi_password
+        form.special_instructions.data = property.special_instructions
+        form.entry_instructions.data = property.entry_instructions
+        
+        # Create a form for each existing room
+        for room in rooms:
+            room_form = RoomForm()
+            room_form.name.data = room.name
+            room_form.room_type.data = room.room_type
+            room_form.square_feet.data = room.square_feet
+            room_form.has_tv.data = room.has_tv
+            room_form.tv_details.data = room.tv_details
+            room_form.bed_type.data = room.bed_type
+            room_form.has_shower.data = room.has_shower
+            room_form.has_tub.data = room.has_tub
+            room_forms.append((room.id, room_form))
     
-    return render_template('property/edit.html', title=f'Edit {property.name}', form=form, property=property)
+    return render_template('property/edit.html', title=f'Edit {property.name}', 
+                          form=form, property=property, rooms=room_forms)
 
 @bp.route('/<int:id>/delete', methods=['POST'])
 @property_owner_required
@@ -452,3 +692,19 @@ def view_calendar(id):
             db.session.commit()
     
     return render_template('property/calendar_view.html', property=property, calendars=calendars, events=events)
+
+# AJAX endpoint to add a new room form
+@bp.route('/room-form-template')
+@login_required
+def room_form_template():
+    index = request.args.get('index', 0)
+    room_id = None  # New room doesn't have an ID yet
+    room_form = RoomForm()
+    
+    html = render_template('property/_room_form.html', 
+                          room_form=room_form, 
+                          room_id=room_id, 
+                          index=index,
+                          is_new=True)
+    
+    return jsonify(html=html)
