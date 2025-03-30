@@ -11,22 +11,15 @@ from app.tasks.routes import can_view_task, can_edit_task, can_delete_task, can_
 def app():
     """Create and configure a Flask app for testing."""
     app = create_app()  # Use default config
+    
+    # Disable CSRF protection for testing
     app.config['WTF_CSRF_ENABLED'] = False
     
-    # Add task permission functions to Jinja environment
-    app.jinja_env.globals.update(
-        can_view_task=can_view_task,
-        can_edit_task=can_edit_task,
-        can_delete_task=can_delete_task,
-        can_complete_task=can_complete_task
-    )
-    
-    # Create a test context
+    # Create context
     with app.app_context():
         db.create_all()
-        yield app
-        db.session.remove()
-        db.drop_all()
+        yield app  # Return app to the test
+        db.drop_all()  # Clean up after the test
 
 
 @pytest.fixture(scope='function')
