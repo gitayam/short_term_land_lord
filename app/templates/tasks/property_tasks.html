@@ -111,14 +111,12 @@
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     {% endif %}
-                                    {% if current_user.is_cleaner() and task.status.value != 'completed' %}
-                                    {% if not active_session %}
-                                    <form action="{{ url_for('tasks.start_cleaning', id=task.id) }}" method="post" class="d-inline">
+                                    {% if can_complete_task(task, current_user) and task.status != 'COMPLETED' %}
+                                    <form class="d-inline" method="post" action="{{ url_for('tasks.complete', id=task.id) }}">
                                         <button type="submit" class="btn btn-sm btn-outline-success">
-                                            <i class="fas fa-play"></i> Start
+                                            <i class="fas fa-check"></i>
                                         </button>
                                     </form>
-                                    {% endif %}
                                     {% endif %}
                                 </div>
                             </td>

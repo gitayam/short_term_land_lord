@@ -102,6 +102,7 @@
                                 <th>Status</th>
                                 <th>Priority</th>
                                 <th>Due Date</th>
+                                <th>Assignees</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -139,20 +140,35 @@
                                 <td class="{% if task.is_overdue() %}text-danger fw-bold{% endif %}">
                                     {{ task.due_date.strftime('%Y-%m-%d') if task.due_date }}
                                 </td>
-                                <td>
+                                <td class="text-center">
+                                    {% if task.assignments|length > 0 %}
+                                        {% for assignment in task.assignments %}
+                                            {% if assignment.user %}
+                                                <span class="badge bg-primary">{{ assignment.user.get_full_name() }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">External: {{ assignment.external_name or 'None' }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="badge bg-warning">Unassigned</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
                                     <div class="btn-group">
                                         <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        {% if current_user.is_property_owner() or current_user.can_edit_task(task) %}
+                                        {% if current_user.is_property_owner() or can_edit_task(task, current_user) %}
                                         <a href="{{ url_for('tasks.edit', id=task.id) }}" class="btn btn-sm btn-outline-secondary">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         {% endif %}
-                                        {% if current_user.can_complete_task(task) and task.status != 'COMPLETED' %}
-                                        <a href="{{ url_for('tasks.complete', id=task.id) }}" class="btn btn-sm btn-outline-success">
-                                            <i class="fas fa-check"></i>
-                                        </a>
+                                        {% if can_complete_task(task, current_user) and task.status != 'COMPLETED' %}
+                                        <form class="d-inline" method="post" action="{{ url_for('tasks.complete', id=task.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
                                         {% endif %}
                                     </div>
                                 </td>
