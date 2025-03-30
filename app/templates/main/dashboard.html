@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Dashboard</h1>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Welcome, {{ current_user.get_full_name() }}</h5>
+    </div>
+    <div class="card-body">
+        <p>Role: <span class="badge bg-primary">{{ current_user.role.value|replace('_', ' ')|title }}</span></p>
+        
+        {% if current_user.is_property_owner() %}
+        <p>As a property owner, you can manage your properties and view cleaning and maintenance schedules.</p>
+        {% elif current_user.is_cleaner() %}
+        <p>As a cleaner, you can view your assigned cleaning tasks and schedules.</p>
+        {% elif current_user.is_maintenance() %}
+        <p>As maintenance personnel, you can view your assigned maintenance tasks and schedules.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    {% if current_user.is_property_owner() %}
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Your Properties</h5>
+            </div>
+            <div class="card-body">
+                <p>Property management features will be available in the next phase.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Upcoming Schedules</h5>
+            </div>
+            <div class="card-body">
+                <p>Calendar features will be available in the next phase.</p>
+            </div>
+        </div>
+    </div>
+    {% elif current_user.is_cleaner() %}
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Your Cleaning Assignments</h5>
+            </div>
+            <div class="card-body">
+                <p>Cleaning task management features will be available in the next phase.</p>
+            </div>
+        </div>
+    </div>
+    {% elif current_user.is_maintenance() %}
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Your Maintenance Assignments</h5>
+            </div>
+            <div class="card-body">
+                <p>Maintenance task management features will be available in the next phase.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
