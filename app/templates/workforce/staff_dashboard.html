@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">My Dashboard</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Links</h5>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('workforce.my_tasks') }}" class="btn btn-primary">
+                            <i class="fas fa-tasks"></i> View All My Tasks
+                        </a>
+                        <a href="{{ url_for('workforce.my_properties') }}" class="btn btn-secondary">
+                            <i class="fas fa-building"></i> View My Properties
+                        </a>
+                        <a href="{{ url_for('workforce.my_invoices') }}" class="btn btn-info">
+                            <i class="fas fa-file-invoice-dollar"></i> View My Invoices
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">My Assigned Properties</h5>
+                </div>
+                <div class="card-body">
+                    {% if assigned_properties %}
+                    <div class="list-group">
+                        {% for property in assigned_properties %}
+                        <a href="{{ url_for('property.view', id=property.id) }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ property.name }}</h5>
+                            </div>
+                            <p class="mb-1">{{ property.get_full_address() }}</p>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        You are not currently assigned to any properties.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">Pending Tasks</h5>
+                </div>
+                <div class="card-body">
+                    {% if pending_tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Property</th>
+                                    <th>Due Date</th>
+                                    <th>Priority</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in pending_tasks %}
+                                <tr>
+                                    <td>{{ task.title }}</td>
+                                    <td>
+                                        {% if task.properties %}
+                                        {% set property = task.properties[0].property %}
+                                        {{ property.name }}
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.due_date %}
+                                        {{ task.due_date.strftime('%Y-%m-%d') }}
+                                        {% if task.is_overdue() %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                        {% endif %}
+                                        {% else %}
+                                        No due date
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.priority.value == 'urgent' %}
+                                        <span class="badge bg-danger">{{ task.get_priority_display() }}</span>
+                                        {% elif task.priority.value == 'high' %}
+                                        <span class="badge bg-warning text-dark">{{ task.get_priority_display() }}</span>
+                                        {% elif task.priority.value == 'medium' %}
+                                        <span class="badge bg-info">{{ task.get_priority_display() }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ task.get_priority_display() }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        You have no pending tasks.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-info">
+                    <h5 class="mb-0">In Progress Tasks</h5>
+                </div>
+                <div class="card-body">
+                    {% if in_progress_tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Property</th>
+                                    <th>Due Date</th>
+                                    <th>Priority</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in in_progress_tasks %}
+                                <tr>
+                                    <td>{{ task.title }}</td>
+                                    <td>
+                                        {% if task.properties %}
+                                        {% set property = task.properties[0].property %}
+                                        {{ property.name }}
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.due_date %}
+                                        {{ task.due_date.strftime('%Y-%m-%d') }}
+                                        {% if task.is_overdue() %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                        {% endif %}
+                                        {% else %}
+                                        No due date
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.priority.value == 'urgent' %}
+                                        <span class="badge bg-danger">{{ task.get_priority_display() }}</span>
+                                        {% elif task.priority.value == 'high' %}
+                                        <span class="badge bg-warning text-dark">{{ task.get_priority_display() }}</span>
+                                        {% elif task.priority.value == 'medium' %}
+                                        <span class="badge bg-info">{{ task.get_priority_display() }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ task.get_priority_display() }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        You have no tasks in progress.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-success">
+                    <h5 class="mb-0">Recently Completed Tasks</h5>
+                </div>
+                <div class="card-body">
+                    {% if completed_tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Property</th>
+                                    <th>Completed</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in completed_tasks %}
+                                <tr>
+                                    <td>{{ task.title }}</td>
+                                    <td>
+                                        {% if task.properties %}
+                                        {% set property = task.properties[0].property %}
+                                        {{ property.name }}
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.completed_at %}
+                                        {{ task.completed_at.strftime('%Y-%m-%d') }}
+                                        {% else %}
+                                        Unknown
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        You have no completed tasks.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

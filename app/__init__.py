@@ -70,6 +70,9 @@ def create_app(config_class=Config):
     from app.calendar import bp as calendar_bp
     app.register_blueprint(calendar_bp, url_prefix='/calendar')
     
+    from app.workforce import bp as workforce_bp
+    app.register_blueprint(workforce_bp, url_prefix='/workforce')
+    
     # Initialize site settings
     with app.app_context():
         try:

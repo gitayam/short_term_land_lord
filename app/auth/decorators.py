@@ -46,3 +46,14 @@ def invoice_access_required(f):
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
     return decorated_function
+
+def workforce_management_required(f):
+    """Decorator to ensure only users who can manage workforce can access a route"""
+    @wraps(f)
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if not (current_user.is_property_owner() or current_user.is_property_manager() or current_user.is_admin()):
+            flash('Access denied. You must be a property owner, property manager, or admin to manage workforce.', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function

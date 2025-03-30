@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>My Invoices</h1>
+                <a href="{{ url_for('workforce.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> This feature is coming soon. You will be able to view all invoices related to your work here.
+                    </div>
+                    
+                    <!-- Placeholder for future invoice integration -->
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-invoice-dollar fa-5x text-muted mb-3"></i>
+                        <h4 class="text-muted">Invoice Management Coming Soon</h4>
+                        <p class="text-muted">
+                            You'll be able to view your payment history, track earnings, and manage your invoices from this page.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
