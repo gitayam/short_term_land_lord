@@ -16,15 +16,15 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
-                    <p><strong>Item Name:</strong> {{ item.name }}</p>
-                    <p><strong>Category:</strong> {{ item.category.value|capitalize }}</p>
-                    <p><strong>Current Quantity:</strong> {{ item.current_quantity }} {{ item.unit_of_measure }}</p>
+                    <p><strong>Item Name:</strong> {{ item.catalog_item.name }}</p>
+                    <p><strong>Category:</strong> {{ item.catalog_item.category.value|capitalize }}</p>
+                    <p><strong>Current Quantity:</strong> {{ item.current_quantity }} {{ item.catalog_item.unit_of_measure }}</p>
                     <p><strong>Storage Location:</strong> {{ item.storage_location or 'Not specified' }}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Reorder Threshold:</strong> {{ item.reorder_threshold or 'Not set' }} {% if item.reorder_threshold %}{{ item.unit_of_measure }}{% endif %}</p>
-                    <p><strong>SKU/Item Code:</strong> {{ item.sku or 'Not specified' }}</p>
-                    <p><strong>Unit Cost:</strong> {% if item.unit_cost %}${{ "%.2f"|format(item.unit_cost) }}{% else %}Not specified{% endif %}</p>
+                    <p><strong>Reorder Threshold:</strong> {{ item.reorder_threshold or 'Not set' }} {% if item.reorder_threshold %}{{ item.catalog_item.unit_of_measure }}{% endif %}</p>
+                    <p><strong>SKU/Item Code:</strong> {{ item.catalog_item.sku or 'Not specified' }}</p>
+                    <p><strong>Unit Cost:</strong> {% if item.catalog_item.unit_cost %}${{ "%.2f"|format(item.catalog_item.unit_cost) }}{% else %}Not specified{% endif %}</p>
                     <p><strong>Status:</strong> 
                         {% if item.is_low_stock() %}
                         <span class="badge bg-warning text-dark">Low Stock</span>
@@ -34,10 +34,10 @@
                     </p>
                 </div>
             </div>
-            {% if item.description %}
+            {% if item.catalog_item.description %}
             <div class="row mt-2">
                 <div class="col-12">
-                    <p><strong>Description:</strong> {{ item.description }}</p>
+                    <p><strong>Description:</strong> {{ item.catalog_item.description }}</p>
                 </div>
             </div>
             {% endif %}
@@ -80,9 +80,9 @@
                                 <span class="badge bg-warning text-dark">Transfer Out</span>
                                 {% endif %}
                             </td>
-                            <td>{{ transaction.quantity }} {{ item.unit_of_measure }}</td>
-                            <td>{{ transaction.previous_quantity }} {{ item.unit_of_measure }}</td>
-                            <td>{{ transaction.new_quantity }} {{ item.unit_of_measure }}</td>
+                            <td>{{ transaction.quantity }} {{ item.catalog_item.unit_of_measure }}</td>
+                            <td>{{ transaction.previous_quantity }} {{ item.catalog_item.unit_of_measure }}</td>
+                            <td>{{ transaction.new_quantity }} {{ item.catalog_item.unit_of_measure }}</td>
                             <td>{{ transaction.user.get_full_name() }}</td>
                             <td>
                                 {% if transaction.transaction_type.value in ['transfer_in', 'transfer_out'] %}

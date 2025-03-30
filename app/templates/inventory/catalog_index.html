@@ -3,48 +3,37 @@
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Inventory Management - {{ property.name }}</h1>
+        <h1>Global Inventory Catalog</h1>
         <div>
-            <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Back to Property
+            <a href="{{ url_for('inventory.add_catalog_item') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Catalog Item
             </a>
-            {% if is_property_owner %}
-            <a href="{{ url_for('inventory.add_item', property_id=property.id) }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Item
-            </a>
-            {% endif %}
         </div>
     </div>
 
     <!-- Filter Form -->
     <div class="card mb-4">
         <div class="card-header bg-light">
-            <h5 class="mb-0">Filter Inventory</h5>
+            <h5 class="mb-0">Filter Catalog</h5>
         </div>
         <div class="card-body">
-            <form method="get" action="{{ url_for('inventory.index', property_id=property.id) }}" class="row g-3">
+            <form method="get" action="{{ url_for('inventory.catalog_index') }}" class="row g-3">
                 <div class="col-md-3">
                     {{ filter_form.category.label(class="form-label") }}
                     {{ filter_form.category(class="form-select") }}
-                </div>
-                <div class="col-md-2">
-                    {{ filter_form.low_stock_only.label(class="form-label") }}
-                    {{ filter_form.low_stock_only(class="form-select") }}
                 </div>
                 <div class="col-md-3">
                     {{ filter_form.search.label(class="form-label") }}
                     {{ filter_form.search(class="form-control", placeholder="Search items...") }}
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     {{ filter_form.barcode.label(class="form-label") }}
-                    <div class="input-group">
-                        {{ filter_form.barcode(class="form-control", placeholder="Scan...") }}
-                        <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#barcodeScannerModal">
-                            <i class="fas fa-barcode"></i>
-                        </button>
-                    </div>
+                    {{ filter_form.barcode(class="form-control", placeholder="Enter barcode...") }}
+                    <button type="button" class="btn btn-sm btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#barcodeScannerModal">
+                        <i class="fas fa-barcode"></i> Scan
+                    </button>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-md-3 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="fas fa-filter"></i> Filter
                     </button>
@@ -53,87 +42,64 @@
         </div>
     </div>
 
-    <!-- Inventory Table -->
+    <!-- Catalog Table -->
     <div class="card">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Inventory Items</h5>
-            {% if is_property_owner %}
-            <a href="{{ url_for('inventory.catalog_index') }}" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-book"></i> Global Catalog
-            </a>
-            {% endif %}
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Catalog Items</h5>
         </div>
         <div class="card-body p-0">
-            {% if inventory_items %}
+            {% if catalog_items %}
             <div class="table-responsive">
                 <table class="table table-hover table-striped mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Item Name</th>
                             <th>Category</th>
-                            <th>Quantity</th>
-                            <th>Location</th>
-                            <th>Reorder At</th>
-                            <th>Status</th>
+                            <th>Unit</th>
+                            <th>SKU</th>
+                            <th>Barcode</th>
+                            <th>Cost</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in inventory_items %}
-                        <tr {% if item.is_low_stock() %}class="table-warning"{% endif %}>
+                        {% for item in catalog_items %}
+                        <tr>
                             <td>
-                                <strong>{{ item.catalog_item.name }}</strong>
-                                {% if item.catalog_item.description %}
-                                <br><small class="text-muted">{{ item.catalog_item.description|truncate(50) }}</small>
-                                {% endif %}
-                                {% if item.catalog_item.barcode %}
-                                <br><small class="badge bg-info">{{ item.catalog_item.barcode }}</small>
+                                <strong>{{ item.name }}</strong>
+                                {% if item.description %}
+                                <br><small class="text-muted">{{ item.description|truncate(50) }}</small>
                                 {% endif %}
                             </td>
-                            <td>{{ item.catalog_item.category.value|capitalize }}</td>
-                            <td>{{ item.current_quantity }} {{ item.catalog_item.unit_of_measure }}</td>
-                            <td>{{ item.storage_location or 'Not specified' }}</td>
-                            <td>{{ item.reorder_threshold or 'Not set' }} {% if item.reorder_threshold %}{{ item.catalog_item.unit_of_measure }}{% endif %}</td>
+                            <td>{{ item.category.value|capitalize }}</td>
+                            <td>{{ item.unit_of_measure }}</td>
+                            <td>{{ item.sku or 'N/A' }}</td>
                             <td>
-                                {% if item.is_low_stock() %}
-                                <span class="badge bg-warning text-dark">Low Stock</span>
+                                {% if item.barcode %}
+                                <span class="badge bg-info">{{ item.barcode }}</span>
                                 {% else %}
-                                <span class="badge bg-success">In Stock</span>
+                                <span class="text-muted">None</span>
                                 {% endif %}
                             </td>
+                            <td>{{ "$%.2f"|format(item.unit_cost) if item.unit_cost else 'N/A' }}</td>
                             <td>
                                 <div class="btn-group">
                                     <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                                         Actions
                                     </button>
                                     <ul class="dropdown-menu">
-                                        {% if can_manage %}
-                                        <li><a class="dropdown-item" href="{{ url_for('inventory.record_transaction', property_id=property.id, item_id=item.id) }}">
-                                            <i class="fas fa-exchange-alt"></i> Record Transaction
-                                        </a></li>
-                                        {% endif %}
-                                        
-                                        {% if is_property_owner %}
-                                        <li><a class="dropdown-item" href="{{ url_for('inventory.edit_item', property_id=property.id, item_id=item.id) }}">
+                                        <li><a class="dropdown-item" href="{{ url_for('inventory.edit_catalog_item', item_id=item.id) }}">
                                             <i class="fas fa-edit"></i> Edit Item
-                                        </a></li>
-                                        <li><a class="dropdown-item" href="{{ url_for('inventory.transfer_item', property_id=property.id, item_id=item.id) }}">
-                                            <i class="fas fa-truck"></i> Transfer
                                         </a></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
-                                            <form action="{{ url_for('inventory.delete_item', property_id=property.id, item_id=item.id) }}" method="post" 
-                                                  onsubmit="return confirm('Are you sure you want to delete this item? This action cannot be undone.');">
+                                            <form action="{{ url_for('inventory.delete_catalog_item', item_id=item.id) }}" method="post" 
+                                                  onsubmit="return confirm('Are you sure you want to delete this catalog item? This may affect inventory across multiple properties.');">
                                                 <button type="submit" class="dropdown-item text-danger">
                                                     <i class="fas fa-trash"></i> Delete
                                                 </button>
                                             </form>
                                         </li>
-                                        {% endif %}
-                                        
-                                        <li><a class="dropdown-item" href="{{ url_for('inventory.item_history', property_id=property.id, item_id=item.id) }}">
-                                            <i class="fas fa-history"></i> View History
-                                        </a></li>
                                     </ul>
                                 </div>
                             </td>
@@ -144,17 +110,15 @@
             </div>
             {% else %}
             <div class="text-center p-4">
-                <p class="mb-0">No inventory items found.</p>
-                {% if is_property_owner %}
-                <a href="{{ url_for('inventory.add_item', property_id=property.id) }}" class="btn btn-primary mt-2">
+                <p class="mb-0">No catalog items found.</p>
+                <a href="{{ url_for('inventory.add_catalog_item') }}" class="btn btn-primary mt-2">
                     <i class="fas fa-plus"></i> Add First Item
                 </a>
-                {% endif %}
             </div>
             {% endif %}
         </div>
     </div>
-    
+
     <!-- Barcode Scanner Modal -->
     <div class="modal fade" id="barcodeScannerModal" tabindex="-1" aria-labelledby="barcodeScannerModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -183,7 +147,6 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
 {% block scripts %}
 {{ super() }}
@@ -265,8 +228,31 @@
                 const code = result.codeResult.code;
                 scannedBarcodeInput.value = code;
                 scannerStatus.textContent = "Barcode detected: " + code;
+                
+                // Highlight the detected barcode
+                if (result.box) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const videoElement = document.getElementById('scanner-video');
+                    
+                    canvas.width = videoElement.videoWidth;
+                    canvas.height = videoElement.videoHeight;
+                    
+                    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                    ctx.strokeStyle = '#FF0000';
+                    ctx.lineWidth = 5;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(result.box.topLeft.x, result.box.topLeft.y);
+                    ctx.lineTo(result.box.topRight.x, result.box.topRight.y);
+                    ctx.lineTo(result.box.bottomRight.x, result.box.bottomRight.y);
+                    ctx.lineTo(result.box.bottomLeft.x, result.box.bottomLeft.y);
+                    ctx.lineTo(result.box.topLeft.x, result.box.topLeft.y);
+                    ctx.stroke();
+                }
             });
         }
     });
 </script>
+{% endblock %}
 {% endblock %}

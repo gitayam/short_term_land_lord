@@ -11,8 +11,8 @@
                 <div class="card-body">
                     <div class="alert alert-info">
                         <h5>Item Details</h5>
-                        <p class="mb-1"><strong>Item:</strong> {{ item.name }}</p>
-                        <p class="mb-1"><strong>Current Quantity:</strong> {{ item.current_quantity }} {{ item.unit_of_measure }}</p>
+                        <p class="mb-1"><strong>Item:</strong> {{ item.catalog_item.name }}</p>
+                        <p class="mb-1"><strong>Current Quantity:</strong> {{ item.current_quantity }} {{ item.catalog_item.unit_of_measure }}</p>
                         <p class="mb-1"><strong>Source Property:</strong> {{ property.name }}</p>
                     </div>
                     
@@ -28,7 +28,7 @@
                             <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
                             <small class="form-text text-muted">
-                                Maximum available: {{ item.current_quantity }} {{ item.unit_of_measure }}
+                                Maximum available: {{ item.current_quantity }} {{ item.catalog_item.unit_of_measure }}
                             </small>
                         </div>
                         

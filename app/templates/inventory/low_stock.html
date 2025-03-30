@@ -31,22 +31,22 @@
                         {% for item in low_stock_items %}
                         <tr>
                             <td>
-                                <strong>{{ item.name }}</strong>
-                                {% if item.description %}
-                                <br><small class="text-muted">{{ item.description|truncate(50) }}</small>
+                                <strong>{{ item.catalog_item.name }}</strong>
+                                {% if item.catalog_item.description %}
+                                <br><small class="text-muted">{{ item.catalog_item.description|truncate(50) }}</small>
                                 {% endif %}
                             </td>
-                            <td>{{ item.category.value|capitalize }}</td>
-                            <td>{{ item.current_quantity }} {{ item.unit_of_measure }}</td>
-                            <td>{{ item.reorder_threshold }} {{ item.unit_of_measure }}</td>
+                            <td>{{ item.catalog_item.category.value|capitalize }}</td>
+                            <td>{{ item.current_quantity }} {{ item.catalog_item.unit_of_measure }}</td>
+                            <td>{{ item.reorder_threshold }} {{ item.catalog_item.unit_of_measure }}</td>
                             <td>{{ item.storage_location or 'Not specified' }}</td>
                             <td>
                                 <div class="btn-group">
                                     <a href="{{ url_for('inventory.record_transaction', property_id=property.id, item_id=item.id) }}" class="btn btn-sm btn-success">
                                         <i class="fas fa-plus"></i> Restock
                                     </a>
-                                    {% if item.purchase_link %}
-                                    <a href="{{ item.purchase_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    {% if item.catalog_item.purchase_link %}
+                                    <a href="{{ item.catalog_item.purchase_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-shopping-cart"></i> Purchase
                                     </a>
                                     {% endif %}

@@ -64,6 +64,36 @@ class ItemCategory(enum.Enum):
     GENERAL = "general"
     OTHER = "other"
 
+class InventoryCatalogItem(db.Model):
+    """Global inventory catalog item that can be used across properties"""
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Basic information
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.Enum(ItemCategory), default=ItemCategory.GENERAL, nullable=False)
+    unit_of_measure = db.Column(db.String(20), default="units", nullable=False)
+    
+    # Detailed information
+    sku = db.Column(db.String(50), nullable=True)
+    barcode = db.Column(db.String(100), nullable=True, index=True)
+    description = db.Column(db.Text, nullable=True)
+    unit_cost = db.Column(db.Float, nullable=True)
+    purchase_link = db.Column(db.String(500), nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Creator information
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Relationships
+    creator = db.relationship('User', backref='created_catalog_items')
+    inventory_instances = db.relationship('InventoryItem', back_populates='catalog_item', lazy='dynamic')
+    
+    def __repr__(self):
+        return f'<InventoryCatalogItem {self.name} ({self.unit_of_measure})>'
+
 class TransactionType(enum.Enum):
     RESTOCK = "restock"
     USAGE = "usage"
@@ -113,6 +143,7 @@ class User(UserMixin, db.Model):
     cleaning_sessions = db.relationship('CleaningSession', foreign_keys='CleaningSession.cleaner_id', backref='assigned_cleaner', lazy='dynamic')
     user_notifications = db.relationship('Notification', backref='recipient', lazy='dynamic', foreign_keys='Notification.user_id')
     task_assignments = db.relationship('TaskAssignment', foreign_keys='TaskAssignment.user_id', lazy='dynamic', overlaps="assigned_tasks,assignee")
+    # This relationship is added by the InventoryCatalogItem model: created_catalog_items
     
     def __repr__(self):
         return f'<User {self.email}>'
@@ -696,20 +727,12 @@ class RepairRequestMedia(db.Model):
 class InventoryItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    catalog_item_id = db.Column(db.Integer, db.ForeignKey('inventory_catalog_item.id'), nullable=False)
     
-    # Basic information
-    name = db.Column(db.String(100), nullable=False)
-    category = db.Column(db.Enum(ItemCategory), default=ItemCategory.GENERAL, nullable=False)
+    # Property-specific information
     current_quantity = db.Column(db.Float, default=0, nullable=False)
-    unit_of_measure = db.Column(db.String(20), default="units", nullable=False)
     storage_location = db.Column(db.String(100), nullable=True)
-    
-    # Detailed information
-    sku = db.Column(db.String(50), nullable=True)
-    description = db.Column(db.Text, nullable=True)
     reorder_threshold = db.Column(db.Float, nullable=True)
-    unit_cost = db.Column(db.Float, nullable=True)
-    purchase_link = db.Column(db.String(500), nullable=True)
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -717,10 +740,11 @@ class InventoryItem(db.Model):
     
     # Relationships
     property = db.relationship('Property', back_populates='inventory_items')
+    catalog_item = db.relationship('InventoryCatalogItem', back_populates='inventory_instances')
     transactions = db.relationship('InventoryTransaction', back_populates='item', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
-        return f'<InventoryItem {self.name} ({self.current_quantity} {self.unit_of_measure}) at {self.property.name}>'
+        return f'<InventoryItem {self.catalog_item.name} ({self.current_quantity} {self.catalog_item.unit_of_measure}) at {self.property.name}>'
     
     def is_low_stock(self):
         """Check if the item is below its reorder threshold"""
@@ -769,7 +793,7 @@ class InventoryTransaction(db.Model):
     destination_property = db.relationship('Property', foreign_keys=[destination_property_id], backref='incoming_transfers')
     
     def __repr__(self):
-        return f'<InventoryTransaction {self.transaction_type.value} of {self.quantity} {self.item.unit_of_measure} of {self.item.name}>'
+        return f'<InventoryTransaction {self.transaction_type.value} of {self.quantity} {self.item.catalog_item.unit_of_measure} of {self.item.catalog_item.name}>'
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)

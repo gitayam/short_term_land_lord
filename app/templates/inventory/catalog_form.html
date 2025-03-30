@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">
+                        {% if item %}Edit{% else %}Add{% endif %} Catalog Item
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.name.label(class="form-label") }}
+                                    {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                                    {% for error in form.name.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.category.label(class="form-label") }}
+                                    {{ form.category(class="form-select" + (" is-invalid" if form.category.errors else "")) }}
+                                    {% for error in form.category.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.unit_of_measure.label(class="form-label") }}
+                            {{ form.unit_of_measure(class="form-control" + (" is-invalid" if form.unit_of_measure.errors else ""), placeholder="e.g., bottles, boxes, rolls") }}
+                            {% for error in form.unit_of_measure.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <hr>
+                        <h5>Identification</h5>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.sku.label(class="form-label") }}
+                                    {{ form.sku(class="form-control" + (" is-invalid" if form.sku.errors else ""), placeholder="Optional item code/SKU") }}
+                                    {% for error in form.sku.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.barcode.label(class="form-label") }}
+                                    <div class="input-group">
+                                        {{ form.barcode(class="form-control" + (" is-invalid" if form.barcode.errors else ""), placeholder="UPC, EAN, etc.") }}
+                                        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#barcodeScannerModal">
+                                            <i class="fas fa-barcode"></i> Scan
+                                        </button>
+                                    </div>
+                                    {% for error in form.barcode.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        <h5>Additional Details</h5>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.unit_cost.label(class="form-label") }}
+                                    {{ form.unit_cost(class="form-control" + (" is-invalid" if form.unit_cost.errors else ""), type="number", step="0.01", placeholder="Cost per unit") }}
+                                    {% for error in form.unit_cost.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.purchase_link.label(class="form-label") }}
+                                    {{ form.purchase_link(class="form-control" + (" is-invalid" if form.purchase_link.errors else ""), placeholder="URL where this item can be purchased") }}
+                                    {% for error in form.purchase_link.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows=3) }}
+                            {% for error in form.description.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('inventory.catalog_index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Barcode Scanner Modal -->
+    <div class="modal fade" id="barcodeScannerModal" tabindex="-1" aria-labelledby="barcodeScannerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="barcodeScannerModalLabel">Scan Barcode</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <div id="scanner-container" class="mx-auto" style="max-width: 100%; max-height: 300px; overflow: hidden;">
+                            <video id="scanner-video" style="width: 100%; height: auto;"></video>
+                        </div>
+                        <div id="scanner-status" class="mt-2">Initializing camera...</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="scanned-barcode" class="form-label">Scanned Barcode:</label>
+                        <input type="text" id="scanned-barcode" class="form-control" readonly>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="use-barcode-btn">Use Barcode</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+{{ super() }}
+<!-- Include QuaggaJS for barcode scanning -->
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const scannerContainer = document.getElementById('scanner-container');
+        const scannerStatus = document.getElementById('scanner-status');
+        const scannedBarcodeInput = document.getElementById('scanned-barcode');
+        const useBarcodeBtn = document.getElementById('use-barcode-btn');
+        const barcodeInput = document.getElementById('barcode');
+        let quaggaInitialized = false;
+        
+        // Initialize scanner when modal is shown
+        $('#barcodeScannerModal').on('shown.bs.modal', function() {
+            initQuagga();
+        });
+        
+        // Stop scanner when modal is hidden
+        $('#barcodeScannerModal').on('hidden.bs.modal', function() {
+            if (quaggaInitialized) {
+                Quagga.stop();
+                quaggaInitialized = false;
+            }
+        });
+        
+        // Use the scanned barcode
+        useBarcodeBtn.addEventListener('click', function() {
+            const barcode = scannedBarcodeInput.value;
+            if (barcode) {
+                barcodeInput.value = barcode;
+                $('#barcodeScannerModal').modal('hide');
+            }
+        });
+        
+        function initQuagga() {
+            if (quaggaInitialized) {
+                return;
+            }
+            
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#scanner-video'),
+                    constraints: {
+                        facingMode: "environment", // Use the rear camera on mobile devices
+                        width: { min: 640 },
+                        height: { min: 480 }
+                    },
+                },
+                decoder: {
+                    readers: [
+                        "code_128_reader",
+                        "ean_reader",
+                        "ean_8_reader",
+                        "code_39_reader",
+                        "code_39_vin_reader",
+                        "codabar_reader",
+                        "upc_reader",
+                        "upc_e_reader",
+                        "i2of5_reader"
+                    ],
+                    multiple: false
+                }
+            }, function(err) {
+                if (err) {
+                    scannerStatus.textContent = "Error initializing scanner: " + err;
+                    return;
+                }
+                
+                scannerStatus.textContent = "Scanner ready. Point camera at a barcode.";
+                quaggaInitialized = true;
+                Quagga.start();
+            });
+            
+            Quagga.onDetected(function(result) {
+                const code = result.codeResult.code;
+                scannedBarcodeInput.value = code;
+                scannerStatus.textContent = "Barcode detected: " + code;
+            });
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}
