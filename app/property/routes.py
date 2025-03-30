@@ -863,17 +863,25 @@ def view_calendar(id):
 @bp.route('/room-form-template')
 @login_required
 def room_form_template():
-    index = request.args.get('index', 0)
+    # Get index from query parameters (default to 0)
+    index = request.args.get('index', 0, type=int)
     room_id = None  # New room doesn't have an ID yet
     room_form = RoomForm()
     
-    html = render_template('property/_room_form.html', 
-                          room_form=room_form, 
-                          room_id=room_id, 
-                          index=index,
-                          is_new=True)
-    
-    return jsonify(html=html)
+    try:
+        # Render the room form template
+        html = render_template('property/_room_form.html', 
+                              room_form=room_form, 
+                              room_id=room_id, 
+                              index=index,
+                              is_new=True)
+        
+        # Return the rendered HTML as JSON
+        return jsonify({'html': html, 'success': True})
+    except Exception as e:
+        # Log the error
+        current_app.logger.error(f"Error rendering room form template: {str(e)}")
+        return jsonify({'error': str(e), 'success': False}), 500
 
 # Fix for the duplicated property in URL
 @bp.route('/property/<int:id>/calendar')

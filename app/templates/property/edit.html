@@ -215,9 +215,26 @@
         
         // Add room button click handler
         addRoomButton.addEventListener('click', function() {
+            console.log("Add room button clicked, fetching template");
+            
+            // Show loading indicator
+            addRoomButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
+            addRoomButton.disabled = true;
+            
             fetch("{{ url_for('property.room_form_template') }}?index=" + roomCounter)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.statusText);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log("Template received, adding to DOM");
+                    
+                    if (!data.success) {
+                        throw new Error(data.error || 'Unknown error occurred');
+                    }
+                    
                     // Create a temporary div to hold the HTML
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = data.html;
@@ -229,8 +246,19 @@
                     setupRoomFormHandlers(tempDiv.firstChild);
                     
                     roomCounter++;
+                    
+                    // Enable button again
+                    addRoomButton.innerHTML = '<i class="bi bi-plus-circle"></i> Add Room 🏠';
+                    addRoomButton.disabled = false;
                 })
-                .catch(error => console.error('Error fetching room form template:', error));
+                .catch(error => {
+                    console.error('Error fetching room form template:', error);
+                    alert('Failed to add room: ' + error.message);
+                    
+                    // Enable button again
+                    addRoomButton.innerHTML = '<i class="bi bi-plus-circle"></i> Add Room 🏠';
+                    addRoomButton.disabled = false;
+                });
         });
         
         // Set up event handlers for all existing room forms
