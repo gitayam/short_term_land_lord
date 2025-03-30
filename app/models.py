@@ -62,6 +62,15 @@ class ItemCategory(enum.Enum):
     BEDROOM = "bedroom"
     LAUNDRY = "laundry"
     GENERAL = "general"
+    APPLIANCES = "appliances"
+    CLEANING_TOOLS = "cleaning_tools"
+    LINENS = "linens" 
+    ELECTRONICS = "electronics"
+    OUTDOOR = "outdoor"
+    FURNITURE = "furniture"
+    DECOR = "decor"
+    SAFETY = "safety"
+    MAINTENANCE = "maintenance"
     OTHER = "other"
 
 class ServiceType(enum.Enum):
@@ -917,6 +926,61 @@ class GuestReview(db.Model):
     
     def __repr__(self):
         return f'<GuestReview {self.id} for {self.guest_name} at {self.property.name} - Rating: {self.rating.value}>'
+
+class SiteSettings(db.Model):
+    __tablename__ = 'site_settings'
+    
+    key = db.Column(db.String(64), primary_key=True)
+    value = db.Column(db.Text, nullable=True)
+    description = db.Column(db.String(255), nullable=True)
+    visible = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    @classmethod
+    def get_setting(cls, key, default=None):
+        """Get a setting value by its key"""
+        setting = cls.query.get(key)
+        return setting.value if setting else default
+    
+    @classmethod
+    def set_setting(cls, key, value, description=None, visible=True):
+        """Create or update a setting"""
+        setting = cls.query.get(key)
+        
+        if setting:
+            setting.value = value
+            setting.updated_at = datetime.utcnow()
+            if description:
+                setting.description = description
+            setting.visible = visible
+        else:
+            setting = cls(key=key, value=value, description=description, visible=visible)
+            db.session.add(setting)
+        
+        db.session.commit()
+        return setting
+    
+    @classmethod
+    def get_openai_api_key(cls):
+        """Get the OpenAI API key from settings"""
+        return cls.get_setting('openai_api_key')
+    
+    @classmethod
+    def is_guest_reviews_enabled(cls):
+        """Check if guest reviews feature is enabled"""
+        value = cls.get_setting('guest_reviews_enabled', 'false')
+        return value.lower() == 'true'
+
+def migrate_site_settings():
+    """Initialize default site settings if they don't exist"""
+    # Initialize guest reviews setting (enabled by default)
+    if not SiteSettings.query.get('guest_reviews_enabled'):
+        SiteSettings.set_setting('guest_reviews_enabled', 'true', 'Enable guest reviews feature', True)
+    
+    # Set placeholder for OpenAI API key
+    if not SiteSettings.query.get('openai_api_key'):
+        SiteSettings.set_setting('openai_api_key', '', 'OpenAI API Key for AI functionality', False)
 
 @login_manager.user_loader
 def load_user(id):

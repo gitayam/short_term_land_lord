@@ -35,6 +35,7 @@ class RoomForm(FlaskForm):
     # Bathroom specific details
     has_shower = BooleanField('Has Shower', default=False)
     has_tub = BooleanField('Has Bathtub', default=False)
+    has_bathroom = BooleanField('Has Private Bathroom', default=False)
     
     # For deleting rooms when editing
     delete = BooleanField('Delete this room', default=False)

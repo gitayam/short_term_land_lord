@@ -55,6 +55,13 @@ def create_app(config_class=Config):
     from app.invoicing import bp as invoicing_bp
     app.register_blueprint(invoicing_bp, url_prefix='/invoicing')
     
+    from app.admin import bp as admin_bp
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    
+    # Initialize site settings
+    with app.app_context():
+        from app.models import migrate_site_settings
+        migrate_site_settings()
     return app
 
 from app import models

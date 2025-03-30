@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, date
 from sqlalchemy import or_, and_, func, extract
 from functools import wraps
 from calendar import monthrange
-import pandas as pd
+# import pandas as pd  # Commented out until needed
 
 
 def maintenance_staff_required(f):

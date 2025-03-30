@@ -30,11 +30,11 @@ def admin_required(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        if not current_user.role == UserRoles.ADMIN:
+        if not current_user.is_admin():
             flash('Access denied. You must be an admin to view this page.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
-    return decorated_function 
+    return decorated_function
 
 def invoice_access_required(f):
     """Decorator to ensure only users who can manage invoices can access a route"""
