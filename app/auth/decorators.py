@@ -14,6 +14,17 @@ def property_owner_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def property_manager_required(f):
+    """Decorator to ensure only property managers, owners, or admins can access a route"""
+    @wraps(f)
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if not (current_user.is_property_manager() or current_user.is_property_owner() or current_user.is_admin()):
+            flash('Access denied. You must be a property manager, property owner, or admin to view this page.', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 def admin_required(f):
     """Decorator to ensure only admins can access a route"""
     @wraps(f)

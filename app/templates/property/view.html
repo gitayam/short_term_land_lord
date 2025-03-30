@@ -479,6 +479,30 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Guest Reviews Section -->
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Guest Reviews</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>
+                            {% if guest_review_count > 0 %}
+                                This property has <strong>{{ guest_review_count }}</strong> guest review{% if guest_review_count != 1 %}s{% endif %}.
+                            {% else %}
+                                No guest reviews have been added yet.
+                            {% endif %}
+                        </p>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('property.guest_reviews', id=property.id) }}" class="btn btn-info">
+                                <i class="fas fa-star"></i> View Guest Reviews
+                            </a>
+                            <a href="{{ url_for('property.add_guest_review', id=property.id) }}" class="btn btn-outline-info">
+                                <i class="fas fa-plus"></i> Add Guest Review
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

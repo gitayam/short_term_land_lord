@@ -72,6 +72,11 @@ class ServiceType(enum.Enum):
     GENERAL_MAINTENANCE = "general_maintenance"
     OTHER = "other"
 
+class GuestReviewRating(enum.Enum):
+    BAD = "bad"
+    OK = "ok"
+    GOOD = "good"
+
 class InventoryCatalogItem(db.Model):
     """Global inventory catalog item that can be used across properties"""
     id = db.Column(db.Integer, primary_key=True)
@@ -885,6 +890,33 @@ class Notification(db.Model):
     def mark_as_read(self):
         self.is_read = True
         self.read_at = datetime.utcnow()
+
+class GuestReview(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Review details
+    rating = db.Column(db.Enum(GuestReviewRating), nullable=False)
+    comments = db.Column(db.Text, nullable=True)
+    
+    # Booking information
+    guest_name = db.Column(db.String(100), nullable=False)
+    check_in_date = db.Column(db.Date, nullable=False)
+    check_out_date = db.Column(db.Date, nullable=False)
+    
+    # Creator information
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    property = db.relationship('Property', backref=db.backref('guest_reviews', lazy='dynamic', cascade='all, delete-orphan'))
+    creator = db.relationship('User', backref=db.backref('created_guest_reviews', lazy='dynamic'))
+    
+    def __repr__(self):
+        return f'<GuestReview {self.id} for {self.guest_name} at {self.property.name} - Rating: {self.rating.value}>'
 
 @login_manager.user_loader
 def load_user(id):

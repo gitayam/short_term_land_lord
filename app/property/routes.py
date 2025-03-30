@@ -195,7 +195,14 @@ def view(id):
     if property.owner_id != current_user.id:
         flash('Access denied. You can only view your own properties.', 'danger')
         return redirect(url_for('property.index'))
-    return render_template('property/view.html', title=property.name, property=property)
+    
+    # Get guest review count for display
+    guest_review_count = property.guest_reviews.count()
+    
+    return render_template('property/view.html', 
+                          title=property.name, 
+                          property=property,
+                          guest_review_count=guest_review_count)
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @property_owner_required
