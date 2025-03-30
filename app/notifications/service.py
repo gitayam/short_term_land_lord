@@ -165,6 +165,55 @@ def send_calendar_update_notification(task, user):
     
     return True
 
+def send_repair_request_notification(repair_request, property_owner):
+    """Send notification when a repair request is submitted"""
+    if not property_owner or not repair_request:
+        logger.error("Cannot send repair request notification: missing property owner or repair request")
+        return False
+    
+    # Create notification content
+    title = f"New Repair Request: {repair_request.title}"
+    message = f"A new repair request has been submitted for {repair_request.property.name}:\n"
+    message += f"Title: {repair_request.title}\n"
+    message += f"Location: {repair_request.location}\n"
+    message += f"Severity: {repair_request.severity.value.capitalize()}\n"
+    message += f"Reported by: {repair_request.reporter.get_full_name()}\n\n"
+    message += f"Description: {repair_request.description}"
+    
+    # Create in-app notification
+    create_notification(
+        user_id=property_owner.id,
+        task_id=None,
+        notification_type=NotificationType.REPAIR_REQUEST,
+        channel=NotificationChannel.IN_APP,
+        title=title,
+        message=message
+    )
+    
+    # Send email notification if enabled
+    if current_app.config.get('NOTIFICATION_EMAIL_ENABLED', True):
+        send_email_notification(
+            user=property_owner,
+            subject=title,
+            text_body=message,
+            html_body=f"<p>A new repair request has been submitted for <strong>{repair_request.property.name}</strong>:</p>"
+                     f"<p><strong>Title:</strong> {repair_request.title}<br>"
+                     f"<strong>Location:</strong> {repair_request.location}<br>"
+                     f"<strong>Severity:</strong> {repair_request.severity.value.capitalize()}<br>"
+                     f"<strong>Reported by:</strong> {repair_request.reporter.get_full_name()}</p>"
+                     f"<p><strong>Description:</strong><br>{repair_request.description}</p>"
+                     f"<p>Please log in to review and take action on this request.</p>"
+        )
+    
+    # Send SMS notification if enabled and user has a phone number
+    if current_app.config.get('NOTIFICATION_SMS_ENABLED', True) and hasattr(property_owner, 'phone'):
+        send_sms_notification(
+            phone_number=property_owner.phone,
+            message=f"New repair request for {repair_request.property.name}: {repair_request.title} ({repair_request.severity.value.capitalize()}). Please check the app for details."
+        )
+    
+    return True
+
 def create_notification(user_id, notification_type, channel, title, message, task_id=None):
     """Create a notification record in the database"""
     notification = Notification(

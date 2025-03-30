@@ -70,12 +70,25 @@ class TransactionType(enum.Enum):
     TRANSFER_OUT = "transfer_out"
     ADJUSTMENT = "adjustment"
 
+class RepairRequestStatus(enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CONVERTED = "converted_to_task"
+
+class RepairRequestSeverity(enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
 class NotificationType(enum.Enum):
     TASK_ASSIGNMENT = "task_assignment"
     TASK_REMINDER = "task_reminder"
     CALENDAR_UPDATE = "calendar_update"
     TASK_COMPLETED = "task_completed"
     INVENTORY_LOW = "inventory_low"
+    REPAIR_REQUEST = "repair_request"
 
 class NotificationChannel(enum.Enum):
     EMAIL = "email"
@@ -167,6 +180,7 @@ class Property(db.Model):
     rooms = db.relationship('Room', back_populates='property', lazy='dynamic', cascade='all, delete-orphan')
     cleaning_sessions = db.relationship('CleaningSession', foreign_keys='CleaningSession.property_id', lazy='dynamic', cascade='all, delete-orphan')
     inventory_items = db.relationship('InventoryItem', back_populates='property', lazy='dynamic', cascade='all, delete-orphan')
+    repair_requests = db.relationship('RepairRequest', backref='associated_property', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Property {self.name}>'
@@ -271,6 +285,17 @@ class PropertyCalendar(db.Model):
     
     def __repr__(self):
         return f'<PropertyCalendar {self.name} for {self.property.name}>'
+    
+    def get_service_display(self):
+        """Return a user-friendly display name for the calendar service"""
+        service_map = dict(self.SERVICE_CHOICES)
+        return service_map.get(self.service, 'Other')
+
+    def is_synced_recently(self):
+        """Check if the calendar has been synced in the last 24 hours"""
+        if not self.last_synced:
+            return False
+        return (datetime.utcnow() - self.last_synced) < timedelta(hours=24)
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -576,6 +601,64 @@ class IssueReport(db.Model):
     
     def __repr__(self):
         return f'<IssueReport {self.id} for session {self.cleaning_session_id}>'
+
+class RepairRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Request details
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    location = db.Column(db.String(255), nullable=False)  # Location within the property
+    severity = db.Column(db.Enum(RepairRequestSeverity), default=RepairRequestSeverity.MEDIUM, nullable=False)
+    status = db.Column(db.Enum(RepairRequestStatus), default=RepairRequestStatus.PENDING, nullable=False)
+    
+    # Optional fields
+    additional_notes = db.Column(db.Text, nullable=True)
+    
+    # If this request was converted to a task
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    property = db.relationship('Property', backref='repair_requests')
+    reporter = db.relationship('User', backref='submitted_repair_requests')
+    task = db.relationship('Task', backref='source_repair_request')
+    media = db.relationship('RepairRequestMedia', backref='repair_request', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<RepairRequest {self.id}: {self.title} ({self.status.value})>'
+
+class RepairRequestMedia(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    repair_request_id = db.Column(db.Integer, db.ForeignKey('repair_request.id'), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    storage_backend = db.Column(db.Enum(StorageBackend), default=StorageBackend.LOCAL, nullable=False)
+    
+    # Metadata
+    original_filename = db.Column(db.String(255), nullable=True)
+    file_size = db.Column(db.Integer, nullable=True)  # Size in bytes
+    mime_type = db.Column(db.String(100), nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<RepairRequestMedia {self.id} for request {self.repair_request_id}>'
+    
+    def get_url(self):
+        """Return the URL to access this media file based on storage backend"""
+        if self.storage_backend == StorageBackend.LOCAL:
+            return self.file_path
+        elif self.storage_backend == StorageBackend.S3:
+            return self.file_path
+        elif self.storage_backend == StorageBackend.RCLONE:
+            return self.file_path
+        return self.file_path
 
 class InventoryItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)

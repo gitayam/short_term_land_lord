@@ -3,7 +3,7 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, DateTimeField, SelectField, BooleanField, SubmitField, IntegerField, TelField, RadioField
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 from wtforms_sqlalchemy.fields import QuerySelectField, QuerySelectMultipleField
-from app.models import User, Property, TaskStatus, TaskPriority, RecurrencePattern, UserRoles, MediaType
+from app.models import User, Property, TaskStatus, TaskPriority, RecurrencePattern, UserRoles, MediaType, RepairRequestSeverity
 
 
 class TaskForm(FlaskForm):
@@ -149,3 +149,53 @@ class CleaningFeedbackForm(FlaskForm):
                         coerce=int)
     notes = TextAreaField('Notes about this cleaning (optional)', validators=[Optional(), Length(max=1000)])
     submit = SubmitField('Submit Feedback')
+
+
+class RepairRequestForm(FlaskForm):
+    title = StringField('Issue Title', validators=[DataRequired(), Length(min=3, max=100)])
+    description = TextAreaField('Description of Issue', validators=[DataRequired(), Length(min=10, max=500)])
+    location = StringField('Location in Property', validators=[DataRequired(), Length(min=3, max=255)])
+    severity = SelectField('Severity', validators=[DataRequired()], coerce=str)
+    additional_notes = TextAreaField('Additional Notes', validators=[Optional(), Length(max=1000)])
+    photos = FileField('Photos', validators=[
+        FileRequired(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')
+    ])
+    submit = SubmitField('Submit Repair Request')
+    
+    def __init__(self, *args, **kwargs):
+        super(RepairRequestForm, self).__init__(*args, **kwargs)
+        
+        # Set up severity choices
+        self.severity.choices = [(severity.value, severity.name.title()) 
+                                for severity in RepairRequestSeverity]
+
+
+class ConvertToTaskForm(FlaskForm):
+    title = StringField('Task Title', validators=[DataRequired(), Length(min=2, max=100)])
+    description = TextAreaField('Description')
+    due_date = DateTimeField('Due Date/Time', format='%Y-%m-%d %H:%M', validators=[Optional()])
+    priority = SelectField('Priority', validators=[DataRequired()], coerce=str)
+    notes = TextAreaField('Notes')
+    
+    # Recurrence options
+    is_recurring = BooleanField('Recurring Task')
+    recurrence_pattern = SelectField('Recurrence Pattern', coerce=str)
+    recurrence_interval = IntegerField('Repeat Every', default=1)
+    recurrence_end_date = DateTimeField('End Date', format='%Y-%m-%d', validators=[Optional()])
+    
+    # Dynamic assignment
+    assign_to_next_cleaner = BooleanField('Assign to Next Cleaner')
+    
+    submit = SubmitField('Create Task')
+    
+    def __init__(self, *args, **kwargs):
+        super(ConvertToTaskForm, self).__init__(*args, **kwargs)
+        
+        # Set up priority choices
+        self.priority.choices = [(priority.value, priority.name.title()) 
+                                for priority in TaskPriority]
+        
+        # Set up recurrence pattern choices
+        self.recurrence_pattern.choices = [(pattern.value, pattern.name.replace('_', ' ').title()) 
+                                          for pattern in RecurrencePattern]

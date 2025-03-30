@@ -3,17 +3,20 @@ from flask_login import login_required, current_user
 from app import db
 from app.tasks import bp
 from app.tasks.forms import (TaskForm, TaskAssignmentForm, TaskFilterForm, VideoUploadForm, 
-                           IssueReportForm, CleaningFeedbackForm)
+                           IssueReportForm, CleaningFeedbackForm, RepairRequestForm, ConvertToTaskForm)
 from app.models import (Task, TaskAssignment, TaskProperty, Property, User, 
                        TaskStatus, TaskPriority, RecurrencePattern, UserRoles,
                        PropertyCalendar, CleaningSession, CleaningMedia, MediaType,
-                       IssueReport, StorageBackend, CleaningFeedback, InventoryTransaction, TransactionType)
+                       IssueReport, StorageBackend, CleaningFeedback, InventoryTransaction, TransactionType,
+                       RepairRequest, RepairRequestMedia, RepairRequestStatus, RepairRequestSeverity)
 from app.tasks.media import save_file_to_storage, allowed_file
-from app.notifications.service import send_task_assignment_notification
+from app.notifications.service import send_task_assignment_notification, send_repair_request_notification
 from datetime import datetime, timedelta
 from sqlalchemy import or_
 from functools import wraps
 import os
+import secrets
+from werkzeug.utils import secure_filename
 
 
 def cleaner_required(f):
@@ -22,6 +25,28 @@ def cleaner_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_cleaner():
             flash('This feature is only available to cleaners.', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def maintenance_required(f):
+    """Decorator to restrict access to maintenance users only"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_maintenance():
+            flash('This feature is only available to maintenance personnel.', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def service_staff_required(f):
+    """Decorator to restrict access to cleaners and maintenance users"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not (current_user.is_cleaner() or current_user.is_maintenance()):
+            flash('This feature is only available to cleaners and maintenance personnel.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
     return decorated_function
@@ -811,6 +836,267 @@ def cleaning_report(session_id):
                           inventory_used=inventory_used)
 
 
+@bp.route('/repair-requests', defaults={'status': 'all'})
+@bp.route('/repair-requests/<status>')
+@login_required
+def repair_requests(status):
+    """View all repair requests"""
+    # Base query
+    query = RepairRequest.query
+    
+    # Filter by status if provided
+    if status != 'all' and status in [s.value for s in RepairRequestStatus]:
+        query = query.filter(RepairRequest.status == RepairRequestStatus(status))
+    
+    # Property owners see requests for their properties
+    if current_user.is_property_owner():
+        # Get all properties owned by the current user
+        owned_property_ids = [p.id for p in current_user.properties]
+        query = query.filter(RepairRequest.property_id.in_(owned_property_ids))
+    
+    # Cleaners and maintenance personnel see requests they submitted
+    elif current_user.is_cleaner() or current_user.is_maintenance():
+        query = query.filter(RepairRequest.reporter_id == current_user.id)
+    
+    # Order by created date (newest first) and severity
+    repair_requests = query.order_by(RepairRequest.created_at.desc(), RepairRequest.severity.desc()).all()
+    
+    return render_template('tasks/repair_requests.html', 
+                          title='Repair Requests', 
+                          repair_requests=repair_requests,
+                          status_filter=status)
+
+
+@bp.route('/property/<int:property_id>/repair-request', methods=['GET', 'POST'])
+@login_required
+@service_staff_required
+def submit_repair_request(property_id):
+    """Submit a repair request for a property"""
+    # Get the property
+    property = Property.query.get_or_404(property_id)
+    
+    # Check if the property is visible to the user
+    if not property.is_visible_to(current_user):
+        flash('You do not have permission to submit repair requests for this property.', 'danger')
+        return redirect(url_for('property.index'))
+    
+    form = RepairRequestForm()
+    
+    if form.validate_on_submit():
+        # Create the repair request
+        repair_request = RepairRequest(
+            property_id=property_id,
+            reporter_id=current_user.id,
+            title=form.title.data,
+            description=form.description.data,
+            location=form.location.data,
+            severity=RepairRequestSeverity(form.severity.data),
+            additional_notes=form.additional_notes.data
+        )
+        
+        db.session.add(repair_request)
+        db.session.flush()  # Get the repair request ID without committing
+        
+        # Handle multiple photo uploads
+        photos = request.files.getlist('photos')
+        
+        for photo in photos:
+            if photo and allowed_file(photo.filename, current_app.config['ALLOWED_PHOTO_EXTENSIONS']):
+                try:
+                    # Generate a unique filename
+                    filename = f"{secrets.token_hex(16)}_{secure_filename(photo.filename)}"
+                    
+                    # Determine the storage path
+                    storage_dir = os.path.join(
+                        current_app.config['UPLOAD_FOLDER'],
+                        'repair_requests',
+                        str(repair_request.id)
+                    )
+                    
+                    # Create directory if it doesn't exist
+                    os.makedirs(storage_dir, exist_ok=True)
+                    
+                    # Save the file
+                    file_path = os.path.join(storage_dir, filename)
+                    photo.save(file_path)
+                    
+                    # Create a web-accessible path
+                    web_path = f"/static/uploads/repair_requests/{repair_request.id}/{filename}"
+                    
+                    # Create media record
+                    media = RepairRequestMedia(
+                        repair_request_id=repair_request.id,
+                        file_path=web_path,
+                        storage_backend=StorageBackend.LOCAL,
+                        original_filename=photo.filename,
+                        file_size=os.path.getsize(file_path),
+                        mime_type=photo.content_type
+                    )
+                    
+                    db.session.add(media)
+                    
+                except Exception as e:
+                    flash(f'Error uploading photo: {str(e)}', 'warning')
+        
+        # Commit the transaction
+        db.session.commit()
+        
+        # Send notification to property owner
+        send_repair_request_notification(repair_request, property.owner)
+        
+        flash('Repair request submitted successfully! The property owner has been notified.', 'success')
+        return redirect(url_for('property.view', id=property_id))
+    
+    return render_template('tasks/repair_request_form.html', 
+                          title='Submit Repair Request', 
+                          form=form, 
+                          property=property)
+
+
+@bp.route('/repair-request/<int:id>')
+@login_required
+def view_repair_request(id):
+    """View a single repair request"""
+    # Get the repair request
+    repair_request = RepairRequest.query.get_or_404(id)
+    
+    # Check if user has permission to view this repair request
+    if not can_view_repair_request(repair_request, current_user):
+        flash('You do not have permission to view this repair request.', 'danger')
+        return redirect(url_for('tasks.repair_requests'))
+    
+    return render_template('tasks/view_repair_request.html', 
+                          title=f'Repair Request: {repair_request.title}', 
+                          repair_request=repair_request)
+
+
+@bp.route('/repair-request/<int:id>/approve', methods=['POST'])
+@login_required
+def approve_repair_request(id):
+    """Approve a repair request"""
+    # Get the repair request
+    repair_request = RepairRequest.query.get_or_404(id)
+    
+    # Check if user has permission to approve this repair request
+    if not can_manage_repair_request(repair_request, current_user):
+        flash('You do not have permission to approve this repair request.', 'danger')
+        return redirect(url_for('tasks.view_repair_request', id=id))
+    
+    # Update status
+    repair_request.status = RepairRequestStatus.APPROVED
+    db.session.commit()
+    
+    flash('Repair request approved.', 'success')
+    return redirect(url_for('tasks.view_repair_request', id=id))
+
+
+@bp.route('/repair-request/<int:id>/reject', methods=['POST'])
+@login_required
+def reject_repair_request(id):
+    """Reject a repair request"""
+    # Get the repair request
+    repair_request = RepairRequest.query.get_or_404(id)
+    
+    # Check if user has permission to reject this repair request
+    if not can_manage_repair_request(repair_request, current_user):
+        flash('You do not have permission to reject this repair request.', 'danger')
+        return redirect(url_for('tasks.view_repair_request', id=id))
+    
+    # Update status
+    repair_request.status = RepairRequestStatus.REJECTED
+    db.session.commit()
+    
+    flash('Repair request rejected.', 'success')
+    return redirect(url_for('tasks.view_repair_request', id=id))
+
+
+@bp.route('/repair-request/<int:id>/convert', methods=['GET', 'POST'])
+@login_required
+def convert_to_task(id):
+    """Convert a repair request to a task"""
+    # Get the repair request
+    repair_request = RepairRequest.query.get_or_404(id)
+    
+    # Check if user has permission to convert this repair request
+    if not can_manage_repair_request(repair_request, current_user):
+        flash('You do not have permission to convert this repair request to a task.', 'danger')
+        return redirect(url_for('tasks.view_repair_request', id=id))
+    
+    # Check if already converted
+    if repair_request.status == RepairRequestStatus.CONVERTED:
+        flash('This repair request has already been converted to a task.', 'warning')
+        return redirect(url_for('tasks.view', id=repair_request.task_id))
+    
+    form = ConvertToTaskForm()
+    
+    if form.validate_on_submit():
+        # Create new task
+        task = Task(
+            title=form.title.data,
+            description=form.description.data,
+            due_date=form.due_date.data,
+            status=TaskStatus.PENDING,
+            priority=TaskPriority(form.priority.data),
+            notes=form.notes.data,
+            is_recurring=form.is_recurring.data,
+            recurrence_pattern=RecurrencePattern(form.recurrence_pattern.data) if form.is_recurring.data else RecurrencePattern.NONE,
+            recurrence_interval=form.recurrence_interval.data if form.is_recurring.data else 1,
+            recurrence_end_date=form.recurrence_end_date.data,
+            assign_to_next_cleaner=form.assign_to_next_cleaner.data,
+            creator_id=current_user.id
+        )
+        
+        # Add property to the task
+        task_property = TaskProperty(property_id=repair_request.property_id)
+        task.properties.append(task_property)
+        
+        db.session.add(task)
+        db.session.flush()  # Get the task ID without committing
+        
+        # Update repair request status and link to task
+        repair_request.status = RepairRequestStatus.CONVERTED
+        repair_request.task_id = task.id
+        
+        db.session.commit()
+        
+        flash('Repair request successfully converted to a task!', 'success')
+        return redirect(url_for('tasks.assign', id=task.id))
+    
+    elif request.method == 'GET':
+        # Pre-populate form with repair request data
+        form.title.data = f"Repair: {repair_request.title}"
+        form.description.data = f"Repair request details:\n\n{repair_request.description}\n\nLocation: {repair_request.location}"
+        
+        # Set priority based on severity
+        severity_to_priority = {
+            RepairRequestSeverity.URGENT: TaskPriority.URGENT,
+            RepairRequestSeverity.HIGH: TaskPriority.HIGH,
+            RepairRequestSeverity.MEDIUM: TaskPriority.MEDIUM,
+            RepairRequestSeverity.LOW: TaskPriority.LOW
+        }
+        form.priority.data = severity_to_priority.get(repair_request.severity, TaskPriority.MEDIUM).value
+        
+        # Set due date based on severity
+        now = datetime.utcnow()
+        if repair_request.severity == RepairRequestSeverity.URGENT:
+            form.due_date.data = now + timedelta(days=1)
+        elif repair_request.severity == RepairRequestSeverity.HIGH:
+            form.due_date.data = now + timedelta(days=3)
+        elif repair_request.severity == RepairRequestSeverity.MEDIUM:
+            form.due_date.data = now + timedelta(days=7)
+        else:
+            form.due_date.data = now + timedelta(days=14)
+        
+        # Add additional notes if any
+        if repair_request.additional_notes:
+            form.notes.data = f"Additional notes from reporter:\n{repair_request.additional_notes}"
+    
+    return render_template('tasks/convert_to_task.html', 
+                          title='Convert to Task', 
+                          form=form, 
+                          repair_request=repair_request)
+
+
 def can_view_task(task, user):
     """Check if a user can view a task"""
     # Task creator can always view
@@ -872,3 +1158,22 @@ def can_complete_task(task, user):
             return True
     
     return False
+
+
+def can_view_repair_request(repair_request, user):
+    """Check if a user can view a repair request"""
+    # Reporter can always view
+    if repair_request.reporter_id == user.id:
+        return True
+    
+    # Property owner can view for their properties
+    if user.is_property_owner() and repair_request.property.owner_id == user.id:
+        return True
+    
+    return False
+
+
+def can_manage_repair_request(repair_request, user):
+    """Check if a user can manage (approve/reject/convert) a repair request"""
+    # Only property owner can manage
+    return user.is_property_owner() and repair_request.property.owner_id == user.id

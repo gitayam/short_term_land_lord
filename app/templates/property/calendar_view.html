@@ -28,6 +28,22 @@
         font-style: italic;
         margin-top: 2px;
     }
+    .calendar-key {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+    .calendar-key-item {
+        display: flex;
+        align-items: center;
+        margin: 0 1rem;
+    }
+    .color-box {
+        width: 15px;
+        height: 15px;
+        display: inline-block;
+        margin-right: 5px;
+    }
 </style>
 {% endblock %}
 
@@ -41,17 +57,96 @@
                     <div>
                         <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-sm btn-outline-secondary">Back to Property</a>
                         <a href="{{ url_for('property.manage_calendars', id=property.id) }}" class="btn btn-sm btn-outline-primary">Manage Calendars</a>
+                        {% if property.owner_id == current_user.id %}
+                        <a href="{{ url_for('property.add_calendar', id=property.id) }}" class="btn btn-sm btn-primary">Add Calendar</a>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="card-body">
                     {% if calendars %}
+                        <!-- Calendar source indicators -->
+                        <div class="calendar-key mb-3">
+                            {% for calendar in calendars %}
+                            <div class="calendar-key-item">
+                                <span class="color-box {{ calendar.service }}-event"></span>
+                                <span>{{ calendar.get_service_display() }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Sync status -->
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                {% set synced_recently = false %}
+                                {% for calendar in calendars %}
+                                    {% if calendar.is_synced_recently() %}
+                                        {% set synced_recently = true %}
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if synced_recently %}
+                                    <span class="text-success">
+                                        <i class="fas fa-sync-alt"></i> Calendars synced in the last 24 hours
+                                    </span>
+                                {% else %}
+                                    <span class="text-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> Calendars might be out of date. Consider refreshing from Manage Calendars.
+                                    </span>
+                                {% endif %}
+                            </small>
+                        </div>
+
                         <div id="calendar"></div>
                     {% else %}
                         <div class="alert alert-info">
                             <h5>No calendars added yet</h5>
                             <p>You haven't added any calendars to this property yet.</p>
-                            {% if property.user_id == current_user.id %}
+                            {% if property.owner_id == current_user.id %}
                                 <a href="{{ url_for('property.add_calendar', id=property.id) }}" class="btn btn-primary">Add a Calendar</a>
+                                <div class="mt-3">
+                                    <h6>How to find your iCalendar URL:</h6>
+                                    <div class="row mt-2">
+                                        <div class="col-md-4">
+                                            <div class="card h-100">
+                                                <div class="card-header bg-danger text-white">Airbnb</div>
+                                                <div class="card-body">
+                                                    <ol class="ps-3 small">
+                                                        <li>Go to your Airbnb account</li>
+                                                        <li>Go to Calendar > Availability settings</li>
+                                                        <li>Look for "iCal Export"</li>
+                                                        <li>Copy the URL</li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card h-100">
+                                                <div class="card-header bg-primary text-white">VRBO</div>
+                                                <div class="card-body">
+                                                    <ol class="ps-3 small">
+                                                        <li>Log in to your VRBO dashboard</li>
+                                                        <li>Go to Calendar</li>
+                                                        <li>Find "Sync calendars" or "Export calendar"</li>
+                                                        <li>Copy the iCal link</li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card h-100">
+                                                <div class="card-header bg-info text-white">Booking.com</div>
+                                                <div class="card-body">
+                                                    <ol class="ps-3 small">
+                                                        <li>Log in to your Booking.com extranet</li>
+                                                        <li>Go to Rates & Availability > Calendar</li>
+                                                        <li>Look for "iCal export"</li>
+                                                        <li>Copy the link</li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             {% endif %}
                         </div>
                     {% endif %}
@@ -70,12 +165,10 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p><strong>Title:</strong> <span id="eventTitle"></span></p>
+                <h5 id="eventTitle"></h5>
                 <p><strong>Dates:</strong> <span id="eventDates"></span></p>
-                <p><strong>Service:</strong> <span id="eventService"></span></p>
-                {% if not property.is_entire_property %}
-                <p><strong>Room/Area:</strong> <span id="eventRoom"></span></p>
-                {% endif %}
+                <p><strong>Source:</strong> <span id="eventService"></span></p>
+                <p><strong>Location:</strong> <span id="eventRoom">Entire Property</span></p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

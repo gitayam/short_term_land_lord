@@ -635,61 +635,102 @@ def sync_calendar(property_id, calendar_id):
 def view_calendar(id):
     property = Property.query.get_or_404(id)
     
+    # Check if user has permission to view this property
+    if not property.is_visible_to(current_user):
+        abort(403)
+    
     # Get all calendars for this property
     calendars = PropertyCalendar.query.filter_by(property_id=id).all()
     
+    # If no calendars found, still show the page but with message
+    if not calendars:
+        flash('No calendars have been added to this property. Add a calendar to see bookings.', 'info')
+        return render_template('property/calendar_view.html', property=property, calendars=[], events=[])
+    
     # Prepare events data for the calendar
     events = []
+    success = False
     
     for calendar in calendars:
         try:
-            # Fetch the iCal data
-            response = requests.get(calendar.ical_url)
+            # Fetch the iCal data with timeout to prevent hanging
+            response = requests.get(calendar.ical_url, timeout=10)
             if response.status_code == 200:
                 # Parse the iCal data
-                cal = Calendar.from_ical(response.text)
-                
-                # Extract events
-                for component in cal.walk():
-                    if component.name == "VEVENT":
-                        # Get event details
-                        summary = str(component.get('summary', 'Booking'))
-                        start_date = component.get('dtstart').dt
-                        end_date = component.get('dtend').dt
-                        
-                        # Convert datetime objects to date if necessary
-                        if isinstance(start_date, datetime):
-                            start_date = start_date.date()
-                        if isinstance(end_date, datetime):
-                            end_date = end_date.date()
-                        
-                        # Add event to the list
-                        event = {
-                            'title': summary,
-                            'start': start_date.isoformat(),
-                            'end': end_date.isoformat(),
-                            'className': f"{calendar.service.lower()}-event",
-                            'extendedProps': {
-                                'service': calendar.service,
-                                'room': None if calendar.is_entire_property else calendar.room_name
-                            }
-                        }
-                        events.append(event)
-                
-                # Update last_synced and status
-                calendar.last_synced = datetime.utcnow()
-                calendar.sync_status = 'Success'
-                db.session.commit()
+                try:
+                    cal = Calendar.from_ical(response.text)
+                    
+                    # Extract events
+                    for component in cal.walk():
+                        if component.name == "VEVENT":
+                            try:
+                                # Get event details
+                                summary = str(component.get('summary', 'Booking'))
+                                start_date = component.get('dtstart').dt
+                                end_date = component.get('dtend').dt
+                                
+                                # Convert datetime objects to date if necessary
+                                if isinstance(start_date, datetime):
+                                    start_date = start_date.date()
+                                if isinstance(end_date, datetime):
+                                    end_date = end_date.date()
+                                
+                                # Add event to the list
+                                event = {
+                                    'title': summary,
+                                    'start': start_date.isoformat(),
+                                    'end': end_date.isoformat(),
+                                    'className': f"{calendar.service.lower()}-event",
+                                    'extendedProps': {
+                                        'service': calendar.get_service_display(),
+                                        'room': None if calendar.is_entire_property else calendar.room_name
+                                    }
+                                }
+                                events.append(event)
+                                success = True
+                            except (KeyError, AttributeError) as e:
+                                # Just skip this event if there's a problem with it
+                                current_app.logger.error(f"Error parsing event in calendar {calendar.id}: {str(e)}")
+                                continue
+                    
+                    # Update last_synced and status
+                    calendar.last_synced = datetime.utcnow()
+                    calendar.sync_status = 'Success'
+                    calendar.sync_error = None
+                    db.session.commit()
+                    
+                except Exception as e:
+                    # Problem parsing the iCal data
+                    calendar.sync_status = 'Failed'
+                    calendar.sync_error = f"Error parsing iCal data: {str(e)[:255]}"
+                    db.session.commit()
+                    current_app.logger.error(f"Error parsing iCal for calendar {calendar.id}: {str(e)}")
+                    flash(f'Error parsing calendar {calendar.name}: {str(e)}', 'warning')
             else:
                 # Update sync status
                 calendar.sync_status = 'Error'
                 calendar.sync_error = f"HTTP error: {response.status_code}"
                 db.session.commit()
-        except Exception as e:
-            # Update sync status
+                current_app.logger.error(f"HTTP error {response.status_code} for calendar {calendar.id}")
+                flash(f'Could not fetch calendar {calendar.name} (HTTP error {response.status_code})', 'warning')
+        except requests.exceptions.RequestException as e:
+            # Network error
             calendar.sync_status = 'Failed'
-            calendar.sync_error = str(e)[:255]  # Limit error message length
+            calendar.sync_error = f"Request error: {str(e)[:255]}"
             db.session.commit()
+            current_app.logger.error(f"Request error for calendar {calendar.id}: {str(e)}")
+            flash(f'Network error fetching calendar {calendar.name}: {str(e)}', 'warning')
+        except Exception as e:
+            # Any other error
+            calendar.sync_status = 'Failed'
+            calendar.sync_error = str(e)[:255]
+            db.session.commit()
+            current_app.logger.error(f"Unexpected error for calendar {calendar.id}: {str(e)}")
+            flash(f'Error syncing calendar {calendar.name}: {str(e)}', 'warning')
+    
+    # If we couldn't fetch any valid events, inform the user
+    if not success and calendars:
+        flash('Could not fetch calendar data from any of the configured sources. Please check your calendar URLs and try again.', 'warning')
     
     return render_template('property/calendar_view.html', property=property, calendars=calendars, events=events)
 
