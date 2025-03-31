@@ -26,6 +26,52 @@ def fix_database():
     
     # Fix site_settings table
     try:
+        # First check if the table exists
+        table_exists = False
+        try:
+            conn = db.engine.connect()
+            if 'postgres' in db_type:
+                result = conn.execute(sa.text("SELECT to_regclass('site_settings')"))
+                table_exists = result.scalar() is not None
+            else:
+                result = conn.execute(sa.text("SELECT name FROM sqlite_master WHERE type='table' AND name='site_settings'"))
+                table_exists = result.scalar() is not None
+        except Exception as e:
+            print(f"Error checking if site_settings table exists: {e}")
+            
+        if not table_exists:
+            print("site_settings table doesn't exist, creating it...")
+            
+            try:
+                if 'postgres' in db_type:
+                    conn.execute(sa.text("""
+                    CREATE TABLE site_settings (
+                        key VARCHAR(64) PRIMARY KEY,
+                        value TEXT,
+                        description VARCHAR(255),
+                        visible BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """))
+                else:
+                    conn.execute(sa.text("""
+                    CREATE TABLE site_settings (
+                        key VARCHAR(64) PRIMARY KEY,
+                        value TEXT,
+                        description VARCHAR(255),
+                        visible BOOLEAN DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                    """))
+                conn.commit()
+                print("Created site_settings table")
+            except Exception as e:
+                print(f"Error creating site_settings table: {e}")
+                conn.rollback()
+            
+        # Check if there are any settings in the table
         if SiteSettings.query.count() == 0:
             print("Creating default site settings...")
             settings = [

@@ -23,6 +23,8 @@ services:
                flask db migrate -m 'Initial migration' || true &&
                flask db upgrade || true &&
                python fix_database.py &&
+               python fix_postgresql_enums.py &&
+               python check_database.py &&
                flask run --host=0.0.0.0"
 
   db:

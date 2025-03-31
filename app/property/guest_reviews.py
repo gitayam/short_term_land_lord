@@ -14,9 +14,9 @@ class GuestReviewForm(FlaskForm):
     check_in_date = DateField('Check-in Date', validators=[DataRequired()], format='%Y-%m-%d')
     check_out_date = DateField('Check-out Date', validators=[DataRequired()], format='%Y-%m-%d')
     rating = SelectField('Rating', choices=[
-        (GuestReviewRating.GOOD.value, '👍 Good - Excellent guest'),
-        (GuestReviewRating.OK.value, '👌 OK - Average guest'),
-        (GuestReviewRating.BAD.value, '👎 Bad - Problematic guest')
+        ('good', '👍 Good - Excellent guest'),
+        ('ok', '👌 OK - Average guest'),
+        ('bad', '👎 Bad - Problematic guest')
     ], validators=[DataRequired()])
     comments = TextAreaField('Comments/Notes', validators=[Optional()])
     submit = SubmitField('Save Review')
