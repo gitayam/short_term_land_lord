@@ -244,6 +244,7 @@ class Property(db.Model):
     # Service schedule
     trash_day = db.Column(db.String(20), nullable=True, comment='Day of the week for trash collection')
     recycling_day = db.Column(db.String(20), nullable=True, comment='Day of the week for recycling collection')
+    recycling_notes = db.Column(db.Text, nullable=True, comment='Special instructions for recycling (no bags, acceptable items, etc.)')
     
     # Utility and service information
     internet_provider = db.Column(db.String(100), nullable=True, comment='Internet service provider name')
@@ -283,6 +284,7 @@ class Property(db.Model):
     local_attractions = db.Column(db.Text, nullable=True, comment='Information about local attractions')
     emergency_contact = db.Column(db.String(255), nullable=True, comment='Emergency contact information')
     guest_access_enabled = db.Column(db.Boolean, default=False, comment='Whether guest access is enabled')
+    guest_faq = db.Column(db.Text, nullable=True, comment='Frequently asked questions and answers for guests')
     
     # Ownership and timestamps
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

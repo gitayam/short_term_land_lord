@@ -110,6 +110,9 @@ class PropertyForm(FlaskForm):
         ('custom', 'Custom Schedule')
     ], validators=[Optional()])
     
+    recycling_notes = TextAreaField('Recycling Instructions ♻️', validators=[Optional()],
+                                  description='Special instructions for recycling (no bags, acceptable items, etc.)')
+    
     # Utility information
     internet_provider = StringField('Internet Provider 🌐', validators=[Optional(), Length(max=100)])
     internet_account = StringField('Internet Account # 🔢', validators=[Optional(), Length(max=100)])
@@ -187,6 +190,8 @@ class GuestAccessForm(FlaskForm):
                                     description='Information about nearby attractions, restaurants, etc.')
     emergency_contact = StringField('Emergency Contact Information 🚑', validators=[Optional(), Length(max=255)],
                                   description='Contact information for emergencies')
+    guest_faq = TextAreaField('Frequently Asked Questions ❓', validators=[Optional()],
+                            description='Questions and answers for guests (FAQ section)')
     
     regenerate_token = BooleanField('Regenerate Access Link 🔄', default=False,
                                   description='Check this to create a new access link (invalidates the old one)')

@@ -126,6 +126,21 @@
                             </div>
                         </div>
                         
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form.recycling_notes.label(class="form-label") }}
+                                    {{ form.recycling_notes(class="form-control", rows=3) }}
+                                    {% for error in form.recycling_notes.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">
+                                        Please include special instructions for recycling (e.g., no plastic bags, acceptable items, etc.)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         {% if current_user.is_property_owner() or current_user.is_admin() %}
                         <h5 class="mt-4 mb-3">🔌 Utility Information</h5>
                         <div class="accordion mb-3" id="utilitiesAccordion">

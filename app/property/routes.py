@@ -56,6 +56,7 @@ def create():
             checkout_time=form.checkout_time.data,
             trash_day=form.trash_day.data,
             recycling_day=form.recycling_day.data,
+            recycling_notes=form.recycling_notes.data,
             
             # Utility information
             internet_provider=form.internet_provider.data,
@@ -304,6 +305,7 @@ def edit(id):
         property.checkout_time = form.checkout_time.data
         property.trash_day = form.trash_day.data
         property.recycling_day = form.recycling_day.data
+        property.recycling_notes = form.recycling_notes.data
         
         # Utility information
         property.internet_provider = form.internet_provider.data
@@ -501,6 +503,7 @@ def edit(id):
         form.checkout_time.data = property.checkout_time
         form.trash_day.data = property.trash_day
         form.recycling_day.data = property.recycling_day
+        form.recycling_notes.data = property.recycling_notes
         
         # Populate utility information
         form.internet_provider.data = property.internet_provider
@@ -663,7 +666,14 @@ def manage_guest_access(id):
     form = GuestAccessForm(obj=property)
     
     if form.validate_on_submit():
-        form.populate_obj(property)
+        property.guest_access_enabled = form.guest_access_enabled.data
+        property.guest_rules = form.guest_rules.data
+        property.guest_checkin_instructions = form.guest_checkin_instructions.data
+        property.guest_checkout_instructions = form.guest_checkout_instructions.data
+        property.guest_wifi_instructions = form.guest_wifi_instructions.data
+        property.local_attractions = form.local_attractions.data
+        property.emergency_contact = form.emergency_contact.data
+        property.guest_faq = form.guest_faq.data
         
         # Generate a new token if requested or if enabling access for the first time
         if form.regenerate_token.data or (property.guest_access_enabled and not property.guest_access_token):

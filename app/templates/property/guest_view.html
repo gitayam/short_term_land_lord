@@ -88,40 +88,60 @@
                             <p>{{ property.description or 'No description provided.' }}</p>
                         </div>
                         
-                        <div class="section">
-                            <h4>Property Details</h4>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span><i class="bi bi-house-door amenity-icon"></i> Property Type</span>
-                                            <span>{{ property.property_type|title if property.property_type else 'Not specified' }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span><i class="bi bi-door-closed amenity-icon"></i> Bedrooms</span>
-                                            <span>{{ property.bedrooms if property.bedrooms is not none else 'Not specified' }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span><i class="bi bi-droplet amenity-icon"></i> Bathrooms</span>
-                                            <span>{{ property.bathrooms if property.bathrooms is not none else 'Not specified' }}</span>
-                                        </li>
-                                    </ul>
-                                </div>
-                                <div class="col-md-6">
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span><i class="bi bi-rulers amenity-icon"></i> Square Feet</span>
-                                            <span>{{ property.square_feet if property.square_feet is not none else 'Not specified' }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span><i class="bi bi-tv amenity-icon"></i> TVs</span>
-                                            <span>{{ property.number_of_tvs if property.number_of_tvs is not none else 'Not specified' }}</span>
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span><i class="bi bi-calendar-check amenity-icon"></i> Year Built</span>
-                                            <span>{{ property.year_built if property.year_built is not none else 'Not specified' }}</span>
-                                        </li>
-                                    </ul>
+                        <!-- Property Details Section -->
+                        <div class="card mb-4 shadow">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-home me-2"></i>Property Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% if property.bedrooms %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-bed fa-2x text-primary me-2"></i>
+                                            <div>
+                                                <p class="mb-0 text-muted">Bedrooms</p>
+                                                <h5 class="mb-0">{{ property.bedrooms }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if property.bathrooms %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-bath fa-2x text-primary me-2"></i>
+                                            <div>
+                                                <p class="mb-0 text-muted">Bathrooms</p>
+                                                <h5 class="mb-0">{{ property.bathrooms }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if property.square_feet %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-ruler-combined fa-2x text-primary me-2"></i>
+                                            <div>
+                                                <p class="mb-0 text-muted">Square Feet</p>
+                                                <h5 class="mb-0">{{ property.square_feet }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if property.tvs %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-tv fa-2x text-primary me-2"></i>
+                                            <div>
+                                                <p class="mb-0 text-muted">TVs</p>
+                                                <h5 class="mb-0">{{ property.tvs }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -264,6 +284,20 @@
                             </div>
                         </div>
                         {% endif %}
+
+                        {# FAQ Section #}
+                        {% if property.guest_faq %}
+                        <div class="card mb-4 shadow">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Frequently Asked Questions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="faq-content">
+                                    {{ property.guest_faq|nl2br }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                     
                     <!-- Access Tab -->
@@ -388,6 +422,24 @@
                                                     <p class="mb-0">{{ property.recycling_day|title }}</p>
                                                 </div>
                                             </div>
+                                            {% if property.recycling_notes %}
+                                            <div class="mt-3 p-3 bg-light rounded">
+                                                <h6 class="text-success"><i class="bi bi-info-circle"></i> Recycling Guidelines:</h6>
+                                                <p class="small mb-0">{{ property.recycling_notes|nl2br }}</p>
+                                                <div class="alert alert-warning mt-2 small">
+                                                    <i class="bi bi-exclamation-triangle"></i> <strong>Important:</strong> Please recycle only acceptable products. 
+                                                    No plastic bags or "wishful recycling" as it causes more trouble for recycling centers.
+                                                </div>
+                                            </div>
+                                            {% else %}
+                                            <div class="mt-3 p-3 bg-light rounded">
+                                                <h6 class="text-success"><i class="bi bi-info-circle"></i> Recycling Guidelines:</h6>
+                                                <div class="alert alert-warning mt-2 small">
+                                                    <i class="bi bi-exclamation-triangle"></i> <strong>Important:</strong> Please recycle only acceptable products. 
+                                                    No plastic bags or "wishful recycling" as it causes more trouble for recycling centers.
+                                                </div>
+                                            </div>
+                                            {% endif %}
                                         </div>
                                         {% endif %}
                                     </div>
@@ -577,19 +629,34 @@
             // Generate WiFi QR Code
             const wifiQRContainer = document.getElementById('wifi-qrcode');
             if (wifiQRContainer) {
-                const ssid = "{{ property.wifi_network|tojson|safe }}";
-                const password = "{{ property.wifi_password|tojson|safe }}";
+                // Properly escape the SSID and password for QR code
+                const ssid = "{{ property.wifi_network|replace('"', '\\"')|safe }}";
+                const password = "{{ property.wifi_password|replace('"', '\\"')|safe }}";
                 
                 // Create WiFi network string in format: WIFI:S:<SSID>;T:<WPA|WEP|>;P:<password>;;
                 const wifiString = "WIFI:S:" + ssid + ";T:WPA;P:" + password + ";;";
                 
-                // Generate QR code
-                const qr = qrcode(0, 'M');
-                qr.addData(wifiString);
-                qr.make();
-                
-                // Render QR code
-                wifiQRContainer.innerHTML = qr.createImgTag(4);
+                try {
+                    // Generate QR code
+                    const qr = qrcode(0, 'M');
+                    qr.addData(wifiString);
+                    qr.make();
+                    
+                    // Render QR code
+                    wifiQRContainer.innerHTML = qr.createImgTag(4);
+                    
+                    // Add title for better UX
+                    const img = wifiQRContainer.querySelector('img');
+                    if (img) {
+                        img.title = `Connect to ${ssid} WiFi`;
+                        img.alt = `QR code for ${ssid} WiFi network`;
+                        img.style.width = '100%';
+                        img.style.height = 'auto';
+                    }
+                } catch (error) {
+                    console.error("Error generating QR code:", error);
+                    wifiQRContainer.innerHTML = '<p class="text-danger">Error generating WiFi QR code</p>';
+                }
             }
             {% endif %}
         });
