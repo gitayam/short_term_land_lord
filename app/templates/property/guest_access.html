@@ -75,6 +75,12 @@
                         <div class="form-text">{{ form.emergency_contact.description }}</div>
                     </div>
                     
+                    <div class="mb-3">
+                        {{ form.guest_faq.label(class="form-label") }}
+                        {{ form.guest_faq(class="form-control", rows=5) }}
+                        <div class="form-text">{{ form.guest_faq.description }}</div>
+                    </div>
+                    
                     <div class="d-grid gap-2">
                         {{ form.submit(class="btn btn-primary") }}
                     </div>
