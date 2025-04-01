@@ -29,8 +29,8 @@ services:
                python fix_postgresql_enums.py &&
                python test_user_search.py &&
                python check_database.py &&
-               python model_fix.py &&
                python patch_user_model.py &&
+               python model_fix.py &&
                python app_init_patch.py &&
                python test_model_fix.py &&
                flask run --host=0.0.0.0"

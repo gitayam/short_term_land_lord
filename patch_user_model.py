@@ -103,14 +103,14 @@ def patch_user_loader():
         content = f.read()
     
     # Check if the load_user function is already patched
-    if "get_user_table_name()" in content and "@login.user_loader" in content:
+    if "get_user_table_name()" in content and "@login_manager.user_loader" in content:
         # Check if it's already using direct SQL
         if "text(" in content and "execute(" in content:
             print("User loader already patched")
             return True
     
     # Find the load_user function
-    loader_pattern = r'@login\.user_loader\s+def load_user\(([^)]+)\):[^r]*return User\.query\.get\('
+    loader_pattern = r'@login_manager\.user_loader\s+def load_user\(([^)]+)\):[^r]*return User\.query\.get\('
     loader_match = re.search(loader_pattern, content)
     
     if not loader_match:
@@ -119,7 +119,7 @@ def patch_user_loader():
     
     # Prepare the patched loader function
     param_name = loader_match.group(1).strip()
-    patched_loader = f"""@login.user_loader
+    patched_loader = f"""@login_manager.user_loader
 def load_user({param_name}):
     \"\"\"Load user by ID, handling different table names\"\"\"
     try:

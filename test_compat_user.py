@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test script for the compatibility user model
+Test script for user model compatibility.
 """
 import sys
 from pathlib import Path
@@ -10,48 +10,68 @@ parent_dir = Path(__file__).resolve().parent
 sys.path.insert(0, str(parent_dir))
 
 from app import create_app, db
-from app.compat_models import CompatUser, compatible_user_search, get_user_by_id, get_user_by_email
+from sqlalchemy import text, inspect
+from app.models import User
 
-def test_compat_user():
-    print("Testing compatibility user model...")
+def test_user_compatibility():
+    """Test the user model compatibility"""
+    print("Testing user model compatibility...")
     
-    # Test getting a user by ID
-    try:
-        user = get_user_by_id(1)
-        if user:
-            print(f"Successfully retrieved user by ID: {user.id}, {user.email}, {user.get_full_name()}")
-            
-            # Test accessing standard columns
-            print(f"Role: {user.role}")
-            
-            # Test accessing new columns safely
-            print(f"Username: {getattr(user, 'username', 'N/A')}")
-            print(f"Is Admin: {getattr(user, 'is_admin', 'N/A')}")
-            print(f"Is Active: {getattr(user, 'is_active', 'N/A')}")
-            print(f"Date Joined: {getattr(user, 'date_joined', 'N/A')}")
-            
-            # Test the helper methods
-            print(f"Is admin (method): {user.is_admin()}")
-        else:
-            print("No user found with ID 1")
-    except Exception as e:
-        print(f"Error retrieving user by ID: {e}")
+    # Create app context
+    app = create_app()
     
-    # Test user search
-    search_terms = ["admin", "test", "example"]
-    for term in search_terms:
+    with app.app_context():
+        # Test database dialect detection
+        dialect = db.engine.dialect.name
+        print(f"Detected database dialect: {dialect}")
+        
+        # Test table name
+        print(f"\nUser model table name: {User.__tablename__}")
+        
+        # Test table existence
+        print("\nTesting table existence...")
         try:
-            print(f"\nSearching for '{term}'...")
-            users = compatible_user_search(term)
-            print(f"Found {len(users)} users matching '{term}'")
-            for user in users:
-                print(f"  - {user.get_full_name()} ({user.email})")
+            inspector = inspect(db.engine)
+            if User.__tablename__ in inspector.get_table_names():
+                print(f"Table '{User.__tablename__}' exists")
+            else:
+                print(f"Table '{User.__tablename__}' does not exist")
         except Exception as e:
-            print(f"Error searching for '{term}': {e}")
-    
-    print("\nCompatibility user test completed!")
+            print(f"Error checking table existence: {e}")
+        
+        # Test column existence
+        print("\nTesting column existence...")
+        try:
+            inspector = inspect(db.engine)
+            columns = inspector.get_columns(User.__tablename__)
+            if columns:
+                print(f"Found columns: {', '.join(col['name'] for col in columns)}")
+            else:
+                print(f"No columns found in table '{User.__tablename__}'")
+        except Exception as e:
+            print(f"Error checking columns: {e}")
+        
+        # Test user creation
+        print("\nTesting user creation...")
+        try:
+            test_user = User(
+                email="test@example.com",
+                first_name="Test",
+                last_name="User"
+            )
+            db.session.add(test_user)
+            db.session.commit()
+            print("Successfully created test user")
+            
+            # Clean up
+            db.session.delete(test_user)
+            db.session.commit()
+            print("Successfully cleaned up test user")
+        except Exception as e:
+            print(f"Error in user creation test: {e}")
+            db.session.rollback()
+        
+        print("\nUser compatibility test complete!")
 
 if __name__ == "__main__":
-    app = create_app()
-    with app.app_context():
-        test_compat_user() 
+    test_user_compatibility() 

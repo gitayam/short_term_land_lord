@@ -5,6 +5,7 @@ from flask_mail import Mail
 from flask_migrate import Migrate
 from config import Config
 
+from app.user_model_fix import patch_user_model, patch_user_loader
 # Initialize extensions
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -73,11 +74,14 @@ def create_app(config_class=Config):
     from app.workforce import bp as workforce_bp
     app.register_blueprint(workforce_bp, url_prefix='/workforce')
     
-    # Initialize site settings
+    # Initialize site settings and User model
     with app.app_context():
         try:
-            from app.models import migrate_site_settings, create_admin_user_from_env
+            from app.models import migrate_site_settings, create_admin_user_from_env, init_app as init_user_model
             migrate_site_settings()
+            
+            # Initialize User model table name
+            init_user_model(app)
             
             # Create admin user from environment variables if configured
             create_admin_user_from_env()
@@ -86,6 +90,12 @@ def create_app(config_class=Config):
             app.logger.warning(f"Could not initialize site settings: {str(e)}")
             app.logger.info("You may need to run 'flask db upgrade' if this is a new installation")
     
+    with app.app_context():
+        # Apply database compatibility fixes
+        patch_user_model()
+        patch_user_loader()
+
+
     return app
 
 from app import models

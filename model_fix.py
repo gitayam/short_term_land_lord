@@ -14,6 +14,7 @@ sys.path.insert(0, str(parent_dir))
 from app import create_app, db
 from sqlalchemy import text, inspect
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
 
 def fix_user_model():
     """Modify the User model __tablename__ attribute at runtime"""
@@ -43,8 +44,8 @@ def fix_user_model():
             # Test the change
             try:
                 # Try to execute a query to test if the User model now works
-                user_count = db.session.query(User).count()
-                print(f"Successfully queried User model - found {user_count} users")
+                user_count = db.session.execute(text("SELECT COUNT(*) FROM users")).scalar()
+                print(f"Successfully queried users table - found {user_count} users")
                 print("User model table name fixed!")
                 return True
             except Exception as e:
@@ -68,15 +69,15 @@ def apply_login_manager_fix():
     dialect = db.engine.dialect.name
     
     # Import the necessary modules
-    from app import login_manager as login
+    from app import login_manager
     from app.models import User
     
     # Get the existing user loader
-    original_loader = login.user_loader
+    original_loader = login_manager.user_loader
     
     if dialect == 'postgresql':
         # Replace the user loader with a fixed version
-        @login.user_loader
+        @login_manager.user_loader
         def load_user(id):
             """Fixed user loader that uses direct SQL for PostgreSQL"""
             try:
