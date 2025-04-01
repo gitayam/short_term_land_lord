@@ -1,8 +1,9 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, current_user
+from datetime import datetime
 from app import db
 from app.auth import bp
-from app.auth.forms import LoginForm, RegistrationForm, RequestPasswordResetForm, ResetPasswordForm
+from app.auth.forms import LoginForm, RegistrationForm, RequestPasswordResetForm, ResetPasswordForm, SSOLoginForm
 from app.models import User, PasswordReset, UserRoles
 from app.auth.email import send_password_reset_email
 
@@ -11,14 +12,36 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
     
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
-        if user is None or not user.check_password(form.password.data):
-            flash('Invalid email or password', 'danger')
+    from flask import current_app
+    
+    # Determine which authentication methods are enabled
+    use_sso = current_app.config.get('AUTH_USE_SSO', True)
+    use_local = current_app.config.get('AUTH_USE_LOCAL', True)
+    
+    # Create forms for each enabled authentication method
+    local_form = LoginForm() if use_local else None
+    sso_form = SSOLoginForm() if use_sso else None
+    
+    # Handle local authentication form submission
+    if use_local and local_form and local_form.validate_on_submit():
+        # Check if input is email or username
+        user = None
+        if '@' in local_form.username_or_email.data:
+            # Treat as email
+            user = User.query.filter_by(email=local_form.username_or_email.data).first()
+        else:
+            # Treat as username
+            user = User.query.filter_by(username=local_form.username_or_email.data).first()
+        
+        if user is None or not user.check_password(local_form.password.data):
+            flash('Invalid username/email or password', 'danger')
             return redirect(url_for('auth.login'))
         
-        login_user(user, remember=form.remember_me.data)
+        # Update last login time
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+        
+        login_user(user, remember=local_form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or not next_page.startswith('/'):
             next_page = url_for('main.index')
@@ -26,7 +49,19 @@ def login():
         flash('You have been logged in successfully!', 'success')
         return redirect(next_page)
     
-    return render_template('auth/login.html', title='Sign In', form=form)
+    # Handle SSO form submission (redirect to SSO provider)
+    if use_sso and sso_form and sso_form.validate_on_submit():
+        # This would typically redirect to your SSO provider
+        # For now, just redirect to the main page with a message
+        flash('SSO authentication is not yet implemented', 'warning')
+        return redirect(url_for('auth.login'))
+    
+    return render_template('auth/login.html', 
+                          title='Sign In', 
+                          local_form=local_form,
+                          sso_form=sso_form,
+                          use_local=use_local,
+                          use_sso=use_sso)
 
 @bp.route('/logout')
 def logout():
@@ -42,6 +77,7 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         user = User(
+            username=form.username.data,
             first_name=form.first_name.data,
             last_name=form.last_name.data,
             email=form.email.data,

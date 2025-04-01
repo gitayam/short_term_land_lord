@@ -22,10 +22,17 @@ services:
                fi &&
                flask db migrate -m 'Initial migration' || true &&
                python add_user_columns.py &&
+               if [[ \$DATABASE_URL == *sqlite* ]]; then
+                 python fix_sqlite_columns.py;
+               fi &&
                python fix_database.py &&
                python fix_postgresql_enums.py &&
                python test_user_search.py &&
                python check_database.py &&
+               python model_fix.py &&
+               python patch_user_model.py &&
+               python app_init_patch.py &&
+               python test_model_fix.py &&
                flask run --host=0.0.0.0"
 
   db:

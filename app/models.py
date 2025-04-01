@@ -1035,6 +1035,51 @@ class SiteSettings(db.Model):
         value = cls.get_setting('guest_reviews_enabled', 'false')
         return value.lower() == 'true'
 
+def create_admin_user_from_env():
+    """Create an admin user from environment variables if one doesn't exist"""
+    from flask import current_app
+    
+    # Check if we have admin credentials in environment
+    admin_email = current_app.config.get('ADMIN_EMAIL')
+    admin_username = current_app.config.get('ADMIN_USERNAME')
+    admin_password = current_app.config.get('ADMIN_PASSWORD')
+    
+    # If no admin credentials are provided, skip
+    if not admin_email or not admin_username or not admin_password:
+        current_app.logger.info("Admin credentials not fully specified in environment, skipping admin creation")
+        return
+    
+    # Check if admin user already exists
+    existing_admin = User.query.filter(
+        (User.email == admin_email) | 
+        (User.username == admin_username)
+    ).first()
+    
+    if existing_admin:
+        current_app.logger.info(f"Admin user already exists: {existing_admin.email}")
+        # Update admin role if needed
+        if existing_admin.role != UserRoles.ADMIN:
+            existing_admin.role = UserRoles.ADMIN
+            existing_admin.is_admin = True
+            db.session.commit()
+            current_app.logger.info(f"Updated user {existing_admin.email} to admin role")
+        return
+    
+    # Create new admin user
+    admin_user = User(
+        username=admin_username,
+        email=admin_email,
+        first_name=current_app.config.get('ADMIN_FIRST_NAME', 'System'),
+        last_name=current_app.config.get('ADMIN_LAST_NAME', 'Administrator'),
+        role=UserRoles.ADMIN,
+        is_admin=True
+    )
+    admin_user.set_password(admin_password)
+    
+    db.session.add(admin_user)
+    db.session.commit()
+    current_app.logger.info(f"Created admin user: {admin_email}")
+
 def migrate_site_settings():
     """Initialize default site settings if they don't exist"""
     # Initialize guest reviews setting (enabled by default)

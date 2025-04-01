@@ -76,8 +76,11 @@ def create_app(config_class=Config):
     # Initialize site settings
     with app.app_context():
         try:
-            from app.models import migrate_site_settings
+            from app.models import migrate_site_settings, create_admin_user_from_env
             migrate_site_settings()
+            
+            # Create admin user from environment variables if configured
+            create_admin_user_from_env()
         except Exception as e:
             # Handle the case where site_settings table doesn't exist yet
             app.logger.warning(f"Could not initialize site settings: {str(e)}")

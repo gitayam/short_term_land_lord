@@ -172,3 +172,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+migrations/*
+app/static/uploads/properties/*
+app.db
+migrations/*

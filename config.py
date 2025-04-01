@@ -30,6 +30,14 @@ class Config:
     
     # Admin user
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
+    ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
+    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+    ADMIN_FIRST_NAME = os.environ.get('ADMIN_FIRST_NAME', 'System')
+    ADMIN_LAST_NAME = os.environ.get('ADMIN_LAST_NAME', 'Administrator')
+    
+    # Authentication settings
+    AUTH_USE_SSO = os.environ.get('AUTH_USE_SSO', 'true').lower() == 'true'
+    AUTH_USE_LOCAL = os.environ.get('AUTH_USE_LOCAL', 'true').lower() == 'true'
     
     # Media storage configuration
     MEDIA_STORAGE_BACKEND = os.environ.get('MEDIA_STORAGE_BACKEND', 'local')  # local, s3, rclone
