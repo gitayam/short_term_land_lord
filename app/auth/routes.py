@@ -24,17 +24,10 @@ def login():
     
     # Handle local authentication form submission
     if use_local and local_form and local_form.validate_on_submit():
-        # Check if input is email or username
-        user = None
-        if '@' in local_form.username_or_email.data:
-            # Treat as email
-            user = User.query.filter_by(email=local_form.username_or_email.data).first()
-        else:
-            # Treat as username
-            user = User.query.filter_by(username=local_form.username_or_email.data).first()
+        user = User.query.filter_by(email=local_form.email.data).first()
         
         if user is None or not user.check_password(local_form.password.data):
-            flash('Invalid username/email or password', 'danger')
+            flash('Invalid email or password', 'danger')
             return redirect(url_for('auth.login'))
         
         # Update last login time
@@ -77,7 +70,6 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         user = User(
-            username=form.username.data,
             first_name=form.first_name.data,
             last_name=form.last_name.data,
             email=form.email.data,

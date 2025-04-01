@@ -29,7 +29,6 @@ class CompatUser(UserMixin, Base):
     
     # The following columns might not exist in older database versions
     # We'll access these with getattr() to avoid attribute errors
-    username = Column(String(64), nullable=True)
     authentik_id = Column(String(64), nullable=True)
     signal_identity = Column(String(64), nullable=True)
     attributes = Column(Text, nullable=True)  # Store as JSON text
@@ -81,9 +80,6 @@ def get_user_search_query(search_term):
         
         # Build a more complete query based on available columns
         query_parts = [basic_query]
-        
-        if 'username' in columns:
-            query_parts.append(CompatUser.username.ilike(f'%{search_term}%'))
         
         # For attributes, we need different syntax for SQLite vs PostgreSQL
         if 'attributes' in columns:

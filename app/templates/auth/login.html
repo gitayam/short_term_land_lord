@@ -12,9 +12,9 @@
                 <form method="post" action="{{ url_for('auth.login') }}" novalidate>
                     {{ local_form.hidden_tag() }}
                     <div class="mb-3">
-                        {{ local_form.username_or_email.label(class="form-label") }}
-                        {{ local_form.username_or_email(class="form-control") }}
-                        {% for error in local_form.username_or_email.errors %}
+                        {{ local_form.email.label(class="form-label") }}
+                        {{ local_form.email(class="form-control") }}
+                        {% for error in local_form.email.errors %}
                         <div class="text-danger">{{ error }}</div>
                         {% endfor %}
                     </div>

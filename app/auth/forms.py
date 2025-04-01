@@ -4,7 +4,7 @@ from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationE
 from app.models import User, UserRoles
 
 class LoginForm(FlaskForm):
-    username_or_email = StringField('Username or Email', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
     remember_me = BooleanField('Remember Me')
     submit = SubmitField('Sign In')
@@ -15,7 +15,6 @@ class SSOLoginForm(FlaskForm):
 class RegistrationForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired(), Length(min=2, max=64)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(min=2, max=64)])
-    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=64)])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[
         DataRequired(), 
@@ -36,11 +35,6 @@ class RegistrationForm(FlaskForm):
         user = User.query.filter_by(email=email.data).first()
         if user is not None:
             raise ValidationError('Email address already registered.')
-            
-    def validate_username(self, username):
-        user = User.query.filter_by(username=username.data).first()
-        if user is not None:
-            raise ValidationError('Username already taken. Please choose a different one.')
 
 class RequestPasswordResetForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
