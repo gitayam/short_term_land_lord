@@ -1,0 +1,21 @@
+--- app/__init__.py
++++ app/__init__.py
+@@ -1,4 +1,6 @@
+ # Existing imports
++from app.user_model_fix import patch_user_model, patch_user_loader
++
+ # Other existing code
+ 
+ def create_app(config_class=Config):
+@@ -7,6 +9,11 @@
+     # Existing initialization code
+     db.init_app(app)
+ 
++    with app.app_context():
++        # Apply database compatibility fixes
++        patch_user_model()
++        patch_user_loader()
++
+     # Rest of the initialization code
+ 
+     return app

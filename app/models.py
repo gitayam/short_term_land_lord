@@ -6,6 +6,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app import db, login_manager
 
+def get_user_table_name():
+    """Returns the appropriate table name based on database dialect"""
+    from app import db
+    if db.engine.dialect.name == 'postgresql':
+        return 'users'
+    else:
+        return 'user'
+
 class UserRoles(enum.Enum):
     PROPERTY_OWNER = "property_owner"
     SERVICE_STAFF = "service_staff"
@@ -149,7 +157,7 @@ class NotificationChannel(enum.Enum):
     IN_APP = "in_app"
 
 class User(UserMixin, db.Model):
-    __tablename__ = 'user'  # SQLAlchemy will use this, but PostgreSQL might have it as 'users'
+    __tablename__ = get_user_table_name()  # Dynamic table name based on dialect
     
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True, nullable=True)
@@ -1092,7 +1100,32 @@ def migrate_site_settings():
 
 @login_manager.user_loader
 def load_user(id):
-    return User.query.get(int(id))
+    """Load user by ID, handling different table names"""
+    try:
+        from sqlalchemy import text
+        
+        # Use direct SQL query with the correct table name
+        table_name = get_user_table_name()
+        sql = text(f"SELECT * FROM {table_name} WHERE id = :user_id")
+        result = db.session.execute(sql, {'user_id': int(id)})
+        row = result.fetchone()
+        
+        if row:
+            # Create a User instance manually
+            user = User()
+            for key in row._mapping.keys():
+                setattr(user, key, row._mapping[key])
+            return user
+        return None
+    except Exception as e:
+        import logging
+        logging.error(f"Error in load_user: {e}")
+        
+        # Fallback to ORM
+        try:
+            return User.query.get(int(id))
+        except:
+            return None
 
 class TaskTemplate(db.Model):
     id = db.Column(db.Integer, primary_key=True)

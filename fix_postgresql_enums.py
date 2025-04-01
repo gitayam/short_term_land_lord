@@ -36,8 +36,8 @@ def fix_postgresql_enums():
             
             # Create a backup table
             try:
-                cursor.execute("CREATE TABLE guest_review_backup AS SELECT * FROM guest_review")
-                print("Created guest_review_backup table")
+                cursor.execute("CREATE TABLE IF NOT EXISTS guest_review_backup AS SELECT * FROM guest_review")
+                print("Created or verified guest_review_backup table")
             except Exception as e:
                 print(f"Could not create backup table: {e}")
             
@@ -58,8 +58,11 @@ def fix_postgresql_enums():
                     print(f"Found constraint: {constraint_name}")
                     
                     # Drop the constraint
-                    cursor.execute(f"ALTER TABLE guest_review DROP CONSTRAINT {constraint_name}")
-                    print("Dropped constraint")
+                    try:
+                        cursor.execute(f"ALTER TABLE guest_review DROP CONSTRAINT {constraint_name}")
+                        print("Dropped constraint")
+                    except Exception as e:
+                        print(f"Could not drop constraint (it may already be dropped): {e}")
                     
                     # Modify existing records
                     cursor.execute("""
@@ -90,16 +93,25 @@ def fix_postgresql_enums():
                         other_tables = cursor.fetchall()
                         if not other_tables:
                             # Drop the column temporarily
-                            cursor.execute("ALTER TABLE guest_review DROP COLUMN rating")
-                            print("Dropped rating column")
+                            try:
+                                cursor.execute("ALTER TABLE guest_review DROP COLUMN rating")
+                                print("Dropped rating column")
+                            except Exception as e:
+                                print(f"Could not drop rating column (it may already be dropped): {e}")
                             
                             # Drop the enum type
-                            cursor.execute("DROP TYPE guestreviewrating")
-                            print("Dropped guestreviewrating enum")
+                            try:
+                                cursor.execute("DROP TYPE IF EXISTS guestreviewrating")
+                                print("Dropped guestreviewrating enum")
+                            except Exception as e:
+                                print(f"Could not drop enum type: {e}")
                             
                             # Recreate the enum type with lowercase values
-                            cursor.execute("CREATE TYPE guestreviewrating AS ENUM ('good', 'ok', 'bad')")
-                            print("Recreated guestreviewrating enum")
+                            try:
+                                cursor.execute("CREATE TYPE guestreviewrating AS ENUM ('good', 'ok', 'bad')")
+                                print("Recreated guestreviewrating enum")
+                            except Exception as e:
+                                print(f"Could not create enum type (it may already exist): {e}")
                             
                             # Add the column back
                             cursor.execute("ALTER TABLE guest_review ADD COLUMN rating guestreviewrating")
@@ -144,8 +156,8 @@ def fix_postgresql_enums():
             
             # Create a backup table
             try:
-                cursor.execute("CREATE TABLE task_backup AS SELECT * FROM task")
-                print("Created task_backup table")
+                cursor.execute("CREATE TABLE IF NOT EXISTS task_backup AS SELECT * FROM task")
+                print("Created or verified task_backup table")
             except Exception as e:
                 print(f"Could not create backup table: {e}")
             
@@ -166,8 +178,11 @@ def fix_postgresql_enums():
                     print(f"Found constraint: {constraint_name}")
                     
                     # Drop the constraint
-                    cursor.execute(f"ALTER TABLE task DROP CONSTRAINT {constraint_name}")
-                    print("Dropped constraint")
+                    try:
+                        cursor.execute(f"ALTER TABLE task DROP CONSTRAINT {constraint_name}")
+                        print("Dropped constraint")
+                    except Exception as e:
+                        print(f"Could not drop constraint (it may already be dropped): {e}")
                     
                     # Modify existing records
                     cursor.execute("""
@@ -198,16 +213,25 @@ def fix_postgresql_enums():
                         other_tables = cursor.fetchall()
                         if not other_tables:
                             # Drop the column temporarily
-                            cursor.execute("ALTER TABLE task DROP COLUMN status")
-                            print("Dropped status column")
+                            try:
+                                cursor.execute("ALTER TABLE task DROP COLUMN status")
+                                print("Dropped status column")
+                            except Exception as e:
+                                print(f"Could not drop status column (it may already be dropped): {e}")
                             
                             # Drop the enum type
-                            cursor.execute("DROP TYPE taskstatus")
-                            print("Dropped taskstatus enum")
+                            try:
+                                cursor.execute("DROP TYPE IF EXISTS taskstatus")
+                                print("Dropped taskstatus enum")
+                            except Exception as e:
+                                print(f"Could not drop enum type: {e}")
                             
                             # Recreate the enum type with lowercase values
-                            cursor.execute("CREATE TYPE taskstatus AS ENUM ('pending', 'in_progress', 'completed')")
-                            print("Recreated taskstatus enum")
+                            try:
+                                cursor.execute("CREATE TYPE taskstatus AS ENUM ('pending', 'in_progress', 'completed')")
+                                print("Recreated taskstatus enum")
+                            except Exception as e:
+                                print(f"Could not create enum type (it may already exist): {e}")
                             
                             # Add the column back
                             cursor.execute("ALTER TABLE task ADD COLUMN status taskstatus")

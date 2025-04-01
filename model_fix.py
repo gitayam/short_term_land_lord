@@ -68,7 +68,7 @@ def apply_login_manager_fix():
     dialect = db.engine.dialect.name
     
     # Import the necessary modules
-    from app import login
+    from app import login_manager as login
     from app.models import User
     
     # Get the existing user loader
