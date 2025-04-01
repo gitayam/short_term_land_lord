@@ -191,6 +191,7 @@ class Property(db.Model):
     owner = db.relationship('User', backref='owned_properties')
     property_tasks = db.relationship('Task', backref='property')
     property_rooms = db.relationship('Room', backref='property')
+    property_inventory = db.relationship('InventoryItem', backref='property')
     
     def __repr__(self):
         return f'<Property {self.name}>'
@@ -528,35 +529,24 @@ class IssueReport(db.Model):
         return f'<IssueReport {self.id} for session {self.cleaning_session_id}>'
 
 class RepairRequest(db.Model):
+    __tablename__ = 'repair_request'
+    
     id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text)
+    status = db.Column(db.String(32), default='pending')
+    priority = db.Column(db.String(32), default='normal')
+    reporter_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
-    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # Request details
-    title = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    location = db.Column(db.String(255), nullable=False)  # Location within the property
-    severity = db.Column(db.Enum(RepairRequestSeverity), default=RepairRequestSeverity.MEDIUM, nullable=False)
-    status = db.Column(db.Enum(RepairRequestStatus), default=RepairRequestStatus.PENDING, nullable=False)
-    
-    # Optional fields
-    additional_notes = db.Column(db.Text, nullable=True)
-    
-    # If this request was converted to a task
-    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
-    
-    # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    property = db.relationship('Property', foreign_keys=[property_id], overlaps="associated_property,repair_requests")
-    reporter = db.relationship('User', backref='submitted_repair_requests')
-    task = db.relationship('Task', backref='source_repair_request')
-    media = db.relationship('RepairRequestMedia', backref='repair_request', cascade='all, delete-orphan')
+    reporter = db.relationship('User', foreign_keys=[reporter_id], backref='reported_repairs')
+    property = db.relationship('Property', backref='repair_requests')
     
     def __repr__(self):
-        return f'<RepairRequest {self.id}: {self.title} ({self.status.value})>'
+        return f'<RepairRequest {self.title}>'
 
 class RepairRequestMedia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -586,125 +576,72 @@ class RepairRequestMedia(db.Model):
         return self.file_path
 
 class InventoryItem(db.Model):
+    __tablename__ = 'inventory_item'
+    
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text)
+    quantity = db.Column(db.Integer, default=1)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
-    catalog_item_id = db.Column(db.Integer, db.ForeignKey('inventory_catalog_item.id'), nullable=False)
-    
-    # Property-specific information
-    current_quantity = db.Column(db.Float, default=0, nullable=False)
-    storage_location = db.Column(db.String(100), nullable=True)
-    reorder_threshold = db.Column(db.Float, nullable=True)
-    
-    # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    property = db.relationship('Property', back_populates='inventory_items')
-    catalog_item = db.relationship('InventoryCatalogItem', back_populates='inventory_instances')
-    transactions = db.relationship('InventoryTransaction', back_populates='item', lazy='dynamic', cascade='all, delete-orphan')
+    item_transactions = db.relationship('InventoryTransaction', backref='item')
     
     def __repr__(self):
-        return f'<InventoryItem {self.catalog_item.name} ({self.current_quantity} {self.catalog_item.unit_of_measure}) at {self.property.name}>'
-    
-    def is_low_stock(self):
-        """Check if the item is below its reorder threshold"""
-        if self.reorder_threshold is None:
-            return False
-        return self.current_quantity <= self.reorder_threshold
-    
-    def update_quantity(self, amount, transaction_type):
-        """Update the item quantity based on transaction type"""
-        if transaction_type in [TransactionType.RESTOCK, TransactionType.TRANSFER_IN]:
-            self.current_quantity += amount
-        elif transaction_type in [TransactionType.USAGE, TransactionType.TRANSFER_OUT]:
-            self.current_quantity = max(0, self.current_quantity - amount)
-        elif transaction_type == TransactionType.ADJUSTMENT:
-            self.current_quantity = amount
-        
-        self.updated_at = datetime.utcnow()
+        return f'<InventoryItem {self.name}>'
 
 class InventoryTransaction(db.Model):
+    __tablename__ = 'inventory_transaction'
+    
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=False)
-    
-    # Transaction details
-    transaction_type = db.Column(db.Enum(TransactionType), nullable=False)
-    quantity = db.Column(db.Float, nullable=False)
-    previous_quantity = db.Column(db.Float, nullable=False)
-    new_quantity = db.Column(db.Float, nullable=False)
-    
-    # For transfers between properties
-    source_property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
-    destination_property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
-    
-    # User who performed the transaction
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # Additional information
-    notes = db.Column(db.Text, nullable=True)
-    
-    # Timestamps
+    quantity = db.Column(db.Integer, nullable=False)
+    transaction_type = db.Column(db.String(32), nullable=False)
+    notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    item = db.relationship('InventoryItem', back_populates='transactions')
-    user = db.relationship('User', foreign_keys=[user_id])
-    source_property = db.relationship('Property', foreign_keys=[source_property_id], backref='outgoing_transfers')
-    destination_property = db.relationship('Property', foreign_keys=[destination_property_id], backref='incoming_transfers')
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def __repr__(self):
-        return f'<InventoryTransaction {self.transaction_type.value} of {self.quantity} {self.item.catalog_item.unit_of_measure} of {self.item.catalog_item.name}>'
+        return f'<InventoryTransaction {self.transaction_type} {self.quantity}>'
 
 class Notification(db.Model):
+    __tablename__ = 'notification'
+    
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
-    notification_type = db.Column(db.Enum(NotificationType), nullable=False)
-    channel = db.Column(db.Enum(NotificationChannel), nullable=False)
-    title = db.Column(db.String(100), nullable=False)
-    message = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(128), nullable=False)
+    message = db.Column(db.Text)
+    notification_type = db.Column(db.String(32), default='info')
     is_read = db.Column(db.Boolean, default=False)
-    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
-    read_at = db.Column(db.DateTime, nullable=True)
-    
-    # Relationships - fixed overlapping issues
-    user = db.relationship('User', foreign_keys=[user_id], overlaps="recipient,user_notifications")
-    task = db.relationship('Task', foreign_keys=[task_id], overlaps="related_task,task_notifications")
-    
-    def __repr__(self):
-        return f'<Notification {self.id} to {self.user.email} via {self.channel.value}>'
-    
-    def mark_as_read(self):
-        self.is_read = True
-        self.read_at = datetime.utcnow()
-
-class GuestReview(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
-    
-    # Review details
-    rating = db.Column(db.Enum(GuestReviewRating), nullable=False)
-    comments = db.Column(db.Text, nullable=True)
-    
-    # Booking information
-    guest_name = db.Column(db.String(100), nullable=False)
-    check_in_date = db.Column(db.Date, nullable=False)
-    check_out_date = db.Column(db.Date, nullable=False)
-    
-    # Creator information
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    property = db.relationship('Property', backref=db.backref('guest_reviews', lazy='dynamic', cascade='all, delete-orphan'))
-    creator = db.relationship('User', backref=db.backref('created_guest_reviews', lazy='dynamic'))
+    recipient = db.relationship('User', foreign_keys=[user_id], backref='notifications')
     
     def __repr__(self):
-        return f'<GuestReview {self.id} for {self.guest_name} at {self.property.name} - Rating: {self.rating.value}>'
+        return f'<Notification {self.title}>'
+
+class GuestReview(db.Model):
+    __tablename__ = 'guest_review'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    title = db.Column(db.String(128), nullable=False)
+    content = db.Column(db.Text)
+    rating = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    creator = db.relationship('User', foreign_keys=[creator_id], backref='guest_reviews')
+    property = db.relationship('Property', backref='guest_reviews')
+    
+    def __repr__(self):
+        return f'<GuestReview {self.title}>'
 
 class SiteSettings(db.Model):
     __tablename__ = 'site_settings'
@@ -831,22 +768,18 @@ def init_app(app):
         User.__tablename__ = get_user_table_name()
 
 class TaskTemplate(db.Model):
+    __tablename__ = 'task_template'
+    
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
+    title = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
-    category = db.Column(db.String(50), nullable=True)  # e.g., "cleaning", "maintenance", etc.
-    is_global = db.Column(db.Boolean, default=False)  # If true, available to all users
-    sequence_number = db.Column(db.Integer, default=0, nullable=False)
-    
-    # Creator information
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    # Timestamps
+    priority = db.Column(db.String(32), default='normal')
+    creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    creator = db.relationship('User', backref='created_task_templates')
+    creator = db.relationship('User', foreign_keys=[creator_id], backref='task_templates')
     
     def __repr__(self):
         return f'<TaskTemplate {self.title}>'
