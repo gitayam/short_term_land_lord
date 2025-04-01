@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-0">
+                <i class="fas fa-tools mr-2"></i> Repair Requests
+            </h1>
+            <p class="text-muted">Manage repair requests for your properties</p>
+        </div>
+        <div class="col-md-4 text-right">
+            {% if current_user.is_property_owner() %}
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-filter mr-1"></i> Filter
+                </button>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a class="dropdown-item {% if status_filter == 'all' %}active{% endif %}" href="{{ url_for('tasks.repair_requests', status='all') }}">All Requests</a>
+                    <a class="dropdown-item {% if status_filter == 'pending' %}active{% endif %}" href="{{ url_for('tasks.repair_requests', status='pending') }}">Pending</a>
+                    <a class="dropdown-item {% if status_filter == 'approved' %}active{% endif %}" href="{{ url_for('tasks.repair_requests', status='approved') }}">Approved</a>
+                    <a class="dropdown-item {% if status_filter == 'rejected' %}active{% endif %}" href="{{ url_for('tasks.repair_requests', status='rejected') }}">Rejected</a>
+                    <a class="dropdown-item {% if status_filter == 'converted' %}active{% endif %}" href="{{ url_for('tasks.repair_requests', status='converted_to_task') }}">Converted to Tasks</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if repair_requests %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0">{{ repair_requests|length }} Repair Request{% if repair_requests|length != 1 %}s{% endif %}</h5>
+                        </div>
+                        <div class="col-md-6 text-md-right">
+                            <span class="text-muted">
+                                {% if status_filter != 'all' %}
+                                Showing: <span class="badge badge-secondary">{{ status_filter|capitalize }}</span>
+                                {% else %}
+                                Showing: <span class="badge badge-secondary">All</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for request in repair_requests %}
+                    <div class="list-group-item">
+                        <div class="row align-items-center">
+                            <div class="col-md-7">
+                                <h5 class="mb-1">
+                                    <a href="{{ url_for('tasks.view_repair_request', id=request.id) }}">{{ request.title }}</a>
+                                    {% if request.status.value == 'pending' %}
+                                    <span class="badge badge-warning">Pending</span>
+                                    {% elif request.status.value == 'approved' %}
+                                    <span class="badge badge-success">Approved</span>
+                                    {% elif request.status.value == 'rejected' %}
+                                    <span class="badge badge-danger">Rejected</span>
+                                    {% elif request.status.value == 'converted_to_task' %}
+                                    <span class="badge badge-info">Converted to Task</span>
+                                    {% endif %}
+                                    
+                                    {% if request.severity.value == 'urgent' %}
+                                    <span class="badge badge-danger">Urgent</span>
+                                    {% elif request.severity.value == 'high' %}
+                                    <span class="badge badge-warning">High</span>
+                                    {% elif request.severity.value == 'medium' %}
+                                    <span class="badge badge-info">Medium</span>
+                                    {% elif request.severity.value == 'low' %}
+                                    <span class="badge badge-secondary">Low</span>
+                                    {% endif %}
+                                </h5>
+                                <p class="mb-1">
+                                    <strong>Property:</strong> {{ request.property.name }}<br>
+                                    <strong>Location:</strong> {{ request.location }}<br>
+                                    <strong>Reported by:</strong> {{ request.reporter.get_full_name() }} on {{ request.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                </p>
+                            </div>
+                            <div class="col-md-5 text-md-right">
+                                <div class="btn-group">
+                                    <a href="{{ url_for('tasks.view_repair_request', id=request.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye mr-1"></i> View
+                                    </a>
+                                    
+                                    {% if request.status.value == 'pending' and current_user.is_property_owner() %}
+                                    <a href="{{ url_for('tasks.convert_to_task', id=request.id) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-exchange-alt mr-1"></i> Convert to Task
+                                    </a>
+                                    
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-cog mr-1"></i> Actions
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-right">
+                                            <form action="{{ url_for('tasks.approve_repair_request', id=request.id) }}" method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="dropdown-item text-success">
+                                                    <i class="fas fa-check mr-1"></i> Approve
+                                                </button>
+                                            </form>
+                                            <form action="{{ url_for('tasks.reject_repair_request', id=request.id) }}" method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="fas fa-times mr-1"></i> Reject
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if request.status.value == 'converted_to_task' and request.task_id %}
+                                    <a href="{{ url_for('tasks.view', id=request.task_id) }}" class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-tasks mr-1"></i> View Task
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-tools fa-4x text-muted mb-3"></i>
+                    <h3>No repair requests found</h3>
+                    {% if status_filter != 'all' %}
+                    <p class="text-muted">There are no repair requests with status: {{ status_filter|capitalize }}</p>
+                    <a href="{{ url_for('tasks.repair_requests', status='all') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-filter mr-1"></i> Show All Requests
+                    </a>
+                    {% else %}
+                    <p class="text-muted">No repair requests have been submitted yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

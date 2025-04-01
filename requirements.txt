@@ -1,0 +1,29 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Flask-WTF
+Flask-Mail
+Flask-Migrate
+Werkzeug
+python-dotenv
+email-validator
+WTForms
+WTForms-SQLAlchemy
+psycopg2-binary
+Pillow
+requests
+icalendar>=4.1.0
+python-dateutil>=2.8.2
+pytz
+gunicorn
+boto3
+python-magic
+twilio
+# For barcode scanning functionality, we use QuaggaJS (client-side JavaScript library)
+# No additional Python package required as it's loaded via CDN
+pandas
+numpy
+matplotlib
+seaborn
+scipy
+scikit-learn

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">
+                        {% if item %}Edit{% else %}Add{% endif %} Property Inventory Item
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading">Adding from the Global Catalog</h5>
+                        <p>You're adding an inventory item to <strong>{{ property.name }}</strong> from the global catalog. 
+                        Select an item from the catalog, then specify the quantity and storage location specific to this property.</p>
+                    </div>
+                    
+                    <form method="post" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-group mb-3">
+                            {{ form.catalog_item_id.label(class="form-label") }}
+                            {{ form.catalog_item_id(class="form-select" + (" is-invalid" if form.catalog_item_id.errors else "")) }}
+                            {% for error in form.catalog_item_id.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">
+                                Select an item from the global catalog. Can't find what you need?
+                                {% if is_property_owner %}
+                                <a href="{{ url_for('inventory.add_catalog_item', next=request.path) }}">Add new catalog item</a> first.
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.current_quantity.label(class="form-label") }}
+                                    {{ form.current_quantity(class="form-control" + (" is-invalid" if form.current_quantity.errors else ""), type="number", step="0.01") }}
+                                    {% for error in form.current_quantity.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.storage_location.label(class="form-label") }}
+                                    {{ form.storage_location(class="form-control" + (" is-invalid" if form.storage_location.errors else ""), placeholder="e.g., Kitchen cabinet, Utility closet") }}
+                                    {% for error in form.storage_location.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.reorder_threshold.label(class="form-label") }}
+                            {{ form.reorder_threshold(class="form-control" + (" is-invalid" if form.reorder_threshold.errors else ""), type="number", step="0.01", placeholder="Quantity to trigger low stock alert") }}
+                            {% for error in form.reorder_threshold.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">When inventory falls below this level, you'll receive a notification.</small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

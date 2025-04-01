@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Financial Reports</h1>
+        <a href="{{ url_for('invoicing.invoices') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Invoices
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Report Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('invoicing.financial_reports') }}">
+                {{ form.hidden_tag() }}
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            {{ form.report_type.label }}
+                            {{ form.report_type(class="form-control", id="report-type") }}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2 year-field">
+                        <div class="form-group">
+                            {{ form.year.label }}
+                            {{ form.year(class="form-control") }}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2 month-field">
+                        <div class="form-group">
+                            {{ form.month.label }}
+                            {{ form.month(class="form-control") }}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2 week-field">
+                        <div class="form-group">
+                            {{ form.week.label }}
+                            {{ form.week(class="form-control") }}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2 date-from-field">
+                        <div class="form-group">
+                            {{ form.date_from.label }}
+                            {{ form.date_from(class="form-control", type="date") }}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2 date-to-field">
+                        <div class="form-group">
+                            {{ form.date_to.label }}
+                            {{ form.date_to(class="form-control", type="date") }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            {{ form.property.label }}
+                            {{ form.property(class="form-control") }}
+                        </div>
+                    </div>
+                    
+                    {% if current_user.is_admin() or current_user.is_property_owner() or current_user.is_property_manager() %}
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            {{ form.service_provider.label }}
+                            {{ form.service_provider(class="form-control") }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <div class="d-block">
+                                {{ form.submit(class="btn btn-primary") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if report_data %}
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5>
+                    Report Results 
+                    {% if date_from and date_to %}
+                    <small class="text-muted">
+                        ({{ date_from.strftime('%b %d, %Y') }} - {{ date_to.strftime('%b %d, %Y') }})
+                    </small>
+                    {% endif %}
+                </h5>
+                <h5>Total Earnings: <span class="text-success">${{ "%.2f"|format(total_earnings) }}</span></h5>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Property</th>
+                            <th>Date Paid</th>
+                            <th>Items</th>
+                            <th>Amount</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in report_data %}
+                        <tr>
+                            <td>{{ entry.invoice.invoice_number }}</td>
+                            <td>{{ entry.invoice.property.name }}</td>
+                            <td>{{ entry.invoice.paid_date.strftime('%b %d, %Y') }}</td>
+                            <td>
+                                <ul class="list-unstyled">
+                                    {% for item in entry.items %}
+                                    <li>{{ item.description }} - ${{ "%.2f"|format(item.amount) }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>${{ "%.2f"|format(entry.total) }}</td>
+                            <td>
+                                <a href="{{ url_for('invoicing.view_invoice', id=entry.invoice.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% elif request.method == 'POST' %}
+    <div class="alert alert-info">
+        No invoices found for the selected criteria.
+    </div>
+    {% endif %}
+</div>
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Show/hide fields based on report type
+        function updateFields() {
+            var reportType = $('#report-type').val();
+            
+            // Hide all fields first
+            $('.year-field, .month-field, .week-field, .date-from-field, .date-to-field').hide();
+            
+            // Show relevant fields based on report type
+            if (reportType === 'weekly') {
+                $('.year-field, .week-field').show();
+            } else if (reportType === 'monthly') {
+                $('.year-field, .month-field').show();
+            } else if (reportType === 'annual') {
+                $('.year-field').show();
+            } else if (reportType === 'custom') {
+                $('.date-from-field, .date-to-field').show();
+            }
+        }
+        
+        // Initial update
+        updateFields();
+        
+        // Update on change
+        $('#report-type').change(updateFields);
+    });
+</script>
+{% endblock %}
+{% endblock %}

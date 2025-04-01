@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+<style>
+    /* Calendar Layout Enhancements */
+    #calendar {
+        height: 800px; /* Taller calendar */
+        margin-bottom: 30px;
+    }
+    
+    /* Make cells more square-like */
+    .fc-daygrid-day {
+        min-height: 120px !important;
+        height: auto !important;
+    }
+    
+    /* Improve day cell appearance */
+    .fc .fc-daygrid-day-frame {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Make day number more prominent */
+    .fc .fc-daygrid-day-top {
+        display: flex;
+        flex-direction: row-reverse;
+        font-weight: bold;
+        font-size: 1.2em;
+        padding: 4px;
+        align-items: flex-start;
+    }
+    
+    /* Better event styling */
+    .fc-event {
+        cursor: pointer;
+        margin: 1px 2px;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        line-height: 1.3;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    
+    /* Better hover effect */
+    .fc-event:hover {
+        opacity: 0.9;
+        transform: scale(1.02);
+        transition: all 0.1s ease;
+        z-index: 10;
+    }
+    
+    /* Event source colors with better contrast */
+    .airbnb-event {
+        background-color: #FF5A5F;
+        border-color: #FF5A5F;
+        color: white;
+        border-left: 4px solid #cc4146;
+    }
+    
+    .vrbo-event {
+        background-color: #3D67FF;
+        border-color: #3D67FF;
+        color: white;
+        border-left: 4px solid #2c4bc7;
+    }
+    
+    .booking-event {
+        background-color: #003580;
+        border-color: #003580;
+        color: white; 
+        border-left: 4px solid #002254;
+    }
+    
+    .other-event {
+        background-color: #767676;
+        border-color: #767676;
+        color: white;
+        border-left: 4px solid #5a5a5a;
+    }
+    
+    /* Room indicator styling */
+    .room-tag {
+        font-size: 0.8em;
+        font-style: italic;
+        margin-top: 2px;
+        display: block;
+    }
+    
+    /* Calendar legend styling */
+    .calendar-key {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 1.5rem;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 8px;
+    }
+    
+    .calendar-key-item {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        background-color: rgba(0,0,0,0.03);
+        border-radius: 5px;
+    }
+    
+    .color-box {
+        width: 18px;
+        height: 18px;
+        display: inline-block;
+        margin-right: 8px;
+        border-radius: 3px;
+    }
+    
+    /* Month/week view toggle buttons */
+    .fc .fc-button-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+    
+    .fc .fc-button-primary:not(:disabled):active,
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+    
+    /* Today highlight */
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: rgba(0, 123, 255, 0.15);
+    }
+    
+    /* Weekend days */
+    .fc-day-sat, .fc-day-sun {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        #calendar {
+            height: auto;
+            min-height: 600px;
+        }
+        
+        .fc-daygrid-day {
+            min-height: 80px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Calendar for {{ property.name }}</h4>
+                    <div>
+                        <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-sm btn-outline-secondary">Back to Property</a>
+                        <a href="{{ url_for('property.manage_calendars', id=property.id) }}" class="btn btn-sm btn-outline-primary">Manage Calendars</a>
+                        {% if property.owner_id == current_user.id %}
+                        <a href="{{ url_for('property.add_calendar', id=property.id) }}" class="btn btn-sm btn-primary">Add Calendar</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if calendars %}
+                        <!-- Calendar source indicators -->
+                        <div class="calendar-key mb-3">
+                            {% for calendar in calendars %}
+                            <div class="calendar-key-item">
+                                <span class="color-box {{ calendar.service|lower }}-event"></span>
+                                <span>{{ calendar.get_service_display() }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Sync status -->
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                {% set synced_recently = false %}
+                                {% for calendar in calendars %}
+                                    {% if calendar.is_synced_recently() %}
+                                        {% set synced_recently = true %}
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if synced_recently %}
+                                    <span class="text-success">
+                                        <i class="fas fa-sync-alt"></i> Calendars synced in the last 24 hours
+                                    </span>
+                                {% else %}
+                                    <span class="text-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> Calendars might be out of date. Consider refreshing from Manage Calendars.
+                                    </span>
+                                {% endif %}
+                            </small>
+                        </div>
+
+                        <div id="calendar"></div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <h5>No calendars added yet</h5>
+                            <p>You haven't added any calendars to this property yet.</p>
+                            {% if property.owner_id == current_user.id %}
+                                <a href="{{ url_for('property.add_calendar', id=property.id) }}" class="btn btn-primary">Add a Calendar</a>
+                                <div class="mt-3">
+                                    <h6>How to find your iCalendar URL:</h6>
+                                    <div class="row mt-2">
+                                        <div class="col-md-4">
+                                            <div class="card h-100">
+                                                <div class="card-header bg-danger text-white">Airbnb</div>
+                                                <div class="card-body">
+                                                    <ol class="ps-3 small">
+                                                        <li>Go to your Airbnb account</li>
+                                                        <li>Go to Calendar > Availability settings</li>
+                                                        <li>Look for "iCal Export"</li>
+                                                        <li>Copy the URL</li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card h-100">
+                                                <div class="card-header bg-primary text-white">VRBO</div>
+                                                <div class="card-body">
+                                                    <ol class="ps-3 small">
+                                                        <li>Log in to your VRBO dashboard</li>
+                                                        <li>Go to Calendar</li>
+                                                        <li>Find "Sync calendars" or "Export calendar"</li>
+                                                        <li>Copy the iCal link</li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card h-100">
+                                                <div class="card-header bg-info text-white">Booking.com</div>
+                                                <div class="card-body">
+                                                    <ol class="ps-3 small">
+                                                        <li>Log in to your Booking.com extranet</li>
+                                                        <li>Go to Rates & Availability > Calendar</li>
+                                                        <li>Look for "iCal export"</li>
+                                                        <li>Copy the link</li>
+                                                    </ol>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalLabel">Booking Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Dates:</strong>
+                    <span id="eventDates"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Service:</strong>
+                    <span id="eventService"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Room:</strong>
+                    <span id="eventRoom"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Debug - Log to console if there are any calendars
+    console.log("Calendars:", {% if calendars %}{{ calendars|length }}{% else %}0{% endif %});
+    
+    // Debug - Log events data availability and count
+    var eventsData = {{ events|tojson|safe }};
+    console.log("Events data available:", (eventsData && Array.isArray(eventsData)));
+    console.log("Number of events:", eventsData ? eventsData.length : 0);
+    
+    try {
+        // Get calendar element
+        var calendarEl = document.getElementById('calendar');
+        
+        if (!calendarEl) {
+            console.error("Calendar element not found!");
+            return;
+        }
+        
+        // Initialize FullCalendar
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek'
+            },
+            height: 'auto', // Let the container control height
+            aspectRatio: 1.35, // More square-like aspect ratio
+            dayMaxEvents: false, // Allow "more" link when too many events
+            events: eventsData || [],
+            eventTimeFormat: {
+                hour: 'numeric',
+                minute: '2-digit',
+                meridiem: 'short'
+            },
+            eventDisplay: 'block', // Makes events more visible
+            displayEventEnd: true,
+            eventDidMount: function(info) {
+                // Add room info to event element if available
+                if (info.event.extendedProps && info.event.extendedProps.room) {
+                    var roomElement = document.createElement('div');
+                    roomElement.className = 'room-tag';
+                    roomElement.innerText = info.event.extendedProps.room;
+                    info.el.appendChild(roomElement);
+                }
+            },
+            eventClick: function(info) {
+                try {
+                    // Get event data
+                    var event = info.event;
+                    var title = event.title || 'Booking';
+                    var startDate = event.start ? formatDate(event.start) : 'Unknown';
+                    var endDate = event.end ? formatDate(event.end) : 'Unknown';
+                    
+                    // Get extended props safely
+                    var extendedProps = event.extendedProps || {};
+                    var service = extendedProps.service || 'Unknown';
+                    var room = extendedProps.room || 'Entire Property';
+                    
+                    // Update modal content
+                    document.getElementById('eventModalLabel').textContent = title;
+                    document.getElementById('eventDates').textContent = startDate + ' to ' + endDate;
+                    document.getElementById('eventService').textContent = service;
+                    document.getElementById('eventRoom').textContent = room;
+                    
+                    // Show modal
+                    var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+                    eventModal.show();
+                } catch (err) {
+                    console.error("Error showing event details:", err);
+                    alert("Could not display event details due to an error.");
+                }
+            }
+        });
+        
+        calendar.render();
+        console.log("Calendar successfully rendered");
+    } catch (err) {
+        console.error("Error initializing calendar:", err);
+        document.getElementById('calendar').innerHTML = '<div class="alert alert-danger">An error occurred while loading the calendar. Please try refreshing the page.</div>';
+    }
+    
+    // Date formatting helper function
+    function formatDate(date) {
+        try {
+            if (!date) return 'Unknown';
+            
+            var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString(undefined, options);
+        } catch (err) {
+            console.error("Error formatting date:", err);
+            return 'Unknown date';
+        }
+    }
+});
+</script>
+{% endblock %} 

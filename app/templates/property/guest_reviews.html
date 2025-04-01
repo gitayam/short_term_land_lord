@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ title }}</h1>
+        <div>
+            <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Property
+            </a>
+            <a href="{{ url_for('property.add_guest_review', id=property.id) }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Guest Review
+            </a>
+        </div>
+    </div>
+
+    {% if reviews %}
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Guest Reviews</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Guest</th>
+                                <th>Stay Period</th>
+                                <th>Rating</th>
+                                <th>Comments</th>
+                                <th>Added By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for review in reviews %}
+                            <tr>
+                                <td>{{ review.guest_name }}</td>
+                                <td>{{ review.check_in_date.strftime('%b %d, %Y') }} - {{ review.check_out_date.strftime('%b %d, %Y') }}</td>
+                                <td>
+                                    {% if review.rating.value == 'good' %}
+                                        <span class="badge bg-success">👍 Good</span>
+                                    {% elif review.rating.value == 'ok' %}
+                                        <span class="badge bg-warning text-dark">👌 OK</span>
+                                    {% elif review.rating.value == 'bad' %}
+                                        <span class="badge bg-danger">👎 Bad</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if review.comments %}
+                                        {{ review.comments|truncate(100) }}
+                                    {% else %}
+                                        <em class="text-muted">No comments</em>
+                                    {% endif %}
+                                </td>
+                                <td>{{ review.creator.get_full_name() }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('property.edit_guest_review', review_id=review.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal{{ review.id }}">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Delete Confirmation Modal -->
+                                    <div class="modal fade" id="deleteModal{{ review.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ review.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="deleteModalLabel{{ review.id }}">Confirm Delete</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Are you sure you want to delete the review for {{ review.guest_name }}?
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <form action="{{ url_for('property.delete_guest_review', review_id=review.id) }}" method="post">
+                                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No guest reviews have been added for this property yet.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

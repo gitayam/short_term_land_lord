@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Mark Invoice as Paid: {{ invoice.invoice_number }}</h1>
+        <a href="{{ url_for('invoicing.view_invoice', id=invoice.id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Invoice
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Payment Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('invoicing.mark_invoice_paid', id=invoice.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-group">
+                            {{ form.payment_date.label }}
+                            {{ form.payment_date(class="form-control", type="date") }}
+                            {% for error in form.payment_date.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.payment_notes.label }}
+                            {{ form.payment_notes(class="form-control", rows=3) }}
+                            {% for error in form.payment_notes.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                            <small class="form-text text-muted">
+                                Optional notes about the payment (e.g., payment method, reference number).
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mt-4">
+                            {{ form.submit(class="btn btn-success") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Invoice Summary</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Invoice #:</strong> {{ invoice.invoice_number }}</p>
+                    <p><strong>Property:</strong> {{ invoice.property.name }}</p>
+                    <p><strong>Status:</strong> 
+                        {% if invoice.status.value == 'draft' %}
+                        <span class="badge badge-secondary">Draft</span>
+                        {% elif invoice.status.value == 'sent' %}
+                        <span class="badge badge-primary">Sent</span>
+                        {% elif invoice.status.value == 'paid' %}
+                        <span class="badge badge-success">Paid</span>
+                        {% elif invoice.status.value == 'overdue' %}
+                        <span class="badge badge-danger">Overdue</span>
+                        {% elif invoice.status.value == 'cancelled' %}
+                        <span class="badge badge-dark">Cancelled</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Total:</strong> ${{ "%.2f"|format(invoice.total) }}</p>
+                    {% if invoice.due_date %}
+                    <p><strong>Due Date:</strong> {{ invoice.due_date.strftime('%b %d, %Y') }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

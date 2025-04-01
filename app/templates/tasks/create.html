@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{% if from_template %}Create Task from Template{% else %}Create New Task{% endif %}</h1>
+        <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary">Back to Tasks</a>
+    </div>
+    
+    {% if task_templates and not from_template %}
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Suggested Templates</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for template in task_templates %}
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ template.title }}</h5>
+                            {% if template.category %}
+                            <span class="badge bg-secondary mb-2">{{ template.category }}</span>
+                            {% endif %}
+                            <p class="card-text small">{{ template.description|truncate(100) }}</p>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{{ url_for('tasks.apply_template', template_id=template.id) }}" class="btn btn-sm btn-primary">Use Template</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post" action="{% if from_template %}{{ url_for('tasks.apply_template', template_id=template.id) }}{% else %}{{ url_for('tasks.create') }}{% endif %}">
+                {{ form.hidden_tag() }}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control") }}
+                            {% for error in form.title.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.due_date.label(class="form-label") }}
+                            {{ form.due_date(class="form-control", type="datetime-local") }}
+                            {% for error in form.due_date.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.status.label(class="form-label") }}
+                            {{ form.status(class="form-control") }}
+                            {% for error in form.status.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.priority.label(class="form-label") }}
+                            {{ form.priority(class="form-control") }}
+                            {% for error in form.priority.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.properties.label(class="form-label") }}
+                    {{ form.properties(class="form-control") }}
+                    {% for error in form.properties.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                    <small class="form-text text-muted">Optional. Hold Ctrl/Cmd to select multiple properties</small>
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-control", rows=3) }}
+                    {% for error in form.description.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.notes.label(class="form-label") }}
+                    {{ form.notes(class="form-control", rows=2) }}
+                    {% for error in form.notes.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <div class="form-check">
+                            {{ form.is_recurring(class="form-check-input") }}
+                            {{ form.is_recurring.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                    <div class="card-body" id="recurrence-options">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    {{ form.recurrence_pattern.label(class="form-label") }}
+                                    {{ form.recurrence_pattern(class="form-control") }}
+                                    <small class="form-text text-muted">
+                                        <ul class="mt-2 ps-3">
+                                            <li><strong>None</strong>: Task occurs once</li>
+                                            <li><strong>Daily</strong>: Task repeats every day</li>
+                                            <li><strong>Weekly</strong>: Task repeats every week</li>
+                                            <li><strong>Monthly</strong>: Task repeats every month</li>
+                                            <li><strong>Custom</strong>: Use for specialized recurrence</li>
+                                            <li><strong>Every Cleaning</strong>: Task applies to every cleaning session</li>
+                                            <li><strong>Weekly Cleaning</strong>: Task recurs weekly if there's a cleaning scheduled</li>
+                                            <li><strong>Monthly Cleaning</strong>: Task recurs monthly if there's a cleaning scheduled</li>
+                                        </ul>
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    {{ form.recurrence_interval.label(class="form-label") }}
+                                    {{ form.recurrence_interval(class="form-control", min=1) }}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    {{ form.recurrence_end_date.label(class="form-label") }}
+                                    {{ form.recurrence_end_date(class="form-control", type="date") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <div class="form-check">
+                            {{ form.linked_to_checkout(class="form-check-input") }}
+                            {{ form.linked_to_checkout.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                    <div class="card-body" id="calendar-options">
+                        <div class="form-group">
+                            {{ form.calendar_id.label(class="form-label") }}
+                            {{ form.calendar_id(class="form-control") }}
+                            <small class="form-text text-muted">Tasks will be automatically created after guest checkouts</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Assignment Options</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            {{ form.assign_to_next_cleaner(class="form-check-input") }}
+                            {{ form.assign_to_next_cleaner.label(class="form-check-label") }}
+                            <small class="form-text text-muted d-block">
+                                When enabled, this task will be automatically assigned to the next cleaner who starts a cleaning session for this property.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">{{ form.submit.label }}</button>
+                    <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    // Toggle visibility of recurrence options
+    document.addEventListener('DOMContentLoaded', function() {
+        const isRecurringCheckbox = document.getElementById('is_recurring');
+        const recurrenceOptions = document.getElementById('recurrence-options');
+        
+        function toggleRecurrenceOptions() {
+            recurrenceOptions.style.display = isRecurringCheckbox.checked ? 'block' : 'none';
+        }
+        
+        // Initial state
+        toggleRecurrenceOptions();
+        
+        // Listen for changes
+        isRecurringCheckbox.addEventListener('change', toggleRecurrenceOptions);
+        
+        // Calendar options toggle
+        const linkedToCheckoutCheckbox = document.getElementById('linked_to_checkout');
+        const calendarOptions = document.getElementById('calendar-options');
+        
+        function toggleCalendarOptions() {
+            calendarOptions.style.display = linkedToCheckoutCheckbox.checked ? 'block' : 'none';
+        }
+        
+        // Initial state
+        toggleCalendarOptions();
+        
+        // Listen for changes
+        linkedToCheckoutCheckbox.addEventListener('change', toggleCalendarOptions);
+    });
+</script>
+{% endblock %}
+{% endblock %}

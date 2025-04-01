@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Assign Properties to Worker</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.worker.label(class="form-label") }}
+                            {{ form.worker(class="form-select") }}
+                            {% for error in form.worker.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.service_type.label(class="form-label") }}
+                            {{ form.service_type(class="form-select") }}
+                            {% for error in form.service_type.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">The type of service this worker will provide for the selected properties.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.properties.label(class="form-label") }}
+                            {{ form.properties(class="form-select", multiple=true, size=10) }}
+                            {% for error in form.properties.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">Hold Ctrl (or Cmd on Mac) to select multiple properties.</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            {{ form.submit(class="btn btn-primary") }}
+                            <a href="{{ url_for('workforce.index') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

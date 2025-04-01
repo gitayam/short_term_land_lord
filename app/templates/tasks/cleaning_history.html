@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Cleaning History</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Your Cleaning Sessions</h5>
+        </div>
+        <div class="card-body">
+            {% if sessions %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Property</th>
+                                <th>Task</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                            <tr>
+                                <td>{{ session.start_time.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <a href="{{ url_for('property.view', id=session.property.id) }}">
+                                        {{ session.property.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if session.task %}
+                                    <a href="{{ url_for('tasks.view', id=session.task.id) }}">
+                                        {{ session.task.title }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">No task</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ session.start_time.strftime('%H:%M') }}</td>
+                                <td>
+                                    {% if session.end_time %}
+                                        {{ session.end_time.strftime('%H:%M') }}
+                                    {% else %}
+                                        <span class="badge bg-primary">In Progress</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if session.duration_minutes %}
+                                        {{ session.get_duration_display() }}
+                                    {% elif not session.end_time %}
+                                        <span class="badge bg-primary">In Progress</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Summary</h6>
+                    <p>
+                        Total completed sessions: {{ sessions|selectattr('end_time')|list|length }}
+                        <br>
+                        {% set total_minutes = sessions|selectattr('duration_minutes')|sum(attribute='duration_minutes') %}
+                        {% set hours = (total_minutes // 60) %}
+                        {% set minutes = (total_minutes % 60) %}
+                        Total cleaning time: {{ hours }} hour{% if hours != 1 %}s{% endif %} {{ minutes }} minute{% if minutes != 1 %}s{% endif %}
+                    </p>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    You don't have any cleaning sessions yet.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mb-4">
+        <a href="{{ url_for('tasks.index') }}" class="btn btn-secondary">Back to Tasks</a>
+    </div>
+</div>
+{% endblock %}

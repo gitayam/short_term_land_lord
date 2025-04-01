@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Sign In</h4>
+            </div>
+            <div class="card-body">
+                {% if use_local %}
+                <form method="post" action="{{ url_for('auth.login') }}" novalidate>
+                    {{ local_form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ local_form.email.label(class="form-label") }}
+                        {{ local_form.email(class="form-control") }}
+                        {% for error in local_form.email.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ local_form.password.label(class="form-label") }}
+                        {{ local_form.password(class="form-control") }}
+                        {% for error in local_form.password.errors %}
+                        <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3 form-check">
+                        {{ local_form.remember_me(class="form-check-input") }}
+                        {{ local_form.remember_me.label(class="form-check-label") }}
+                    </div>
+                    <div class="d-grid">
+                        {{ local_form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+                {% endif %}
+                
+                {% if use_sso %}
+                    {% if use_local %}
+                    <div class="my-3 text-center">
+                        <hr>
+                        <span class="bg-white px-2 text-muted">OR</span>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" action="{{ url_for('auth.login') }}" novalidate>
+                        {{ sso_form.hidden_tag() }}
+                        <div class="d-grid">
+                            {{ sso_form.submit(class="btn btn-secondary") }}
+                        </div>
+                    </form>
+                {% endif %}
+                
+                <div class="mt-3 text-center">
+                    <p>
+                        <a href="{{ url_for('auth.reset_password_request') }}">Forgot your password?</a>
+                    </p>
+                    <p>
+                        New user? <a href="{{ url_for('auth.register') }}">Click to Register</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

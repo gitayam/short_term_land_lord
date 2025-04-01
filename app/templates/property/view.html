@@ -1,0 +1,1005 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">{{ property.name }}</h4>
+                <div>
+                    <a href="{{ url_for('property.edit', id=property.id) }}" class="btn btn-sm btn-primary">Edit Property</a>
+                    <a href="{{ url_for('property.manage_images', id=property.id) }}" class="btn btn-sm btn-outline-primary">Manage Images</a>
+                    <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-sm btn-outline-info">View Calendar</a>
+                    <a href="{{ url_for('property.manage_guest_access', id=property.id) }}" class="btn btn-sm btn-outline-success">Guest Access</a>
+                    <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-sm btn-outline-success">Manage Inventory</a>
+                    <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-sm btn-outline-warning">View Tasks</a>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                {% if property.images.count() > 0 %}
+                <div id="propertyCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        {% for image in property.images %}
+                        <div class="carousel-item {% if loop.first %}active{% endif %}">
+                            <img src="{{ image.image_path }}" class="d-block w-100" alt="{{ image.caption or property.name }}">
+                            {% if image.caption %}
+                            <div class="carousel-caption d-none d-md-block">
+                                <p>{{ image.caption }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if property.images.count() > 1 %}
+                    <button class="carousel-control-prev" type="button" data-bs-target="#propertyCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#propertyCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-4">
+                    No images have been added for this property.
+                    <a href="{{ url_for('property.manage_images', id=property.id) }}">Add images</a>
+                </div>
+                {% endif %}
+                
+                <h5>Description</h5>
+                <p>{{ property.description or 'No description provided.' }}</p>
+                
+                <h5 class="mt-4">Property Details</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Property Type:</th>
+                                    <td>{{ property.property_type|title if property.property_type else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Bedrooms:</th>
+                                    <td>{{ property.bedrooms if property.bedrooms is not none else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Bathrooms:</th>
+                                    <td>{{ property.bathrooms if property.bathrooms is not none else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Square Feet:</th>
+                                    <td>{{ property.square_feet if property.square_feet is not none else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Year Built:</th>
+                                    <td>{{ property.year_built if property.year_built is not none else 'Not specified' }}</td>
+                                </tr>
+                                {% if property.checkin_time or property.checkout_time %}
+                                <tr>
+                                    <th>Check-in Time:</th>
+                                    <td>{{ property.checkin_time if property.checkin_time else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Check-out Time:</th>
+                                    <td>{{ property.checkout_time if property.checkout_time else 'Not specified' }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if property.trash_day or property.recycling_day %}
+                                <tr>
+                                    <th>Trash Day:</th>
+                                    <td>{{ property.trash_day|title if property.trash_day else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Recycling Day:</th>
+                                    <td>{{ property.recycling_day|title if property.recycling_day else 'Not specified' }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Address</h6>
+                        <address>
+                            {{ property.street_address }}<br>
+                            {{ property.city }}, {{ property.state }} {{ property.zip_code }}<br>
+                            {{ property.country }}
+                        </address>
+                        
+                        <div class="mt-2 mb-3">
+                            <div class="d-flex gap-2">
+                                <a href="https://www.google.com/maps/search/?api=1&query={{ property.get_full_address()|urlencode }}" 
+                                   class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+                                   <i class="bi bi-geo-alt-fill"></i> Google Maps
+                                </a>
+                                <a href="https://maps.apple.com/?q={{ property.get_full_address()|urlencode }}" 
+                                   class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
+                                   <i class="bi bi-apple"></i> Apple Maps
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if current_user.is_cleaner() or current_user.id == property.owner_id %}
+                <h5 class="mt-4">Cleaner Information</h5>
+                <div class="card card-body bg-light mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Bed & Bath Details</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Total Beds:</th>
+                                        <td>{{ property.total_beds if property.total_beds is not none else 'Not specified' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Bed Sizes:</th>
+                                        <td>{{ property.bed_sizes or 'Not specified' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>TVs:</th>
+                                        <td>{{ property.number_of_tvs if property.number_of_tvs is not none else 'Not specified' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Showers:</th>
+                                        <td>{{ property.number_of_showers if property.number_of_showers is not none else 'Not specified' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Bathtubs:</th>
+                                        <td>{{ property.number_of_tubs if property.number_of_tubs is not none else 'Not specified' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Access Information</h6>
+                            <div class="mb-3">
+                                <strong>WiFi Network:</strong> 
+                                <span>{{ property.wifi_network or 'Not specified' }}</span>
+                            </div>
+                            <div class="mb-3">
+                                <strong>WiFi Password:</strong> 
+                                <span>{{ property.wifi_password or 'Not specified' }}</span>
+                            </div>
+                            
+                            {% if property.wifi_network and property.wifi_password %}
+                            <div class="mb-3">
+                                <strong>WiFi QR Code:</strong>
+                                <div id="wifi-qrcode" class="mt-2" style="width: 150px; height: 150px;"></div>
+                                <p class="small text-muted mt-1">Scan with your phone camera to connect to WiFi</p>
+                            </div>
+                            {% endif %}
+                            
+                            <div>
+                                <strong>Entry Instructions:</strong>
+                                <p class="small mb-0">{{ property.entry_instructions or 'Not specified' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6>Cleaning Supplies Location</h6>
+                        <p class="mb-3">{{ property.cleaning_supplies_location or 'Not specified' }}</p>
+                        
+                        <h6>Special Instructions</h6>
+                        <p class="mb-0">{{ property.special_instructions or 'No special instructions provided.' }}</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6>🏠 Room Details</h6>
+                        <div class="mb-2">
+                            <a href="{{ url_for('property.edit', id=property.id) }}#rooms-section" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-plus"></i> Add/Edit Rooms
+                            </a>
+                        </div>
+                        {% if property.rooms.count() > 0 %}
+                            <div class="accordion" id="roomsAccordion">
+                                {% for room in property.rooms %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="room-heading-{{ room.id }}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                data-bs-target="#room-collapse-{{ room.id }}" aria-expanded="false" 
+                                                aria-controls="room-collapse-{{ room.id }}">
+                                            {% if room.room_type == 'bedroom' %}🛏️
+                                            {% elif room.room_type == 'bathroom' %}🚿
+                                            {% elif room.room_type == 'living_room' %}🛋️
+                                            {% elif room.room_type == 'kitchen' %}🍳
+                                            {% elif room.room_type == 'dining_room' %}🍽️
+                                            {% elif room.room_type == 'office' %}💼
+                                            {% else %}📦
+                                            {% endif %}
+                                            {{ room.name }} ({{ room.room_type|replace('_', ' ')|title }})
+                                        </button>
+                                    </h2>
+                                    <div id="room-collapse-{{ room.id }}" class="accordion-collapse collapse" 
+                                         aria-labelledby="room-heading-{{ room.id }}" data-bs-parent="#roomsAccordion">
+                                        <div class="accordion-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <p><strong>Room Type:</strong> 
+                                                        {% if room.room_type == 'bedroom' %}🛏️ Bedroom
+                                                        {% elif room.room_type == 'bathroom' %}🚿 Bathroom
+                                                        {% elif room.room_type == 'living_room' %}🛋️ Living Room
+                                                        {% elif room.room_type == 'kitchen' %}🍳 Kitchen
+                                                        {% elif room.room_type == 'dining_room' %}🍽️ Dining Room
+                                                        {% elif room.room_type == 'office' %}💼 Office
+                                                        {% else %}📦 {{ room.room_type|title }}
+                                                        {% endif %}
+                                                    </p>
+                                                    {% if room.square_feet %}
+                                                    <p><strong>Size:</strong> 📏 {{ room.square_feet }} sq ft</p>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="col-md-6">
+                                                    {% if room.room_type == 'bedroom' and room.bed_type %}
+                                                    <p>
+                                                        <strong>Bed Type:</strong> 
+                                                        {% if room.bed_type == 'king' %}👑 King
+                                                        {% elif room.bed_type == 'queen' %}👸 Queen
+                                                        {% elif room.bed_type == 'full' %}🛌 Full/Double
+                                                        {% elif room.bed_type == 'twin' %}🛏️ Twin
+                                                        {% elif room.bed_type == 'bunk' %}🏗️ Bunk Bed
+                                                        {% elif room.bed_type == 'sofa' %}🛋️ Sofa Bed
+                                                        {% elif room.bed_type == 'air' %}💨 Air Mattress
+                                                        {% elif room.bed_type == 'crib' %}👶 Crib
+                                                        {% else %}🛏️ {{ room.bed_type|title }}
+                                                        {% endif %}
+                                                    </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if room.has_tv %}
+                                                    <p>
+                                                        <strong>TV:</strong> 📺 Yes
+                                                        {% if room.tv_details %} ({{ room.tv_details }}){% endif %}
+                                                    </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if room.has_bathroom %}
+                                                    <p>
+                                                        <strong>Private Bathroom:</strong> 🚿 Yes
+                                                    </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if room.room_type == 'bathroom' %}
+                                                    <p>
+                                                        <strong>Facilities:</strong>
+                                                        {% if room.has_shower %}🚿 Shower{% endif %}
+                                                        {% if room.has_shower and room.has_tub %}, {% endif %}
+                                                        {% if room.has_tub %}🛁 Bathtub{% endif %}
+                                                        {% if not room.has_shower and not room.has_tub %}None specified{% endif %}
+                                                    </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if room.furniture and room.furniture|length > 0 %}
+                                                    <div class="mt-3">
+                                                        <strong>Furniture:</strong>
+                                                        <ul class="list-unstyled mt-1">
+                                                            {% for item in room.furniture %}
+                                                            <li>
+                                                                {% if item.furniture_type == 'bed' %}🛏️
+                                                                {% elif item.furniture_type == 'couch' %}🛋️
+                                                                {% elif item.furniture_type == 'chair' %}🪑
+                                                                {% elif item.furniture_type == 'desk' %}🖥️
+                                                                {% elif item.furniture_type == 'table' %}🪓
+                                                                {% elif item.furniture_type == 'dresser' %}🗄️
+                                                                {% else %}📦
+                                                                {% endif %}
+                                                                {{ item.quantity }}x {{ item.furniture_type|title }}
+                                                                {% if item.details %} ({{ item.details }}){% endif %}
+                                                            </li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No room details have been added yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if current_user.is_property_owner() or current_user.is_admin() or current_user.is_property_manager() or (current_user.is_service_staff() and current_user.has_maintenance_permission) %}
+                <h5 class="mt-4">Utility Information</h5>
+                <div class="card card-body bg-light mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">🌐 Internet Service</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Provider:</th>
+                                            <td>{{ property.internet_provider if property.internet_provider else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account #:</th>
+                                            <td>{{ property.internet_account if property.internet_account else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Contact:</th>
+                                            <td>{{ property.internet_contact if property.internet_contact else 'Not specified' }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-3">
+                                <div class="card-header bg-danger text-white">
+                                    <h6 class="mb-0">⚡ Electricity Service</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Provider:</th>
+                                            <td>{{ property.electric_provider if property.electric_provider else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account #:</th>
+                                            <td>{{ property.electric_account if property.electric_account else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Contact:</th>
+                                            <td>{{ property.electric_contact if property.electric_contact else 'Not specified' }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0">💧 Water Service</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Provider:</th>
+                                            <td>{{ property.water_provider if property.water_provider else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account #:</th>
+                                            <td>{{ property.water_account if property.water_account else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Contact:</th>
+                                            <td>{{ property.water_contact if property.water_contact else 'Not specified' }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-3">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">🗑️ Trash Service</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <th>Provider:</th>
+                                            <td>{{ property.trash_provider if property.trash_provider else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account #:</th>
+                                            <td>{{ property.trash_account if property.trash_account else 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Contact:</th>
+                                            <td>{{ property.trash_contact if property.trash_contact else 'Not specified' }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Service History Section -->
+                <h5 class="mt-4">Service History</h5>
+                <div class="card card-body bg-light mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Recent Service Activity</h6>
+                        {% if current_user.is_admin() or current_user.is_property_owner() or current_user.is_property_manager() %}
+                        <a href="{{ url_for('tasks.create') }}?property_id={{ property.id }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> Schedule New Service
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <ul class="nav nav-tabs mb-3" id="serviceHistoryTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="all-services-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#all-services" type="button" role="tab" 
+                                    aria-controls="all-services" aria-selected="true">All Services</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="cleaning-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#cleaning" type="button" role="tab" 
+                                    aria-controls="cleaning" aria-selected="false">Cleaning</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="repairs-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#repairs" type="button" role="tab" 
+                                    aria-controls="repairs" aria-selected="false">Repairs</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="other-services-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#other-services" type="button" role="tab" 
+                                    aria-controls="other-services" aria-selected="false">Other</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="serviceHistoryTabContent">
+                        <!-- All Services -->
+                        <div class="tab-pane fade show active" id="all-services" role="tabpanel" aria-labelledby="all-services-tab">
+                            {% if service_history %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Service</th>
+                                                <th>Provider</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in service_history.tasks %}
+                                            <tr class="{% if item.status.value == 'completed' %}table-success{% elif item.status.value == 'pending' %}table-warning{% elif item.status.value == 'in_progress' %}table-info{% endif %}">
+                                                <td>{{ item.due_date.strftime('%Y-%m-%d') if item.due_date else item.created_at.strftime('%Y-%m-%d') }}</td>
+                                                <td>
+                                                    <span class="fw-bold">{{ item.title }}</span>
+                                                    {% for assignment in item.assignments %}
+                                                        {% if assignment.service_type %}
+                                                        <span class="badge bg-secondary">
+                                                            {% if assignment.service_type.value == 'cleaning' %}🧹 Cleaning
+                                                            {% elif assignment.service_type.value == 'handyman' %}🔧 Handyman
+                                                            {% elif assignment.service_type.value == 'lawn_care' %}🌿 Lawn Care
+                                                            {% elif assignment.service_type.value == 'pool_maintenance' %}🏊 Pool
+                                                            {% elif assignment.service_type.value == 'general_maintenance' %}🔨 Maintenance
+                                                            {% else %}⚙️ {{ assignment.service_type.value|title }}
+                                                            {% endif %}
+                                                        </span>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    <br>
+                                                    <small class="text-muted">{{ item.description|truncate(50) }}</small>
+                                                </td>
+                                                <td>
+                                                    {% for assignment in item.assignments %}
+                                                        {% if assignment.user %}
+                                                            {{ assignment.user.get_full_name() }}
+                                                        {% elif assignment.external_name %}
+                                                            {{ assignment.external_name }}
+                                                            {% if assignment.external_phone %}
+                                                                <br><small>📞 {{ assignment.external_phone }}</small>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <span class="text-muted">Unassigned</span>
+                                                        {% endif %}
+                                                        {% if not loop.last %}<br>{% endif %}
+                                                    {% endfor %}
+                                                    
+                                                    {% if item.assignments.count() == 0 %}
+                                                        <span class="text-muted">Unassigned</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if item.status.value == 'pending' %}
+                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                    {% elif item.status.value == 'in_progress' %}
+                                                        <span class="badge bg-info">In Progress</span>
+                                                    {% elif item.status.value == 'completed' %}
+                                                        <span class="badge bg-success">Completed</span>
+                                                        {% if item.completed_at %}
+                                                            <br><small>{{ item.completed_at.strftime('%Y-%m-%d') }}</small>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{{ url_for('tasks.view', id=item.id) }}" class="btn btn-outline-primary">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        {% if current_user.is_admin() or current_user.is_property_owner() or current_user.is_property_manager() %}
+                                                        <a href="{{ url_for('tasks.edit', id=item.id) }}" class="btn btn-outline-secondary">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        {% if item.assignments.count() == 0 %}
+                                                        <a href="{{ url_for('tasks.assign', id=item.id) }}" class="btn btn-outline-success">
+                                                            <i class="fas fa-user-plus"></i>
+                                                        </a>
+                                                        {% endif %}
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    No service history found for this property.
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Cleaning Services -->
+                        <div class="tab-pane fade" id="cleaning" role="tabpanel" aria-labelledby="cleaning-tab">
+                            {% if service_history.cleaning_sessions %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Cleaner</th>
+                                                <th>Duration</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for session in service_history.cleaning_sessions %}
+                                            <tr>
+                                                <td>{{ session.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                                <td>{{ session.assigned_cleaner.get_full_name() }}</td>
+                                                <td>{{ session.get_duration_display() }}</td>
+                                                <td>
+                                                    {% if session.end_time %}
+                                                        <span class="badge bg-success">Completed</span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning text-dark">In Progress</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('tasks.view_cleaning_session', id=session.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i> Details
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    No cleaning history found for this property.
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Repair Services -->
+                        <div class="tab-pane fade" id="repairs" role="tabpanel" aria-labelledby="repairs-tab">
+                            {% if service_history.repair_requests %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Issue</th>
+                                                <th>Severity</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for request in service_history.repair_requests %}
+                                            <tr>
+                                                <td>{{ request.created_at.strftime('%Y-%m-%d') }}</td>
+                                                <td>
+                                                    <span class="fw-bold">{{ request.title }}</span><br>
+                                                    <small class="text-muted">{{ request.description|truncate(50) }}</small>
+                                                </td>
+                                                <td>
+                                                    {% if request.severity.value == 'urgent_severity' %}
+                                                    <span class="badge bg-danger">Urgent</span>
+                                                    {% elif request.severity.value == 'high_severity' %}
+                                                    <span class="badge bg-warning text-dark">High</span>
+                                                    {% elif request.severity.value == 'medium_severity' %}
+                                                    <span class="badge bg-info">Medium</span>
+                                                    {% else %}
+                                                    <span class="badge bg-secondary">Low</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if request.status.value == 'pending_status' %}
+                                                    <span class="badge bg-warning text-dark">Pending</span>
+                                                    {% elif request.status.value == 'approved_status' %}
+                                                    <span class="badge bg-success">Approved</span>
+                                                    {% elif request.status.value == 'rejected_status' %}
+                                                    <span class="badge bg-danger">Rejected</span>
+                                                    {% elif request.status.value == 'converted_to_task_status' %}
+                                                    <span class="badge bg-primary">Converted to Task</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('tasks.view_repair_request', id=request.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    No repair requests found for this property.
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Other Services -->
+                        <div class="tab-pane fade" id="other-services" role="tabpanel" aria-labelledby="other-services-tab">
+                            {% if service_history.other_services %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Service</th>
+                                                <th>Provider</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in service_history.other_services %}
+                                            <tr>
+                                                <td>{{ item.due_date.strftime('%Y-%m-%d') if item.due_date else item.created_at.strftime('%Y-%m-%d') }}</td>
+                                                <td>
+                                                    <span class="fw-bold">{{ item.title }}</span>
+                                                    {% for assignment in item.assignments %}
+                                                        {% if assignment.service_type %}
+                                                        <span class="badge bg-secondary">
+                                                            {% if assignment.service_type.value == 'lawn_care' %}🌿 Lawn Care
+                                                            {% elif assignment.service_type.value == 'pool_maintenance' %}🏊 Pool
+                                                            {% else %}⚙️ {{ assignment.service_type.value|title }}
+                                                            {% endif %}
+                                                        </span>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    <br>
+                                                    <small class="text-muted">{{ item.description|truncate(50) }}</small>
+                                                </td>
+                                                <td>
+                                                    {% for assignment in item.assignments %}
+                                                        {% if assignment.user %}
+                                                            {{ assignment.user.get_full_name() }}
+                                                        {% elif assignment.external_name %}
+                                                            {{ assignment.external_name }}
+                                                            {% if assignment.external_phone %}
+                                                                <br><small>📞 {{ assignment.external_phone }}</small>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <span class="text-muted">Unassigned</span>
+                                                        {% endif %}
+                                                        {% if not loop.last %}<br>{% endif %}
+                                                    {% endfor %}
+                                                </td>
+                                                <td>
+                                                    {% if item.status.value == 'pending' %}
+                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                    {% elif item.status.value == 'in_progress' %}
+                                                        <span class="badge bg-info">In Progress</span>
+                                                    {% elif item.status.value == 'completed' %}
+                                                        <span class="badge bg-success">Completed</span>
+                                                        {% if item.completed_at %}
+                                                            <br><small>{{ item.completed_at.strftime('%Y-%m-%d') }}</small>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('tasks.view', id=item.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    No other services found for this property.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-footer">
+                <form action="{{ url_for('property.delete', id=property.id) }}" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this property? This action cannot be undone.');">
+                    <button type="submit" class="btn btn-danger">Delete Property</button>
+                </form>
+                <a href="{{ url_for('property.index') }}" class="btn btn-outline-secondary float-end">Back to Properties</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Property Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Added:</strong> {{ property.created_at.strftime('%B %d, %Y') }}</p>
+                <p><strong>Last Updated:</strong> {{ property.updated_at.strftime('%B %d, %Y') }}</p>
+                
+                <!-- Property Tasks Section -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Property Tasks</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Manage cleaning tasks specific to this property.</p>
+                        <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-primary">
+                            <i class="fas fa-tasks"></i> View Property Tasks
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Guest Access Section -->
+                <div class="card mt-3">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Guest Access</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if property.guest_access_enabled and property.guest_access_token %}
+                            <p>Guest access is <strong>enabled</strong> for this property.</p>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control form-control-sm" value="{{ url_for('property.guest_view', token=property.guest_access_token, _external=True) }}" id="guest-url" readonly>
+                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="copyGuestUrl()">
+                                    <i class="bi bi-clipboard"></i> Copy
+                                </button>
+                            </div>
+                        {% else %}
+                            <p>Guest access is <strong>disabled</strong> for this property.</p>
+                        {% endif %}
+                        <a href="{{ url_for('property.manage_guest_access', id=property.id) }}" class="btn btn-success">
+                            <i class="bi bi-gear"></i> Manage Guest Access
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Combined Repair Request Section (available to all users) -->
+                <div class="card mt-3">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">Property Repairs</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Found something that needs repair or maintenance?</p>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('tasks.submit_repair_request', property_id=property.id) }}" class="btn btn-warning">
+                                <i class="fas fa-tools"></i> Create Repair Request
+                            </a>
+                            <a href="{{ url_for('tasks.repair_requests') }}" class="btn btn-info">
+                                <i class="fas fa-clipboard-list"></i> View Repair Requests
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Guest Reviews Section -->
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Guest Reviews</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>
+                            {% if guest_review_count > 0 %}
+                                This property has <strong>{{ guest_review_count }}</strong> guest review{% if guest_review_count != 1 %}s{% endif %}.
+                            {% else %}
+                                No guest reviews have been added yet.
+                            {% endif %}
+                        </p>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('property.guest_reviews', id=property.id) }}" class="btn btn-info">
+                                <i class="fas fa-star"></i> View Guest Reviews
+                            </a>
+                            <a href="{{ url_for('property.add_guest_review', id=property.id) }}" class="btn btn-outline-info">
+                                <i class="fas fa-plus"></i> Add Guest Review
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service Staff Dashboard (Only visible to service staff) -->
+{% if current_user.is_service_staff() %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0"><i class="fas fa-tools me-2"></i>Service Staff Dashboard</h4>
+    </div>
+    <div class="card-body">
+        <div class="mb-4">
+            <h5>Your Assigned Tasks for this Property</h5>
+            {% if service_staff_tasks %}
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Task</th>
+                                <th>Status</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in service_staff_tasks %}
+                            <tr class="{% if task.is_overdue() %}table-danger{% elif task.status == 'COMPLETED' %}table-success{% endif %}">
+                                <td>
+                                    <strong>{{ task.title }}</strong>
+                                    <div class="small text-muted">{{ task.description|truncate(100) }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge {% if task.status == 'PENDING' %}bg-warning{% elif task.status == 'IN_PROGRESS' %}bg-info{% elif task.status == 'COMPLETED' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ task.get_status_display() }}
+                                    </span>
+                                </td>
+                                <td>{{ task.due_date.strftime('%Y-%m-%d') if task.due_date }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        {% if task.status != 'COMPLETED' and current_user.can_complete_task(task) %}
+                                        <a href="{{ url_for('tasks.complete', id=task.id) }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-check"></i> Complete
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    You don't have any active tasks assigned for this property.
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Property Quick Info</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Address:</span>
+                                <strong>{{ property.street_address }}, {{ property.city }}, {{ property.state }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Check-In Time:</span>
+                                <strong>{{ property.check_in_time }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Check-Out Time:</span>
+                                <strong>{{ property.check_out_time }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Rooms:</span>
+                                <strong>{{ rooms_list|length }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Trash Collection:</span>
+                                <strong>{{ property.trash_collection_day or 'Not specified' }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Contact Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Owner:</span>
+                                <strong>{{ property.owner.name }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Email:</span>
+                                <strong>{{ property.owner.email }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Phone:</span>
+                                <strong>{{ property.owner.phone or 'Not provided' }}</strong>
+                            </li>
+                            <li class="list-group-item">
+                                <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-outline-primary w-100">
+                                    <i class="fas fa-clipboard-list me-1"></i> View All Tasks for This Property
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+<!-- End Service Staff Dashboard -->
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Add QRCode.js library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Generate WiFi QR code if the element exists
+        const wifiQRCodeElement = document.getElementById('wifi-qrcode');
+        if (wifiQRCodeElement) {
+            const ssid = "{{ property.wifi_network|default('') }}";
+            const password = "{{ property.wifi_password|default('') }}";
+            
+            if (ssid && password) {
+                // WiFi QR code format: WIFI:S:<SSID>;T:<WPA|WEP|>;P:<password>;;
+                const wifiQRContent = `WIFI:S:${ssid};T:WPA;P:${password};;`;
+                
+                // Generate QR code
+                const qr = qrcode(0, 'L');
+                qr.addData(wifiQRContent);
+                qr.make();
+                
+                // Display QR code in the element
+                wifiQRCodeElement.innerHTML = qr.createImgTag(5);
+                
+                // Add title for better UX
+                const img = wifiQRCodeElement.querySelector('img');
+                if (img) {
+                    img.title = `Connect to ${ssid} WiFi`;
+                    img.alt = `QR code for ${ssid} WiFi network`;
+                    img.style.width = '100%';
+                    img.style.height = 'auto';
+                }
+            } else {
+                wifiQRCodeElement.innerHTML = '<p class="text-muted">WiFi network name or password not provided</p>';
+            }
+        }
+    });
+    
+    function copyGuestUrl() {
+        const guestUrlInput = document.getElementById('guest-url');
+        if (guestUrlInput) {
+            guestUrlInput.select();
+            document.execCommand('copy');
+            
+            // Show a temporary "Copied!" tooltip or message
+            const copyBtn = guestUrlInput.nextElementSibling;
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText;
+            }, 2000);
+        }
+    }
+</script>
+{% endblock %}

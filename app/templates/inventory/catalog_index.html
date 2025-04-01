@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Global Inventory Catalog</h1>
+            <p class="text-muted">Items in this catalog can be used across all properties. Add items here before adding them to property-specific inventory.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('inventory.add_catalog_item') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Catalog Item
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Filter Catalog</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{ url_for('inventory.catalog_index') }}" class="row g-3">
+                <div class="col-md-3">
+                    {{ filter_form.category.label(class="form-label") }}
+                    {{ filter_form.category(class="form-select") }}
+                </div>
+                <div class="col-md-3">
+                    {{ filter_form.search.label(class="form-label") }}
+                    {{ filter_form.search(class="form-control", placeholder="Search items...") }}
+                </div>
+                <div class="col-md-3">
+                    {{ filter_form.barcode.label(class="form-label") }}
+                    {{ filter_form.barcode(class="form-control", placeholder="Enter barcode...") }}
+                    <button type="button" class="btn btn-sm btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#barcodeScannerModal">
+                        <i class="fas fa-barcode"></i> Scan
+                    </button>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Catalog Table -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Catalog Items</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if catalog_items %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Category</th>
+                            <th>Unit</th>
+                            <th>SKU</th>
+                            <th>Barcode</th>
+                            <th>Cost</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in catalog_items %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.name }}</strong>
+                                {% if item.description %}
+                                <br><small class="text-muted">{{ item.description|truncate(50) }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.category.value|capitalize }}</td>
+                            <td>{{ item.unit_of_measure }}</td>
+                            <td>{{ item.sku or 'N/A' }}</td>
+                            <td>
+                                {% if item.barcode %}
+                                <span class="badge bg-info">{{ item.barcode }}</span>
+                                {% else %}
+                                <span class="text-muted">None</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ "$%.2f"|format(item.unit_cost) if item.unit_cost else 'N/A' }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="{{ url_for('inventory.edit_catalog_item', item_id=item.id) }}">
+                                            <i class="fas fa-edit"></i> Edit Item
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form action="{{ url_for('inventory.delete_catalog_item', item_id=item.id) }}" method="post" 
+                                                  onsubmit="return confirm('Are you sure you want to delete this catalog item? This may affect inventory across multiple properties.');">
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center p-4">
+                <p class="mb-0">No catalog items found.</p>
+                <a href="{{ url_for('inventory.add_catalog_item') }}" class="btn btn-primary mt-2">
+                    <i class="fas fa-plus"></i> Add First Item
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Barcode Scanner Modal -->
+    <div class="modal fade" id="barcodeScannerModal" tabindex="-1" aria-labelledby="barcodeScannerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="barcodeScannerModalLabel">Scan Barcode</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <div id="scanner-container" class="mx-auto" style="max-width: 100%; max-height: 300px; overflow: hidden;">
+                            <video id="scanner-video" style="width: 100%; height: auto;"></video>
+                        </div>
+                        <div id="scanner-status" class="mt-2">Initializing camera...</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="scanned-barcode" class="form-label">Scanned Barcode:</label>
+                        <input type="text" id="scanned-barcode" class="form-control" readonly>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="use-barcode-btn">Use Barcode</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Include QuaggaJS for barcode scanning -->
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+<style>
+    /* Fix for dropdown menu visibility */
+    .dropdown-menu {
+        z-index: 1030; /* Ensure dropdown appears above other elements */
+    }
+    
+    .btn-group {
+        position: relative; /* Ensure dropdown positioning works correctly */
+    }
+    
+    /* Make sure the actions column doesn't get too narrow */
+    .table th:last-child, 
+    .table td:last-child {
+        min-width: 120px;
+    }
+</style>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const scannerContainer = document.getElementById('scanner-container');
+        const scannerStatus = document.getElementById('scanner-status');
+        const scannedBarcodeInput = document.getElementById('scanned-barcode');
+        const useBarcodeBtn = document.getElementById('use-barcode-btn');
+        const barcodeFilterInput = document.querySelector('input[name="barcode"]');
+        let quaggaInitialized = false;
+        
+        // Initialize scanner when modal is shown
+        $('#barcodeScannerModal').on('shown.bs.modal', function() {
+            initQuagga();
+        });
+        
+        // Stop scanner when modal is hidden
+        $('#barcodeScannerModal').on('hidden.bs.modal', function() {
+            if (quaggaInitialized) {
+                Quagga.stop();
+                quaggaInitialized = false;
+            }
+        });
+        
+        // Use the scanned barcode
+        useBarcodeBtn.addEventListener('click', function() {
+            const barcode = scannedBarcodeInput.value;
+            if (barcode) {
+                barcodeFilterInput.value = barcode;
+                $('#barcodeScannerModal').modal('hide');
+            }
+        });
+        
+        function initQuagga() {
+            if (quaggaInitialized) {
+                return;
+            }
+            
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#scanner-video'),
+                    constraints: {
+                        facingMode: "environment", // Use the rear camera on mobile devices
+                        width: { min: 640 },
+                        height: { min: 480 }
+                    },
+                },
+                decoder: {
+                    readers: [
+                        "code_128_reader",
+                        "ean_reader",
+                        "ean_8_reader",
+                        "code_39_reader",
+                        "code_39_vin_reader",
+                        "codabar_reader",
+                        "upc_reader",
+                        "upc_e_reader",
+                        "i2of5_reader"
+                    ],
+                    multiple: false
+                }
+            }, function(err) {
+                if (err) {
+                    scannerStatus.textContent = "Error initializing scanner: " + err;
+                    return;
+                }
+                
+                scannerStatus.textContent = "Scanner ready. Point camera at a barcode.";
+                quaggaInitialized = true;
+                Quagga.start();
+            });
+            
+            Quagga.onDetected(function(result) {
+                const code = result.codeResult.code;
+                scannedBarcodeInput.value = code;
+                scannerStatus.textContent = "Barcode detected: " + code;
+                
+                // Highlight the detected barcode
+                if (result.box) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const videoElement = document.getElementById('scanner-video');
+                    
+                    canvas.width = videoElement.videoWidth;
+                    canvas.height = videoElement.videoHeight;
+                    
+                    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                    ctx.strokeStyle = '#FF0000';
+                    ctx.lineWidth = 5;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(result.box.topLeft.x, result.box.topLeft.y);
+                    ctx.lineTo(result.box.topRight.x, result.box.topRight.y);
+                    ctx.lineTo(result.box.bottomRight.x, result.box.bottomRight.y);
+                    ctx.lineTo(result.box.bottomLeft.x, result.box.bottomLeft.y);
+                    ctx.lineTo(result.box.topLeft.x, result.box.topLeft.y);
+                    ctx.stroke();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

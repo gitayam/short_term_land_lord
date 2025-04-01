@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">Transfer Inventory Item</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>Item Details</h5>
+                        <p class="mb-1"><strong>Item:</strong> {{ item.catalog_item.name }}</p>
+                        <p class="mb-1"><strong>Current Quantity:</strong> {{ item.current_quantity }} {{ item.catalog_item.unit_of_measure }}</p>
+                        <p class="mb-1"><strong>Source Property:</strong> {{ property.name }}</p>
+                    </div>
+                    
+                    {% if available_properties %}
+                    <form method="post" novalidate>
+                        {{ form.hidden_tag() }}
+                        {{ form.item_id }}
+                        
+                        <div class="form-group mb-3">
+                            {{ form.quantity.label(class="form-label") }}
+                            {{ form.quantity(class="form-control" + (" is-invalid" if form.quantity.errors else ""), type="number", step="0.01", min="0.01", max=item.current_quantity) }}
+                            {% for error in form.quantity.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">
+                                Maximum available: {{ item.current_quantity }} {{ item.catalog_item.unit_of_measure }}
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.destination_property.label(class="form-label") }}
+                            {{ form.destination_property(class="form-select" + (" is-invalid" if form.destination_property.errors else "")) }}
+                            {% for error in form.destination_property.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.notes.label(class="form-label") }}
+                            {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows=3, placeholder="Optional notes about this transfer") }}
+                            {% for error in form.notes.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <h5>No Available Destinations</h5>
+                        <p class="mb-0">
+                            You don't have any other properties available for transfer. 
+                            {% if current_user.is_property_owner() %}
+                            You can only transfer items between properties that you own.
+                            {% else %}
+                            Only property owners can transfer items between properties.
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="d-flex justify-content-start mt-4">
+                        <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Inventory
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

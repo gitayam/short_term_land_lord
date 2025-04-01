@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Cleaning Feedback</h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">
+                        Please provide feedback about your cleaning experience at 
+                        <strong>{{ session.associated_property.name }}</strong>.
+                    </p>
+                    
+                    <form method="post" action="{{ url_for('tasks.submit_feedback', session_id=session.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.rating.label(class="form-label") }}
+                            {{ form.rating(class="form-select") }}
+                            {% for error in form.rating.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.notes.label(class="form-label") }}
+                            {{ form.notes(class="form-control", rows=4) }}
+                            {% for error in form.notes.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">
+                                Include any notes about the cleaning process, challenges encountered, or suggestions for future cleanings.
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('tasks.view', id=session.task_id) }}" class="btn btn-secondary">Skip</a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

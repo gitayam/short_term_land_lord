@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Task Templates</h1>
+        <a href="{{ url_for('tasks.create_template') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create New Template
+        </a>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Task templates allow you to create reusable task definitions that can be assigned to properties or staff members.
+        {% if current_user.is_admin() %}
+        As an admin, you can create global templates that are available to all users.
+        {% endif %}
+    </div>
+
+    {% if templates %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Your Task Templates</h5>
+            <button id="reorderModeBtn" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-sort"></i> Reorder Mode
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="normalView">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Category</th>
+                                <th>Global</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for template in templates %}
+                            <tr>
+                                <td>{{ template.title }}</td>
+                                <td>
+                                    {% if template.category %}
+                                    <span class="badge bg-secondary">{{ template.category }}</span>
+                                    {% else %}
+                                    <span class="text-muted">None</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if template.is_global %}
+                                    <span class="badge bg-success">Yes</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-dark">No</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('tasks.apply_template', template_id=template.id) }}" class="btn btn-primary" title="Use Template">
+                                            <i class="fas fa-check"></i>
+                                        </a>
+                                        {% if template.creator_id == current_user.id or current_user.is_admin() %}
+                                        <a href="{{ url_for('tasks.edit_template', id=template.id) }}" class="btn btn-secondary" title="Edit Template">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-danger" title="Delete Template" 
+                                                onclick="confirmDelete('{{ template.id }}', '{{ template.title }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="reorderMode" style="display: none;">
+                <p class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i> Drag and drop templates to reorder them. Click Save Order when finished.
+                </p>
+                <ul class="list-group" id="sortableTemplates">
+                    {% for template in templates %}
+                    {% if template.creator_id == current_user.id or current_user.is_admin() %}
+                    <li class="list-group-item" data-id="{{ template.id }}">
+                        <div class="d-flex align-items-center">
+                            <div class="drag-handle me-3">
+                                <i class="fas fa-grip-vertical text-muted"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-1">{{ template.title }}</h5>
+                                    <span>
+                                        {% if template.is_global %}
+                                        <span class="badge bg-success">Global</span>
+                                        {% endif %}
+                                        {% if template.category %}
+                                        <span class="badge bg-secondary">{{ template.category }}</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+                <div class="mt-3">
+                    <button id="saveOrderBtn" class="btn btn-primary">Save Order</button>
+                    <button id="cancelReorderBtn" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> You don't have any task templates yet. 
+        <a href="{{ url_for('tasks.create_template') }}" class="alert-link">Create your first template</a>.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the template "<span id="templateName"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post" action="">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Delete confirmation
+        window.confirmDelete = function(id, name) {
+            document.getElementById('templateName').textContent = name;
+            document.getElementById('deleteForm').action = "{{ url_for('tasks.delete_template', id=0) }}".replace('0', id);
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        };
+
+        // Reorder mode
+        const normalView = document.getElementById('normalView');
+        const reorderMode = document.getElementById('reorderMode');
+        const reorderModeBtn = document.getElementById('reorderModeBtn');
+        const cancelReorderBtn = document.getElementById('cancelReorderBtn');
+        const saveOrderBtn = document.getElementById('saveOrderBtn');
+        const sortableTemplates = document.getElementById('sortableTemplates');
+
+        if (reorderModeBtn) {
+            reorderModeBtn.addEventListener('click', function() {
+                normalView.style.display = 'none';
+                reorderMode.style.display = 'block';
+            });
+        }
+
+        if (cancelReorderBtn) {
+            cancelReorderBtn.addEventListener('click', function() {
+                reorderMode.style.display = 'none';
+                normalView.style.display = 'block';
+            });
+        }
+
+        // Initialize sortable
+        if (sortableTemplates) {
+            new Sortable(sortableTemplates, {
+                animation: 150,
+                handle: '.drag-handle'
+            });
+        }
+
+        // Save order
+        if (saveOrderBtn) {
+            saveOrderBtn.addEventListener('click', function() {
+                const items = sortableTemplates.querySelectorAll('li');
+                const order = Array.from(items).map(item => item.getAttribute('data-id'));
+                
+                // Send order to server
+                fetch("{{ url_for('tasks.reorder_templates') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        template_order: order
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message and switch back to normal view
+                        alert('Template order saved successfully!');
+                        reorderMode.style.display = 'none';
+                        normalView.style.display = 'block';
+                    } else {
+                        alert('Error saving template order');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving template order');
+                });
+            });
+        }
+    });
+</script>
+{% endblock %} 
