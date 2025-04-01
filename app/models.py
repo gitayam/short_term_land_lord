@@ -149,7 +149,10 @@ class NotificationChannel(enum.Enum):
     IN_APP = "in_app"
 
 class User(UserMixin, db.Model):
+    __tablename__ = 'user'  # SQLAlchemy will use this, but PostgreSQL might have it as 'users'
+    
     id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), index=True, unique=True, nullable=True)
     first_name = db.Column(db.String(64), nullable=False)
     last_name = db.Column(db.String(64), nullable=False)
     email = db.Column(db.String(120), index=True, unique=True, nullable=False)
@@ -157,6 +160,14 @@ class User(UserMixin, db.Model):
     role = db.Column(db.Enum(UserRoles), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    authentik_id = db.Column(db.String(64), nullable=True)
+    signal_identity = db.Column(db.String(64), nullable=True)
+    attributes = db.Column(db.JSON, nullable=True)
+    # Additional fields needed for compatibility
+    is_active = db.Column(db.Boolean, default=True)
+    is_admin = db.Column(db.Boolean, default=False)
+    date_joined = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
     
     # Relationships
     password_resets = db.relationship('PasswordReset', backref='user', lazy='dynamic')
