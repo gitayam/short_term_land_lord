@@ -1,7 +1,7 @@
 from flask import current_app, render_template
 from app import db
 from app.models import Notification, NotificationType, NotificationChannel, User, Task, Property
-from app.auth.email import send_email
+from app.common.email import send_email
 from datetime import datetime, timedelta
 import requests
 from twilio.rest import Client

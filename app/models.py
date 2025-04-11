@@ -24,9 +24,9 @@ class UserRoles(enum.Enum):
     ADMIN = "admin"
 
 class TaskStatus(enum.Enum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
 
 class TaskPriority(enum.Enum):
     LOW = "low"
@@ -93,21 +93,22 @@ class ServiceType(enum.Enum):
     OTHER = "other"
 
 class GuestReviewRating(enum.Enum):
-    BAD = "bad"
-    OK = "ok"
-    GOOD = "good"
+    BAD = "BAD"
+    OK = "OK"
+    GOOD = "GOOD"
 
 class InventoryCatalogItem(db.Model):
     __tablename__ = 'inventory_catalog_item'
     
     id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
-    category = db.Column(db.String(64))
-    unit = db.Column(db.String(32))
+    unit = db.Column(db.String(32), nullable=False)  # e.g., 'piece', 'box', 'kg'
+    unit_price = db.Column(db.Float, nullable=False)
+    currency = db.Column(db.String(3), default='USD')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
     # Relationships
     creator = db.relationship('User', foreign_keys=[creator_id], backref='created_catalog_items')
@@ -148,16 +149,17 @@ class NotificationChannel(enum.Enum):
     IN_APP = "in_app"
 
 class User(UserMixin, db.Model):
-    # Table name will be set in init_app based on database dialect
+    __tablename__ = 'user'
     
     id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(64), nullable=False)
+    last_name = db.Column(db.String(64), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
-    first_name = db.Column(db.String(64))
-    last_name = db.Column(db.String(64))
-    role = db.Column(db.String(20), default='user')
+    role = db.Column(db.String(32), default='user')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
     
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -173,6 +175,10 @@ class User(UserMixin, db.Model):
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
     
+    def is_property_owner(self):
+        """Check if the user has the property owner role."""
+        return self.role == UserRoles.PROPERTY_OWNER.value
+    
     def __repr__(self):
         return f'<User {self.email}>'
 
@@ -180,15 +186,17 @@ class Property(db.Model):
     __tablename__ = 'property'
     
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), nullable=False)
-    address = db.Column(db.String(256))
-    description = db.Column(db.Text)
     owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(128), nullable=False)
+    address = db.Column(db.String(256), nullable=False)
+    description = db.Column(db.Text)
+    property_type = db.Column(db.String(32), nullable=False)  # e.g., 'apartment', 'house', 'condo'
+    status = db.Column(db.Enum('active', 'inactive', 'maintenance', name='property_status'), default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    owner = db.relationship('User', backref='owned_properties')
+    owner = db.relationship('User', foreign_keys=[owner_id], backref='owned_properties')
     property_tasks = db.relationship('Task', backref='property')
     property_rooms = db.relationship('Room', backref='property')
     property_inventory = db.relationship('InventoryItem', backref='property')
@@ -321,8 +329,8 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
-    status = db.Column(db.String(32), default='pending')
-    priority = db.Column(db.String(32), default='normal')
+    status = db.Column(db.Enum('pending', 'in_progress', 'completed', 'cancelled', name='task_status'), default='pending')
+    priority = db.Column(db.Enum('low', 'medium', 'high', 'urgent', name='task_priority'), default='medium')
     due_date = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -342,7 +350,7 @@ class TaskAssignment(db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
     
     # Assignment can be to a user OR to an external person (not in the system)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     external_name = db.Column(db.String(100), nullable=True)
     external_phone = db.Column(db.String(20), nullable=True)
     external_email = db.Column(db.String(120), nullable=True)
@@ -381,7 +389,7 @@ class TaskProperty(db.Model):
 
 class CleaningSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    cleaner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    cleaner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
     
@@ -532,21 +540,20 @@ class RepairRequest(db.Model):
     __tablename__ = 'repair_request'
     
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(128), nullable=False)
-    description = db.Column(db.Text)
-    status = db.Column(db.String(32), default='pending')
-    priority = db.Column(db.String(32), default='normal')
     reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    status = db.Column(db.Enum('pending', 'in_progress', 'completed', 'cancelled', name='repair_status'), default='pending')
+    priority = db.Column(db.Enum('low', 'medium', 'high', 'urgent', name='repair_priority'), default='medium')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     reporter = db.relationship('User', foreign_keys=[reporter_id], backref='reported_repairs')
-    property = db.relationship('Property', backref='repair_requests')
+    associated_property = db.relationship('Property', foreign_keys=[property_id], backref='repair_requests')
     
     def __repr__(self):
-        return f'<RepairRequest {self.title}>'
+        return f'<RepairRequest {self.id}>'
 
 class RepairRequestMedia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -610,38 +617,48 @@ class Notification(db.Model):
     __tablename__ = 'notification'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    title = db.Column(db.String(128), nullable=False)
-    message = db.Column(db.Text)
-    notification_type = db.Column(db.String(32), default='info')
-    is_read = db.Column(db.Boolean, default=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    type = db.Column(db.String(50), nullable=False)
+    read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    recipient = db.relationship('User', foreign_keys=[user_id], backref='notifications')
+    recipient = db.relationship('User', foreign_keys=[recipient_id], backref='notifications')
     
     def __repr__(self):
-        return f'<Notification {self.title}>'
+        return f'<Notification {self.message}>'
+
+class Guest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(64), nullable=False)
+    last_name = db.Column(db.String(64), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    phone = db.Column(db.String(20))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Guest {self.first_name} {self.last_name}>'
 
 class GuestReview(db.Model):
     __tablename__ = 'guest_review'
     
     id = db.Column(db.Integer, primary_key=True)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
-    title = db.Column(db.String(128), nullable=False)
-    content = db.Column(db.Text)
-    rating = db.Column(db.Integer)
+    guest_id = db.Column(db.Integer, db.ForeignKey('guest.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    creator = db.relationship('User', foreign_keys=[creator_id], backref='guest_reviews')
-    property = db.relationship('Property', backref='guest_reviews')
+    creator = db.relationship('User', foreign_keys=[creator_id], backref='created_guest_reviews')
+    guest = db.relationship('Guest', foreign_keys=[guest_id], backref='reviews')
     
     def __repr__(self):
-        return f'<GuestReview {self.title}>'
+        return f'<GuestReview {self.id}>'
 
 class SiteSettings(db.Model):
     __tablename__ = 'site_settings'
@@ -767,19 +784,33 @@ def init_app(app):
     with app.app_context():
         User.__tablename__ = get_user_table_name()
 
+def get_user_fk_target():
+    """Get the appropriate foreign key target for user relationships."""
+    try:
+        if db.engine.dialect.name == 'postgresql':
+            return 'users.id'
+        return 'user.id'
+    except RuntimeError:
+        # Default to 'user.id' if outside application context
+        return 'user.id'
+
 class TaskTemplate(db.Model):
     __tablename__ = 'task_template'
     
     id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey(get_user_fk_target()), nullable=False)
     title = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
-    priority = db.Column(db.String(32), default='normal')
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    priority = db.Column(db.Enum('low', 'medium', 'high', 'urgent', name='task_priority'), default='medium')
+    estimated_duration = db.Column(db.Integer)  # in minutes
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    creator = db.relationship('User', foreign_keys=[creator_id], backref='task_templates')
+    creator = db.relationship('User', 
+                            foreign_keys=[creator_id],
+                            primaryjoin='TaskTemplate.creator_id == User.id',
+                            backref='created_task_templates')
     
     def __repr__(self):
         return f'<TaskTemplate {self.title}>'

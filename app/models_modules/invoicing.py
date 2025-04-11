@@ -45,7 +45,7 @@ class TaskPrice(db.Model):
     
     # Relationships
     property = db.relationship('Property', backref='task_prices')
-    creator = db.relationship('User', backref='created_task_prices')
+    creator = db.relationship('User', foreign_keys=[creator_id], backref='created_task_prices')
     
     def __repr__(self):
         property_name = self.property.name if self.property else "All Properties"
@@ -69,7 +69,7 @@ class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     
     # Invoice number (user-friendly identifier)
-    invoice_number = db.Column(db.String(20), nullable=False, unique=True)
+    invoice_number = db.Column(db.String(50), unique=True, nullable=False)
     
     # Invoice details
     title = db.Column(db.String(100), nullable=False)
@@ -80,7 +80,7 @@ class Invoice(db.Model):
     date_to = db.Column(db.Date, nullable=True)
     
     # Invoice status
-    status = db.Column(db.Enum(InvoiceStatus), default=InvoiceStatus.DRAFT, nullable=False)
+    status = db.Column(db.Enum('draft', 'sent', 'paid', 'cancelled', name='invoice_status'), default='draft')
     
     # Invoice totals
     subtotal = db.Column(db.Float, nullable=False, default=0.0)
@@ -89,7 +89,7 @@ class Invoice(db.Model):
     total = db.Column(db.Float, nullable=False, default=0.0)
     
     # Payment information
-    due_date = db.Column(db.Date, nullable=True)
+    due_date = db.Column(db.DateTime)
     paid_date = db.Column(db.Date, nullable=True)
     payment_notes = db.Column(db.Text, nullable=True)
     
@@ -107,8 +107,8 @@ class Invoice(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    creator = db.relationship('User', backref='created_invoices')
-    property = db.relationship('Property', backref='invoices')
+    creator = db.relationship('User', foreign_keys=[creator_id], backref='created_invoices')
+    property = db.relationship('Property', foreign_keys=[property_id], backref='invoices')
     items = db.relationship('InvoiceItem', backref='invoice', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
