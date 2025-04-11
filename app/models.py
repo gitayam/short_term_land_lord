@@ -17,6 +17,16 @@ def get_user_table_name():
         # If we're outside an application context, default to 'users'
         return 'users'
 
+def get_user_fk_target():
+    """Get the appropriate foreign key target for user relationships."""
+    try:
+        if db.engine.dialect.name == 'postgresql':
+            return 'users.id'
+        return 'user.id'
+    except RuntimeError:
+        # Default to 'user.id' if outside application context
+        return 'user.id'
+
 class UserRoles(enum.Enum):
     PROPERTY_OWNER = "property_owner"
     SERVICE_STAFF = "service_staff"
@@ -24,9 +34,9 @@ class UserRoles(enum.Enum):
     ADMIN = "admin"
 
 class TaskStatus(enum.Enum):
-    PENDING = "PENDING"
-    IN_PROGRESS = "IN_PROGRESS"
-    COMPLETED = "COMPLETED"
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
 
 class TaskPriority(enum.Enum):
     LOW = "low"
@@ -93,15 +103,15 @@ class ServiceType(enum.Enum):
     OTHER = "other"
 
 class GuestReviewRating(enum.Enum):
-    BAD = "BAD"
-    OK = "OK"
-    GOOD = "GOOD"
+    BAD = "bad"
+    OK = "ok"
+    GOOD = "good"
 
 class InventoryCatalogItem(db.Model):
     __tablename__ = 'inventory_catalog_item'
     
     id = db.Column(db.Integer, primary_key=True)
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey(get_user_fk_target()), nullable=False)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     unit = db.Column(db.String(32), nullable=False)  # e.g., 'piece', 'box', 'kg'
@@ -152,6 +162,7 @@ class User(UserMixin, db.Model):
     __tablename__ = 'user'
     
     id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), unique=True, nullable=True)
     first_name = db.Column(db.String(64), nullable=False)
     last_name = db.Column(db.String(64), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -160,6 +171,11 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
+    last_login = db.Column(db.DateTime, nullable=True)
+    authentik_id = db.Column(db.String(128), nullable=True)
+    signal_identity = db.Column(db.String(128), nullable=True)
+    attributes = db.Column(db.JSON, nullable=True)
+    is_admin = db.Column(db.Boolean, default=False)
     
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -186,7 +202,7 @@ class Property(db.Model):
     __tablename__ = 'property'
     
     id = db.Column(db.Integer, primary_key=True)
-    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey(get_user_fk_target()), nullable=False)
     name = db.Column(db.String(128), nullable=False)
     address = db.Column(db.String(256), nullable=False)
     description = db.Column(db.Text)
@@ -218,7 +234,7 @@ class PropertyImage(db.Model):
 class PasswordReset(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     token = db.Column(db.String(100), unique=True, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey(get_user_fk_target()), nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -334,7 +350,7 @@ class Task(db.Model):
     due_date = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey(get_user_fk_target()), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     
     # Relationships
@@ -350,7 +366,7 @@ class TaskAssignment(db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
     
     # Assignment can be to a user OR to an external person (not in the system)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey(get_user_fk_target()), nullable=True)
     external_name = db.Column(db.String(100), nullable=True)
     external_phone = db.Column(db.String(20), nullable=True)
     external_email = db.Column(db.String(120), nullable=True)
@@ -389,7 +405,7 @@ class TaskProperty(db.Model):
 
 class CleaningSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    cleaner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    cleaner_id = db.Column(db.Integer, db.ForeignKey(get_user_fk_target()), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
     
@@ -540,7 +556,7 @@ class RepairRequest(db.Model):
     __tablename__ = 'repair_request'
     
     id = db.Column(db.Integer, primary_key=True)
-    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reporter_id = db.Column(db.Integer, db.ForeignKey(get_user_fk_target()), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     description = db.Column(db.Text, nullable=False)
     status = db.Column(db.Enum('pending', 'in_progress', 'completed', 'cancelled', name='repair_status'), default='pending')
@@ -617,7 +633,7 @@ class Notification(db.Model):
     __tablename__ = 'notification'
     
     id = db.Column(db.Integer, primary_key=True)
-    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey(get_user_fk_target()), nullable=False)
     message = db.Column(db.Text, nullable=False)
     type = db.Column(db.String(50), nullable=False)
     read = db.Column(db.Boolean, default=False)
@@ -646,7 +662,7 @@ class GuestReview(db.Model):
     __tablename__ = 'guest_review'
     
     id = db.Column(db.Integer, primary_key=True)
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey(get_user_fk_target()), nullable=False)
     guest_id = db.Column(db.Integer, db.ForeignKey('guest.id'), nullable=False)
     rating = db.Column(db.Integer, nullable=False)
     comment = db.Column(db.Text)
@@ -673,13 +689,13 @@ class SiteSettings(db.Model):
     @classmethod
     def get_setting(cls, key, default=None):
         """Get a setting value by its key"""
-        setting = cls.query.get(key)
+        setting = db.session.get(cls, key)
         return setting.value if setting else default
     
     @classmethod
     def set_setting(cls, key, value, description=None, visible=True):
         """Create or update a setting"""
-        setting = cls.query.get(key)
+        setting = db.session.get(cls, key)
         
         if setting:
             setting.value = value
@@ -715,33 +731,39 @@ def create_admin_user_from_env():
     admin_password = current_app.config.get('ADMIN_PASSWORD')
     
     # If no admin credentials are provided, skip
-    if not admin_email or not admin_username or not admin_password:
+    if not admin_email or not admin_password:
         current_app.logger.info("Admin credentials not fully specified in environment, skipping admin creation")
         return
     
     # Check if admin user already exists
-    existing_admin = User.query.filter(
-        (User.email == admin_email) | 
-        (User.username == admin_username)
-    ).first()
+    query = User.query.filter(User.email == admin_email)
+    if admin_username:
+        query = query.union(User.query.filter(User.username == admin_username))
+    
+    existing_admin = query.first()
     
     if existing_admin:
         current_app.logger.info(f"Admin user already exists: {existing_admin.email}")
         # Update admin role if needed
-        if existing_admin.role != UserRoles.ADMIN:
-            existing_admin.role = UserRoles.ADMIN
+        if existing_admin.role != UserRoles.ADMIN.value:
+            existing_admin.role = UserRoles.ADMIN.value
             db.session.commit()
             current_app.logger.info(f"Updated user {existing_admin.email} to admin role")
         return
     
     # Create new admin user
     admin_user = User(
-        username=admin_username,
         email=admin_email,
         first_name=current_app.config.get('ADMIN_FIRST_NAME', 'System'),
         last_name=current_app.config.get('ADMIN_LAST_NAME', 'Administrator'),
-        role=UserRoles.ADMIN
+        role=UserRoles.ADMIN.value,
+        is_admin=True
     )
+    
+    # Set username if provided
+    if admin_username:
+        admin_user.username = admin_username
+        
     admin_user.set_password(admin_password)
     
     db.session.add(admin_user)
@@ -751,11 +773,11 @@ def create_admin_user_from_env():
 def migrate_site_settings():
     """Initialize default site settings if they don't exist"""
     # Initialize guest reviews setting (enabled by default)
-    if not SiteSettings.query.get('guest_reviews_enabled'):
+    if not db.session.get(SiteSettings, 'guest_reviews_enabled'):
         SiteSettings.set_setting('guest_reviews_enabled', 'true', 'Enable guest reviews feature', True)
     
     # Set placeholder for OpenAI API key
-    if not SiteSettings.query.get('openai_api_key'):
+    if not db.session.get(SiteSettings, 'openai_api_key'):
         SiteSettings.set_setting('openai_api_key', '', 'OpenAI API Key for AI functionality', False)
 
 @login_manager.user_loader
@@ -769,7 +791,7 @@ def load_user(id):
         
         if user_data:
             user = User()
-            for key, value in user_data.items():
+            for key, value in user_data._mapping.items():
                 setattr(user, key, value)
             return user
         
@@ -783,16 +805,6 @@ def load_user(id):
 def init_app(app):
     with app.app_context():
         User.__tablename__ = get_user_table_name()
-
-def get_user_fk_target():
-    """Get the appropriate foreign key target for user relationships."""
-    try:
-        if db.engine.dialect.name == 'postgresql':
-            return 'users.id'
-        return 'user.id'
-    except RuntimeError:
-        # Default to 'user.id' if outside application context
-        return 'user.id'
 
 class TaskTemplate(db.Model):
     __tablename__ = 'task_template'
@@ -809,7 +821,6 @@ class TaskTemplate(db.Model):
     # Relationships
     creator = db.relationship('User', 
                             foreign_keys=[creator_id],
-                            primaryjoin='TaskTemplate.creator_id == User.id',
                             backref='created_task_templates')
     
     def __repr__(self):

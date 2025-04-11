@@ -9,11 +9,17 @@ def get_user_table_name():
     """Return the appropriate table name based on database dialect"""
     from app import db
     
-    dialect = db.engine.dialect.name
-    if dialect == 'postgresql':
-        return 'users'
-    else:
-        return 'user'
+    try:
+        dialect = db.engine.dialect.name
+        if dialect == 'postgresql':
+            return 'users'
+        else:
+            return 'user'
+    except Exception as e:
+        # If we can't determine the dialect (e.g., outside app context or db not initialized)
+        from flask import current_app
+        current_app.logger.warning(f"Could not determine database dialect: {e}")
+        return 'user'  # Default to 'user' as a safer option
 
 def patch_user_model():
     """Patch the User model to use the correct table name based on database dialect"""
@@ -51,39 +57,39 @@ def patch_user_loader():
         # Get the database dialect
         dialect = db.engine.dialect.name
         
-        # Only patch for PostgreSQL
-        if dialect == 'postgresql':
-            @login_manager.user_loader
-            def load_user(id):
-                """Fixed user loader that uses the correct table name for PostgreSQL"""
+        # Define a new user loader function that works with both dialects
+        @login_manager.user_loader
+        def load_user(id):
+            """Fixed user loader that uses the correct table name for both database types"""
+            try:
+                # Use direct SQL query with the correct table name
+                table_name = get_user_table_name()
+                sql = text(f"SELECT * FROM {table_name} WHERE id = :user_id")
+                result = db.session.execute(sql, {'user_id': int(id)})
+                row = result.fetchone()
+                
+                if row:
+                    # Create a User instance manually
+                    user = User()
+                    for key in row._mapping.keys():
+                        setattr(user, key, row._mapping[key])
+                    return user
+                return None
+            except Exception as e:
+                from flask import current_app
+                current_app.logger.error(f"Error in patched load_user: {e}")
+                
+                # Fallback to ORM
                 try:
-                    # Use direct SQL query with the correct table name
-                    table_name = get_user_table_name()
-                    sql = text(f"SELECT * FROM {table_name} WHERE id = :user_id")
-                    result = db.session.execute(sql, {'user_id': int(id)})
-                    row = result.fetchone()
-                    
-                    if row:
-                        # Create a User instance manually
-                        user = User()
-                        for key in row._mapping.keys():
-                            setattr(user, key, row._mapping[key])
-                        return user
+                    return User.query.get(int(id))
+                except Exception as orm_error:
+                    current_app.logger.error(f"ORM fallback also failed: {orm_error}")
                     return None
-                except Exception as e:
-                    current_app.logger.error(f"Error in patched load_user: {e}")
-                    
-                    # Fallback to ORM
-                    try:
-                        return User.query.get(int(id))
-                    except:
-                        return None
-            
-            current_app.logger.info("Patched user_loader to handle PostgreSQL 'users' table")
-            return True
-        else:
-            current_app.logger.info(f"No need to patch user_loader for {dialect} dialect")
-            return True
+        
+        from flask import current_app
+        current_app.logger.info(f"Patched user_loader to handle {dialect} database")
+        return True
     except Exception as e:
+        from flask import current_app
         current_app.logger.error(f"Error patching user_loader: {e}")
         return False

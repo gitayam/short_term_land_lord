@@ -14,8 +14,17 @@ def search_users(search_term):
     Search for users with a search term that works with both database schemas.
     Returns a list of dictionaries with user data.
     """
+    # Handle empty search term
+    if not search_term:
+        return []
+        
     # Detect which dialect we're using
-    dialect = db.engine.dialect.name
+    try:
+        dialect = db.engine.dialect.name
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f"Error detecting database dialect: {e}")
+        dialect = 'sqlite'  # Default to SQLite as a safer option
     
     # Get the appropriate query for the dialect
     if dialect == 'postgresql':
@@ -23,7 +32,7 @@ def search_users(search_term):
         query = text("""
         SELECT 
             id, username, email, first_name, last_name, is_active, is_admin,
-            date_joined, last_login, attributes, authentik_id, signal_identity
+            created_at, last_login, attributes, authentik_id, signal_identity, role
         FROM users 
         WHERE username ILIKE :search
            OR first_name ILIKE :search
@@ -38,12 +47,14 @@ def search_users(search_term):
         inspector = inspect(db.engine)
         try:
             columns = [col['name'] for col in inspector.get_columns('user')]
-        except:
+        except Exception as e:
+            from flask import current_app
+            current_app.logger.error(f"Error inspecting user table: {e}")
             # Fallback to minimal set
-            columns = ['id', 'first_name', 'last_name', 'email']
+            columns = ['id', 'first_name', 'last_name', 'email', 'role']
         
         # Start with basic columns that should always exist
-        select_columns = ['id', 'first_name', 'last_name', 'email']
+        select_columns = ['id', 'first_name', 'last_name', 'email', 'role']
         where_conditions = []
         
         # These are the basic search fields
@@ -58,7 +69,7 @@ def search_users(search_term):
             where_conditions.append("username LIKE :search")
             
         # Add other optional columns if they exist
-        optional_columns = ['authentik_id', 'signal_identity', 'is_active', 'is_admin', 'date_joined', 'last_login']
+        optional_columns = ['authentik_id', 'signal_identity', 'is_active', 'is_admin', 'created_at', 'last_login']
         for col in optional_columns:
             if col in columns:
                 select_columns.append(col)
@@ -79,8 +90,13 @@ def search_users(search_term):
         query = text(query_str)
     
     # Execute the query
-    result = db.session.execute(query, {'search': f'%{search_term}%'})
-    rows = result.fetchall()
+    try:
+        result = db.session.execute(query, {'search': f'%{search_term}%'})
+        rows = result.fetchall()
+    except Exception as e:
+        from flask import current_app
+        current_app.logger.error(f"Error executing search query: {e}")
+        return []
     
     # Convert to dictionaries
     users = []
@@ -91,8 +107,9 @@ def search_users(search_term):
         if dialect != 'postgresql' and 'attributes' in user_dict and user_dict['attributes']:
             try:
                 user_dict['attributes'] = json.loads(user_dict['attributes'])
-            except:
-                pass
+            except Exception as e:
+                from flask import current_app
+                current_app.logger.warning(f"Error parsing JSON attributes: {e}")
                 
         users.append(user_dict)
     
@@ -174,4 +191,4 @@ def get_user_by_email(email):
         except:
             pass
             
-    return user_dict 
+    return user_dict

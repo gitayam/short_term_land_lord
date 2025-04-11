@@ -78,10 +78,12 @@ def create_app(config_class=Config):
     with app.app_context():
         try:
             from app.models import migrate_site_settings, create_admin_user_from_env, init_app as init_user_model
-            migrate_site_settings()
             
             # Initialize User model table name
             init_user_model(app)
+            
+            # Initialize site settings
+            migrate_site_settings()
             
             # Create admin user from environment variables if configured
             create_admin_user_from_env()
@@ -94,8 +96,7 @@ def create_app(config_class=Config):
         # Apply database compatibility fixes
         patch_user_model()
         patch_user_loader()
-
-
+    
     return app
 
 from app import models

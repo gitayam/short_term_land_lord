@@ -10,11 +10,17 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
+    username = StringField('Username', validators=[Length(min=3, max=64)])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
     password2 = PasswordField('Repeat Password', validators=[DataRequired(), EqualTo('password')])
     first_name = StringField('First Name', validators=[DataRequired()])
     last_name = StringField('Last Name', validators=[DataRequired()])
-    role = SelectField('Role', choices=[('admin', 'Admin'), ('user', 'User')], validators=[DataRequired()])
+    role = SelectField('Role', choices=[
+        ('property_owner', 'Property Owner'),
+        ('service_staff', 'Service Staff'),
+        ('property_manager', 'Property Manager'),
+        ('admin', 'Admin')
+    ], validators=[DataRequired()])
     submit = SubmitField('Register')
 
 class RequestPasswordResetForm(FlaskForm):

@@ -73,13 +73,12 @@ def test_user_search():
         # Test user loading
         print("\nTesting user loading...")
         try:
-            if users:
-                test_id = users[0].id
-                user = User.query.get(test_id)
-                if user:
-                    print(f"Successfully loaded user {test_id}: {user.email}")
-                else:
-                    print(f"Could not load user {test_id}")
+            test_id = 1  # Assuming we have a user with ID 1
+            user = db.session.get(User, test_id)
+            if user:
+                print(f"\nLoaded user: {user.email}")
+            else:
+                print("\nNo user found with ID 1")
         except Exception as e:
             print(f"Error loading user: {e}")
         

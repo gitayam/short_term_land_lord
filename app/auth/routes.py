@@ -69,13 +69,36 @@ def register():
     
     form = RegistrationForm()
     if form.validate_on_submit():
+        # Generate a username if not provided
+        username = None
+        if hasattr(form, 'username') and form.username.data:
+            username = form.username.data
+        else:
+            # Generate username from email
+            username = form.email.data.split('@')[0]
+            
+            # Ensure username is unique by appending numbers if needed
+            base_username = username
+            counter = 1
+            while User.query.filter_by(username=username).first() is not None:
+                username = f"{base_username}{counter}"
+                counter += 1
+        
+        # Create user with proper role
         user = User(
+            username=username,
             first_name=form.first_name.data,
             last_name=form.last_name.data,
             email=form.email.data,
-            role=UserRoles(form.role.data)
+            role=form.role.data,  # This should be the string value, not the enum object
+            created_at=datetime.utcnow()  # Use created_at instead of date_joined
         )
         user.set_password(form.password.data)
+        
+        # Set is_admin flag if role is admin
+        if user.role == UserRoles.ADMIN.value:
+            user.is_admin = True
+            
         db.session.add(user)
         db.session.commit()
         
