@@ -141,7 +141,7 @@
                             </div>
                         </div>
                         
-                        {% if current_user.is_property_owner or current_user.is_admin %}
+                        {% if current_user.is_property_owner() or current_user.check_admin() %}
                         <h5 class="mt-4 mb-3">🔌 Utility Information</h5>
                         <div class="accordion mb-3" id="utilitiesAccordion">
                             <div class="accordion-item">
@@ -405,6 +405,10 @@
         </div>
     </div>
 </div>
+
+<!-- Add this hidden element with a data attribute to store the room count -->
+<div id="room-counter-data" data-room-count="{{ rooms|length }}" style="display: none;"></div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -413,7 +417,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         const roomsContainer = document.getElementById('rooms-container');
         const addRoomButton = document.getElementById('add-room');
-        let roomCounter = {{ rooms|length }};
+        
+        // Get room count from data attribute
+        let roomCounter = parseInt(document.getElementById('room-counter-data').getAttribute('data-room-count'));
         
         // Add room button click handler
         addRoomButton.addEventListener('click', function() {
