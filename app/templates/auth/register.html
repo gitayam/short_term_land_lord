@@ -9,6 +9,16 @@
                     <h1 class="h3 mb-0">Register</h1>
                 </div>
                 <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+                    
                     <form method="POST" action="{{ url_for('auth.register') }}">
                         {{ form.hidden_tag() }}
                         
@@ -80,4 +90,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

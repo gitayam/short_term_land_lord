@@ -16,7 +16,7 @@
                         <p class="mb-1"><strong>Source Property:</strong> {{ property.name }}</p>
                     </div>
                     
-                    {% if available_properties %}
+                    {% if current_user.is_property_owner %}
                     <form method="post" novalidate>
                         {{ form.hidden_tag() }}
                         {{ form.item_id }}
