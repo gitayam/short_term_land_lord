@@ -30,9 +30,18 @@ def search_users(search_term, limit=10):
     table_name = 'users'
     
     try:
+        # Check if the attributes column exists
+        inspector = inspect(db.engine)
+        columns = [col['name'] for col in inspector.get_columns(table_name)]
+        has_attributes = 'attributes' in columns
+        
         # Build the SQL query with proper LIKE syntax for case-insensitive search
+        select_columns = "id, username, first_name, last_name, email, role"
+        if has_attributes:
+            select_columns += ", attributes"
+            
         sql = text(f"""
-        SELECT id, username, first_name, last_name, email, attributes, role
+        SELECT {select_columns}
         FROM {table_name} 
         WHERE lower(first_name) LIKE lower(:search) 
         OR lower(last_name) LIKE lower(:search)
@@ -59,8 +68,8 @@ def search_users(search_term, limit=10):
                 'role': row.role
             }
             
-            # Try to parse attributes JSON
-            if row.attributes:
+            # Try to parse attributes JSON if the column exists
+            if has_attributes and hasattr(row, 'attributes') and row.attributes:
                 try:
                     user_dict['attributes'] = json.loads(row.attributes) if isinstance(row.attributes, str) else row.attributes
                 except:
@@ -90,9 +99,18 @@ def get_user_by_id(user_id):
     table_name = 'users'
     
     try:
+        # Check if the attributes column exists
+        inspector = inspect(db.engine)
+        columns = [col['name'] for col in inspector.get_columns(table_name)]
+        has_attributes = 'attributes' in columns
+        
         # Build the SQL query
+        select_columns = "id, username, first_name, last_name, email, role, is_admin, is_active"
+        if has_attributes:
+            select_columns += ", attributes"
+            
         sql = text(f"""
-        SELECT id, username, first_name, last_name, email, attributes, role, is_admin, is_active
+        SELECT {select_columns}
         FROM {table_name} 
         WHERE id = :user_id
         """)
@@ -116,8 +134,8 @@ def get_user_by_id(user_id):
             'is_active': row.is_active
         }
         
-        # Try to parse attributes JSON
-        if row.attributes:
+        # Try to parse attributes JSON if the column exists
+        if has_attributes and hasattr(row, 'attributes') and row.attributes:
             try:
                 user_dict['attributes'] = json.loads(row.attributes) if isinstance(row.attributes, str) else row.attributes
             except:
@@ -142,9 +160,18 @@ def get_user_by_email(email):
     table_name = 'users'
     
     try:
+        # Check if the attributes column exists
+        inspector = inspect(db.engine)
+        columns = [col['name'] for col in inspector.get_columns(table_name)]
+        has_attributes = 'attributes' in columns
+        
         # Build the SQL query
+        select_columns = "id, username, first_name, last_name, email, role, is_admin, is_active"
+        if has_attributes:
+            select_columns += ", attributes"
+            
         sql = text(f"""
-        SELECT id, username, first_name, last_name, email, attributes, role, is_admin, is_active
+        SELECT {select_columns}
         FROM {table_name} 
         WHERE email = :email
         """)
@@ -168,8 +195,8 @@ def get_user_by_email(email):
             'is_active': row.is_active
         }
         
-        # Try to parse attributes JSON
-        if row.attributes:
+        # Try to parse attributes JSON if the column exists
+        if has_attributes and hasattr(row, 'attributes') and row.attributes:
             try:
                 user_dict['attributes'] = json.loads(row.attributes) if isinstance(row.attributes, str) else row.attributes
             except:

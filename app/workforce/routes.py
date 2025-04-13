@@ -53,7 +53,7 @@ def get_property_workers(property_id):
         TaskProperty, Task.id == TaskProperty.task_id
     ).filter(
         TaskProperty.property_id == property_id,
-        User.role == UserRoles.SERVICE_STAFF
+        User.role == UserRoles.SERVICE_STAFF.value
     ).distinct().all()
     
     return [id[0] for id in worker_ids]
@@ -83,7 +83,7 @@ def index():
         form.property_id.choices = [(-1, 'All Properties')] + [(p.id, p.name) for p in properties]
         
         # Base query for service staff
-        query = User.query.filter_by(role=UserRoles.SERVICE_STAFF)
+        query = User.query.filter_by(role=UserRoles.SERVICE_STAFF.value)
         
         # Apply filters if form is submitted
         if request.args.get('submit'):
@@ -193,7 +193,7 @@ def invite_worker():
             first_name=form.first_name.data,
             last_name=form.last_name.data,
             email=form.email.data,
-            role=UserRoles.SERVICE_STAFF
+            role=UserRoles.SERVICE_STAFF.value
         )
         user.set_password(password)
         

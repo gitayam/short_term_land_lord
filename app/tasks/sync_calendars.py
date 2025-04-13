@@ -34,8 +34,12 @@ def sync_calendars():
         logger.info("Starting calendar sync process")
         
         # Get all calendars
-        calendars = PropertyCalendar.query.all()
-        logger.info(f"Found {len(calendars)} calendars to sync")
+        try:
+            calendars = PropertyCalendar.query.all()
+            logger.info(f"Found {len(calendars)} calendars to sync")
+        except Exception as e:
+            logger.critical(f"Failed to retrieve calendars from database: {str(e)}", exc_info=True)
+            return
         
         success_count = 0
         error_count = 0
@@ -46,52 +50,66 @@ def sync_calendars():
                 logger.info(f"Syncing calendar {calendar.id} - {calendar.name}")
                 
                 # Fetch the iCal data
-                response = requests.get(calendar.ical_url, timeout=10)
-                if response.status_code == 200:
-                    # Try to parse the iCal data to validate
-                    cal = Calendar.from_ical(response.text)
-                    
-                    # Set sync status
-                    calendar.last_synced = datetime.utcnow()
-                    calendar.sync_status = 'Success'
-                    calendar.sync_error = None
-                    
-                    # Track updated calendars for notifications
-                    updated_calendars.append(calendar.id)
-                    
-                    logger.info(f"Calendar {calendar.id} synced successfully")
-                    success_count += 1
-                else:
-                    # Update sync status
-                    calendar.sync_status = 'Error'
-                    calendar.sync_error = f"HTTP error: {response.status_code}"
-                    logger.error(f"Calendar {calendar.id} sync error: HTTP {response.status_code}")
+                try:
+                    response = requests.get(calendar.ical_url, timeout=10)
+                    if response.status_code == 200:
+                        # Try to parse the iCal data to validate
+                        cal = Calendar.from_ical(response.text)
+                        
+                        # Set sync status
+                        calendar.last_synced = datetime.utcnow()
+                        calendar.sync_status = 'Success'
+                        calendar.sync_error = None
+                        
+                        # Track updated calendars for notifications
+                        updated_calendars.append(calendar.id)
+                        
+                        logger.info(f"Calendar {calendar.id} synced successfully")
+                        success_count += 1
+                    else:
+                        # Update sync status
+                        calendar.sync_status = 'Error'
+                        calendar.sync_error = f"HTTP error: {response.status_code}"
+                        logger.error(f"Calendar {calendar.id} sync error: HTTP {response.status_code}")
+                        error_count += 1
+                except requests.exceptions.Timeout:
+                    # Specific handling for timeout errors
+                    calendar.sync_status = 'Failed'
+                    calendar.sync_error = "Request timed out after 10 seconds"
+                    logger.error(f"Calendar {calendar.id} sync timed out")
                     error_count += 1
-            except requests.exceptions.RequestException as e:
-                # Network-related error
-                calendar.sync_status = 'Failed'
-                calendar.sync_error = f"Request error: {str(e)}"[:255]
-                logger.error(f"Calendar {calendar.id} request error: {str(e)}")
-                error_count += 1
-            except Exception as e:
-                # Other errors
-                calendar.sync_status = 'Failed'
-                calendar.sync_error = str(e)[:255]  # Limit error message length
-                logger.error(f"Calendar {calendar.id} sync failed: {str(e)}")
-                error_count += 1
+                except requests.exceptions.RequestException as e:
+                    # Network-related error
+                    calendar.sync_status = 'Failed'
+                    calendar.sync_error = f"Request error: {str(e)}"[:255]
+                    logger.error(f"Calendar {calendar.id} request error: {str(e)}")
+                    error_count += 1
+                except Exception as e:
+                    # Other errors
+                    calendar.sync_status = 'Failed'
+                    calendar.sync_error = str(e)[:255]  # Limit error message length
+                    logger.error(f"Calendar {calendar.id} sync failed: {str(e)}")
+                    error_count += 1
             
-            # Save the calendar status
-            try:
-                db.session.commit()
-            except SQLAlchemyError as e:
-                db.session.rollback()
-                logger.error(f"Database error while updating calendar {calendar.id}: {str(e)}")
+                # Save the calendar status
+                try:
+                    db.session.commit()
+                except SQLAlchemyError as e:
+                    db.session.rollback()
+                    logger.error(f"Database error while updating calendar {calendar.id}: {str(e)}")
+            except Exception as e:
+                logger.error(f"Unexpected error processing calendar {calendar.id}: {str(e)}", exc_info=True)
+                error_count += 1
         
         # Send notifications for tasks affected by calendar changes
         if updated_calendars:
             try:
-                # Find tasks linked to the updated calendars
-                affected_tasks = Task.query.filter(Task.calendar_id.in_(updated_calendars)).all()
+                # Get the property IDs associated with the updated calendars
+                property_ids = [calendar.property_id for calendar in PropertyCalendar.query.filter(
+                    PropertyCalendar.id.in_(updated_calendars)).all()]
+                
+                # Find tasks linked to the properties with updated calendars
+                affected_tasks = Task.query.filter(Task.property_id.in_(property_ids)).all()
                 affected_task_ids = [task.id for task in affected_tasks]
                 
                 if affected_task_ids:

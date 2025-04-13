@@ -184,7 +184,19 @@ class User(UserMixin, db.Model):
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        # Add debug logging for password checks
+        from flask import current_app
+        
+        if self.password_hash is None:
+            current_app.logger.warning(f"User {self.email} has no password hash set")
+            return False
+            
+        result = check_password_hash(self.password_hash, password)
+        if not result:
+            current_app.logger.warning(f"Password check failed for user {self.email}")
+        else:
+            current_app.logger.info(f"Password check successful for user {self.email}")
+        return result
     
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
@@ -211,7 +223,7 @@ class User(UserMixin, db.Model):
             return False
         
         # Check if the user has any cleaning service assignments
-        from app.models import TaskAssignment, ServiceType
+        # Avoid circular import by using the current module's TaskAssignment and ServiceType
         cleaning_assignments = TaskAssignment.query.filter_by(
             user_id=self.id, 
             service_type=ServiceType.CLEANING
@@ -226,7 +238,7 @@ class User(UserMixin, db.Model):
             return False
         
         # Check if the user has any maintenance service assignments
-        from app.models import TaskAssignment, ServiceType
+        # Avoid circular import by using the current module's TaskAssignment and ServiceType
         maintenance_assignments = TaskAssignment.query.filter_by(
             user_id=self.id
         ).filter(
@@ -240,6 +252,38 @@ class User(UserMixin, db.Model):
         
         return maintenance_assignments is not None
 
+    @property
+    def is_admin(self):
+        """Check if the user has admin privileges."""
+        return bool(self._is_admin) or self.role == UserRoles.ADMIN.value
+
+    # Define getters and setters for is_admin to maintain backward compatibility
+    @property
+    def _is_admin(self):
+        return self.__dict__.get('is_admin', False)
+    
+    @_is_admin.setter
+    def _is_admin(self, value):
+        self.__dict__['is_admin'] = value
+
+    @property
+    def role_enum(self):
+        """Get the role as an enum."""
+        if self.role:
+            try:
+                return UserRoles(self.role)
+            except ValueError:
+                pass
+        return None
+    
+    @role_enum.setter
+    def role_enum(self, role_enum):
+        """Set the role from an enum."""
+        if role_enum is not None:
+            self.role = role_enum.value
+        else:
+            self.role = None
+
 class Property(db.Model):
     __tablename__ = 'property'
     
@@ -248,10 +292,17 @@ class Property(db.Model):
     name = db.Column(db.String(128), nullable=False)
     address = db.Column(db.String(256), nullable=False)
     description = db.Column(db.Text)
-    property_type = db.Column(db.String(32), nullable=False)  # e.g., 'apartment', 'house', 'condo'
+    property_type = db.Column(db.String(32), nullable=False, default='house')  # e.g., 'apartment', 'house', 'condo'
     status = db.Column(db.Enum('active', 'inactive', 'maintenance', name='property_status'), default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Address components for use in tests
+    street_address = db.Column(db.String(128), nullable=True)
+    city = db.Column(db.String(64), nullable=True)
+    state = db.Column(db.String(64), nullable=True)
+    zip_code = db.Column(db.String(16), nullable=True)
+    country = db.Column(db.String(64), nullable=True)
     
     # Guest access fields
     guest_access_enabled = db.Column(db.Boolean, default=False)
@@ -293,7 +344,7 @@ class Property(db.Model):
             return True
         
         # Service staff can see properties they have tasks for
-        if user.is_service_staff():
+        if user.is_service_staff:  # Changed from is_service_staff() to is_service_staff
             # Check if the user has any assigned tasks for this property
             from sqlalchemy.orm import aliased
             from app.models import TaskProperty, TaskAssignment
@@ -950,18 +1001,27 @@ def load_user(id):
         # Fallback to ORM query
         return User.query.get(int(id))
     except Exception as e:
-        print(f"Error loading user: {e}")
+        from flask import current_app
+        current_app.logger.error(f"Error loading user: {e}")
         return None
 
-# Replace this with a simplified function that doesn't try to update __tablename__
 def init_app(app):
     """Initialize app-specific model configurations"""
     with app.app_context():
         try:
             # No need to dynamically set the table name anymore
             app.logger.info("User model using static table name 'users'")
+            
+            # Verify the User model is properly configured
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            if 'users' in inspector.get_table_names():
+                app.logger.info("Users table exists in the database")
+            else:
+                app.logger.warning("Users table does not exist in the database - it will be created if migrations are run")
+                
         except Exception as e:
-            app.logger.error(f"Error initializing model: {e}")
+            app.logger.error(f"Error initializing model: {e}", exc_info=True)
 
 class TaskTemplate(db.Model):
     __tablename__ = 'task_template'
@@ -973,6 +1033,9 @@ class TaskTemplate(db.Model):
     service_type = db.Column(db.Enum(ServiceType), default=ServiceType.CLEANING)
     recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE)
     recurrence_interval = db.Column(db.Integer, default=1)  # How many days/weeks/months between recurrences
+    is_global = db.Column(db.Boolean, default=False)  # Whether this template is available to all users
+    sequence_number = db.Column(db.Integer, default=0)  # For ordering templates
+    category = db.Column(db.String(50), nullable=True)  # Category or tag for the template
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
