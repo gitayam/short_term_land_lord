@@ -68,12 +68,12 @@ def generate_password(length=12):
 @login_required
 def index():
     """Main workforce dashboard - shows different views based on user role"""
-    if current_user.is_admin() or current_user.is_property_manager() or current_user.is_property_owner():
+    if current_user.is_admin or current_user.is_property_manager or current_user.is_property_owner:
         # Admin/manager view - show all service staff
         form = WorkerFilterForm()
         
         # Set up property choices for the filter form
-        if current_user.is_property_owner():
+        if current_user.is_property_owner:
             # Property owners only see their properties
             properties = Property.query.filter_by(owner_id=current_user.id).all()
         else:
@@ -136,7 +136,7 @@ def index():
                               worker_properties=worker_properties,
                               form=form)
     
-    elif current_user.is_service_staff():
+    elif current_user.is_service_staff:
         # Service staff view - show their tasks and assigned properties
         # Get tasks assigned to this worker
         pending_tasks = db.session.query(Task).join(
@@ -252,7 +252,7 @@ def assign_properties():
     form = WorkerPropertyAssignmentForm()
     
     # Property owners can only assign to their own properties
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         form.properties.query = Property.query.filter_by(owner_id=current_user.id)
     
     if form.validate_on_submit():
@@ -312,7 +312,7 @@ def worker_detail(id):
     worker = User.query.get_or_404(id)
     
     # Ensure the user is a service staff member
-    if not worker.is_service_staff():
+    if not worker.is_service_staff:
         flash('This user is not a service staff member.', 'danger')
         return redirect(url_for('workforce.index'))
     
@@ -364,7 +364,7 @@ def worker_detail(id):
 @login_required
 def my_properties():
     """View properties assigned to the current worker"""
-    if not current_user.is_service_staff():
+    if not current_user.is_service_staff:
         flash('This page is only available to service staff.', 'danger')
         return redirect(url_for('workforce.index'))
     
@@ -380,7 +380,7 @@ def my_properties():
 @login_required
 def my_tasks():
     """View tasks assigned to the current worker"""
-    if not current_user.is_service_staff():
+    if not current_user.is_service_staff:
         flash('This page is only available to service staff.', 'danger')
         return redirect(url_for('workforce.index'))
     
@@ -428,7 +428,7 @@ def my_tasks():
 @login_required
 def my_invoices():
     """View invoices related to the current worker"""
-    if not current_user.is_service_staff():
+    if not current_user.is_service_staff:
         flash('This page is only available to service staff.', 'danger')
         return redirect(url_for('workforce.index'))
     
