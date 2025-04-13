@@ -24,23 +24,45 @@ def login():
     
     # Handle local authentication form submission
     if use_local and local_form and local_form.validate_on_submit():
-        user = User.query.filter_by(email=local_form.email.data).first()
-        
-        if user is None or not user.check_password(local_form.password.data):
-            flash('Invalid email or password', 'danger')
-            return redirect(url_for('auth.login'))
-        
-        # Update last login time
-        user.last_login = datetime.utcnow()
-        db.session.commit()
-        
-        login_user(user, remember=local_form.remember_me.data)
-        next_page = request.args.get('next')
-        if not next_page or not next_page.startswith('/'):
-            next_page = url_for('main.index')
-        
-        flash('You have been logged in successfully!', 'success')
-        return redirect(next_page)
+        try:
+            user = User.query.filter_by(email=local_form.email.data).first()
+            
+            if user is None:
+                current_app.logger.warning(f"Login attempt with non-existent email: {local_form.email.data}")
+                flash('Invalid email or password', 'danger')
+                return render_template('auth/login.html', 
+                                      title='Sign In', 
+                                      local_form=local_form,
+                                      sso_form=sso_form,
+                                      use_local=use_local,
+                                      use_sso=use_sso)
+            
+            if not user.check_password(local_form.password.data):
+                current_app.logger.warning(f"Failed login attempt for user: {user.email}")
+                flash('Invalid email or password', 'danger')
+                return render_template('auth/login.html', 
+                                      title='Sign In', 
+                                      local_form=local_form,
+                                      sso_form=sso_form,
+                                      use_local=use_local,
+                                      use_sso=use_sso)
+            
+            # Update last login time
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            login_user(user, remember=local_form.remember_me.data)
+            current_app.logger.info(f"User logged in: {user.email}")
+            next_page = request.args.get('next')
+            if not next_page or not next_page.startswith('/'):
+                next_page = url_for('main.index')
+            
+            flash('You have been logged in successfully!', 'success')
+            return redirect(next_page)
+        except Exception as e:
+            current_app.logger.error(f"Error during login: {str(e)}")
+            flash('An error occurred during login. Please try again.', 'danger')
+            db.session.rollback()
     
     # Handle SSO form submission (redirect to SSO provider)
     if use_sso and sso_form and sso_form.validate_on_submit():
@@ -69,6 +91,12 @@ def register():
     
     form = RegistrationForm()
     if form.validate_on_submit():
+        # Check if email already exists first
+        existing_user = User.query.filter_by(email=form.email.data).first()
+        if existing_user:
+            flash('Email address already registered. Please use a different email or login.', 'danger')
+            return render_template('auth/register.html', title='Register', form=form)
+            
         # Generate a username if not provided
         username = None
         if hasattr(form, 'username') and form.username.data:
@@ -100,10 +128,15 @@ def register():
             user.is_admin = True
             
         db.session.add(user)
-        db.session.commit()
         
-        flash('Congratulations, you are now registered! Please log in.', 'success')
-        return redirect(url_for('auth.login'))
+        try:
+            db.session.commit()
+            flash('Congratulations, you are now registered! Please log in.', 'success')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            db.session.rollback()
+            # Handle other potential database errors
+            flash('An error occurred during registration. Please try again.', 'danger')
     
     return render_template('auth/register.html', title='Register', form=form)
 

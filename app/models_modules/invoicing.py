@@ -19,6 +19,8 @@ class InvoiceStatus(enum.Enum):
 
 
 class TaskPrice(db.Model):
+    __tablename__ = 'task_price'
+    
     id = db.Column(db.Integer, primary_key=True)
     
     # The service type this price applies to
@@ -37,7 +39,7 @@ class TaskPrice(db.Model):
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
     
     # Creator information
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -45,7 +47,10 @@ class TaskPrice(db.Model):
     
     # Relationships
     property = db.relationship('Property', backref='task_prices')
-    creator = db.relationship('User', foreign_keys=[creator_id], backref='created_task_prices')
+    creator = db.relationship('User', 
+                            foreign_keys=[creator_id], 
+                            primaryjoin="TaskPrice.creator_id == User.id",
+                            backref='created_task_prices')
     
     def __repr__(self):
         property_name = self.property.name if self.property else "All Properties"
@@ -66,6 +71,8 @@ class TaskPrice(db.Model):
 
 
 class Invoice(db.Model):
+    __tablename__ = 'invoice'
+    
     id = db.Column(db.Integer, primary_key=True)
     
     # Invoice number (user-friendly identifier)
@@ -97,7 +104,7 @@ class Invoice(db.Model):
     comments = db.Column(db.Text, nullable=True)
     
     # Who created the invoice
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # Property this invoice is for
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
@@ -107,12 +114,15 @@ class Invoice(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    creator = db.relationship('User', foreign_keys=[creator_id], backref='created_invoices')
+    creator = db.relationship('User', 
+                             foreign_keys=[creator_id], 
+                             primaryjoin="Invoice.creator_id == User.id",
+                             backref='created_invoices')
     property = db.relationship('Property', foreign_keys=[property_id], backref='invoices')
     items = db.relationship('InvoiceItem', backref='invoice', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
-        return f'<Invoice {self.invoice_number} - {self.status.value} - ${self.total}>'
+        return f'<Invoice {self.invoice_number} - {self.status} - ${self.total}>'
     
     def calculate_totals(self):
         """Calculate invoice totals based on items"""
@@ -123,7 +133,7 @@ class Invoice(db.Model):
     
     def mark_as_paid(self, payment_date=None):
         """Mark the invoice as paid with optional payment date"""
-        self.status = InvoiceStatus.PAID
+        self.status = 'paid'
         self.paid_date = payment_date if payment_date else datetime.utcnow().date()
         return True
     
@@ -151,6 +161,8 @@ class Invoice(db.Model):
 
 
 class InvoiceItem(db.Model):
+    __tablename__ = 'invoice_item'
+    
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
     

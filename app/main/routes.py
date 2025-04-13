@@ -16,10 +16,10 @@ def index():
 @login_required
 def dashboard():
     # Get properties that are visible to the current user
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         # Property owners see only their properties
         properties = Property.query.filter_by(owner_id=current_user.id).all()
-    elif current_user.is_cleaner() or current_user.is_maintenance() or current_user.is_admin():
+    elif current_user.is_cleaner or current_user.is_maintenance or current_user.is_admin:
         # Cleaners, maintenance staff, and admins see all properties
         properties = Property.query.all()
     else:
@@ -31,10 +31,10 @@ def dashboard():
 @login_required
 def combined_calendar():
     # Get properties that are visible to the current user
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         # Property owners see only their properties
         properties = Property.query.filter_by(owner_id=current_user.id).all()
-    elif current_user.is_cleaner() or current_user.is_maintenance() or current_user.is_admin():
+    elif current_user.is_cleaner or current_user.is_maintenance or current_user.is_admin:
         # Cleaners, maintenance staff, and admins see all properties
         properties = Property.query.all()
     else:
@@ -143,6 +143,32 @@ def combined_calendar():
                                 if not (start_date and end_date):
                                     continue
                                 
+                                # Extract guest name from summary if possible
+                                guest_name = None
+                                if ":" in summary:
+                                    parts = summary.split(":", 1)
+                                    guest_name = parts[1].strip()
+                                elif "-" in summary:
+                                    parts = summary.split("-", 1)
+                                    guest_name = parts[0].strip()
+                                
+                                # Extract any price information if available
+                                amount = None
+                                description = component.get('description')
+                                if description:
+                                    description = str(description)
+                                    # Look for price patterns like $XXX or XXX USD
+                                    import re
+                                    price_match = re.search(r'\$(\d+(\.\d+)?)', description)
+                                    if price_match:
+                                        amount = price_match.group(1)
+                                
+                                # Determine source URL if available
+                                source_url = None
+                                url = component.get('url')
+                                if url:
+                                    source_url = str(url)
+                                
                                 # Add event to the list
                                 event = {
                                     'title': f"{property.name}: {summary}",
@@ -154,7 +180,13 @@ def combined_calendar():
                                         'property_name': property.name,
                                         'property_id': property.id,
                                         'service': calendar.get_service_display(),
-                                        'room': None if calendar.is_entire_property else calendar.room_name
+                                        'room': None if calendar.is_entire_property else calendar.room_name,
+                                        'guest_name': guest_name,
+                                        'amount': amount,
+                                        'source_url': source_url,
+                                        'status': 'Confirmed',
+                                        'notes': description if description else None,
+                                        'phone': None  # Phone not available from iCal
                                     }
                                 }
                                 events.append(event)
