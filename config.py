@@ -71,3 +71,5 @@ class TestConfig(Config):
     WTF_CSRF_ENABLED = False
     NOTIFICATION_EMAIL_ENABLED = False
     NOTIFICATION_SMS_ENABLED = False
+    # Force the User model to use 'user' in tests
+    USER_TABLE_NAME = 'user'
