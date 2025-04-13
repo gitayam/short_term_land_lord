@@ -76,7 +76,7 @@ Using Docker is the recommended way to run the application as it ensures consist
 - Docker
 - Docker Compose
 
-### Running with Docker
+### Getting Started
 
 1. Clone the repository:
    ```bash
@@ -84,36 +84,37 @@ Using Docker is the recommended way to run the application as it ensures consist
    cd short_term_land_lord
    ```
 
-2. Build and start the containers:
-   ```bash
-   docker-compose up -d
-   ```
-
-3. The application will be available at http://localhost:5001
-
-4. To view logs:
-   ```bash
-   docker-compose logs -f
-   ```
-
-5. To stop the containers:
-   ```bash
-   docker-compose down
-   ```
-
-### Database Migrations with Docker
-
-To run database migrations in the Docker environment:
+2. Set up environment variables in `.env` (see `.env` file for required variables)
+3. Start the application:
 
 ```bash
-docker-compose exec web flask db upgrade
+docker-compose up -d
 ```
 
-If you need to create a new migration:
+4. Access the application at http://localhost:5001
+
+### Database Management
+
+The application uses PostgreSQL for the database. If you need to reset the database:
 
 ```bash
-docker-compose exec web flask db migrate -m "Description of changes"
+./reset_db.sh
 ```
+
+### Project Structure
+
+- `app/` - The Flask application
+  - `models.py` - Database models
+  - `models_modules/` - Additional model modules for specific features
+  - `templates/` - HTML templates
+  - `static/` - Static files (CSS, JavaScript)
+  - Other modules for specific features (auth, property, invoicing, etc.)
+
+### Common Issues
+
+#### Database Table Names
+
+The application consistently uses 'users' as the table name for the User model across all environments.
 
 ## User Guides
 
