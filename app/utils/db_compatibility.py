@@ -6,189 +6,176 @@ handling schema differences transparently.
 """
 import json
 from sqlalchemy import text, inspect
+from flask import current_app
 
 from app import db
 
-def search_users(search_term):
+def get_user_table_name():
+    """Return the user table name - always 'users' now"""
+    return 'users'
+
+def search_users(search_term, limit=10):
     """
-    Search for users with a search term that works with both database schemas.
-    Returns a list of dictionaries with user data.
-    """
-    # Handle empty search term
-    if not search_term:
-        return []
-        
-    # Detect which dialect we're using
-    try:
-        dialect = db.engine.dialect.name
-    except Exception as e:
-        from flask import current_app
-        current_app.logger.error(f"Error detecting database dialect: {e}")
-        dialect = 'sqlite'  # Default to SQLite as a safer option
+    Search for users with a consistent table name.
+    This function searches for users by name, email, or username.
     
-    # Get the appropriate query for the dialect
-    if dialect == 'postgresql':
-        # PostgreSQL query - for the 'users' table with JSON attributes
-        query = text("""
-        SELECT 
-            id, username, email, first_name, last_name, is_active, is_admin,
-            created_at, last_login, attributes, authentik_id, signal_identity, role
-        FROM users 
-        WHERE username ILIKE :search
-           OR first_name ILIKE :search
-           OR last_name ILIKE :search
-           OR email ILIKE :search
-           OR CAST((attributes ->> 'intro') AS VARCHAR) ILIKE :search
-           OR CAST((attributes ->> 'invited_by') AS VARCHAR) ILIKE :search
-        ORDER BY username ASC
+    Args:
+        search_term: The search term to look for
+        limit: Maximum number of results to return
+        
+    Returns:
+        List of user dictionaries
+    """
+    # Always use 'users' table 
+    table_name = 'users'
+    
+    try:
+        # Build the SQL query with proper LIKE syntax for case-insensitive search
+        sql = text(f"""
+        SELECT id, username, first_name, last_name, email, attributes, role
+        FROM {table_name} 
+        WHERE lower(first_name) LIKE lower(:search) 
+        OR lower(last_name) LIKE lower(:search)
+        OR lower(email) LIKE lower(:search)
+        OR lower(username) LIKE lower(:search)
+        LIMIT :limit
         """)
-    else:
-        # SQLite query - for the 'user' table, only using columns that exist
-        inspector = inspect(db.engine)
-        try:
-            columns = [col['name'] for col in inspector.get_columns('user')]
-        except Exception as e:
-            from flask import current_app
-            current_app.logger.error(f"Error inspecting user table: {e}")
-            # Fallback to minimal set
-            columns = ['id', 'first_name', 'last_name', 'email', 'role']
         
-        # Start with basic columns that should always exist
-        select_columns = ['id', 'first_name', 'last_name', 'email', 'role']
-        where_conditions = []
+        # Execute the query with parameters
+        result = db.session.execute(sql, {
+            'search': f'%{search_term}%',
+            'limit': limit
+        })
         
-        # These are the basic search fields
-        basic_fields = ['first_name', 'last_name', 'email']
-        for field in basic_fields:
-            if field in columns:
-                where_conditions.append(f"{field} LIKE :search")
-        
-        # Add username if it exists
-        if 'username' in columns:
-            select_columns.append('username')
-            where_conditions.append("username LIKE :search")
+        # Convert the result to a list of dictionaries
+        users = []
+        for row in result:
+            user_dict = {
+                'id': row.id,
+                'username': row.username,
+                'first_name': row.first_name,
+                'last_name': row.last_name,
+                'email': row.email,
+                'role': row.role
+            }
             
-        # Add other optional columns if they exist
-        optional_columns = ['authentik_id', 'signal_identity', 'is_active', 'is_admin', 'created_at', 'last_login']
-        for col in optional_columns:
-            if col in columns:
-                select_columns.append(col)
-        
-        # Add attributes if it exists
-        if 'attributes' in columns:
-            select_columns.append('attributes')
+            # Try to parse attributes JSON
+            if row.attributes:
+                try:
+                    user_dict['attributes'] = json.loads(row.attributes) if isinstance(row.attributes, str) else row.attributes
+                except:
+                    user_dict['attributes'] = {}
             
-        # Build the query
-        select_str = ", ".join(select_columns)
-        where_str = " OR ".join(where_conditions)
-        query_str = f"""
-        SELECT {select_str}
-        FROM user
-        WHERE {where_str}
-        ORDER BY email ASC
-        """
-        query = text(query_str)
-    
-    # Execute the query
-    try:
-        result = db.session.execute(query, {'search': f'%{search_term}%'})
-        rows = result.fetchall()
+            users.append(user_dict)
+        
+        # Debug log
+        current_app.logger.debug(f"Found {len(users)} users for search term: {search_term}")
+        
+        return users
     except Exception as e:
-        from flask import current_app
-        current_app.logger.error(f"Error executing search query: {e}")
+        current_app.logger.error(f"Error searching users: {e}")
         return []
-    
-    # Convert to dictionaries
-    users = []
-    for row in rows:
-        user_dict = dict(row._mapping)
-        
-        # For SQLite, handle JSON attributes
-        if dialect != 'postgresql' and 'attributes' in user_dict and user_dict['attributes']:
-            try:
-                user_dict['attributes'] = json.loads(user_dict['attributes'])
-            except Exception as e:
-                from flask import current_app
-                current_app.logger.warning(f"Error parsing JSON attributes: {e}")
-                
-        users.append(user_dict)
-    
-    return users
 
 def get_user_by_id(user_id):
     """
-    Get a user by ID that works with both database schemas.
-    Returns a dictionary with user data.
-    """
-    # Detect which dialect we're using
-    dialect = db.engine.dialect.name
+    Get a user by ID using a consistent table name.
     
-    # Get the appropriate query for the dialect
-    if dialect == 'postgresql':
-        # PostgreSQL query - for the 'users' table
-        query = text("""
-        SELECT * FROM users WHERE id = :user_id
-        """)
-    else:
-        # SQLite query - for the 'user' table
-        query = text("""
-        SELECT * FROM user WHERE id = :user_id
-        """)
-    
-    # Execute the query
-    result = db.session.execute(query, {'user_id': user_id})
-    row = result.fetchone()
-    
-    if not row:
-        return None
+    Args:
+        user_id: The user ID to look for
         
-    # Convert to dictionary
-    user_dict = dict(row._mapping)
+    Returns:
+        User dictionary or None
+    """
+    # Always use 'users' table
+    table_name = 'users'
     
-    # For SQLite, handle JSON attributes
-    if dialect != 'postgresql' and 'attributes' in user_dict and user_dict['attributes']:
-        try:
-            user_dict['attributes'] = json.loads(user_dict['attributes'])
-        except:
-            pass
-            
-    return user_dict
+    try:
+        # Build the SQL query
+        sql = text(f"""
+        SELECT id, username, first_name, last_name, email, attributes, role, is_admin, is_active
+        FROM {table_name} 
+        WHERE id = :user_id
+        """)
+        
+        # Execute the query with parameters
+        result = db.session.execute(sql, {'user_id': user_id})
+        row = result.fetchone()
+        
+        if not row:
+            return None
+        
+        # Convert the result to a dictionary
+        user_dict = {
+            'id': row.id,
+            'username': row.username,
+            'first_name': row.first_name,
+            'last_name': row.last_name,
+            'email': row.email,
+            'role': row.role,
+            'is_admin': row.is_admin,
+            'is_active': row.is_active
+        }
+        
+        # Try to parse attributes JSON
+        if row.attributes:
+            try:
+                user_dict['attributes'] = json.loads(row.attributes) if isinstance(row.attributes, str) else row.attributes
+            except:
+                user_dict['attributes'] = {}
+        
+        return user_dict
+    except Exception as e:
+        current_app.logger.error(f"Error getting user by ID: {e}")
+        return None
 
 def get_user_by_email(email):
     """
-    Get a user by email that works with both database schemas.
-    Returns a dictionary with user data.
-    """
-    # Detect which dialect we're using
-    dialect = db.engine.dialect.name
+    Get a user by email using a consistent table name.
     
-    # Get the appropriate query for the dialect
-    if dialect == 'postgresql':
-        # PostgreSQL query - for the 'users' table
-        query = text("""
-        SELECT * FROM users WHERE email = :email
-        """)
-    else:
-        # SQLite query - for the 'user' table
-        query = text("""
-        SELECT * FROM user WHERE email = :email
-        """)
-    
-    # Execute the query
-    result = db.session.execute(query, {'email': email})
-    row = result.fetchone()
-    
-    if not row:
-        return None
+    Args:
+        email: The email to look for
         
-    # Convert to dictionary
-    user_dict = dict(row._mapping)
+    Returns:
+        User dictionary or None
+    """
+    # Always use 'users' table
+    table_name = 'users'
     
-    # For SQLite, handle JSON attributes
-    if dialect != 'postgresql' and 'attributes' in user_dict and user_dict['attributes']:
-        try:
-            user_dict['attributes'] = json.loads(user_dict['attributes'])
-        except:
-            pass
-            
-    return user_dict
+    try:
+        # Build the SQL query
+        sql = text(f"""
+        SELECT id, username, first_name, last_name, email, attributes, role, is_admin, is_active
+        FROM {table_name} 
+        WHERE email = :email
+        """)
+        
+        # Execute the query with parameters
+        result = db.session.execute(sql, {'email': email})
+        row = result.fetchone()
+        
+        if not row:
+            return None
+        
+        # Convert the result to a dictionary
+        user_dict = {
+            'id': row.id,
+            'username': row.username,
+            'first_name': row.first_name,
+            'last_name': row.last_name,
+            'email': row.email,
+            'role': row.role,
+            'is_admin': row.is_admin,
+            'is_active': row.is_active
+        }
+        
+        # Try to parse attributes JSON
+        if row.attributes:
+            try:
+                user_dict['attributes'] = json.loads(row.attributes) if isinstance(row.attributes, str) else row.attributes
+            except:
+                user_dict['attributes'] = {}
+        
+        return user_dict
+    except Exception as e:
+        current_app.logger.error(f"Error getting user by email: {e}")
+        return None

@@ -1,95 +1,100 @@
+#!/usr/bin/env python
+
 """
-User model fix that handles the PostgreSQL 'users' vs SQLite 'user' table name discrepancy.
-This module provides functions to patch the User model at runtime.
+This script fixes the User model to ensure it uses the correct table name.
+
+Since we're now using a static table name of 'users' for all environments, this script
+is simplified to just ensure consistency.
 """
-from sqlalchemy import event, inspect
+
+# Import Flask directly to avoid circular imports
 from flask import current_app
+from sqlalchemy import text
+import logging
 
 def get_user_table_name():
-    """Return the appropriate table name based on database dialect"""
-    from app import db
-    
-    try:
-        dialect = db.engine.dialect.name
-        if dialect == 'postgresql':
-            return 'users'
-        else:
-            return 'user'
-    except Exception as e:
-        # If we can't determine the dialect (e.g., outside app context or db not initialized)
-        from flask import current_app
-        current_app.logger.warning(f"Could not determine database dialect: {e}")
-        return 'user'  # Default to 'user' as a safer option
+    """Return the user table name - always 'users' now"""
+    return 'users'
+
+def get_user_fk_target():
+    """Return the foreign key target for User model - always 'users.id' now"""
+    return 'users.id'
 
 def patch_user_model():
-    """Patch the User model to use the correct table name based on database dialect"""
-    from app.models import User
-    from app import db
-    
+    """
+    Ensure User table name is consistent across all database operations.
+    This function is called from app/__init__.py during app initialization.
+    """
     try:
-        # Get the correct table name for the current dialect
-        table_name = get_user_table_name()
+        from app import db
+        from app.models import User
         
-        # Update the model's __tablename__ attribute
-        if User.__tablename__ != table_name:
-            User.__tablename__ = table_name
-            
-            # Force SQLAlchemy to clear and rebuild the model registry
-            db.Model.metadata.clear()
-            
-            # Log the change
-            current_app.logger.info(f"Patched User model to use table '{table_name}'")
-        else:
-            current_app.logger.info(f"User model already using correct table name '{table_name}'")
-            
+        # Set the tablename to 'users'
+        User.__tablename__ = 'users'
+        
+        # Log that we've patched the model
+        current_app.logger.info(f"User model patched: tablename={User.__tablename__}")
+        
         return True
     except Exception as e:
-        current_app.logger.error(f"Error patching User model: {e}")
+        current_app.logger.error(f"Failed to patch User model: {e}")
         return False
-    
+
 def patch_user_loader():
-    """Patch the Flask-Login user_loader to handle table name differences"""
-    from app import db, login_manager
-    from app.models import User
-    from sqlalchemy import text
-    
+    """
+    Ensure user loader uses the consistent table name.
+    This function is called from app/__init__.py during app initialization.
+    """
     try:
-        # Get the database dialect
-        dialect = db.engine.dialect.name
+        from app import db, login_manager
         
-        # Define a new user loader function that works with both dialects
         @login_manager.user_loader
         def load_user(id):
-            """Fixed user loader that uses the correct table name for both database types"""
+            """Load user by ID."""
             try:
-                # Use direct SQL query with the correct table name
-                table_name = get_user_table_name()
-                sql = text(f"SELECT * FROM {table_name} WHERE id = :user_id")
-                result = db.session.execute(sql, {'user_id': int(id)})
-                row = result.fetchone()
+                # Direct SQL query with consistent table name
+                table_name = 'users'  # Always use 'users'
+                sql = text(f"SELECT * FROM {table_name} WHERE id = :id")
+                result = db.session.execute(sql, {'id': id})
+                user_data = result.fetchone()
                 
-                if row:
-                    # Create a User instance manually
+                if user_data:
+                    from app.models import User
                     user = User()
-                    for key in row._mapping.keys():
-                        setattr(user, key, row._mapping[key])
+                    for key, value in user_data._mapping.items():
+                        setattr(user, key, value)
                     return user
-                return None
-            except Exception as e:
-                from flask import current_app
-                current_app.logger.error(f"Error in patched load_user: {e}")
                 
-                # Fallback to ORM
-                try:
-                    return User.query.get(int(id))
-                except Exception as orm_error:
-                    current_app.logger.error(f"ORM fallback also failed: {orm_error}")
-                    return None
+                # Fallback to ORM query
+                from app.models import User
+                return User.query.get(int(id))
+            except Exception as e:
+                current_app.logger.error(f"Error loading user: {e}")
+                return None
         
-        from flask import current_app
-        current_app.logger.info(f"Patched user_loader to handle {dialect} database")
+        current_app.logger.info("User loader patched to use consistent table name")
         return True
     except Exception as e:
-        from flask import current_app
-        current_app.logger.error(f"Error patching user_loader: {e}")
+        current_app.logger.error(f"Failed to patch user loader: {e}")
         return False
+
+def fix_user_model():
+    """
+    Run the patching process for the User model and user loader.
+    This can be called as a standalone function to fix models.
+    """
+    from flask import Flask
+    app = Flask(__name__)
+    
+    # Import after Flask app creation to avoid circular imports
+    from app import db
+    
+    with app.app_context():
+        success_model = patch_user_model()
+        success_loader = patch_user_loader()
+        
+        return success_model and success_loader
+
+if __name__ == "__main__":
+    # Allow running this as a script to fix models
+    fix_user_model()
