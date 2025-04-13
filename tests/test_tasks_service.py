@@ -21,28 +21,28 @@ class TestTaskServiceFunctions(unittest.TestCase):
             first_name='Test',
             last_name='Owner',
             email='owner@example.com',
-            role=UserRoles.PROPERTY_OWNER
+            role=UserRoles.PROPERTY_OWNER.value
         )
         
         self.staff = User(
             first_name='Test',
             last_name='Staff',
             email='staff@example.com',
-            role=UserRoles.SERVICE_STAFF
+            role=UserRoles.SERVICE_STAFF.value
         )
         
         self.other_owner = User(
             first_name='Other',
             last_name='Owner',
             email='other_owner@example.com',
-            role=UserRoles.PROPERTY_OWNER
+            role=UserRoles.PROPERTY_OWNER.value
         )
         
         self.other_staff = User(
             first_name='Other',
             last_name='Staff',
             email='other_staff@example.com',
-            role=UserRoles.SERVICE_STAFF
+            role=UserRoles.SERVICE_STAFF.value
         )
         
         db.session.add_all([self.owner, self.staff, self.other_owner, self.other_staff])
@@ -52,6 +52,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         self.property = Property(
             name='Test Property',
             description='A test property',
+            address='123 Test St, Test City, Test State 12345',
             street_address='123 Test St',
             city='Test City',
             state='Test State',
@@ -63,6 +64,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         self.other_property = Property(
             name='Other Property',
             description='Another test property',
+            address='456 Other St, Other City, Other State 67890',
             street_address='456 Other St',
             city='Other City',
             state='Other State',
@@ -78,10 +80,10 @@ class TestTaskServiceFunctions(unittest.TestCase):
         self.task = Task(
             title='Test Task',
             description='A test task',
-            status=TaskStatus.PENDING,
-            priority=TaskPriority.MEDIUM,
+            status=TaskStatus.PENDING.value,
+            priority=TaskPriority.MEDIUM.value,
             is_recurring=False,
-            recurrence_pattern=RecurrencePattern.NONE,
+            recurrence_pattern=RecurrencePattern.NONE.value,
             creator_id=self.owner.id
         )
         db.session.add(self.task)
@@ -221,7 +223,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         next_cleaner_task1 = Task(
             title='Next Cleaner Task 1',
             description='A task for the next cleaner',
-            status=TaskStatus.PENDING,
+            status=TaskStatus.PENDING.value,
             creator_id=self.owner.id,
             assign_to_next_cleaner=True
         )
@@ -236,7 +238,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         next_cleaner_task2 = Task(
             title='Next Cleaner Task 2',
             description='Another task for the next cleaner',
-            status=TaskStatus.PENDING,
+            status=TaskStatus.PENDING.value,
             creator_id=self.owner.id,
             assign_to_next_cleaner=True
         )
@@ -252,7 +254,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         completed_task = Task(
             title='Completed Task',
             description='A completed task for the next cleaner',
-            status=TaskStatus.COMPLETED,
+            status=TaskStatus.COMPLETED.value,
             creator_id=self.owner.id,
             assign_to_next_cleaner=True
         )

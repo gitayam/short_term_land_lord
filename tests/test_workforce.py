@@ -19,7 +19,7 @@ class TestWorkforceRoutes(unittest.TestCase):
             first_name='Admin',
             last_name='User',
             email='admin@example.com',
-            role=UserRoles.ADMIN
+            role=UserRoles.ADMIN.value
         )
         self.admin.set_password('password')
         db.session.add(self.admin)
@@ -29,7 +29,7 @@ class TestWorkforceRoutes(unittest.TestCase):
             first_name='Test',
             last_name='Owner',
             email='owner@example.com',
-            role=UserRoles.PROPERTY_OWNER
+            role=UserRoles.PROPERTY_OWNER.value
         )
         self.owner.set_password('password')
         db.session.add(self.owner)
@@ -38,6 +38,7 @@ class TestWorkforceRoutes(unittest.TestCase):
         self.property = Property(
             name='Test Property',
             description='A test property',
+            address='123 Test St, Test City, Test State 12345',
             street_address='123 Test St',
             city='Test City',
             state='Test State',
@@ -113,7 +114,7 @@ class TestWorkforceRoutes(unittest.TestCase):
         self.assertIsNotNone(worker)
         self.assertEqual(worker.first_name, 'New')
         self.assertEqual(worker.last_name, 'Worker')
-        self.assertEqual(worker.role, UserRoles.SERVICE_STAFF)
+        self.assertEqual(worker.role, UserRoles.SERVICE_STAFF.value)
     
     def test_assign_properties_page(self):
         """Test property assignment page access."""
