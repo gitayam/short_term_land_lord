@@ -34,12 +34,113 @@
         --fc-daygrid-event-dot-width: 8px;
         
         /* Custom color variables */
-        --villa-color: #ff5a5f;
-        --cabin-color: #d88c00;
-        --apartment-color: #34c759;
-        --other-color: #5e5ce6;
+        --airbnb-color: #FF5A5F;
+        --vrbo-color: #3D67FF;
+        --direct-color: #34C759;
+        --blocked-color: #8E8E93;
         --trash-color: #8e8e93;
         --recycling-color: #30d158;
+    }
+    
+    /* Responsive sidebar */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 100;
+        padding: 48px 0 0;
+        box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+        transition: all 0.3s;
+        background-color: #1a1a1a;
+        width: 280px;
+        overflow-y: auto;
+    }
+    
+    .sidebar-sticky {
+        position: relative;
+        top: 0;
+        height: calc(100vh - 48px);
+        padding-top: .5rem;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+    
+    .sidebar-collapsed {
+        width: 60px;
+    }
+    
+    .main-content {
+        transition: all 0.3s;
+        margin-left: 280px;
+    }
+    
+    .main-content-expanded {
+        margin-left: 60px;
+    }
+    
+    .toggle-sidebar {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 101;
+        background-color: #333;
+        border: none;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    
+    /* Source-specific event colors */
+    .fc-event.airbnb-event {
+        background-color: var(--airbnb-color);
+        border-left: 4px solid var(--airbnb-color);
+    }
+    
+    .fc-event.vrbo-event {
+        background-color: var(--vrbo-color);
+        border-left: 4px solid var(--vrbo-color);
+    }
+    
+    .fc-event.direct-event {
+        background-color: var(--direct-color);
+        border-left: 4px solid var(--direct-color);
+    }
+    
+    .fc-event.blocked-event {
+        background-color: var(--blocked-color);
+        border-left: 4px solid var(--blocked-color);
+    }
+    
+    /* Mobile responsive adjustments */
+    @media (max-width: 767.98px) {
+        .sidebar {
+            width: 100%;
+            height: auto;
+            position: relative;
+            padding-top: 0;
+        }
+        
+        .main-content, .main-content-expanded {
+            margin-left: 0;
+        }
+        
+        .toggle-sidebar {
+            display: none;
+        }
+        
+        .fc-event-title {
+            font-size: 0.8em;
+        }
+        
+        .fc-event {
+            padding: 2px 4px;
+        }
     }
     
     body {
@@ -501,59 +602,159 @@
     </div>
     
     <div class="row">
-        <div class="col-md-3">
-            <div class="calendar-legend mb-4">
-                <h5 class="mb-3">Property Legend</h5>
-                <div id="legendContainer">
-                    {% if legend_data %}
-                        {% for property in legend_data %}
-                        <div class="property-filter">
-                            <input type="checkbox" class="property-checkbox" 
-                                   id="property-{{ property.id }}" 
-                                   data-property-id="{{ property.id }}"
-                                   data-color="{{ property.color }}"
-                                   checked>
-                            <label for="property-{{ property.id }}" class="legend-item">
-                                <span class="legend-color" style="background-color: {{ property.color }};"></span>
-                                <span>{{ property.name }}</span>
+        <!-- Sidebar -->
+        <div class="col-md-3 sidebar" id="sidebar">
+            <button class="toggle-sidebar" id="toggleSidebar">
+                <i class="fas fa-chevron-left" id="sidebarIcon"></i>
+            </button>
+            
+            <div class="sidebar-sticky p-3">
+                <h4 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-white">
+                    <span>Properties</span>
+                </h4>
+                
+                <!-- Property search -->
+                <div class="mb-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary">
+                            <i class="fas fa-search text-light"></i>
+                        </span>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" 
+                               id="propertySearch" placeholder="Search properties...">
+                    </div>
+                </div>
+                
+                <!-- Property list -->
+                <div class="calendar-legend mb-4">
+                    <div id="legendContainer">
+                        {% if legend_data %}
+                            {% for property in legend_data %}
+                            <div class="property-filter" data-property-name="{{ property.name|lower }}">
+                                <input type="checkbox" class="property-checkbox" 
+                                       id="property-{{ property.id }}" 
+                                       data-property-id="{{ property.id }}"
+                                       data-color="{{ property.color }}"
+                                       checked>
+                                <label for="property-{{ property.id }}" class="legend-item">
+                                    <span class="legend-color" style="background-color: {{ property.color }};"></span>
+                                    <span class="property-name">{{ property.name }}</span>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No properties found</p>
+                        {% endif %}
+                    </div>
+                    
+                    <hr class="my-3" style="border-color: #444;">
+                    
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary mb-2" id="selectAllProperties">Select All</button>
+                        <button class="btn btn-sm btn-outline-secondary mb-2" id="deselectAllProperties">Deselect All</button>
+                        <button class="btn btn-sm btn-outline-primary mb-2" id="addNewProperty">
+                            <i class="fas fa-plus"></i> Add Property
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filter options -->
+                <h4 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-white">
+                    <span>Filters</span>
+                </h4>
+                
+                <div class="calendar-legend mb-4">
+                    <h6 class="mb-2">Source</h6>
+                    <div class="source-filters">
+                        <div class="form-check">
+                            <input class="form-check-input source-filter" type="checkbox" id="filter-all" checked data-source="all">
+                            <label class="form-check-label" for="filter-all">
+                                Show All
                             </label>
                         </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-muted">No properties found</p>
-                    {% endif %}
+                        <div class="form-check">
+                            <input class="form-check-input source-filter" type="checkbox" id="filter-airbnb" checked data-source="airbnb">
+                            <label class="form-check-label" for="filter-airbnb">
+                                <span class="legend-color" style="background-color: var(--airbnb-color);"></span>
+                                Airbnb
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input source-filter" type="checkbox" id="filter-vrbo" checked data-source="vrbo">
+                            <label class="form-check-label" for="filter-vrbo">
+                                <span class="legend-color" style="background-color: var(--vrbo-color);"></span>
+                                VRBO
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input source-filter" type="checkbox" id="filter-direct" checked data-source="direct">
+                            <label class="form-check-label" for="filter-direct">
+                                <span class="legend-color" style="background-color: var(--direct-color);"></span>
+                                Direct
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input source-filter" type="checkbox" id="filter-blocked" checked data-source="blocked">
+                            <label class="form-check-label" for="filter-blocked">
+                                <span class="legend-color" style="background-color: var(--blocked-color);"></span>
+                                Blocked Dates
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mb-2 mt-3">Display Layers</h6>
+                    <div class="layer-filters">
+                        <div class="form-check">
+                            <input class="form-check-input layer-filter" type="checkbox" id="layer-prices" checked data-layer="prices">
+                            <label class="form-check-label" for="layer-prices">
+                                Show Prices
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input layer-filter" type="checkbox" id="layer-guests" checked data-layer="guests">
+                            <label class="form-check-label" for="layer-guests">
+                                Show Guest Names
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input layer-filter" type="checkbox" id="layer-cleaning" checked data-layer="cleaning">
+                            <label class="form-check-label" for="layer-cleaning">
+                                Show Cleaning Status
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input layer-filter" type="checkbox" id="layer-maintenance" checked data-layer="maintenance">
+                            <label class="form-check-label" for="layer-maintenance">
+                                Show Maintenance
+                            </label>
+                        </div>
+                    </div>
                 </div>
                 
-                <hr class="my-3" style="border-color: #444;">
-                
-                <div>
-                    <button class="btn btn-sm btn-outline-secondary mb-2" id="selectAllProperties">Select All</button>
-                    <button class="btn btn-sm btn-outline-secondary mb-2" id="deselectAllProperties">Deselect All</button>
-                </div>
-            </div>
-            
-            <div class="card card-dashboard mb-4">
-                <div class="card-header card-header-dashboard">
-                    <h5>Quick Links</h5>
-                </div>
-                <div class="card-body card-body-dashboard">
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-th-large"></i> Dashboard
-                        </a>
-                        {% if properties %}
-                            {% for property in properties %}
-                            <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-calendar-alt"></i> {{ property.name }} Calendar
+                <!-- Quick links -->
+                <div class="card card-dashboard mb-4">
+                    <div class="card-header card-header-dashboard">
+                        <h5>Quick Links</h5>
+                    </div>
+                    <div class="card-body card-body-dashboard">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-th-large"></i> Dashboard
                             </a>
-                            {% endfor %}
-                        {% endif %}
+                            {% if properties %}
+                                {% for property in properties %}
+                                <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-outline-secondary property-link" data-property-name="{{ property.name|lower }}">
+                                    <i class="fas fa-calendar-alt"></i> {{ property.name }}
+                                </a>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-9">
+        <!-- Main content -->
+        <div class="col-md-9 main-content" id="mainContent">
             <div class="card-dashboard calendar-container">
                 <!-- Apple-style custom toolbar -->
                 <div class="apple-toolbar">
@@ -569,7 +770,7 @@
                         <div class="view-selector">
                             <button class="view-btn active" data-view="dayGridMonth">Month</button>
                             <button class="view-btn" data-view="timeGridWeek">Week</button>
-                            <button class="view-btn" data-view="timeGridDay">Day</button>
+                            <button class="view-btn" data-view="resourceTimeGridDay">Day</button>
                             <button class="view-btn" data-view="listMonth">List</button>
                         </div>
                         <div class="search-bar">
@@ -586,7 +787,7 @@
     </div>
 </div>
 
-<!-- Event Modal -->
+<!-- Enhanced Event Modal -->
 <div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -596,8 +797,16 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
+                    <strong>Status:</strong>
+                    <span id="eventStatus" class="badge bg-success">Confirmed</span>
+                </div>
+                <div class="mb-3">
                     <strong>Property:</strong>
                     <span id="eventProperty" class="event-modal-property"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Guest:</strong>
+                    <span id="eventGuest"></span>
                 </div>
                 <div class="mb-3">
                     <strong>Check-in:</strong>
@@ -608,17 +817,87 @@
                     <span id="eventCheckOut"></span>
                 </div>
                 <div class="mb-3">
-                    <strong>Service:</strong>
-                    <span id="eventService"></span>
+                    <strong>Source:</strong>
+                    <span id="eventSource"></span>
+                    <a href="#" id="eventSourceLink" target="_blank" class="ms-2">
+                        <i class="fas fa-external-link-alt"></i>
+                    </a>
                 </div>
                 <div class="mb-3">
-                    <strong>Room:</strong>
-                    <span id="eventRoom"></span>
+                    <strong>Amount:</strong>
+                    <span id="eventAmount"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Phone:</strong>
+                    <span id="eventPhone"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Notes:</strong>
+                    <p id="eventNotes" class="text-muted"></p>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <a href="#" id="viewPropertyLink" class="btn btn-primary">View Property</a>
+                <button type="button" class="btn btn-danger" id="removeBookingBtn">Remove from Calendar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Direct Booking Modal -->
+<div class="modal fade" id="addBookingModal" tabindex="-1" aria-labelledby="addBookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addBookingModalLabel">Add Direct Booking</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="directBookingForm">
+                    <div class="mb-3">
+                        <label for="bookingProperty" class="form-label">Property</label>
+                        <select class="form-select" id="bookingProperty" required>
+                            <option value="">Select property...</option>
+                            {% for property in properties %}
+                            <option value="{{ property.id }}">{{ property.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bookingGuest" class="form-label">Guest Name</label>
+                        <input type="text" class="form-control" id="bookingGuest" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="bookingCheckIn" class="form-label">Check-in Date</label>
+                            <input type="date" class="form-control" id="bookingCheckIn" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="bookingCheckOut" class="form-label">Check-out Date</label>
+                            <input type="date" class="form-control" id="bookingCheckOut" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bookingAmount" class="form-label">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="bookingAmount" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bookingPhone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="bookingPhone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="bookingNotes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="bookingNotes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveBookingBtn">Save Booking</button>
             </div>
         </div>
     </div>
@@ -634,6 +913,49 @@ document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
     var allEvents = events;
     var calendar;
+    
+    // Sidebar toggle functionality
+    document.getElementById('toggleSidebar').addEventListener('click', function() {
+        var sidebar = document.getElementById('sidebar');
+        var mainContent = document.getElementById('mainContent');
+        var sidebarIcon = document.getElementById('sidebarIcon');
+        
+        sidebar.classList.toggle('sidebar-collapsed');
+        mainContent.classList.toggle('main-content-expanded');
+        
+        if (sidebar.classList.contains('sidebar-collapsed')) {
+            sidebarIcon.classList.remove('fa-chevron-left');
+            sidebarIcon.classList.add('fa-chevron-right');
+        } else {
+            sidebarIcon.classList.remove('fa-chevron-right');
+            sidebarIcon.classList.add('fa-chevron-left');
+        }
+    });
+    
+    // Property search functionality
+    document.getElementById('propertySearch').addEventListener('input', function(e) {
+        var searchTerm = e.target.value.toLowerCase();
+        
+        // Filter property checkboxes
+        document.querySelectorAll('.property-filter').forEach(function(item) {
+            var propertyName = item.getAttribute('data-property-name');
+            if (propertyName.includes(searchTerm)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Filter quick links
+        document.querySelectorAll('.property-link').forEach(function(link) {
+            var propertyName = link.getAttribute('data-property-name');
+            if (propertyName.includes(searchTerm)) {
+                link.style.display = 'block';
+            } else {
+                link.style.display = 'none';
+            }
+        });
+    });
     
     // Initialize Apple-style toolbar
     updateAppleToolbarTitle(new Date());
@@ -684,11 +1006,64 @@ document.addEventListener('DOMContentLoaded', function() {
             var title = event.title ? event.title.toLowerCase() : '';
             var propertyName = event.extendedProps?.property_name ? 
                 event.extendedProps.property_name.toLowerCase() : '';
+            var guestName = event.extendedProps?.guest_name ?
+                event.extendedProps.guest_name.toLowerCase() : '';
             
-            return title.includes(searchTerm) || propertyName.includes(searchTerm);
+            return title.includes(searchTerm) || 
+                   propertyName.includes(searchTerm) ||
+                   guestName.includes(searchTerm);
         });
         
         updateCalendarEvents(enhanceEvents(filteredEvents));
+    });
+    
+    // Source filter functionality
+    document.querySelectorAll('.source-filter').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            if (this.id === 'filter-all') {
+                // If "Show All" is clicked, update all other checkboxes to match
+                var isChecked = this.checked;
+                document.querySelectorAll('.source-filter:not(#filter-all)').forEach(function(cb) {
+                    cb.checked = isChecked;
+                });
+            } else {
+                // If any individual source is changed, update the "Show All" checkbox
+                var allChecked = Array.from(document.querySelectorAll('.source-filter:not(#filter-all)')).every(function(cb) {
+                    return cb.checked;
+                });
+                document.getElementById('filter-all').checked = allChecked;
+            }
+            
+            // Apply filters
+            applyFilters();
+        });
+    });
+    
+    // Layer filter functionality
+    document.querySelectorAll('.layer-filter').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            // Apply layer visibility
+            var layer = this.getAttribute('data-layer');
+            var isVisible = this.checked;
+            
+            if (layer === 'prices') {
+                document.querySelectorAll('.event-price').forEach(function(el) {
+                    el.style.display = isVisible ? 'inline' : 'none';
+                });
+            } else if (layer === 'guests') {
+                document.querySelectorAll('.event-guest').forEach(function(el) {
+                    el.style.display = isVisible ? 'inline' : 'none';
+                });
+            } else if (layer === 'cleaning') {
+                document.querySelectorAll('.event-cleaning').forEach(function(el) {
+                    el.style.display = isVisible ? 'inline' : 'none';
+                });
+            } else if (layer === 'maintenance') {
+                document.querySelectorAll('.event-maintenance').forEach(function(el) {
+                    el.style.display = isVisible ? 'inline' : 'none';
+                });
+            }
+        });
     });
     
     // Initialize FullCalendar
@@ -758,10 +1133,34 @@ document.addEventListener('DOMContentLoaded', function() {
         // Enhanced events with Apple-style formatting
         var enhancedEvents = enhanceEvents(combinedEvents);
         
+        // Create resources for properties
+        var resources = [];
+        {% if properties %}
+            {% for property in properties %}
+                resources.push({
+                    id: '{{ property.id }}',
+                    title: '{{ property.name }}'
+                });
+            {% endfor %}
+        {% endif %}
+        
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             headerToolbar: false, // We're using our custom Apple-style toolbar
             events: enhancedEvents,
+            resources: resources,
+            resourceLabelDidMount: function(info) {
+                // Add property color to resource labels
+                var propertyId = info.resource.id;
+                var checkbox = document.querySelector(`.property-checkbox[data-property-id="${propertyId}"]`);
+                if (checkbox) {
+                    var color = checkbox.getAttribute('data-color');
+                    var colorDot = document.createElement('span');
+                    colorDot.className = 'legend-color me-2';
+                    colorDot.style.backgroundColor = color;
+                    info.el.prepend(colorDot);
+                }
+            },
             height: 'auto',
             themeSystem: 'standard',
             dayMaxEvents: true, // allow "more" link when too many events
@@ -776,47 +1175,86 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             eventClassNames: function(arg) {
                 var event = arg.event;
-                var extendedProps = event.extendedProps;
+                var extendedProps = event.extendedProps || {};
                 var classes = [];
                 
-                // Apply different classes based on property type or ID
+                // Apply different classes based on source
                 if (extendedProps.event_type === 'trash') {
                     classes.push('trash-type');
                 } else if (extendedProps.event_type === 'recycling') {
                     classes.push('recycling-type');
-                } else if (extendedProps.property_id % 4 === 0) {
-                    classes.push('villa-type');
-                } else if (extendedProps.property_id % 4 === 1) {
-                    classes.push('cabin-type');
-                } else if (extendedProps.property_id % 4 === 2) {
-                    classes.push('apartment-type');
                 } else {
-                    classes.push('other-type');
+                    // Determine source class
+                    var service = extendedProps.service ? extendedProps.service.toLowerCase() : 'other';
+                    if (service.includes('airbnb')) {
+                        classes.push('airbnb-event');
+                    } else if (service.includes('vrbo')) {
+                        classes.push('vrbo-event');
+                    } else if (service.includes('direct')) {
+                        classes.push('direct-event');
+                    } else if (service.includes('blocked')) {
+                        classes.push('blocked-event');
+                    } else {
+                        classes.push('other-type');
+                    }
                 }
                 
                 return classes;
             },
             eventContent: function(arg) {
                 var event = arg.event;
-                var extendedProps = event.extendedProps;
+                var extendedProps = event.extendedProps || {};
                 
                 var content = document.createElement('div');
                 content.classList.add('fc-event-content');
                 
-                // Add icon if available
-                if (extendedProps.iconClass) {
-                    var icon = document.createElement('i');
-                    icon.className = extendedProps.iconClass + ' event-icon';
-                    content.appendChild(icon);
+                // Add icon based on source
+                var iconClass = 'fas fa-home';
+                if (extendedProps.event_type === 'trash') {
+                    iconClass = 'fas fa-trash-alt';
+                } else if (extendedProps.event_type === 'recycling') {
+                    iconClass = 'fas fa-recycle';
+                } else {
+                    var service = extendedProps.service ? extendedProps.service.toLowerCase() : '';
+                    if (service.includes('airbnb')) {
+                        iconClass = 'fab fa-airbnb';
+                    } else if (service.includes('vrbo')) {
+                        iconClass = 'fas fa-building';
+                    } else if (service.includes('direct')) {
+                        iconClass = 'fas fa-user-check';
+                    } else if (service.includes('blocked')) {
+                        iconClass = 'fas fa-ban';
+                    }
                 }
                 
-                // Add property name
+                var icon = document.createElement('i');
+                icon.className = iconClass + ' event-icon';
+                content.appendChild(icon);
+                
+                // Add title
                 var titleEl = document.createElement('span');
                 titleEl.className = 'fc-event-title';
-                titleEl.innerHTML = event.title;
+                
+                // Add guest name if available
+                if (extendedProps.guest_name && !extendedProps.event_type) {
+                    var guestEl = document.createElement('span');
+                    guestEl.className = 'event-guest';
+                    guestEl.innerHTML = extendedProps.guest_name;
+                    titleEl.appendChild(guestEl);
+                } else {
+                    titleEl.innerHTML = event.title;
+                }
+                
+                // Add price if available
+                if (extendedProps.amount && !extendedProps.event_type) {
+                    var priceEl = document.createElement('span');
+                    priceEl.className = 'event-price ms-2';
+                    priceEl.innerHTML = '($' + extendedProps.amount + ')';
+                    titleEl.appendChild(priceEl);
+                }
                 
                 // Add checkout date in parentheses
-                if (extendedProps.checkoutDate) {
+                if (extendedProps.checkoutDate && !extendedProps.event_type) {
                     var checkoutEl = document.createElement('span');
                     checkoutEl.className = 'checkout-date';
                     checkoutEl.innerHTML = '(out: ' + extendedProps.checkoutDate + ')';
@@ -848,14 +1286,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     var propertyId = extendedProps.property_id || '';
                     var service = extendedProps.service || 'Unknown';
                     var room = extendedProps.room || 'Entire Property';
+                    var guestName = extendedProps.guest_name || 'Unknown Guest';
+                    var amount = extendedProps.amount ? '$' + extendedProps.amount : 'Not specified';
+                    var phone = extendedProps.phone || 'Not provided';
+                    var notes = extendedProps.notes || 'No additional notes';
+                    var sourceUrl = extendedProps.source_url || '#';
+                    var status = extendedProps.status || 'Confirmed';
                     
                     // Update modal content
                     document.getElementById('eventModalLabel').textContent = title;
                     document.getElementById('eventProperty').textContent = propertyName;
                     document.getElementById('eventCheckIn').textContent = startDate;
                     document.getElementById('eventCheckOut').textContent = endDate;
-                    document.getElementById('eventService').textContent = service;
-                    document.getElementById('eventRoom').textContent = room;
+                    document.getElementById('eventSource').textContent = service;
+                    document.getElementById('eventSourceLink').href = sourceUrl;
+                    document.getElementById('eventGuest').textContent = guestName;
+                    document.getElementById('eventAmount').textContent = amount;
+                    document.getElementById('eventPhone').textContent = phone;
+                    document.getElementById('eventNotes').textContent = notes;
+                    
+                    // Update status badge
+                    var statusBadge = document.getElementById('eventStatus');
+                    statusBadge.textContent = status;
+                    statusBadge.className = 'badge';
+                    if (status.toLowerCase() === 'confirmed') {
+                        statusBadge.classList.add('bg-success');
+                    } else if (status.toLowerCase() === 'reserved') {
+                        statusBadge.classList.add('bg-warning');
+                    } else if (status.toLowerCase() === 'blocked') {
+                        statusBadge.classList.add('bg-danger');
+                    } else {
+                        statusBadge.classList.add('bg-secondary');
+                    }
                     
                     // Set property view link
                     var viewPropertyLink = document.getElementById('viewPropertyLink');
@@ -869,9 +1331,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Show the modal
                     var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
                     eventModal.show();
+                    
+                    // Set up remove booking button
+                    document.getElementById('removeBookingBtn').onclick = function() {
+                        if (confirm('Are you sure you want to remove this booking?')) {
+                            // Here you would add AJAX call to remove the booking
+                            alert('This would remove the booking in a real implementation');
+                            eventModal.hide();
+                        }
+                    };
                 } catch (err) {
                     console.error("Error showing event details:", err);
                 }
+            },
+            dateClick: function(info) {
+                // When clicking on an empty date cell, show the add booking modal
+                document.getElementById('bookingCheckIn').value = info.dateStr;
+                
+                // Set checkout date to next day by default
+                var checkoutDate = new Date(info.date);
+                checkoutDate.setDate(checkoutDate.getDate() + 1);
+                document.getElementById('bookingCheckOut').value = checkoutDate.toISOString().split('T')[0];
+                
+                var addBookingModal = new bootstrap.Modal(document.getElementById('addBookingModal'));
+                addBookingModal.show();
             },
             datesSet: function(dateInfo) {
                 updateAppleToolbarTitle(dateInfo.view.calendar.getDate());
@@ -880,6 +1363,64 @@ document.addEventListener('DOMContentLoaded', function() {
         
         calendar.render();
     }
+    
+    // Add direct booking form handler
+    document.getElementById('saveBookingBtn').addEventListener('click', function() {
+        var form = document.getElementById('directBookingForm');
+        
+        // Basic form validation
+        var propertyId = document.getElementById('bookingProperty').value;
+        var guestName = document.getElementById('bookingGuest').value;
+        var checkIn = document.getElementById('bookingCheckIn').value;
+        var checkOut = document.getElementById('bookingCheckOut').value;
+        
+        if (!propertyId || !guestName || !checkIn || !checkOut) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        // In a real implementation, this would be an AJAX call to save the booking
+        alert('This would save the direct booking in a real implementation');
+        
+        // For demo purposes, add the booking to the calendar
+        var amount = document.getElementById('bookingAmount').value;
+        var phone = document.getElementById('bookingPhone').value;
+        var notes = document.getElementById('bookingNotes').value;
+        
+        // Find property name
+        var propertySelect = document.getElementById('bookingProperty');
+        var propertyName = propertySelect.options[propertySelect.selectedIndex].text;
+        
+        // Create new event
+        var newEvent = {
+            title: propertyName + ': ' + guestName,
+            start: checkIn,
+            end: checkOut,
+            backgroundColor: '#34C759', // Direct booking color
+            borderColor: '#34C759',
+            extendedProps: {
+                property_name: propertyName,
+                property_id: parseInt(propertyId),
+                service: 'Direct Booking',
+                guest_name: guestName,
+                amount: amount,
+                phone: phone,
+                notes: notes,
+                status: 'Confirmed',
+                source_url: '#'
+            }
+        };
+        
+        // Add to events array
+        allEvents.push(newEvent);
+        
+        // Update calendar
+        updateCalendarEvents(enhanceEvents(allEvents));
+        
+        // Close modal
+        var addBookingModal = bootstrap.Modal.getInstance(document.getElementById('addBookingModal'));
+        addBookingModal.hide();
+    });
     
     function updateAppleToolbarTitle(date) {
         var title = date.toLocaleString('default', { 
@@ -911,9 +1452,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     iconClass = 'fas fa-recycle';
                     title = 'Recycling Day';
                 } else if (event.extendedProps.service) {
-                    if (event.extendedProps.service.toLowerCase().includes('cleaning')) {
+                    var service = event.extendedProps.service.toLowerCase();
+                    if (service.includes('airbnb')) {
+                        iconClass = 'fab fa-airbnb';
+                    } else if (service.includes('vrbo')) {
+                        iconClass = 'fas fa-building';
+                    } else if (service.includes('direct')) {
+                        iconClass = 'fas fa-user-check';
+                    } else if (service.includes('cleaning')) {
                         iconClass = 'fas fa-broom';
-                    } else if (event.extendedProps.service.toLowerCase().includes('maintenance')) {
+                    } else if (service.includes('maintenance')) {
                         iconClass = 'fas fa-tools';
                     }
                 }
@@ -942,6 +1490,58 @@ document.addEventListener('DOMContentLoaded', function() {
         calendar.addEventSource(events);
     }
     
+    // Apply all filters (source and property)
+    function applyFilters() {
+        // Get selected sources
+        var selectedSources = [];
+        document.querySelectorAll('.source-filter:not(#filter-all):checked').forEach(function(checkbox) {
+            selectedSources.push(checkbox.getAttribute('data-source'));
+        });
+        
+        // Get selected properties
+        var selectedPropertyIds = [];
+        document.querySelectorAll('.property-checkbox:checked').forEach(function(checkbox) {
+            selectedPropertyIds.push(parseInt(checkbox.dataset.propertyId));
+        });
+        
+        // Filter events based on selected properties and sources
+        var filteredEvents = allEvents.filter(function(event) {
+            // Always include utility events
+            if (event.extendedProps && 
+                (event.extendedProps.event_type === 'trash' || 
+                 event.extendedProps.event_type === 'recycling')) {
+                return true;
+            }
+            
+            // Check if property is selected
+            var propertyMatch = selectedPropertyIds.includes(event.extendedProps.property_id);
+            
+            // Check if source is selected
+            var sourceMatch = false;
+            if (event.extendedProps && event.extendedProps.service) {
+                var service = event.extendedProps.service.toLowerCase();
+                
+                if (selectedSources.includes('airbnb') && service.includes('airbnb')) {
+                    sourceMatch = true;
+                } else if (selectedSources.includes('vrbo') && service.includes('vrbo')) {
+                    sourceMatch = true;
+                } else if (selectedSources.includes('direct') && service.includes('direct')) {
+                    sourceMatch = true;
+                } else if (selectedSources.includes('blocked') && service.includes('blocked')) {
+                    sourceMatch = true;
+                }
+            }
+            
+            return propertyMatch && sourceMatch;
+        });
+        
+        // Add utility events
+        var combinedEvents = [...filteredEvents, ...addUtilityEvents()];
+        
+        // Update the calendar with filtered events
+        updateCalendarEvents(enhanceEvents(combinedEvents));
+    }
+    
     // Property filters
     document.querySelectorAll('.property-checkbox').forEach(function(checkbox) {
         checkbox.addEventListener('change', updateVisibleProperties);
@@ -965,26 +1565,14 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.reload();
     });
     
+    // Add new property button
+    document.getElementById('addNewProperty').addEventListener('click', function() {
+        window.location.href = "{{ url_for('property.create') }}";
+    });
+    
     // Filter events based on selected properties
     function updateVisibleProperties() {
-        var selectedPropertyIds = [];
-        document.querySelectorAll('.property-checkbox:checked').forEach(function(checkbox) {
-            selectedPropertyIds.push(parseInt(checkbox.dataset.propertyId));
-        });
-        
-        // Filter events based on selected properties, but keep utility events
-        var filteredEvents = allEvents.filter(function(event) {
-            return selectedPropertyIds.includes(event.extendedProps.property_id) || 
-                  (event.extendedProps && 
-                   (event.extendedProps.event_type === 'trash' || 
-                    event.extendedProps.event_type === 'recycling'));
-        });
-        
-        // Add utility events
-        var combinedEvents = [...filteredEvents, ...addUtilityEvents()];
-        
-        // Update the calendar with filtered events
-        updateCalendarEvents(enhanceEvents(combinedEvents));
+        applyFilters();
     }
     
     // Date formatting helper function
@@ -1001,4 +1589,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-{% endblock %} 
+{% endblock %}
