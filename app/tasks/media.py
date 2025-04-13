@@ -64,8 +64,13 @@ def save_file_to_storage(file_storage, session_id, media_type, is_start_video=No
 
 def save_file_locally(file_storage, session_id, media_type, filename, is_start_video=None):
     """Save a file to local storage"""
-    # Determine the upload directory
-    base_path = current_app.config.get('LOCAL_STORAGE_PATH')
+    # Determine the upload directory with a default value
+    base_path = current_app.config.get('LOCAL_STORAGE_PATH', 'static/uploads')
+    
+    # Ensure the base path exists
+    if not os.path.exists(base_path):
+        os.makedirs(base_path, exist_ok=True)
+    
     media_type_folder = 'videos' if media_type.value == 'video' else 'photos'
     
     # Create directory structure: uploads/cleaning_sessions/{session_id}/{media_type}/
@@ -148,8 +153,8 @@ def save_file_to_rclone(file_storage, session_id, media_type, filename, is_start
     remote = current_app.config.get('RCLONE_REMOTE')
     path = current_app.config.get('RCLONE_PATH')
     
-    # Save file temporarily to local storage
-    temp_dir = os.path.join(current_app.config.get('LOCAL_STORAGE_PATH'), 'temp')
+    # Save file temporarily to local storage with a default path
+    temp_dir = os.path.join(current_app.config.get('LOCAL_STORAGE_PATH', 'static/uploads'), 'temp')
     os.makedirs(temp_dir, exist_ok=True)
     temp_path = os.path.join(temp_dir, filename)
     file_storage.save(temp_path)

@@ -25,6 +25,19 @@ def login():
     # Handle local authentication form submission
     if use_local and local_form and local_form.validate_on_submit():
         try:
+            current_app.logger.info(f"Login form submitted for email: {local_form.email.data}")
+            
+            # Print the SQL query equivalent for debugging
+            from sqlalchemy import text
+            sql = text("SELECT * FROM users WHERE email = :email")
+            result = db.session.execute(sql, {'email': local_form.email.data})
+            user_data = result.fetchone()
+            
+            if user_data:
+                current_app.logger.info(f"User found in database: {user_data.email}")
+            else:
+                current_app.logger.warning(f"User not found in database: {local_form.email.data}")
+            
             user = User.query.filter_by(email=local_form.email.data).first()
             
             if user is None:
@@ -37,6 +50,7 @@ def login():
                                       use_local=use_local,
                                       use_sso=use_sso)
             
+            current_app.logger.info(f"Checking password for user: {user.email}, hash: {user.password_hash}")
             if not user.check_password(local_form.password.data):
                 current_app.logger.warning(f"Failed login attempt for user: {user.email}")
                 flash('Invalid email or password', 'danger')

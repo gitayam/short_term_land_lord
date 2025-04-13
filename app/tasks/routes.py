@@ -25,7 +25,7 @@ def cleaner_required(f):
     """Decorator to restrict access to users who can perform cleaning tasks"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_service_staff():
+        if not current_user.is_service_staff:
             flash('This feature is only available to cleaning staff.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
@@ -39,7 +39,7 @@ def service_staff_required(f):
     """Decorator to restrict access to service staff users"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_service_staff():
+        if not current_user.is_service_staff:
             flash('This feature is only available to service staff.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
@@ -52,13 +52,13 @@ def index():
     """Show all tasks"""
     
     # Get current user's role
-    user_role = current_user.role.name if current_user.role else None
+    user_role = current_user.role
     
     # Get all tasks the user has access to
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         # For property owners, show all tasks related to their properties
         # and tasks they created (even if not assigned to a property)
-        owned_property_ids = [p.id for p in current_user.properties]
+        owned_property_ids = [p.id for p in current_user.owned_properties]
         
         # Get tasks related to properties
         property_tasks = db.session.query(Task).join(
@@ -72,7 +72,7 @@ def index():
         
         # Combine both querysets
         tasks = property_tasks.union(created_tasks).all()
-    elif current_user.is_service_staff():
+    elif current_user.is_service_staff:
         # For service staff, show tasks assigned to them
         tasks = db.session.query(Task).join(
             TaskAssignment, TaskAssignment.task_id == Task.id
@@ -96,7 +96,7 @@ def create():
     # Initialize properties field with a query_factory
     if current_user.is_property_owner():
         form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
-    elif current_user.is_admin() or current_user.is_property_manager():
+    elif current_user.is_admin() or current_user.is_property_manager:
         form.properties.query_factory = lambda: Property.query.all()
     else:
         form.properties.query_factory = lambda: []
@@ -1421,7 +1421,7 @@ def apply_template(template_id):
     # Initialize properties field with a query_factory
     if current_user.is_property_owner():
         form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
-    elif current_user.is_admin() or current_user.is_property_manager():
+    elif current_user.is_admin() or current_user.is_property_manager:
         form.properties.query_factory = lambda: Property.query.all()
     else:
         form.properties.query_factory = lambda: []

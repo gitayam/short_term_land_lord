@@ -18,7 +18,7 @@ def property_owner_required(f):
     """Decorator to ensure only property owners can access a route"""
     @login_required
     def decorated_function(*args, **kwargs):
-        if not current_user.is_property_owner():
+        if not current_user.is_property_owner:
             flash('Access denied. You must be a property owner to view this page.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
