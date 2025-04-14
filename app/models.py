@@ -397,7 +397,7 @@ class Property(db.Model):
     guest_faq = db.Column(db.Text, nullable=True)
     
     # Relationships
-    owner = db.relationship('User', foreign_keys=[owner_id], backref='owned_properties', overlaps="owner_user,properties")
+    owner = db.relationship('User', foreign_keys=[owner_id], backref=db.backref('owned_properties', overlaps="owner_user,properties"), overlaps="owner_user,properties")
     property_tasks = db.relationship('Task', backref='property')
     property_rooms = db.relationship('Room', backref='property')
     property_inventory = db.relationship('InventoryItem', backref='property')
