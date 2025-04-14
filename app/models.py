@@ -615,6 +615,7 @@ class Task(db.Model):
     completed_at = db.Column(db.DateTime, nullable=True)
     creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    assign_to_next_cleaner = db.Column(db.Boolean, default=False)
     
     # Relationships - use task_creator backref instead of creator
     # creator relationship is now handled by the backref from User.created_tasks
@@ -623,6 +624,38 @@ class Task(db.Model):
     
     def __repr__(self):
         return f'<Task {self.title}>'
+        
+    def mark_completed(self, user_id):
+        """Mark a task as completed by the specified user"""
+        self.status = TaskStatus.COMPLETED
+        self.completed_at = datetime.utcnow()
+        
+        # Add completion auditing or history if needed here
+        return True
+        
+    def is_overdue(self):
+        """Check if task is overdue"""
+        if not self.due_date:
+            return False
+        return self.due_date < datetime.utcnow() and self.status != TaskStatus.COMPLETED
+        
+    def get_status_display(self):
+        """Return a display-friendly status name"""
+        if isinstance(self.status, str):
+            # Handle case where status is stored as a string
+            return self.status.replace('_', ' ').title()
+        else:
+            # Handle case where status is stored as an enum
+            return self.status.name.replace('_', ' ').title()
+        
+    def get_priority_display(self):
+        """Return a display-friendly priority name"""
+        if isinstance(self.priority, str):
+            # Handle case where priority is stored as a string
+            return self.priority.replace('_', ' ').title()
+        else:
+            # Handle case where priority is stored as an enum
+            return self.priority.name.replace('_', ' ').title()
 
 class TaskAssignment(db.Model):
     __tablename__ = 'task_assignment'
