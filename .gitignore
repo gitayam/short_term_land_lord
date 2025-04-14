@@ -176,3 +176,4 @@ migrations/*
 app/static/uploads/properties/*
 app.db
 migrations/*
+.cursor/rules/migration.mdc

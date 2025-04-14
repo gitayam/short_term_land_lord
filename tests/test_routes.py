@@ -23,7 +23,7 @@ class TestTaskRoutes(unittest.TestCase):
             first_name='Test',
             last_name='Owner',
             email='owner@example.com',
-            role=UserRoles.PROPERTY_OWNER
+            role=UserRoles.PROPERTY_OWNER.value
         )
         self.owner.set_password('password')
         
@@ -145,7 +145,7 @@ class TestPropertyRoutes(unittest.TestCase):
             first_name='Test',
             last_name='Owner',
             email='owner@example.com',
-            role=UserRoles.PROPERTY_OWNER
+            role=UserRoles.PROPERTY_OWNER.value
         )
         self.owner.set_password('password')
         db.session.add(self.owner)
