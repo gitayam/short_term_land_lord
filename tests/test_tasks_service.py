@@ -80,10 +80,9 @@ class TestTaskServiceFunctions(unittest.TestCase):
         self.task = Task(
             title='Test Task',
             description='A test task',
-            status=TaskStatus.PENDING.value,
-            priority=TaskPriority.MEDIUM.value,
-            is_recurring=False,
-            recurrence_pattern=RecurrencePattern.NONE.value,
+            status=TaskStatus.PENDING,
+            priority=TaskPriority.MEDIUM,
+            recurrence_pattern=RecurrencePattern.NONE,
             creator_id=self.owner.id
         )
         db.session.add(self.task)

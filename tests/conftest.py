@@ -42,7 +42,7 @@ def users(app, _db):
         first_name='Test',
         last_name='Owner',
         email='owner@example.com',
-        role=UserRoles.PROPERTY_OWNER
+        role=UserRoles.PROPERTY_OWNER.value
     )
     owner.set_password('password')
     
