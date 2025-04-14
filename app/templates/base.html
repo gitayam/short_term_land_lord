@@ -61,7 +61,7 @@
                     </li>
                     {% endif %}
                     
-                    {% if current_user.is_admin() or current_user.is_property_manager %}
+                    {% if current_user.is_admin or current_user.is_property_manager %}
                     <!-- Workforce Navigation for Admins and Property Managers -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('workforce.index') }}">Workforce</a>

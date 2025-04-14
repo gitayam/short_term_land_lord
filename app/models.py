@@ -617,6 +617,17 @@ class Task(db.Model):
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     assign_to_next_cleaner = db.Column(db.Boolean, default=False)
     
+    # Add recurring task fields
+    is_recurring = db.Column(db.Boolean, default=False)
+    recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE)
+    recurrence_interval = db.Column(db.Integer, default=1)
+    recurrence_end_date = db.Column(db.DateTime, nullable=True)
+    
+    # Additional fields used in forms and routes
+    notes = db.Column(db.Text, nullable=True)
+    linked_to_checkout = db.Column(db.Boolean, default=False)
+    calendar_id = db.Column(db.Integer, db.ForeignKey('property_calendar.id', name='fk_task_calendar'), nullable=True)
+    
     # Relationships - use task_creator backref instead of creator
     # creator relationship is now handled by the backref from User.created_tasks
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic')
