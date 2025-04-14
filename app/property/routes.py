@@ -262,13 +262,13 @@ def view(id):
             TaskAssignment.user_id == current_user.id
         ).order_by(TaskProperty.sequence_number.asc(), Task.due_date.asc(), Task.priority.desc()).all()
     
-    return render_template('property/view.html', 
-                          property=property, 
+    return render_template('property/view.html',
+                          property=property,
                           reviews_count=reviews_count,
                           service_history=service_history,
                           service_staff_tasks=service_staff_tasks,
                           guest_review_count=reviews_count,
-                          rooms_list=property.rooms.all() if hasattr(property, 'rooms') else [])
+                          rooms_list=property.rooms if hasattr(property, 'rooms') else [])
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @property_owner_required

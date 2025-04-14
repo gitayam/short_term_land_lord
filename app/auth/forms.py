@@ -21,7 +21,7 @@ class RegistrationForm(FlaskForm):
         ('service_staff', 'Service Staff'),
         ('property_manager', 'Property Manager')
     ], validators=[DataRequired()])
-    message = StringField('Why do you want to join?', widget=TextAreaField(), 
+    message = TextAreaField('Why do you want to join?', 
                          validators=[Length(max=500)],
                          description="Tell us a bit about yourself and why you want to join the platform")
     submit = SubmitField('Request Registration')

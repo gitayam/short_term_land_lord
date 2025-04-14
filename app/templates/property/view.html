@@ -17,7 +17,7 @@
             </div>
             
             <div class="card-body">
-                {% if property.images.count() > 0 %}
+                {% if property.images|length > 0 %}
                 <div id="propertyCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
                     <div class="carousel-inner">
                         {% for image in property.images %}
@@ -31,7 +31,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    {% if property.images.count() > 1 %}
+                    {% if property.images|length > 1 %}
                     <button class="carousel-control-prev" type="button" data-bs-target="#propertyCarousel" data-bs-slide="prev">
                         <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                         <span class="visually-hidden">Previous</span>

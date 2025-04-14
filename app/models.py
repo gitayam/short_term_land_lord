@@ -300,10 +300,22 @@ class User(UserMixin, db.Model):
         """Check if the user has the property manager role."""
         return self.role == UserRoles.PROPERTY_MANAGER.value
     
+    def is_admin(self):
+        """Check if the user has admin privileges."""
+        return bool(self._is_admin) or self.role == UserRoles.ADMIN.value
+
+    # Define getters and setters for is_admin to maintain backward compatibility
     @property
+    def _is_admin(self):
+        return self.__dict__.get('is_admin', False)
+    
+    @_is_admin.setter
+    def _is_admin(self, value):
+        self.__dict__['is_admin'] = value
+        
     def is_cleaner(self):
         """Check if the user is a cleaner (service staff with cleaning service type)."""
-        if not self.is_service_staff:
+        if not self.is_service_staff():
             return False
         
         # Check if the user has any cleaning service assignments
@@ -315,10 +327,9 @@ class User(UserMixin, db.Model):
         
         return cleaning_assignments is not None
     
-    @property
     def is_maintenance(self):
         """Check if the user is maintenance staff (service staff with maintenance service type)."""
-        if not self.is_service_staff:
+        if not self.is_service_staff():
             return False
         
         # Check if the user has any maintenance service assignments
@@ -335,20 +346,6 @@ class User(UserMixin, db.Model):
         ).first()
         
         return maintenance_assignments is not None
-
-    @property
-    def is_admin(self):
-        """Check if the user has admin privileges."""
-        return bool(self._is_admin) or self.role == UserRoles.ADMIN.value
-
-    # Define getters and setters for is_admin to maintain backward compatibility
-    @property
-    def _is_admin(self):
-        return self.__dict__.get('is_admin', False)
-    
-    @_is_admin.setter
-    def _is_admin(self, value):
-        self.__dict__['is_admin'] = value
 
     @property
     def role_enum(self):
@@ -388,6 +385,11 @@ class Property(db.Model):
     zip_code = db.Column(db.String(16), nullable=True)
     country = db.Column(db.String(64), nullable=True)
     
+    # Property details
+    bedrooms = db.Column(db.Integer, nullable=True)
+    bathrooms = db.Column(db.Float, nullable=True)
+    square_feet = db.Column(db.Integer, nullable=True)
+    
     # Guest access fields
     guest_access_enabled = db.Column(db.Boolean, default=False)
     guest_access_token = db.Column(db.String(64), unique=True, nullable=True)
@@ -406,6 +408,12 @@ class Property(db.Model):
     property_inventory = db.relationship('InventoryItem', backref='property')
     images = db.relationship('PropertyImage', backref='property')
     rooms = db.relationship('Room', backref='property_parent', overlaps="property,property_rooms")
+    calendars = db.relationship('PropertyCalendar', backref='property')
+    
+    @property
+    def tasks(self):
+        """Get all tasks associated with this property through TaskProperty"""
+        return self.task_properties
     
     def __repr__(self):
         return f'<Property {self.name}>'
@@ -443,11 +451,11 @@ class Property(db.Model):
     def is_visible_to(self, user):
         """Check if the property is visible to the given user"""
         # Property owners can see their own properties
-        if user.is_property_owner and self.owner_id == user.id:
+        if user.is_property_owner() and self.owner_id == user.id:
             return True
         
         # Admins can see all properties
-        if user.is_admin:
+        if user.is_admin():
             return True
         
         # Property managers can see all properties
@@ -455,7 +463,7 @@ class Property(db.Model):
             return True
         
         # Service staff can see properties they have tasks for
-        if user.is_service_staff:  # Changed from is_service_staff() to is_service_staff
+        if user.is_service_staff():
             # Check if the user has any assigned tasks for this property
             from sqlalchemy.orm import aliased
             from app.models import TaskProperty, TaskAssignment
