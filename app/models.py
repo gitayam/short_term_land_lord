@@ -666,13 +666,13 @@ class Task(db.Model):
     calendar_id = db.Column(db.Integer, db.ForeignKey('property_calendar.id', name='fk_task_calendar'), nullable=True)
     
     # Relationships - use task_creator backref instead of creator
-    # creator relationship is now handled by the backref from User.created_tasks
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic')
     task_properties = db.relationship('TaskProperty', backref='task', cascade="all, delete-orphan")
+    creator = db.relationship('User', foreign_keys=[creator_id], backref='created_tasks_direct', overlaps="created_tasks,task_creator")
     
     @property
     def properties(self):
-        """Access properties through TaskProperty relationship"""
+        """Get all properties that this task is associated with."""
         return [tp.property for tp in self.task_properties]
     
     def add_property(self, property_id):

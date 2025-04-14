@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 from app import create_app, db
-from app.models import User, UserRoles, Task, TaskAssignment, TaskStatus, TaskPriority, TaskProperty, Property, RecurrencePattern
+from app.models import User, UserRoles, Task, TaskAssignment, TaskStatus, TaskPriority, TaskProperty, Property, RecurrencePattern, ServiceType
 from flask import current_app
 import os
 from config import TestConfig
@@ -49,6 +49,58 @@ class TestUserModel(unittest.TestCase):
         self.admin.set_password('password')
         
         db.session.add_all([self.owner, self.staff, self.manager, self.admin])
+        db.session.commit()
+        
+        # Create a test property
+        self.property = Property(
+            name='Test Property',
+            description='A test property',
+            address='123 Test St, Test City, Test State 12345, Test Country',
+            street_address='123 Test St',
+            city='Test City',
+            state='Test State',
+            zip_code='12345',
+            country='Test Country',
+            owner_id=self.owner.id
+        )
+        db.session.add(self.property)
+        db.session.commit()
+        
+        # Create a task
+        self.task = Task(
+            title='Test Task',
+            description='A test task',
+            status=TaskStatus.PENDING,
+            priority=TaskPriority.MEDIUM,
+            creator_id=self.owner.id,
+            property_id=self.property.id
+        )
+        db.session.add(self.task)
+        db.session.commit()
+        
+        # Link task to property
+        self.task_property = TaskProperty(
+            task_id=self.task.id,
+            property_id=self.property.id
+        )
+        db.session.add(self.task_property)
+        
+        # Create cleaning assignment for the staff
+        self.cleaning_assignment = TaskAssignment(
+            task_id=self.task.id,
+            user_id=self.staff.id,
+            service_type=ServiceType.CLEANING
+        )
+        db.session.add(self.cleaning_assignment)
+        
+        # Create maintenance assignment for the staff
+        self.maintenance_assignment = TaskAssignment(
+            task=self.task,
+            user_id=self.staff.id,
+            service_type=ServiceType.HANDYMAN
+        )
+        db.session.add(self.maintenance_assignment)
+        
         db.session.commit()
     
     def tearDown(self):
@@ -103,6 +155,7 @@ class TestUserModel(unittest.TestCase):
             state='Test State',
             zip_code='12345',
             country='Test Country',
+            address='123 Test St, Test City, Test State 12345, Test Country',
             owner_id=self.owner.id
         )
         db.session.add(property)

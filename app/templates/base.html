@@ -24,11 +24,12 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a>
                     </li>
+
                     {% if current_user.is_property_owner %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('property.index') }}">My Properties</a>
                     </li>
-                    
+
                     <!-- Tasks Navigation -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="tasksDropdown" role="button" data-bs-toggle="dropdown">
@@ -39,12 +40,12 @@
                             <li><a class="dropdown-item" href="{{ url_for('tasks.templates') }}">Task Templates</a></li>
                         </ul>
                     </li>
-                    
-                    <!-- Workforce Navigation for Property Owners -->
+
+                    <!-- Workforce Navigation -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('workforce.index') }}">Workforce</a>
                     </li>
-                    
+
                     <!-- Inventory Navigation -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown">
@@ -59,17 +60,10 @@
                             {% endfor %}
                         </ul>
                     </li>
-                    {% endif %}
-                    
-                    {% if current_user.is_admin or current_user.is_property_manager %}
-                    <!-- Workforce Navigation for Admins and Property Managers -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('workforce.index') }}">Workforce</a>
-                    </li>
-                    
-                    <!-- Tasks Navigation for Admins and Managers -->
+                    {% elif current_user.is_admin or current_user.is_property_manager %}
+                    <!-- Tasks Navigation -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="adminTasksDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="tasksDropdown" role="button" data-bs-toggle="dropdown">
                             Tasks
                         </a>
                         <ul class="dropdown-menu">
@@ -77,9 +71,12 @@
                             <li><a class="dropdown-item" href="{{ url_for('tasks.templates') }}">Task Templates</a></li>
                         </ul>
                     </li>
-                    {% endif %}
-                    
-                    {% if current_user.is_service_staff %}
+
+                    <!-- Workforce Navigation -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('workforce.index') }}">Workforce</a>
+                    </li>
+                    {% elif current_user.is_service_staff %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('workforce.index') }}">My Dashboard</a>
                     </li>
