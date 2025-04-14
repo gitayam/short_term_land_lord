@@ -1182,10 +1182,18 @@ def can_view_task(task, user):
         # Get all properties owned by the user
         owned_property_ids = [p.id for p in user.properties]
         
-        # Check if any task property is owned by the user
+        # Check if the task has a property_id that is owned by the user
+        if task.property_id in owned_property_ids:
+            return True
+            
+        # Also check task's associated properties
         for task_property in task.properties:
-            if task_property.property_id in owned_property_ids:
-                return True
+            if isinstance(task_property, int):
+                if task_property in owned_property_ids:
+                    return True
+            elif hasattr(task_property, 'id'):
+                if task_property.id in owned_property_ids:
+                    return True
     
     # Users assigned to the task can view it
     for assignment in task.assignments:
@@ -1206,10 +1214,18 @@ def can_edit_task(task, user):
         # Get all properties owned by the user
         owned_property_ids = [p.id for p in user.properties]
         
-        # Check if any task property is owned by the user
+        # Check if the task has a property_id that is owned by the user
+        if task.property_id in owned_property_ids:
+            return True
+            
+        # Also check task's associated properties
         for task_property in task.properties:
-            if task_property.property_id in owned_property_ids:
-                return True
+            if isinstance(task_property, int):
+                if task_property in owned_property_ids:
+                    return True
+            elif hasattr(task_property, 'id'):
+                if task_property.id in owned_property_ids:
+                    return True
     
     return False
 

@@ -258,6 +258,8 @@ class User(UserMixin, db.Model):
                                     primaryjoin='User.id == TaskAssignment.user_id')
     created_templates = db.relationship('TaskTemplate', foreign_keys='TaskTemplate.creator_id', backref='template_creator', lazy='dynamic',
                                        primaryjoin='User.id == TaskTemplate.creator_id')
+    properties = db.relationship('Property', foreign_keys='Property.owner_id', backref='owner_user', lazy='dynamic',
+                                primaryjoin='User.id == Property.owner_id', overlaps="owned_properties,owner")
     
     def __repr__(self):
         return f'<User {self.email}>'
@@ -283,17 +285,14 @@ class User(UserMixin, db.Model):
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
     
-    @property
     def is_property_owner(self):
         """Check if the user has the property owner role."""
         return self.role == UserRoles.PROPERTY_OWNER.value
     
-    @property
     def is_service_staff(self):
         """Check if the user has the service staff role."""
         return self.role == UserRoles.SERVICE_STAFF.value
     
-    @property
     def is_property_manager(self):
         """Check if the user has the property manager role."""
         return self.role == UserRoles.PROPERTY_MANAGER.value
@@ -398,7 +397,7 @@ class Property(db.Model):
     guest_faq = db.Column(db.Text, nullable=True)
     
     # Relationships
-    owner = db.relationship('User', foreign_keys=[owner_id], backref='owned_properties')
+    owner = db.relationship('User', foreign_keys=[owner_id], backref='owned_properties', overlaps="owner_user,properties")
     property_tasks = db.relationship('Task', backref='property')
     property_rooms = db.relationship('Room', backref='property')
     property_inventory = db.relationship('InventoryItem', backref='property')
@@ -631,12 +630,21 @@ class Task(db.Model):
     # Relationships - use task_creator backref instead of creator
     # creator relationship is now handled by the backref from User.created_tasks
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic')
-    task_properties = db.relationship('TaskProperty', backref='task')
+    task_properties = db.relationship('TaskProperty', backref='task', cascade="all, delete-orphan")
     
     @property
     def properties(self):
         """Access properties through TaskProperty relationship"""
         return [tp.property for tp in self.task_properties]
+    
+    def add_property(self, property_id):
+        """Add a property to this task via TaskProperty"""
+        # Check if the relationship already exists
+        if not any(tp.property_id == property_id for tp in self.task_properties):
+            task_property = TaskProperty(property_id=property_id)
+            self.task_properties.append(task_property)
+            return task_property
+        return None
     
     def __repr__(self):
         return f'<Task {self.title}>'
@@ -713,6 +721,9 @@ class TaskProperty(db.Model):
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    property = db.relationship('Property', backref='task_properties')
     
     def __repr__(self):
         return f'<TaskProperty task_id={self.task_id} property_id={self.property_id}>'

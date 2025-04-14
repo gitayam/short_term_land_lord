@@ -83,7 +83,7 @@ def index():
         form.property_id.choices = [(-1, 'All Properties')] + [(p.id, p.name) for p in properties]
         
         # Base query for service staff
-        query = User.query.filter_by(role=UserRoles.SERVICE_STAFF.value)
+        query = User.query.filter(User.role == UserRoles.SERVICE_STAFF.value)
         
         # Apply filters if form is submitted
         if request.args.get('submit'):

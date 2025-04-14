@@ -16,9 +16,7 @@ def send_task_assignment_notification(task, user):
         return False
     
     # Get property information for the task
-    properties = []
-    for tp in task.properties:
-        properties.append(tp.property)
+    properties = task.properties
     
     property_names = ", ".join([p.name for p in properties])
     
@@ -68,9 +66,7 @@ def send_task_reminder_notification(task, user):
         return False
     
     # Get property information for the task
-    properties = []
-    for tp in task.properties:
-        properties.append(tp.property)
+    properties = task.properties
     
     property_names = ", ".join([p.name for p in properties])
     
@@ -120,9 +116,7 @@ def send_calendar_update_notification(task, user):
         return False
     
     # Get property information for the task
-    properties = []
-    for tp in task.properties:
-        properties.append(tp.property)
+    properties = task.properties
     
     property_names = ", ".join([p.name for p in properties])
     
@@ -217,11 +211,8 @@ def send_repair_request_notification(repair_request, property_owner):
 def create_notification(user_id, notification_type, channel, title, message, task_id=None):
     """Create a notification record in the database"""
     notification = Notification(
-        user_id=user_id,
-        task_id=task_id,
+        recipient_id=user_id,
         notification_type=notification_type,
-        channel=channel,
-        title=title,
         message=message
     )
     
