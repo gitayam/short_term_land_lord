@@ -633,6 +633,11 @@ class Task(db.Model):
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic')
     task_properties = db.relationship('TaskProperty', backref='task')
     
+    @property
+    def properties(self):
+        """Access properties through TaskProperty relationship"""
+        return [tp.property for tp in self.task_properties]
+    
     def __repr__(self):
         return f'<Task {self.title}>'
         

@@ -83,14 +83,15 @@ class TestTaskServiceFunctions(unittest.TestCase):
             status=TaskStatus.PENDING,
             priority=TaskPriority.MEDIUM,
             recurrence_pattern=RecurrencePattern.NONE,
-            creator_id=self.owner.id
+            creator_id=self.owner.id,
+            property_id=self.property.id
         )
         db.session.add(self.task)
         
         # Link task to property
         self.task_property = TaskProperty(
-            task=self.task,
-            property=self.property
+            task_id=self.task.id,
+            property_id=self.property.id
         )
         db.session.add(self.task_property)
         
@@ -120,13 +121,16 @@ class TestTaskServiceFunctions(unittest.TestCase):
         other_task = Task(
             title='Other Task',
             description='Another test task',
-            creator_id=self.other_owner.id
+            status=TaskStatus.PENDING,
+            priority=TaskPriority.MEDIUM,
+            creator_id=self.other_owner.id,
+            property_id=self.other_property.id
         )
         db.session.add(other_task)
         
         other_task_property = TaskProperty(
-            task=other_task,
-            property=self.other_property
+            task_id=other_task.id,
+            property_id=self.other_property.id
         )
         db.session.add(other_task_property)
         db.session.commit()
@@ -150,13 +154,16 @@ class TestTaskServiceFunctions(unittest.TestCase):
         staff_created_task = Task(
             title='Staff Created Task',
             description='A task created by staff for owner property',
-            creator_id=self.staff.id
+            status=TaskStatus.PENDING,
+            priority=TaskPriority.MEDIUM,
+            creator_id=self.staff.id,
+            property_id=self.property.id
         )
         db.session.add(staff_created_task)
         
         staff_task_property = TaskProperty(
-            task=staff_created_task,
-            property=self.property  # Owner's property
+            task_id=staff_created_task.id,
+            property_id=self.property.id
         )
         db.session.add(staff_task_property)
         db.session.commit()
@@ -182,13 +189,16 @@ class TestTaskServiceFunctions(unittest.TestCase):
         staff_created_task = Task(
             title='Staff Created Task',
             description='A task created by staff',
-            creator_id=self.staff.id
+            status=TaskStatus.PENDING,
+            priority=TaskPriority.MEDIUM,
+            creator_id=self.staff.id,
+            property_id=self.property.id
         )
         db.session.add(staff_created_task)
         
         staff_task_property = TaskProperty(
-            task=staff_created_task,
-            property=self.property  # Owner's property
+            task_id=staff_created_task.id,
+            property_id=self.property.id
         )
         db.session.add(staff_task_property)
         db.session.commit()
@@ -222,30 +232,34 @@ class TestTaskServiceFunctions(unittest.TestCase):
         next_cleaner_task1 = Task(
             title='Next Cleaner Task 1',
             description='A task for the next cleaner',
-            status=TaskStatus.PENDING.value,
+            status=TaskStatus.PENDING,
+            priority=TaskPriority.MEDIUM,
             creator_id=self.owner.id,
+            property_id=self.property.id,
             assign_to_next_cleaner=True
         )
         db.session.add(next_cleaner_task1)
         
         next_cleaner_task1_property = TaskProperty(
-            task=next_cleaner_task1,
-            property=self.property
+            task_id=next_cleaner_task1.id,
+            property_id=self.property.id
         )
         db.session.add(next_cleaner_task1_property)
         
         next_cleaner_task2 = Task(
             title='Next Cleaner Task 2',
             description='Another task for the next cleaner',
-            status=TaskStatus.PENDING.value,
+            status=TaskStatus.PENDING,
+            priority=TaskPriority.MEDIUM,
             creator_id=self.owner.id,
+            property_id=self.property.id,
             assign_to_next_cleaner=True
         )
         db.session.add(next_cleaner_task2)
         
         next_cleaner_task2_property = TaskProperty(
-            task=next_cleaner_task2,
-            property=self.property
+            task_id=next_cleaner_task2.id,
+            property_id=self.property.id
         )
         db.session.add(next_cleaner_task2_property)
         
@@ -253,15 +267,17 @@ class TestTaskServiceFunctions(unittest.TestCase):
         completed_task = Task(
             title='Completed Task',
             description='A completed task for the next cleaner',
-            status=TaskStatus.COMPLETED.value,
+            status=TaskStatus.COMPLETED,
+            priority=TaskPriority.MEDIUM,
             creator_id=self.owner.id,
+            property_id=self.property.id,
             assign_to_next_cleaner=True
         )
         db.session.add(completed_task)
         
         completed_task_property = TaskProperty(
-            task=completed_task,
-            property=self.property
+            task_id=completed_task.id,
+            property_id=self.property.id
         )
         db.session.add(completed_task_property)
         

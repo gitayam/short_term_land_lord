@@ -144,11 +144,12 @@ def create():
         
         # Associate with properties
         if form.properties.data:
-            for property_id in form.properties.data:
+            for property in form.properties.data:
                 task_property = TaskProperty(
-                    property_id=property_id
+                    task_id=task.id, 
+                    property_id=property.id
                 )
-                task.properties.append(task_property)
+                db.session.add(task_property)
         
         db.session.add(task)
         db.session.commit()
@@ -173,7 +174,7 @@ def view(id):
         return redirect(url_for('tasks.index'))
     
     # Get properties associated with this task
-    properties = [tp.property for tp in task.properties]
+    properties = task.properties
     
     # Get assignments for this task
     assignments = task.assignments.all()
@@ -244,7 +245,10 @@ def edit(id):
         # Then add the new ones
         if form.properties.data:
             for property in form.properties.data:
-                task_property = TaskProperty(task=task, property=property)
+                task_property = TaskProperty(
+                    task_id=task.id, 
+                    property_id=property.id
+                )
                 db.session.add(task_property)
         
         db.session.commit()
