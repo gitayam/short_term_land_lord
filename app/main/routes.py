@@ -33,16 +33,19 @@ def combined_calendar():
     # Get properties that are visible to the current user
     if current_user.is_property_owner:
         # Property owners see only their properties
-        properties = Property.query.filter_by(owner_id=current_user.id).all()
+        properties = Property.query.filter_by(owner_id=current_user.id).order_by(Property.name).all()
     elif current_user.is_cleaner or current_user.is_maintenance or current_user.is_admin:
         # Cleaners, maintenance staff, and admins see all properties
-        properties = Property.query.all()
+        properties = Property.query.order_by(Property.name).all()
     else:
         properties = []
     
     if not properties:
         flash('No properties found.', 'warning')
-        return render_template('main/combined_calendar.html', title='Combined Calendar', properties=[], events=[])
+        return render_template('main/combined_calendar.html', title='Combined Calendar', properties=[], resources=[], events=[])
+    
+    # Prepare resources list for FullCalendar
+    resources = [{'id': str(prop.id), 'title': prop.name} for prop in properties]
     
     # Get all calendars for all properties
     all_calendars = []
@@ -54,28 +57,14 @@ def combined_calendar():
     # If no calendars found, still show the page but with message
     if not all_calendars:
         flash('No calendars have been added to any properties. Add a calendar to see bookings.', 'info')
-        return render_template('main/combined_calendar.html', title='Combined Calendar', properties=properties, events=[])
+        return render_template('main/combined_calendar.html', title='Combined Calendar', properties=properties, resources=resources, events=[])
     
     # Prepare events data for the calendar
     events = []
     success = False
-    property_colors = {}
-    color_index = 0
-    
-    # Define a list of distinct colors for properties
-    colors = [
-        '#FF5A5F', '#00A699', '#FC642D', '#484848', '#767676',
-        '#3D67FF', '#39D5FF', '#BD10E0', '#9013FE', '#50E3C2',
-        '#FFB400', '#FF5E3A', '#FF2D55', '#5AC8FA', '#007AFF'
-    ]
     
     for property, calendar in all_calendars:
         try:
-            # Assign a color to this property if it doesn't have one yet
-            if property.id not in property_colors:
-                property_colors[property.id] = colors[color_index % len(colors)]
-                color_index += 1
-            
             # Log the attempt to fetch
             current_app.logger.info(f"Attempting to fetch calendar {calendar.id}: {calendar.name} - URL: {calendar.ical_url}")
             
@@ -171,11 +160,11 @@ def combined_calendar():
                                 
                                 # Add event to the list
                                 event = {
-                                    'title': f"{property.name}: {summary}",
+                                    'title': summary,
                                     'start': start_date.isoformat(),
                                     'end': end_date.isoformat(),
-                                    'backgroundColor': property_colors[property.id],
-                                    'borderColor': property_colors[property.id],
+                                    'resourceId': str(property.id),
+                                    'className': f'{calendar.service.lower()}-event',
                                     'extendedProps': {
                                         'property_name': property.name,
                                         'property_id': property.id,
@@ -186,7 +175,7 @@ def combined_calendar():
                                         'source_url': source_url,
                                         'status': 'Confirmed',
                                         'notes': description if description else None,
-                                        'phone': None  # Phone not available from iCal
+                                        'phone': None
                                     }
                                 }
                                 events.append(event)
@@ -221,18 +210,8 @@ def combined_calendar():
     if not success and all_calendars:
         flash('Could not fetch calendar data from any of the configured sources. Please check your calendar URLs and try again.', 'warning')
     
-    # Create legend data using the property colors
-    legend_data = []
-    for property in properties:
-        if property.id in property_colors:
-            legend_data.append({
-                'name': property.name,
-                'color': property_colors[property.id],
-                'id': property.id
-            })
-    
-    return render_template('main/combined_calendar.html', 
-                          title='Combined Calendar', 
-                          properties=properties, 
-                          events=events,
-                          legend_data=legend_data)
+    return render_template('main/combined_calendar.html',
+                          title='Combined Calendar',
+                          properties=properties,
+                          resources=resources,
+                          events=events)
