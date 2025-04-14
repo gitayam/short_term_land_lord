@@ -118,11 +118,12 @@ class TestUserModel(unittest.TestCase):
             creator_id=self.owner.id
         )
         db.session.add(task)
+        db.session.commit()
         
         # Link task to property
         task_property = TaskProperty(
-            task=task,
-            property=property
+            task_id=task.id,
+            property_id=property.id
         )
         db.session.add(task_property)
         
@@ -254,7 +255,10 @@ class TestPropertyModel(unittest.TestCase):
         db.session.add(task)
         
         # Link the task to the property
-        task_property = TaskProperty(task=task, property=self.property)
+        task_property = TaskProperty(
+            task_id=task.id,
+            property_id=self.property.id
+        )
         db.session.add(task_property)
         
         # Assign the task to the staff user
@@ -282,7 +286,10 @@ class TestPropertyModel(unittest.TestCase):
         db.session.add(task)
         
         # Link the task to the property
-        task_property = TaskProperty(task=task, property=self.property)
+        task_property = TaskProperty(
+            task_id=task.id,
+            property_id=self.property.id
+        )
         db.session.add(task_property)
         db.session.commit()
         

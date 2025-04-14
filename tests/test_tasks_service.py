@@ -87,17 +87,15 @@ class TestTaskServiceFunctions(unittest.TestCase):
             property_id=self.property.id
         )
         db.session.add(self.task)
+        db.session.commit()
         
         # Link task to property
-        self.task_property = TaskProperty(
-            task_id=self.task.id,
-            property_id=self.property.id
-        )
-        db.session.add(self.task_property)
+        self.task_property = self.task.add_property(self.property.id)
+        db.session.commit()
         
         # Create assignment for the staff
         self.assignment = TaskAssignment(
-            task=self.task,
+            task_id=self.task.id,
             user_id=self.staff.id
         )
         db.session.add(self.assignment)
@@ -128,11 +126,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         )
         db.session.add(other_task)
         
-        other_task_property = TaskProperty(
-            task_id=other_task.id,
-            property_id=self.other_property.id
-        )
-        db.session.add(other_task_property)
+        other_task_property = other_task.add_property(self.other_property.id)
         db.session.commit()
         
         # Other owner can view their task
@@ -161,11 +155,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         )
         db.session.add(staff_created_task)
         
-        staff_task_property = TaskProperty(
-            task_id=staff_created_task.id,
-            property_id=self.property.id
-        )
-        db.session.add(staff_task_property)
+        staff_created_task.add_property(self.property.id)
         db.session.commit()
         
         # Owner can edit tasks for their property even if not creator
@@ -196,11 +186,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         )
         db.session.add(staff_created_task)
         
-        staff_task_property = TaskProperty(
-            task_id=staff_created_task.id,
-            property_id=self.property.id
-        )
-        db.session.add(staff_task_property)
+        staff_created_task.add_property(self.property.id)
         db.session.commit()
         
         # Owner cannot delete staff-created task
@@ -240,11 +226,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         )
         db.session.add(next_cleaner_task1)
         
-        next_cleaner_task1_property = TaskProperty(
-            task_id=next_cleaner_task1.id,
-            property_id=self.property.id
-        )
-        db.session.add(next_cleaner_task1_property)
+        next_cleaner_task1.add_property(self.property.id)
         
         next_cleaner_task2 = Task(
             title='Next Cleaner Task 2',
@@ -257,11 +239,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         )
         db.session.add(next_cleaner_task2)
         
-        next_cleaner_task2_property = TaskProperty(
-            task_id=next_cleaner_task2.id,
-            property_id=self.property.id
-        )
-        db.session.add(next_cleaner_task2_property)
+        next_cleaner_task2.add_property(self.property.id)
         
         # Create a task that's already completed
         completed_task = Task(
@@ -275,11 +253,7 @@ class TestTaskServiceFunctions(unittest.TestCase):
         )
         db.session.add(completed_task)
         
-        completed_task_property = TaskProperty(
-            task_id=completed_task.id,
-            property_id=self.property.id
-        )
-        db.session.add(completed_task_property)
+        completed_task.add_property(self.property.id)
         
         db.session.commit()
         

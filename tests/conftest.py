@@ -92,6 +92,7 @@ def property_fixture(app, _db, users):
         state='Test State',
         zip_code='12345',
         country='Test Country',
+        address='123 Test St, Test City, Test State 12345, Test Country',
         owner_id=users['owner'].id
     )
     
@@ -114,10 +115,11 @@ def task_fixture(app, _db, users, property_fixture):
         creator_id=users['owner'].id
     )
     _db.session.add(task)
+    _db.session.commit()
     
     task_property = TaskProperty(
-        task=task,
-        property=property_fixture
+        task_id=task.id,
+        property_id=property_fixture.id
     )
     _db.session.add(task_property)
     

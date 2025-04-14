@@ -31,7 +31,7 @@ class TestTaskRoutes(unittest.TestCase):
             first_name='Test',
             last_name='Staff',
             email='staff@example.com',
-            role=UserRoles.SERVICE_STAFF
+            role=UserRoles.SERVICE_STAFF.value
         )
         self.staff.set_password('password')
         
@@ -47,6 +47,7 @@ class TestTaskRoutes(unittest.TestCase):
             state='Test State',
             zip_code='12345',
             country='Test Country',
+            address='123 Test St, Test City, Test State 12345, Test Country',
             owner=self.owner
         )
         db.session.add(self.property)
@@ -62,11 +63,12 @@ class TestTaskRoutes(unittest.TestCase):
             due_date=datetime.utcnow() + timedelta(days=1)
         )
         db.session.add(self.task)
+        db.session.commit()
         
         # Link the task to the property
         task_property = TaskProperty(
-            task=self.task,
-            property=self.property
+            task_id=self.task.id,
+            property_id=self.property.id
         )
         db.session.add(task_property)
         db.session.commit()
@@ -160,6 +162,7 @@ class TestPropertyRoutes(unittest.TestCase):
             state='Test State',
             zip_code='12345',
             country='Test Country',
+            address='123 Test St, Test City, Test State 12345, Test Country',
             owner=self.owner
         )
         db.session.add(self.property)
