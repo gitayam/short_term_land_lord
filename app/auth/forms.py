@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, Email, EqualTo, Length
 
 class LoginForm(FlaskForm):
@@ -18,10 +18,20 @@ class RegistrationForm(FlaskForm):
     role = SelectField('Role', choices=[
         ('property_owner', 'Property Owner'),
         ('service_staff', 'Service Staff'),
-        ('property_manager', 'Property Manager'),
-        ('admin', 'Admin')
+        ('property_manager', 'Property Manager')
     ], validators=[DataRequired()])
-    submit = SubmitField('Register')
+    message = StringField('Why do you want to join?', widget=TextAreaField(), 
+                         validators=[Length(max=500)],
+                         description="Tell us a bit about yourself and why you want to join the platform")
+    submit = SubmitField('Request Registration')
+
+class PropertyRegistrationForm(FlaskForm):
+    """Form for adding property details during registration"""
+    property_name = StringField('Property Name', validators=[DataRequired()])
+    property_address = StringField('Property Address', validators=[DataRequired()])
+    property_description = StringField('Property Description', widget=TextAreaField(), 
+                                      validators=[Length(max=1000)])
+    submit = SubmitField('Continue with Registration')
 
 class RequestPasswordResetForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])

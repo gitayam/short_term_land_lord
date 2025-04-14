@@ -146,6 +146,88 @@ class NotificationChannel(enum.Enum):
     SMS = "sms"
     IN_APP = "in_app"
 
+class ApprovalStatus(enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+class RegistrationRequest(db.Model):
+    __tablename__ = 'registration_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(64), nullable=False)
+    last_name = db.Column(db.String(64), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    role = db.Column(db.String(20), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    
+    # For property owners/managers
+    property_name = db.Column(db.String(128), nullable=True)
+    property_address = db.Column(db.String(256), nullable=True)
+    property_description = db.Column(db.Text, nullable=True)
+    
+    # Messages and notes
+    message = db.Column(db.Text, nullable=True)  # Message from applicant
+    admin_notes = db.Column(db.Text, nullable=True)  # Notes from admin during review
+    
+    # Status tracking
+    status = db.Column(db.Enum(ApprovalStatus), default=ApprovalStatus.PENDING)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Relationship with the admin who reviewed the request
+    reviewer = db.relationship('User', foreign_keys=[reviewed_by], backref='reviewed_requests')
+    
+    def __repr__(self):
+        return f'<RegistrationRequest {self.email} ({self.status.value})>'
+    
+    def approve(self, admin_user):
+        """Approve this registration request and create the user account"""
+        # Create the user
+        user = User(
+            first_name=self.first_name,
+            last_name=self.last_name,
+            email=self.email,
+            role=self.role,
+            password_hash=self.password_hash  # Already hashed during request creation
+        )
+        
+        # Set admin flag if role is admin (unlikely, but possible)
+        if user.role == UserRoles.ADMIN.value:
+            user.is_admin = True
+            
+        db.session.add(user)
+        db.session.flush()  # Flush to get the user ID
+        
+        # If this is a property owner, create their property too
+        if self.role == UserRoles.PROPERTY_OWNER.value and self.property_name:
+            property = Property(
+                name=self.property_name,
+                address=self.property_address,
+                description=self.property_description,
+                owner_id=user.id,
+                status='active'
+            )
+            db.session.add(property)
+        
+        # Update request status
+        self.status = ApprovalStatus.APPROVED
+        self.reviewed_by = admin_user.id
+        self.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        return user
+    
+    def reject(self, admin_user, reason=None):
+        """Reject this registration request"""
+        self.status = ApprovalStatus.REJECTED
+        self.reviewed_by = admin_user.id
+        if reason:
+            self.admin_notes = reason
+        self.updated_at = datetime.utcnow()
+        db.session.commit()
+
 class User(UserMixin, db.Model):
     """
     User model representing system users.

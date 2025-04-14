@@ -1,10 +1,10 @@
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, current_user
 from datetime import datetime
 from app import db
 from app.auth import bp
-from app.auth.forms import LoginForm, RegistrationForm, RequestPasswordResetForm, ResetPasswordForm, SSOLoginForm
-from app.models import User, PasswordReset, UserRoles
+from app.auth.forms import LoginForm, RegistrationForm, RequestPasswordResetForm, ResetPasswordForm, SSOLoginForm, PropertyRegistrationForm
+from app.models import User, PasswordReset, UserRoles, RegistrationRequest, ApprovalStatus
 from app.auth.email import send_password_reset_email
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -104,11 +104,69 @@ def register():
         return redirect(url_for('main.index'))
     
     form = RegistrationForm()
+    property_form = None
+    
+    # Handle property owner registration (two-step process)
+    property_step = False
+    if request.args.get('role') == 'property_owner' and request.args.get('step') == 'property':
+        property_step = True
+        property_form = PropertyRegistrationForm()
+        
+        # Get user data from session
+        user_data = session.get('registration_data', {})
+        if not user_data:
+            flash('Registration information missing. Please start again.', 'danger')
+            return redirect(url_for('auth.register'))
+            
+        # Handle property form submission
+        if property_form.validate_on_submit():
+            user_data['property_name'] = property_form.property_name.data
+            user_data['property_address'] = property_form.property_address.data
+            user_data['property_description'] = property_form.property_description.data
+            
+            # Check if email already exists
+            existing_user = User.query.filter_by(email=user_data['email']).first()
+            existing_request = RegistrationRequest.query.filter_by(email=user_data['email'], 
+                                                                  status=ApprovalStatus.PENDING).first()
+            
+            if existing_user or existing_request:
+                flash('Email address already registered or pending approval. Please use a different email.', 'danger')
+                return render_template('auth/register_property.html', title='Register Property', form=property_form)
+                
+            # Create the registration request
+            request_obj = RegistrationRequest(
+                first_name=user_data['first_name'],
+                last_name=user_data['last_name'],
+                email=user_data['email'],
+                role=user_data['role'],
+                password_hash=user_data['password_hash'],
+                property_name=user_data['property_name'],
+                property_address=user_data['property_address'],
+                property_description=user_data['property_description'],
+                message=user_data.get('message', ''),
+                status=ApprovalStatus.PENDING
+            )
+            
+            db.session.add(request_obj)
+            db.session.commit()
+            
+            # Clear session data
+            session.pop('registration_data', None)
+            
+            flash('Your registration request has been submitted! An administrator will review your request soon.', 'success')
+            return redirect(url_for('auth.login'))
+        
+        return render_template('auth/register_property.html', title='Register Property', form=property_form)
+    
+    # Handle initial registration form
     if form.validate_on_submit():
-        # Check if email already exists first
+        # Check if email already exists
         existing_user = User.query.filter_by(email=form.email.data).first()
-        if existing_user:
-            flash('Email address already registered. Please use a different email or login.', 'danger')
+        existing_request = RegistrationRequest.query.filter_by(email=form.email.data, 
+                                                              status=ApprovalStatus.PENDING).first()
+        
+        if existing_user or existing_request:
+            flash('Email address already registered or pending approval. Please use a different email.', 'danger')
             return render_template('auth/register.html', title='Register', form=form)
             
         # Generate a username if not provided
@@ -126,31 +184,60 @@ def register():
                 username = f"{base_username}{counter}"
                 counter += 1
         
-        # Create user with proper role
-        user = User(
-            username=username,
-            first_name=form.first_name.data,
-            last_name=form.last_name.data,
-            email=form.email.data,
-            role=form.role.data,  # This should be the string value, not the enum object
-            created_at=datetime.utcnow()  # Use created_at instead of date_joined
-        )
-        user.set_password(form.password.data)
-        
-        # Set is_admin flag if role is admin
-        if user.role == UserRoles.ADMIN.value:
-            user.is_admin = True
+        # If this is a property owner, go to step 2
+        if form.role.data == UserRoles.PROPERTY_OWNER.value:
+            # Store data in session for the next step
+            user = User(
+                username=username,
+                first_name=form.first_name.data,
+                last_name=form.last_name.data,
+                email=form.email.data,
+                role=form.role.data
+            )
+            user.set_password(form.password.data)
             
-        db.session.add(user)
-        
-        try:
-            db.session.commit()
-            flash('Congratulations, you are now registered! Please log in.', 'success')
-            return redirect(url_for('auth.login'))
-        except Exception as e:
-            db.session.rollback()
-            # Handle other potential database errors
-            flash('An error occurred during registration. Please try again.', 'danger')
+            # Store in session
+            session['registration_data'] = {
+                'username': username,
+                'first_name': form.first_name.data,
+                'last_name': form.last_name.data,
+                'email': form.email.data,
+                'role': form.role.data,
+                'password_hash': user.password_hash,
+                'message': form.message.data
+            }
+            
+            return redirect(url_for('auth.register', role='property_owner', step='property'))
+        else:
+            # For other roles, create registration request directly
+            user = User(
+                username=username,
+                first_name=form.first_name.data,
+                last_name=form.last_name.data,
+                email=form.email.data,
+                role=form.role.data
+            )
+            user.set_password(form.password.data)
+            
+            request_obj = RegistrationRequest(
+                first_name=form.first_name.data,
+                last_name=form.last_name.data,
+                email=form.email.data,
+                role=form.role.data,
+                password_hash=user.password_hash,
+                message=form.message.data,
+                status=ApprovalStatus.PENDING
+            )
+            
+            db.session.add(request_obj)
+            
+            try:
+                db.session.commit()
+                flash('Your registration request has been submitted! An administrator will review your request soon.', 'success')
+                return redirect(url_for('auth.login'))
+            except Exception as e:
+                db.session.rollback()
+                flash('An error occurred during registration. Please try again.', 'danger')
     
     return render_template('auth/register.html', title='Register', form=form)
 

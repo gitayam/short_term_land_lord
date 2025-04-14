@@ -61,6 +61,25 @@
                 </div>
             </div>
             
+            {% if pending_registrations > 0 %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Pending Registration Requests</h5>
+                        <a href="{{ url_for('admin.registrations') }}" class="btn btn-sm btn-light">View All</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Action Required</h4>
+                        <p>You have <strong>{{ pending_registrations }}</strong> pending registration requests that need your review.</p>
+                        <hr>
+                        <a href="{{ url_for('admin.registrations') }}" class="btn btn-primary">Review Registration Requests</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-warning text-white">
                     <h5 class="mb-0">Pending Repair Requests</h5>
@@ -135,6 +154,15 @@
                     <div class="list-group">
                         <a href="{{ url_for('admin.settings') }}" class="list-group-item list-group-item-action">
                             <i class="fas fa-cogs"></i> Site Settings
+                        </a>
+                        <a href="{{ url_for('admin.registrations') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user-plus"></i> Registration Requests 
+                            {% if pending_registrations > 0 %}
+                            <span class="badge badge-danger">{{ pending_registrations }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-users"></i> User Management
                         </a>
                     </div>
                 </div>
