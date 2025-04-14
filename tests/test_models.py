@@ -243,7 +243,7 @@ class TestPropertyModel(unittest.TestCase):
         
         # Staff initially might be able to see property based on model implementation
         initial_visibility = self.property.is_visible_to(self.staff)
-        
+    
         # Create a task for the property
         task = Task(
             title='Test Task',
@@ -255,6 +255,7 @@ class TestPropertyModel(unittest.TestCase):
             due_date=datetime.utcnow() + timedelta(days=1)
         )
         db.session.add(task)
+        db.session.commit()  # Commit to get a valid task.id before creating TaskProperty
         
         # Link the task to the property
         task_property = TaskProperty(
@@ -287,6 +288,7 @@ class TestPropertyModel(unittest.TestCase):
             due_date=datetime.utcnow() + timedelta(days=1)
         )
         db.session.add(task)
+        db.session.commit()  # Commit to get a valid task.id before creating TaskProperty
         
         # Link the task to the property
         task_property = TaskProperty(
