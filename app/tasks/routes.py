@@ -308,8 +308,8 @@ def assign(id):
     
     form = TaskAssignmentForm()
     
-    # Set up query for users that can be assigned to tasks
-    form.user.query = User.query.filter(User.role == UserRoles.SERVICE_STAFF)
+    # Update the user field query to only show service staff
+    form.user.query = User.query.filter(User.role == UserRoles.SERVICE_STAFF.value)
     
     assignments = task.assignments.all()
     

@@ -50,7 +50,7 @@ def users(app, _db):
         first_name='Test',
         last_name='Staff',
         email='staff@example.com',
-        role=UserRoles.SERVICE_STAFF
+        role=UserRoles.SERVICE_STAFF.value
     )
     staff.set_password('password')
     

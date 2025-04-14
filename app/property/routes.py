@@ -268,7 +268,7 @@ def view(id):
                           service_history=service_history,
                           service_staff_tasks=service_staff_tasks,
                           guest_review_count=reviews_count,
-                          rooms_list=property.rooms.all())
+                          rooms_list=property.rooms.all() if hasattr(property, 'rooms') else [])
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
 @property_owner_required

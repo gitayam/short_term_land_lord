@@ -401,9 +401,36 @@ class Property(db.Model):
     property_tasks = db.relationship('Task', backref='property')
     property_rooms = db.relationship('Room', backref='property')
     property_inventory = db.relationship('InventoryItem', backref='property')
+    images = db.relationship('PropertyImage', backref='property')
+    rooms = db.relationship('Room', backref='property_parent', overlaps="property,property_rooms")
     
     def __repr__(self):
         return f'<Property {self.name}>'
+    
+    def get_full_address(self):
+        """Return the full address as a formatted string"""
+        if self.address:
+            return self.address
+        
+        parts = []
+        if self.street_address:
+            parts.append(self.street_address)
+        
+        city_state_zip = []
+        if self.city:
+            city_state_zip.append(self.city)
+        if self.state:
+            city_state_zip.append(self.state)
+        if self.zip_code:
+            city_state_zip.append(self.zip_code)
+        
+        if city_state_zip:
+            parts.append(", ".join(city_state_zip))
+        
+        if self.country:
+            parts.append(self.country)
+        
+        return ", ".join(parts)
     
     def generate_guest_access_token(self):
         """Generate a unique token for guest access"""
