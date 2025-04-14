@@ -45,6 +45,14 @@
                         </div>
                         
                         <div class="form-group">
+                            {{ form.phone.label }}
+                            {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else "")) }}
+                            {% for error in form.phone.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group">
                             {{ form.role.label }}
                             {{ form.role(class="form-control" + (" is-invalid" if form.role.errors else ""), id="roleSelect") }}
                             {% for error in form.role.errors %}

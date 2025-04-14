@@ -158,6 +158,7 @@ class RegistrationRequest(db.Model):
     first_name = db.Column(db.String(64), nullable=False)
     last_name = db.Column(db.String(64), nullable=False)
     email = db.Column(db.String(120), nullable=False)
+    phone = db.Column(db.String(20), nullable=True)
     role = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     
@@ -189,6 +190,7 @@ class RegistrationRequest(db.Model):
             first_name=self.first_name,
             last_name=self.last_name,
             email=self.email,
+            phone=self.phone,
             role=self.role,
             password_hash=self.password_hash  # Already hashed during request creation
         )
@@ -236,18 +238,19 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'  # Always use 'users' as the table name
     
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, index=True)
+    username = db.Column(db.String(64), unique=True, index=True, nullable=True)
     first_name = db.Column(db.String(64))
     last_name = db.Column(db.String(64))
     email = db.Column(db.String(120), unique=True, index=True)
+    phone = db.Column(db.String(20), nullable=True)
     password_hash = db.Column(db.String(256))  # Increased from 128 to 256 to accommodate scrypt hashes
     role = db.Column(db.String(20))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     last_login = db.Column(db.DateTime)
-    authentik_id = db.Column(db.String(36), unique=True)
-    signal_identity = db.Column(db.String(36), unique=True)
+    authentik_id = db.Column(db.String(36), unique=True, nullable=True)
+    signal_identity = db.Column(db.String(36), unique=True, nullable=True)
     attributes = db.Column(db.Text)  # Store JSON as Text instead of JSON type
     is_admin = db.Column(db.Boolean, default=False)
     

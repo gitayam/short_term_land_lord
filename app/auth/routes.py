@@ -138,6 +138,7 @@ def register():
                 first_name=user_data['first_name'],
                 last_name=user_data['last_name'],
                 email=user_data['email'],
+                phone=user_data['phone'] if 'phone' in user_data else None,
                 role=user_data['role'],
                 password_hash=user_data['password_hash'],
                 property_name=user_data['property_name'],
@@ -173,16 +174,7 @@ def register():
         username = None
         if hasattr(form, 'username') and form.username.data:
             username = form.username.data
-        else:
-            # Generate username from email
-            username = form.email.data.split('@')[0]
-            
-            # Ensure username is unique by appending numbers if needed
-            base_username = username
-            counter = 1
-            while User.query.filter_by(username=username).first() is not None:
-                username = f"{base_username}{counter}"
-                counter += 1
+        # Username is now optional, so we're not generating one if not provided
         
         # If this is a property owner, go to step 2
         if form.role.data == UserRoles.PROPERTY_OWNER.value:
@@ -192,6 +184,7 @@ def register():
                 first_name=form.first_name.data,
                 last_name=form.last_name.data,
                 email=form.email.data,
+                phone=form.phone.data if hasattr(form, 'phone') else None,
                 role=form.role.data
             )
             user.set_password(form.password.data)
@@ -202,6 +195,7 @@ def register():
                 'first_name': form.first_name.data,
                 'last_name': form.last_name.data,
                 'email': form.email.data,
+                'phone': form.phone.data if hasattr(form, 'phone') else None,
                 'role': form.role.data,
                 'password_hash': user.password_hash,
                 'message': form.message.data
@@ -215,6 +209,7 @@ def register():
                 first_name=form.first_name.data,
                 last_name=form.last_name.data,
                 email=form.email.data,
+                phone=form.phone.data if hasattr(form, 'phone') else None,
                 role=form.role.data
             )
             user.set_password(form.password.data)
@@ -223,6 +218,7 @@ def register():
                 first_name=form.first_name.data,
                 last_name=form.last_name.data,
                 email=form.email.data,
+                phone=form.phone.data if hasattr(form, 'phone') else None,
                 role=form.role.data,
                 password_hash=user.password_hash,
                 message=form.message.data,
