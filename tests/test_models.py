@@ -211,6 +211,7 @@ class TestPropertyModel(unittest.TestCase):
             state='Test State',
             zip_code='12345',
             country='Test Country',
+            address='123 Test St, Test City, Test State 12345, Test Country',
             owner=self.owner
         )
         db.session.add(self.property)
@@ -250,6 +251,7 @@ class TestPropertyModel(unittest.TestCase):
             status=TaskStatus.PENDING,
             priority=TaskPriority.MEDIUM,
             creator_id=self.owner.id,
+            property_id=self.property.id,
             due_date=datetime.utcnow() + timedelta(days=1)
         )
         db.session.add(task)
@@ -281,6 +283,7 @@ class TestPropertyModel(unittest.TestCase):
             status=TaskStatus.PENDING,
             priority=TaskPriority.MEDIUM,
             creator_id=self.owner.id,
+            property_id=self.property.id,
             due_date=datetime.utcnow() + timedelta(days=1)
         )
         db.session.add(task)
