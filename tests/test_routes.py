@@ -60,6 +60,7 @@ class TestTaskRoutes(unittest.TestCase):
             status=TaskStatus.PENDING,
             priority=TaskPriority.MEDIUM,
             creator_id=self.owner.id,
+            property_id=self.property.id,
             due_date=datetime.utcnow() + timedelta(days=1)
         )
         db.session.add(self.task)
@@ -218,9 +219,7 @@ class TestPropertyRoutes(unittest.TestCase):
             'state': 'New State',
             'zip_code': '67890',
             'country': 'New Country',
-            'property_type': 'house',
-            'bedrooms': 3,
-            'bathrooms': 2.5
+            'property_type': 'house'
         }, follow_redirects=True)
     
         self.assertEqual(response.status_code, 200)

@@ -28,7 +28,7 @@ class TestUserModel(unittest.TestCase):
             first_name='Test',
             last_name='Staff',
             email='staff@example.com',
-            role=UserRoles.SERVICE_STAFF
+            role=UserRoles.SERVICE_STAFF.value
         )
         self.staff.set_password('password')
         
@@ -36,7 +36,7 @@ class TestUserModel(unittest.TestCase):
             first_name='Test',
             last_name='Manager',
             email='manager@example.com',
-            role=UserRoles.PROPERTY_MANAGER
+            role=UserRoles.PROPERTY_MANAGER.value
         )
         self.manager.set_password('password')
         
@@ -44,7 +44,7 @@ class TestUserModel(unittest.TestCase):
             first_name='Test',
             last_name='Admin',
             email='admin@example.com',
-            role=UserRoles.ADMIN
+            role=UserRoles.ADMIN.value
         )
         self.admin.set_password('password')
         
@@ -145,7 +145,7 @@ class TestUserModel(unittest.TestCase):
             first_name='New',
             last_name='Staff',
             email='newstaff@example.com',
-            role=UserRoles.SERVICE_STAFF
+            role=UserRoles.SERVICE_STAFF.value
         )
         db.session.add(new_staff)
         db.session.commit()
@@ -179,7 +179,7 @@ class TestPropertyModel(unittest.TestCase):
             first_name='Test',
             last_name='Staff',
             email='staff@example.com',
-            role=UserRoles.SERVICE_STAFF
+            role=UserRoles.SERVICE_STAFF.value
         )
         self.staff.set_password('password')
         
@@ -187,7 +187,7 @@ class TestPropertyModel(unittest.TestCase):
             first_name='Test',
             last_name='Manager',
             email='manager@example.com',
-            role=UserRoles.PROPERTY_MANAGER
+            role=UserRoles.PROPERTY_MANAGER.value
         )
         self.manager.set_password('password')
         
@@ -195,7 +195,7 @@ class TestPropertyModel(unittest.TestCase):
             first_name='Test',
             last_name='Admin',
             email='admin@example.com',
-            role=UserRoles.ADMIN
+            role=UserRoles.ADMIN.value
         )
         self.admin.set_password('password')
         
