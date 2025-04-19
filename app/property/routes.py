@@ -48,7 +48,6 @@ def create():
             bedrooms=form.bedrooms.data,
             bathrooms=form.bathrooms.data,
             square_feet=form.square_feet.data,
-            year_built=form.year_built.data,
             ical_url=form.ical_url.data,
             
             # New fields
@@ -120,8 +119,9 @@ def create():
                     if furniture_types[j]:  # Only create items with a type
                         furniture = RoomFurniture(
                             room_id=room.id,
+                            name=furniture_types[j].title(),  # Use the furniture type as the name
                             furniture_type=furniture_types[j],
-                            details=furniture_details[j] if j < len(furniture_details) else None,
+                            description=furniture_details[j] if j < len(furniture_details) else None,
                             quantity=int(furniture_quantities[j]) if j < len(furniture_quantities) and furniture_quantities[j] else 1
                         )
                         db.session.add(furniture)
@@ -297,7 +297,6 @@ def edit(id):
         property.bedrooms = form.bedrooms.data
         property.bathrooms = form.bathrooms.data
         property.square_feet = form.square_feet.data
-        property.year_built = form.year_built.data
         property.ical_url = form.ical_url.data
         
         # New fields
@@ -378,8 +377,9 @@ def edit(id):
                             if furniture_types[j]:  # Only create items with a type
                                 furniture = RoomFurniture(
                                     room_id=room_id,
+                                    name=furniture_types[j].title(),  # Use the furniture type as the name
                                     furniture_type=furniture_types[j],
-                                    details=furniture_details[j] if j < len(furniture_details) else None,
+                                    description=furniture_details[j] if j < len(furniture_details) else None,
                                     quantity=int(furniture_quantities[j]) if j < len(furniture_quantities) and furniture_quantities[j] else 1
                                 )
                                 db.session.add(furniture)
@@ -408,8 +408,9 @@ def edit(id):
                     if furniture_types[j]:  # Only create items with a type
                         furniture = RoomFurniture(
                             room_id=room.id,
+                            name=furniture_types[j].title(),  # Use the furniture type as the name
                             furniture_type=furniture_types[j],
-                            details=furniture_details[j] if j < len(furniture_details) else None,
+                            description=furniture_details[j] if j < len(furniture_details) else None,
                             quantity=int(furniture_quantities[j]) if j < len(furniture_quantities) and furniture_quantities[j] else 1
                         )
                         db.session.add(furniture)
@@ -495,7 +496,6 @@ def edit(id):
         form.bedrooms.data = property.bedrooms
         form.bathrooms.data = property.bathrooms
         form.square_feet.data = property.square_feet
-        form.year_built.data = property.year_built
         form.ical_url.data = property.ical_url
         
         # Populate new fields

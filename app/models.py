@@ -328,25 +328,33 @@ class User(UserMixin, db.Model):
         return cleaning_assignments is not None
     
     def is_maintenance(self):
-        """Check if the user is maintenance staff (service staff with maintenance service type)."""
-        if not self.is_service_staff():
+        """Check if this user is a maintenance person."""
+        if not self.role:
             return False
+        return self.role.lower() == 'service_staff' and hasattr(self, 'attributes') and self.attributes and 'maintenance' in self.attributes.lower()
         
-        # Check if the user has any maintenance service assignments
-        # Avoid circular import by using the current module's TaskAssignment and ServiceType
-        maintenance_assignments = TaskAssignment.query.filter_by(
-            user_id=self.id
-        ).filter(
-            TaskAssignment.service_type.in_([
-                ServiceType.HANDYMAN, 
-                ServiceType.GENERAL_MAINTENANCE,
-                ServiceType.LAWN_CARE,
-                ServiceType.POOL_MAINTENANCE
-            ])
-        ).first()
+    def can_reassign_task(self, task):
+        """Check if this user has permission to reassign a task.
         
-        return maintenance_assignments is not None
-
+        Admins and task creators can reassign tasks.
+        
+        Args:
+            task: The task to check reassignment permissions for
+            
+        Returns:
+            bool: True if user can reassign the task, False otherwise
+        """
+        # Admin users can reassign any task
+        if self.is_admin():
+            return True
+            
+        # Task creators can reassign their tasks
+        if task.creator_id == self.id:
+            return True
+            
+        # Anyone else cannot reassign
+        return False
+    
     @property
     def role_enum(self):
         """Get the role as an enum."""
@@ -389,6 +397,10 @@ class Property(db.Model):
     bedrooms = db.Column(db.Integer, nullable=True)
     bathrooms = db.Column(db.Float, nullable=True)
     square_feet = db.Column(db.Integer, nullable=True)
+    year_built = db.Column(db.Integer, nullable=True)
+    
+    # Calendar integration
+    ical_url = db.Column(db.String(500), nullable=True)
     
     # Guest access fields
     guest_access_enabled = db.Column(db.Boolean, default=False)
