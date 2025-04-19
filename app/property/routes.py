@@ -44,6 +44,8 @@ def create():
             state=form.state.data,
             zip_code=form.zip_code.data,
             country=form.country.data,
+            # Construct the full address from components
+            address=f"{form.street_address.data}, {form.city.data}, {form.state.data} {form.zip_code.data}, {form.country.data}",
             property_type=form.property_type.data,
             bedrooms=form.bedrooms.data,
             bathrooms=form.bathrooms.data,
@@ -293,6 +295,8 @@ def edit(id):
         property.state = form.state.data
         property.zip_code = form.zip_code.data
         property.country = form.country.data
+        # Update the full address from components
+        property.address = f"{form.street_address.data}, {form.city.data}, {form.state.data} {form.zip_code.data}, {form.country.data}"
         property.property_type = form.property_type.data
         property.bedrooms = form.bedrooms.data
         property.bathrooms = form.bathrooms.data

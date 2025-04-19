@@ -96,7 +96,7 @@ def create():
     # Initialize properties field with a query_factory
     if current_user.is_property_owner():
         form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
-    elif current_user.is_admin() or current_user.is_property_manager:
+    elif current_user.is_admin or current_user.is_property_manager:
         form.properties.query_factory = lambda: Property.query.all()
     else:
         form.properties.query_factory = lambda: []
@@ -1345,7 +1345,7 @@ def create_template():
             title=form.title.data,
             description=form.description.data,
             category=form.category.data,
-            is_global=form.is_global.data if current_user.is_admin() else False,
+            is_global=form.is_global.data if current_user.is_admin else False,
             sequence_number=max_seq + 1,
             creator_id=current_user.id
         )
@@ -1368,7 +1368,7 @@ def edit_template(id):
     template = TaskTemplate.query.get_or_404(id)
     
     # Check if user can edit this template
-    if template.creator_id != current_user.id and not current_user.is_admin():
+    if template.creator_id != current_user.id and not current_user.is_admin:
         flash('You do not have permission to edit this template.', 'danger')
         return redirect(url_for('tasks.templates'))
     
@@ -1380,7 +1380,7 @@ def edit_template(id):
         template.category = form.category.data
         
         # Only admins can change global status
-        if current_user.is_admin():
+        if current_user.is_admin:
             template.is_global = form.is_global.data
         
         db.session.commit()
@@ -1400,7 +1400,7 @@ def delete_template(id):
     template = TaskTemplate.query.get_or_404(id)
     
     # Check if user can delete this template
-    if template.creator_id != current_user.id and not current_user.is_admin():
+    if template.creator_id != current_user.id and not current_user.is_admin:
         flash('You do not have permission to delete this template.', 'danger')
         return redirect(url_for('tasks.templates'))
     
@@ -1421,7 +1421,7 @@ def reorder_templates():
         template = TaskTemplate.query.get(template_id)
         
         # Only update templates the user owns
-        if template and (template.creator_id == current_user.id or current_user.is_admin()):
+        if template and (template.creator_id == current_user.id or current_user.is_admin):
             template.sequence_number = i
     
     db.session.commit()
@@ -1441,7 +1441,7 @@ def apply_template(template_id):
     # Initialize properties field with a query_factory
     if current_user.is_property_owner():
         form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
-    elif current_user.is_admin() or current_user.is_property_manager:
+    elif current_user.is_admin or current_user.is_property_manager:
         form.properties.query_factory = lambda: Property.query.all()
     else:
         form.properties.query_factory = lambda: []
