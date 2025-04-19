@@ -7,14 +7,12 @@ from app.models import ItemCategory, TransactionType, Property
 class InventoryCatalogItemForm(FlaskForm):
     name = StringField('Item Name', validators=[DataRequired(), Length(min=2, max=100)])
     category = SelectField('Category', validators=[DataRequired()], coerce=str)
-    unit_of_measure = StringField('Unit of Measure', validators=[DataRequired(), Length(max=20)], default='units')
+    unit = StringField('Unit of Measure', validators=[DataRequired(), Length(max=20)], default='units')
     
     # Detailed information
-    sku = StringField('SKU/Item Code', validators=[Optional(), Length(max=50)])
-    barcode = StringField('Barcode', validators=[Optional(), Length(max=100)])
     description = TextAreaField('Description', validators=[Optional()])
-    unit_cost = FloatField('Unit Cost ($)', validators=[Optional(), NumberRange(min=0)])
-    purchase_link = URLField('Purchase Link', validators=[Optional(), URL(), Length(max=500)])
+    unit_price = FloatField('Unit Price ($)', validators=[Optional(), NumberRange(min=0)])
+    currency = StringField('Currency', validators=[Optional(), Length(max=3)], default='USD')
     
     submit = SubmitField('Save Catalog Item')
     

@@ -1173,6 +1173,10 @@ def convert_to_task(id):
 
 def can_view_task(task, user):
     """Check if a user can view a task"""
+    # Admin users can view any task
+    if user.has_admin_role():
+        return True
+        
     # Task creator can always view
     if task.creator_id == user.id:
         return True
@@ -1205,6 +1209,10 @@ def can_view_task(task, user):
 
 def can_edit_task(task, user):
     """Check if a user can edit a task"""
+    # Admin users can edit any task
+    if user.has_admin_role():
+        return True
+        
     # Only the creator or property owner can edit
     if task.creator_id == user.id:
         return True
@@ -1232,12 +1240,20 @@ def can_edit_task(task, user):
 
 def can_delete_task(task, user):
     """Check if a user can delete a task"""
+    # Admin users can delete any task
+    if user.has_admin_role():
+        return True
+        
     # Only the creator can delete
     return task.creator_id == user.id
 
 
 def can_complete_task(task, user):
     """Check if a user can mark a task as completed"""
+    # Admin users can complete any task
+    if user.has_admin_role():
+        return True
+        
     # Creator can complete
     if task.creator_id == user.id:
         return True
@@ -1252,6 +1268,10 @@ def can_complete_task(task, user):
 
 def can_view_repair_request(repair_request, user):
     """Check if a user can view a repair request"""
+    # Admin users can view any repair request
+    if user.has_admin_role():
+        return True
+        
     # Reporter can always view
     if repair_request.reporter_id == user.id:
         return True
@@ -1265,6 +1285,10 @@ def can_view_repair_request(repair_request, user):
 
 def can_manage_repair_request(repair_request, user):
     """Check if a user can manage (approve/reject/convert) a repair request"""
+    # Admin users can manage any repair request
+    if user.has_admin_role():
+        return True
+        
     # Only property owner can manage
     return user.is_property_owner() and repair_request.property.owner_id == user.id
 

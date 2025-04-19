@@ -10,17 +10,28 @@ import json
 from app.auth.decorators import property_owner_required, admin_required
 
 def can_manage_inventory(property_id):
-    """Check if the current user can manage inventory for this property"""
-    property = Property.query.get_or_404(property_id)
+    """Check if the current user can manage inventory for the specified property.
     
+    Args:
+        property_id: The ID of the property to check
+        
+    Returns:
+        bool: True if user can manage, False otherwise
+    """
+    # Admin users can manage inventory for any property
+    if current_user.has_admin_role():
+        return True
+        
     # Property owners can manage their own properties
-    if current_user.is_property_owner() and property.owner_id == current_user.id:
+    property = Property.query.get(property_id)
+    if property and property.owner_id == current_user.id:
         return True
     
-    # Cleaners can update inventory counts but not add/remove items
-    if current_user.is_cleaner():
+    # Property managers may also have permission
+    if current_user.is_property_manager():
+        # Logic for property managers could be added here
         return True
-    
+        
     return False
 
 @bp.route('/property/<int:property_id>/inventory')
@@ -81,9 +92,14 @@ def index(property_id):
                           is_property_owner=current_user.is_property_owner())
 
 @bp.route('/catalog')
-@property_owner_required
+@login_required
 def catalog_index():
     """Display the global inventory catalog"""
+    # Check if user is authorized (admin or property owner)
+    if not (current_user.is_property_owner() or current_user.has_admin_role()):
+        flash('Access denied. This page is only available to property owners and administrators.', 'danger')
+        return redirect(url_for('main.index'))
+    
     # Initialize filter form
     filter_form = InventoryFilterForm(request.args)
     
@@ -111,9 +127,14 @@ def catalog_index():
                           filter_form=filter_form)
 
 @bp.route('/catalog/add', methods=['GET', 'POST'])
-@property_owner_required
+@login_required
 def add_catalog_item():
     """Add a new item to the global catalog"""
+    # Check if user is authorized (admin or property owner)
+    if not (current_user.is_property_owner() or current_user.has_admin_role()):
+        flash('Access denied. This page is only available to property owners and administrators.', 'danger')
+        return redirect(url_for('main.index'))
+    
     form = InventoryCatalogItemForm()
     
     if form.validate_on_submit():
@@ -126,13 +147,10 @@ def add_catalog_item():
             
         catalog_item = InventoryCatalogItem(
             name=form.name.data,
-            category=category,
-            unit_of_measure=form.unit_of_measure.data,
-            sku=form.sku.data,
-            barcode=form.barcode.data,
             description=form.description.data,
-            unit_cost=form.unit_cost.data,
-            purchase_link=form.purchase_link.data,
+            unit=form.unit.data,
+            unit_price=form.unit_price.data or 0.0,
+            currency=form.currency.data or 'USD',
             creator_id=current_user.id
         )
         db.session.add(catalog_item)
@@ -151,9 +169,14 @@ def add_catalog_item():
                           form=form)
 
 @bp.route('/catalog/<int:item_id>/edit', methods=['GET', 'POST'])
-@property_owner_required
+@login_required
 def edit_catalog_item(item_id):
     """Edit an existing catalog item"""
+    # Check if user is authorized (admin or property owner)
+    if not (current_user.is_property_owner() or current_user.has_admin_role()):
+        flash('Access denied. This page is only available to property owners and administrators.', 'danger')
+        return redirect(url_for('main.index'))
+    
     catalog_item = InventoryCatalogItem.query.get_or_404(item_id)
     form = InventoryCatalogItemForm(obj=catalog_item)
     
@@ -161,17 +184,16 @@ def edit_catalog_item(item_id):
         # Get form data
         catalog_item.name = form.name.data
         try:
-            catalog_item.category = ItemCategory(form.category.data)
+            # We can't save category directly to the model as it doesn't have this field
+            category = ItemCategory(form.category.data)
         except ValueError:
             flash(f'Invalid category: {form.category.data}', 'danger')
             return render_template('inventory/catalog_form.html', title='Edit Catalog Item', form=form, item=catalog_item)
             
-        catalog_item.unit_of_measure = form.unit_of_measure.data
-        catalog_item.sku = form.sku.data
-        catalog_item.barcode = form.barcode.data
+        catalog_item.unit = form.unit.data
         catalog_item.description = form.description.data
-        catalog_item.unit_cost = form.unit_cost.data
-        catalog_item.purchase_link = form.purchase_link.data
+        catalog_item.unit_price = form.unit_price.data or 0.0
+        catalog_item.currency = form.currency.data or 'USD'
         
         db.session.commit()
         
@@ -184,9 +206,14 @@ def edit_catalog_item(item_id):
                           item=catalog_item)
 
 @bp.route('/catalog/<int:item_id>/delete', methods=['POST'])
-@property_owner_required
+@login_required
 def delete_catalog_item(item_id):
     """Delete a catalog item"""
+    # Check if user is authorized (admin or property owner)
+    if not (current_user.is_property_owner() or current_user.has_admin_role()):
+        flash('Access denied. This page is only available to property owners and administrators.', 'danger')
+        return redirect(url_for('main.index'))
+    
     catalog_item = InventoryCatalogItem.query.get_or_404(item_id)
     
     # Check if this catalog item is used in any property inventory
@@ -202,13 +229,13 @@ def delete_catalog_item(item_id):
     return redirect(url_for('inventory.catalog_index'))
 
 @bp.route('/property/<int:property_id>/inventory/add', methods=['GET', 'POST'])
-@property_owner_required
+@login_required
 def add_item(property_id):
     property = Property.query.get_or_404(property_id)
     
-    # Ensure the current user is the owner
-    if property.owner_id != current_user.id:
-        flash('Access denied. You can only manage inventory for your own properties.', 'danger')
+    # Check if user can manage inventory
+    if not can_manage_inventory(property_id):
+        flash('Access denied. You do not have permission to manage inventory for this property.', 'danger')
         return redirect(url_for('inventory.index', property_id=property_id))
     
     form = InventoryItemForm()
@@ -259,7 +286,7 @@ def add_item(property_id):
                           is_property_owner=current_user.is_property_owner())
 
 @bp.route('/property/<int:property_id>/inventory/<int:item_id>/edit', methods=['GET', 'POST'])
-@property_owner_required
+@login_required
 def edit_item(property_id, item_id):
     property = Property.query.get_or_404(property_id)
     item = InventoryItem.query.get_or_404(item_id)
@@ -268,9 +295,9 @@ def edit_item(property_id, item_id):
     if item.property_id != property_id:
         abort(404)
     
-    # Ensure the current user is the owner
-    if property.owner_id != current_user.id:
-        flash('Access denied. You can only manage inventory for your own properties.', 'danger')
+    # Check if user can manage inventory
+    if not can_manage_inventory(property_id):
+        flash('Access denied. You do not have permission to manage inventory for this property.', 'danger')
         return redirect(url_for('inventory.index', property_id=property_id))
     
     form = InventoryItemForm(obj=item)
@@ -314,7 +341,7 @@ def edit_item(property_id, item_id):
                           is_property_owner=current_user.is_property_owner())
 
 @bp.route('/property/<int:property_id>/inventory/<int:item_id>/delete', methods=['POST'])
-@property_owner_required
+@login_required
 def delete_item(property_id, item_id):
     property = Property.query.get_or_404(property_id)
     item = InventoryItem.query.get_or_404(item_id)
@@ -323,9 +350,9 @@ def delete_item(property_id, item_id):
     if item.property_id != property_id:
         abort(404)
     
-    # Ensure the current user is the owner
-    if property.owner_id != current_user.id:
-        flash('Access denied. You can only manage inventory for your own properties.', 'danger')
+    # Check if user can manage inventory
+    if not can_manage_inventory(property_id):
+        flash('Access denied. You do not have permission to manage inventory for this property.', 'danger')
         return redirect(url_for('inventory.index', property_id=property_id))
     
     item_name = item.catalog_item.name

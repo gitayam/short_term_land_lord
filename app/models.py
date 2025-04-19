@@ -99,8 +99,12 @@ class InventoryCatalogItem(db.Model):
     creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
+    category = db.Column(db.Enum(ItemCategory), nullable=False, default=ItemCategory.GENERAL)
     unit = db.Column(db.String(32), nullable=False)  # e.g., 'piece', 'box', 'kg'
     unit_price = db.Column(db.Float, nullable=False)
+    sku = db.Column(db.String(50), nullable=True)
+    barcode = db.Column(db.String(100), nullable=True, unique=True)
+    purchase_link = db.Column(db.String(500), nullable=True)
     currency = db.Column(db.String(3), default='USD')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -113,6 +117,24 @@ class InventoryCatalogItem(db.Model):
     
     def __repr__(self):
         return f'<InventoryCatalogItem {self.name}>'
+        
+    @property
+    def unit_of_measure(self):
+        """Alias for unit to maintain compatibility with templates"""
+        return self.unit
+        
+    @unit_of_measure.setter
+    def unit_of_measure(self, value):
+        self.unit = value
+        
+    @property
+    def unit_cost(self):
+        """Alias for unit_price to maintain compatibility with templates"""
+        return self.unit_price
+        
+    @unit_cost.setter
+    def unit_cost(self, value):
+        self.unit_price = value
 
 class TransactionType(enum.Enum):
     RESTOCK = "restock"
@@ -1103,32 +1125,84 @@ class InventoryItem(db.Model):
     __tablename__ = 'inventory_item'
     
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), nullable=False)
-    description = db.Column(db.Text)
-    quantity = db.Column(db.Integer, default=1)
+    catalog_item_id = db.Column(db.Integer, db.ForeignKey('inventory_catalog_item.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    current_quantity = db.Column(db.Float, default=0)
+    storage_location = db.Column(db.String(100), nullable=True)
+    reorder_threshold = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
+    catalog_item = db.relationship('InventoryCatalogItem', backref='inventory_instances')
     item_transactions = db.relationship('InventoryTransaction', backref='item')
     
     def __repr__(self):
-        return f'<InventoryItem {self.name}>'
+        return f'<InventoryItem {self.catalog_item.name if self.catalog_item else "Unknown"}>'
+    
+    def is_low_stock(self):
+        """Check if this item is below the reorder threshold"""
+        if self.reorder_threshold is None:
+            return False
+        return self.current_quantity <= self.reorder_threshold
+    
+    def update_quantity(self, quantity, transaction_type):
+        """Update the item quantity based on the transaction type"""
+        if transaction_type == TransactionType.RESTOCK:
+            self.current_quantity += quantity
+        elif transaction_type == TransactionType.USAGE:
+            self.current_quantity -= quantity
+        elif transaction_type == TransactionType.TRANSFER_OUT:
+            self.current_quantity -= quantity
+        elif transaction_type == TransactionType.TRANSFER_IN:
+            self.current_quantity += quantity
+        elif transaction_type == TransactionType.ADJUSTMENT:
+            # For adjustments, the quantity is the new total
+            self.current_quantity = quantity
+        
+        # Ensure quantity doesn't go below zero
+        if self.current_quantity < 0:
+            self.current_quantity = 0
+        
+        self.updated_at = datetime.utcnow()
 
 class InventoryTransaction(db.Model):
     __tablename__ = 'inventory_transaction'
     
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-    transaction_type = db.Column(db.String(32), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    transaction_type = db.Column(db.Enum(TransactionType), nullable=False)
+    previous_quantity = db.Column(db.Float, nullable=True)
+    new_quantity = db.Column(db.Float, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    source_property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
+    destination_property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='inventory_transactions')
+    source_property = db.relationship('Property', foreign_keys=[source_property_id], backref='outgoing_inventory')
+    destination_property = db.relationship('Property', foreign_keys=[destination_property_id], backref='incoming_inventory')
+    
     def __repr__(self):
-        return f'<InventoryTransaction {self.transaction_type} {self.quantity}>'
+        return f'<InventoryTransaction {self.transaction_type.value} {self.quantity}>'
+        
+    def get_transaction_type_display(self):
+        """Get a human-readable representation of the transaction type"""
+        if self.transaction_type == TransactionType.RESTOCK:
+            return "Restock"
+        elif self.transaction_type == TransactionType.USAGE:
+            return "Usage"
+        elif self.transaction_type == TransactionType.TRANSFER_IN:
+            return "Transfer In"
+        elif self.transaction_type == TransactionType.TRANSFER_OUT:
+            return "Transfer Out"
+        elif self.transaction_type == TransactionType.ADJUSTMENT:
+            return "Adjustment"
+        return str(self.transaction_type)
 
 class Notification(db.Model):
     __tablename__ = 'notification'
