@@ -305,10 +305,17 @@ class User(UserMixin, db.Model):
         # Check if the is_admin field is True or if the role is ADMIN
         return bool(self.__dict__.get('is_admin', False)) or self.role == UserRoles.ADMIN.value
 
-    # Backwards compatibility property
     @property
     def is_admin(self):
         return self.has_admin_role()
+    
+    @is_admin.setter
+    def is_admin(self, value):
+        """Set the is_admin attribute"""
+        self.__dict__['is_admin'] = value
+        # Update role to admin if is_admin is set to True
+        if value and self.role != UserRoles.ADMIN.value:
+            self.role = UserRoles.ADMIN.value
     
     # Define getters and setters for is_admin to maintain backward compatibility
     @property
@@ -574,6 +581,27 @@ class Property(db.Model):
             return assigned_tasks is not None
         
         return False
+
+    def get_room_count(self):
+        """Safely count the number of rooms"""
+        if self.rooms is None:
+            return 0
+        return len(self.rooms)
+
+    def get_primary_image_url(self):
+        """Get the URL of the primary property image or a default if none exists"""
+        # Check if property has any images
+        primary_images = [img for img in self.images if img.is_primary]
+        
+        if primary_images:
+            # Return the first primary image
+            return primary_images[0].image_path
+        elif self.images:
+            # If no primary image but there are images, return the first one
+            return self.images[0].image_path
+        else:
+            # Return a default image if no images exist
+            return "/static/img/default-property.jpg"
 
 class PropertyImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)

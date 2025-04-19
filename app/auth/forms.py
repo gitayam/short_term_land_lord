@@ -45,4 +45,4 @@ class ResetPasswordForm(FlaskForm):
 
 class SSOLoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
-    submit = SubmitField('Continue with SSO') 
+    submit = SubmitField('Continue with SSO')
