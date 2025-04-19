@@ -22,5 +22,9 @@ python /app/reset_db.py || true
 echo "Fixing PostgreSQL schema issues..."
 python /app/fix_postgres_schema.py || true
 
+# Fix admin role issues
+echo "Checking and fixing admin role issues..."
+python /app/scripts/fix_admin_role.py || true
+
 echo "Starting web server..."
 exec flask run --host=0.0.0.0 
