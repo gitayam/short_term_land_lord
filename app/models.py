@@ -300,17 +300,26 @@ class User(UserMixin, db.Model):
         """Check if the user has the property manager role."""
         return self.role == UserRoles.PROPERTY_MANAGER.value
     
-    def is_admin(self):
+    def has_admin_role(self):
         """Check if the user has admin privileges."""
-        return bool(self._is_admin) or self.role == UserRoles.ADMIN.value
+        # Check if the is_admin field is True or if the role is ADMIN
+        return bool(self.__dict__.get('is_admin', False)) or self.role == UserRoles.ADMIN.value
 
+    # Backwards compatibility property
+    @property
+    def is_admin(self):
+        return self.has_admin_role()
+    
     # Define getters and setters for is_admin to maintain backward compatibility
     @property
     def _is_admin(self):
+        """Get the is_admin attribute correctly"""
+        # Use dict access to avoid recursion
         return self.__dict__.get('is_admin', False)
     
     @_is_admin.setter
     def _is_admin(self, value):
+        """Set the is_admin attribute"""
         self.__dict__['is_admin'] = value
         
     def is_cleaner(self):
@@ -329,9 +338,16 @@ class User(UserMixin, db.Model):
     
     def is_maintenance(self):
         """Check if this user is a maintenance person."""
-        if not self.role:
+        if not self.is_service_staff():
             return False
-        return self.role.lower() == 'service_staff' and hasattr(self, 'attributes') and self.attributes and 'maintenance' in self.attributes.lower()
+        
+        # Check if the user has any maintenance service assignments
+        maintenance_assignments = TaskAssignment.query.filter_by(
+            user_id=self.id, 
+            service_type=ServiceType.HANDYMAN
+        ).first()
+        
+        return maintenance_assignments is not None
         
     def can_reassign_task(self, task):
         """Check if this user has permission to reassign a task.
@@ -345,7 +361,7 @@ class User(UserMixin, db.Model):
             bool: True if user can reassign the task, False otherwise
         """
         # Admin users can reassign any task
-        if self.is_admin():
+        if self.has_admin_role():
             return True
             
         # Task creators can reassign their tasks
@@ -373,6 +389,33 @@ class User(UserMixin, db.Model):
         else:
             self.role = None
 
+    def can_complete_task(self, task):
+        """Check if this user has permission to complete a task.
+        
+        Admins, task creators, and assigned users can complete tasks.
+        
+        Args:
+            task: The task to check completion permissions for
+            
+        Returns:
+            bool: True if user can complete the task, False otherwise
+        """
+        # Admin users can complete any task
+        if self.has_admin_role():
+            return True
+            
+        # Task creators can complete their tasks
+        if task.creator_id == self.id:
+            return True
+            
+        # Check if user is assigned to the task
+        assignment = TaskAssignment.query.filter_by(
+            task_id=task.id, 
+            user_id=self.id
+        ).first()
+        
+        return assignment is not None
+
 class Property(db.Model):
     __tablename__ = 'property'
     
@@ -398,6 +441,37 @@ class Property(db.Model):
     bathrooms = db.Column(db.Float, nullable=True)
     square_feet = db.Column(db.Integer, nullable=True)
     year_built = db.Column(db.Integer, nullable=True)
+    trash_day = db.Column(db.String(20), nullable=True)  # e.g., 'Monday', 'Tuesday and Friday'
+    recycling_day = db.Column(db.String(20), nullable=True)
+    recycling_notes = db.Column(db.Text, nullable=True)
+    
+    # Utility information
+    internet_provider = db.Column(db.String(100), nullable=True)
+    internet_account = db.Column(db.String(100), nullable=True)
+    internet_contact = db.Column(db.String(100), nullable=True)
+    electric_provider = db.Column(db.String(100), nullable=True)
+    electric_account = db.Column(db.String(100), nullable=True)
+    electric_contact = db.Column(db.String(100), nullable=True)
+    water_provider = db.Column(db.String(100), nullable=True)
+    water_account = db.Column(db.String(100), nullable=True)
+    water_contact = db.Column(db.String(100), nullable=True)
+    trash_provider = db.Column(db.String(100), nullable=True)
+    trash_account = db.Column(db.String(100), nullable=True)
+    trash_contact = db.Column(db.String(100), nullable=True)
+    
+    # Access information
+    cleaning_supplies_location = db.Column(db.Text, nullable=True)
+    wifi_network = db.Column(db.String(100), nullable=True)
+    wifi_password = db.Column(db.String(100), nullable=True)
+    special_instructions = db.Column(db.Text, nullable=True)
+    entry_instructions = db.Column(db.Text, nullable=True)
+    
+    # Cleaner-specific information
+    total_beds = db.Column(db.Integer, nullable=True)
+    bed_sizes = db.Column(db.String(255), nullable=True)
+    number_of_tvs = db.Column(db.Integer, nullable=True)
+    number_of_showers = db.Column(db.Integer, nullable=True)
+    number_of_tubs = db.Column(db.Integer, nullable=True)
     
     # Calendar integration
     ical_url = db.Column(db.String(500), nullable=True)
@@ -412,6 +486,10 @@ class Property(db.Model):
     local_attractions = db.Column(db.Text, nullable=True)
     emergency_contact = db.Column(db.Text, nullable=True)
     guest_faq = db.Column(db.Text, nullable=True)
+    
+    # Check-in/out times
+    checkin_time = db.Column(db.String(10), nullable=True)
+    checkout_time = db.Column(db.String(10), nullable=True)
     
     # Relationships
     owner = db.relationship('User', foreign_keys=[owner_id], backref=db.backref('owned_properties', overlaps="owner_user,properties"), overlaps="owner_user,properties")
@@ -467,7 +545,7 @@ class Property(db.Model):
             return True
         
         # Admins can see all properties
-        if user.is_admin():
+        if user.has_admin_role():
             return True
         
         # Property managers can see all properties
@@ -629,9 +707,25 @@ class Room(db.Model):
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    square_feet = db.Column(db.Integer, nullable=True)
+    
+    # Bedroom/room-specific fields
+    bed_type = db.Column(db.String(50), nullable=True)
+    has_tv = db.Column(db.Boolean, default=False)
+    tv_details = db.Column(db.String(255), nullable=True)
+    has_bathroom = db.Column(db.Boolean, default=False)
+    
+    # Bathroom-specific fields
+    has_shower = db.Column(db.Boolean, default=False)
+    has_tub = db.Column(db.Boolean, default=False)
     
     # Relationships
     room_furniture = db.relationship('RoomFurniture', backref='room')
+    
+    @property
+    def furniture(self):
+        """Get all furniture items for the room."""
+        return self.room_furniture
     
     def __repr__(self):
         return f'<Room {self.name}>'
@@ -643,6 +737,7 @@ class RoomFurniture(db.Model):
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     furniture_type = db.Column(db.String(64))
+    quantity = db.Column(db.Integer, default=1)
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

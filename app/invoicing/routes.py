@@ -22,7 +22,7 @@ def maintenance_staff_required(f):
     @login_required
     def decorated_function(*args, **kwargs):
         if not (current_user.is_maintenance() or current_user.is_property_manager() or 
-                current_user.is_property_owner() or current_user.is_admin()):
+                current_user.is_property_owner() or current_user.is_admin):
             flash('Access denied. You must be maintenance staff or higher to view this page.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
@@ -34,7 +34,7 @@ def maintenance_staff_required(f):
 def prices():
     """View all task prices"""
     # Get all prices
-    if current_user.is_admin():
+    if current_user.is_admin:
         # Admins see all prices
         prices = TaskPrice.query.order_by(TaskPrice.service_type, TaskPrice.property_id.nullsfirst()).all()
     elif current_user.is_property_owner() or current_user.is_property_manager():
@@ -58,7 +58,7 @@ def create_price():
     form = TaskPriceForm()
     
     # Set up query for properties owned by the current user
-    if current_user.is_admin():
+    if current_user.is_admin:
         form.property.query = Property.query
     else:
         form.property.query = Property.query.filter_by(owner_id=current_user.id)
@@ -108,7 +108,7 @@ def edit_price(id):
     price = TaskPrice.query.get_or_404(id)
     
     # Check if user has permission to edit this price
-    if not current_user.is_admin() and (
+    if not current_user.is_admin and (
         (price.property_id and price.property.owner_id != current_user.id) or
         (price.creator_id != current_user.id)
     ):
@@ -118,7 +118,7 @@ def edit_price(id):
     form = TaskPriceForm()
     
     # Set up query for properties owned by the current user
-    if current_user.is_admin():
+    if current_user.is_admin:
         form.property.query = Property.query
     else:
         form.property.query = Property.query.filter_by(owner_id=current_user.id)
@@ -156,7 +156,7 @@ def delete_price(id):
     price = TaskPrice.query.get_or_404(id)
     
     # Check if user has permission to delete this price
-    if not current_user.is_admin() and (
+    if not current_user.is_admin and (
         (price.property_id and price.property.owner_id != current_user.id) or
         (price.creator_id != current_user.id)
     ):
@@ -177,7 +177,7 @@ def invoices():
     # Initialize filter form
     form = InvoiceFilterForm()
     
-    if current_user.is_admin():
+    if current_user.is_admin:
         form.property.query = Property.query
     else:
         form.property.query = Property.query.filter_by(owner_id=current_user.id)
@@ -245,7 +245,7 @@ def create_invoice():
     form = InvoiceForm()
     
     # Set up query for properties owned by the current user
-    if current_user.is_admin():
+    if current_user.is_admin:
         form.property.query = Property.query
     else:
         form.property.query = Property.query.filter_by(owner_id=current_user.id)
@@ -283,7 +283,7 @@ def view_invoice(id):
     invoice = Invoice.query.get_or_404(id)
     
     # Check if user has permission to view this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to view this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -302,7 +302,7 @@ def edit_invoice(id):
     invoice = Invoice.query.get_or_404(id)
     
     # Check if user has permission to edit this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to edit this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -315,7 +315,7 @@ def edit_invoice(id):
     item_form = InvoiceItemForm()
     
     # Set up query for properties owned by the current user
-    if current_user.is_admin():
+    if current_user.is_admin:
         form.property.query = Property.query
     else:
         form.property.query = Property.query.filter_by(owner_id=current_user.id)
@@ -394,7 +394,7 @@ def add_invoice_comment(id):
     invoice = Invoice.query.get_or_404(id)
     
     # Check if user has permission to edit this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to edit this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -422,7 +422,7 @@ def add_invoice_item(id):
     invoice = Invoice.query.get_or_404(id)
     
     # Check if user has permission to edit this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to edit this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -480,7 +480,7 @@ def remove_invoice_item(invoice_id, item_id):
         abort(404)
     
     # Check if user has permission to edit this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to edit this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -507,7 +507,7 @@ def send_invoice(id):
     invoice = Invoice.query.get_or_404(id)
     
     # Check if user has permission to edit this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to edit this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -535,7 +535,7 @@ def mark_invoice_paid(id):
     invoice = Invoice.query.get_or_404(id)
     
     # Check if user has permission to edit this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to edit this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -572,7 +572,7 @@ def cancel_invoice(id):
     invoice = Invoice.query.get_or_404(id)
     
     # Check if user has permission to edit this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to edit this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -595,7 +595,7 @@ def delete_invoice(id):
     invoice = Invoice.query.get_or_404(id)
     
     # Check if user has permission to delete this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to delete this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -638,7 +638,7 @@ def generate_from_tasks():
         property = Property.query.get_or_404(property_id)
         
         # Check if user has permission to create invoices for this property
-        if not current_user.is_admin() and property.owner_id != current_user.id:
+        if not current_user.is_admin and property.owner_id != current_user.id:
             flash('You do not have permission to create invoices for this property.', 'danger')
             return redirect(url_for('invoicing.invoices'))
         
@@ -736,7 +736,7 @@ def generate_from_tasks():
     
     # GET request - show form
     properties = []
-    if current_user.is_admin():
+    if current_user.is_admin:
         properties = Property.query.all()
     else:
         properties = current_user.properties
@@ -753,7 +753,7 @@ def add_task_to_invoice(invoice_id, task_id):
     task = Task.query.get_or_404(task_id)
     
     # Check if user has permission to edit this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to edit this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -844,7 +844,7 @@ def add_session_to_invoice(invoice_id, session_id):
     session = CleaningSession.query.get_or_404(session_id)
     
     # Check if user has permission to edit this invoice
-    if not current_user.is_admin() and invoice.property.owner_id != current_user.id:
+    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
         flash('You do not have permission to edit this invoice.', 'danger')
         return redirect(url_for('invoicing.invoices'))
     
@@ -959,7 +959,7 @@ def financial_reports():
     form = ReportFilterForm()
     
     # Set up property choices based on user role
-    if current_user.is_admin():
+    if current_user.is_admin:
         form.property.query = Property.query
         form.service_provider.query = User.query.filter(
             User.role.in_([UserRoles.MAINTENANCE, UserRoles.CLEANER])
@@ -1036,7 +1036,7 @@ def financial_reports():
             query = query.filter(Invoice.property_id == form.property.data.id)
         
         # Apply role-based access controls
-        if current_user.is_admin():
+        if current_user.is_admin:
             # Admins can see all invoices
             pass
         elif current_user.is_property_owner():
@@ -1060,7 +1060,7 @@ def financial_reports():
             )
         
         # Apply service provider filter if specified (for admins, property owners, managers)
-        if form.service_provider.data and (current_user.is_admin() or 
+        if form.service_provider.data and (current_user.is_admin or 
                                           current_user.is_property_owner() or 
                                           current_user.is_property_manager()):
             query = query.join(
