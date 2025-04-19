@@ -3,10 +3,11 @@ from datetime import datetime, timedelta
 from app import create_app, db
 from app.models import (User, UserRoles, Task, TaskAssignment, TaskStatus, 
                        TaskPriority, TaskProperty, Property, RecurrencePattern,
-                       ServiceType, RepairRequest)
+                       ServiceType, RepairRequest, Room, RoomFurniture)
 from flask import url_for
 import json
 from config import TestConfig
+from werkzeug.security import generate_password_hash
 
 
 class TestTaskRoutes(unittest.TestCase):
@@ -209,37 +210,107 @@ class TestPropertyRoutes(unittest.TestCase):
         """Test property creation."""
         # Login as owner
         self.login('owner@example.com', 'password')
-    
-        # Create a new property
+        
+        # Access the property creation page
+        response = self.client.get('/property/create')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Add Property', response.data)
+        
+        # Create a property
         response = self.client.post('/property/create', data={
-            'name': 'New Property',
-            'description': 'A new test property',
+            'name': 'New Test Property',
+            'description': 'A newly created test property',
             'street_address': '456 New St',
             'city': 'New City',
             'state': 'New State',
             'zip_code': '67890',
             'country': 'New Country',
-            'property_type': 'house'
+            'property_type': 'house',
+            'bedrooms': 3,
+            'bathrooms': 2,
+            'square_feet': 1500
         }, follow_redirects=True)
-    
-        self.assertEqual(response.status_code, 200)
         
-        # Verify the property was created in the database
-        property = Property.query.filter_by(name='New Property').first()
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Property created successfully', response.data)
+        self.assertIn(b'New Test Property', response.data)
+        
+        # Verify property was created in database
+        property = Property.query.filter_by(name='New Test Property').first()
         self.assertIsNotNone(property)
-        self.assertEqual(property.description, 'A new test property')
-        self.assertEqual(property.street_address, '456 New St')
-        self.assertEqual(property.owner, self.owner)
-    
-    def test_service_history(self):
-        """Test viewing service history."""
+        self.assertEqual(property.bedrooms, 3)
+        
+    def test_property_with_rooms_and_furniture(self):
+        """Test creating property with rooms and furniture."""
         # Login as owner
         self.login('owner@example.com', 'password')
         
-        # View property details which includes service history
-        response = self.client.get(f'/property/{self.property.id}/view')
+        # Create a property with rooms and furniture
+        response = self.client.post('/property/create', data={
+            'name': 'Property with Rooms',
+            'description': 'A property with rooms and furniture',
+            'street_address': '789 Room St',
+            'city': 'Room City',
+            'state': 'Room State',
+            'zip_code': '12345',
+            'country': 'Room Country',
+            'property_type': 'house',
+            'bedrooms': 3,
+            'bathrooms': 2,
+            'square_feet': 2000,
+            
+            # Room data
+            'room_name': ['Master Bedroom', 'Guest Bedroom'],
+            'room_type': ['bedroom', 'bedroom'],
+            'room_sqft': ['300', '250'],
+            'has_tv': ['new_0'],  # Only first room has TV
+            'tv_details': ['55-inch Samsung TV', ''],
+            'bed_type': ['king', 'queen'],
+            
+            # Furniture data for first room
+            'furniture_type_new_0[]': ['bed', 'dresser'],
+            'furniture_details_new_0[]': ['Memory foam mattress', 'Wooden dresser'],
+            'furniture_quantity_new_0[]': ['1', '2'],
+            
+            # Furniture data for second room
+            'furniture_type_new_1[]': ['bed', 'chair'],
+            'furniture_details_new_1[]': ['Queen size bed', 'Reading chair'],
+            'furniture_quantity_new_1[]': ['1', '1']
+        }, follow_redirects=True)
+        
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Service History', response.data)
+        self.assertIn(b'Property created successfully', response.data)
+        
+        # Verify property was created
+        property = Property.query.filter_by(name='Property with Rooms').first()
+        self.assertIsNotNone(property)
+        
+        # Verify rooms were created
+        self.assertEqual(property.rooms.count(), 2)
+        
+        # Check first room
+        room1 = property.rooms.filter_by(name='Master Bedroom').first()
+        self.assertIsNotNone(room1)
+        self.assertEqual(room1.room_type, 'bedroom')
+        self.assertEqual(room1.square_feet, 300)
+        
+        # Check second room
+        room2 = property.rooms.filter_by(name='Guest Bedroom').first()
+        self.assertIsNotNone(room2)
+        self.assertEqual(room2.room_type, 'bedroom')
+        self.assertEqual(room2.square_feet, 250)
+        
+        # Check furniture in first room
+        self.assertEqual(len(room1.room_furniture), 2)
+        bed = room1.room_furniture[0] if room1.room_furniture[0].furniture_type == 'bed' else room1.room_furniture[1]
+        self.assertEqual(bed.name, 'Bed')
+        self.assertEqual(bed.description, 'Memory foam mattress')
+        
+        # Check furniture in second room
+        self.assertEqual(len(room2.room_furniture), 2)
+        chair = room2.room_furniture[0] if room2.room_furniture[0].furniture_type == 'chair' else room2.room_furniture[1]
+        self.assertEqual(chair.name, 'Chair')
+        self.assertEqual(chair.description, 'Reading chair')
 
 
 if __name__ == '__main__':

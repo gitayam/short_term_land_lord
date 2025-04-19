@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 from app import create_app, db
-from app.models import User, UserRoles, Task, TaskAssignment, TaskStatus, TaskPriority, TaskProperty, Property, RecurrencePattern, ServiceType
+from app.models import User, UserRoles, Task, TaskAssignment, TaskStatus, TaskPriority, TaskProperty, Property, RecurrencePattern, ServiceType, Room, RoomFurniture
 from flask import current_app
 import os
 from config import TestConfig
@@ -159,8 +159,9 @@ class TestUserModel(unittest.TestCase):
             owner_id=self.owner.id
         )
         db.session.add(property)
+        db.session.commit()  # Commit to get a valid property.id before creating Task
         
-        # Create a task
+        # Create a task with property_id
         task = Task(
             title='Test Task',
             description='A test task',
@@ -168,7 +169,8 @@ class TestUserModel(unittest.TestCase):
             priority=TaskPriority.MEDIUM,
             is_recurring=False,
             recurrence_pattern=RecurrencePattern.NONE,
-            creator_id=self.owner.id
+            creator_id=self.owner.id,
+            property_id=property.id  # Set the property_id
         )
         db.session.add(task)
         db.session.commit()
@@ -209,6 +211,60 @@ class TestUserModel(unittest.TestCase):
     def test_get_full_name(self):
         """Test the get_full_name method."""
         self.assertEqual(self.owner.get_full_name(), 'Test Owner')
+
+    def test_can_reassign_task(self):
+        """Test task reassignment permissions."""
+        # Create a property
+        property = Property(
+            name='Test Property',
+            description='A test property',
+            street_address='123 Test St',
+            city='Test City',
+            state='Test State',
+            zip_code='12345',
+            country='Test Country',
+            address='123 Test St, Test City, Test State 12345, Test Country',
+            owner_id=self.owner.id
+        )
+        db.session.add(property)
+        db.session.commit()  # Commit to get a valid property.id
+        
+        # Create a task with property_id
+        task = Task(
+            title='Test Task',
+            description='A test task',
+            status=TaskStatus.PENDING,
+            priority=TaskPriority.MEDIUM,
+            is_recurring=False,
+            recurrence_pattern=RecurrencePattern.NONE,
+            creator_id=self.owner.id,
+            property_id=property.id  # Set the property_id
+        )
+        db.session.add(task)
+        db.session.commit()
+        
+        # Link task to property
+        task_property = TaskProperty(
+            task_id=task.id,
+            property_id=property.id
+        )
+        db.session.add(task_property)
+        
+        # Create assignment for the staff
+        assignment = TaskAssignment(
+            task=task,
+            user_id=self.staff.id
+        )
+        db.session.add(assignment)
+        db.session.commit()
+        
+        # Verify reassignment permissions
+        # Creator can reassign
+        self.assertTrue(self.owner.can_reassign_task(task))
+        # Staff cannot reassign
+        self.assertFalse(self.staff.can_reassign_task(task))
+        # Admin can reassign
+        self.assertTrue(self.admin.can_reassign_task(task))
 
 
 class TestPropertyModel(unittest.TestCase):
@@ -371,6 +427,41 @@ class TestPropertyModel(unittest.TestCase):
     
         # Token should be at least 32 chars
         self.assertGreaterEqual(len(token), 32)
+        
+    def test_room_and_furniture(self):
+        """Test room and furniture relationships."""
+        # Create a room
+        room = Room(
+            name="Master Bedroom",
+            room_type="bedroom",
+            property_id=self.property.id
+        )
+        db.session.add(room)
+        db.session.commit()
+        
+        # Create furniture for the room
+        furniture = RoomFurniture(
+            name="King Bed",
+            furniture_type="bed",
+            description="Memory foam mattress",
+            room_id=room.id
+        )
+        db.session.add(furniture)
+        db.session.commit()
+        
+        # Test relationships
+        self.assertIn(room, self.property.rooms)
+        self.assertIn(furniture, room.room_furniture)
+        
+        # Test furniture fields
+        self.assertEqual(furniture.name, "King Bed")
+        self.assertEqual(furniture.furniture_type, "bed")
+        self.assertEqual(furniture.description, "Memory foam mattress")
+        
+        # Test room fields
+        self.assertEqual(room.name, "Master Bedroom")
+        self.assertEqual(room.room_type, "bedroom")
+        self.assertEqual(room.property_id, self.property.id)
 
 
 if __name__ == '__main__':
