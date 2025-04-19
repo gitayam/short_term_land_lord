@@ -25,11 +25,20 @@
                     <div class="row mb-3">
                         <div class="col-md-3 fw-bold">Status:</div>
                         <div class="col-md-9">
-                            {% if task.status.value == 'pending' %}
+                            <!-- Debug info for task status -->
+                            Task status type: {{ task.status.__class__.__name__ }}<br>
+                            Status value: {{ task.status }}<br>
+                            {% if task.status is string %}
+                                Status is string<br>
+                            {% else %}
+                                Status is not string<br>
+                            {% endif %}
+                            
+                            {% if task.status.value == 'pending' or task.status == 'PENDING' or task.status.name == 'PENDING' %}
                             <span class="badge bg-warning">Pending</span>
-                            {% elif task.status.value == 'in_progress' %}
+                            {% elif task.status.value == 'in_progress' or task.status == 'IN_PROGRESS' or task.status.name == 'IN_PROGRESS' %}
                             <span class="badge bg-primary">In Progress</span>
-                            {% elif task.status.value == 'completed' %}
+                            {% elif task.status.value == 'completed' or task.status == 'COMPLETED' or task.status.name == 'COMPLETED' %}
                             <span class="badge bg-success">Completed</span>
                             {% endif %}
                         </div>
@@ -133,7 +142,7 @@
                     </div>
                     {% endif %}
                     
-                    {% if task.status.value != 'completed' %}
+                    {% if task.status.value != 'completed' and task.status != 'COMPLETED' and task.status.name != 'COMPLETED' %}
                     <div class="mt-4">
                         {% if current_user.is_cleaner() %}
                             {% if active_session and active_session.task_id == task.id %}

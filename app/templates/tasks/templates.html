@@ -11,7 +11,7 @@
 
     <div class="alert alert-info">
         <i class="fas fa-info-circle"></i> Task templates allow you to create reusable task definitions that can be assigned to properties or staff members.
-        {% if current_user.is_admin() %}
+        {% if current_user.is_admin %}
         As an admin, you can create global templates that are available to all users.
         {% endif %}
     </div>
@@ -59,7 +59,7 @@
                                         <a href="{{ url_for('tasks.apply_template', template_id=template.id) }}" class="btn btn-primary" title="Use Template">
                                             <i class="fas fa-check"></i>
                                         </a>
-                                        {% if template.creator_id == current_user.id or current_user.is_admin() %}
+                                        {% if template.creator_id == current_user.id or current_user.is_admin %}
                                         <a href="{{ url_for('tasks.edit_template', id=template.id) }}" class="btn btn-secondary" title="Edit Template">
                                             <i class="fas fa-edit"></i>
                                         </a>
@@ -83,7 +83,7 @@
                 </p>
                 <ul class="list-group" id="sortableTemplates">
                     {% for template in templates %}
-                    {% if template.creator_id == current_user.id or current_user.is_admin() %}
+                    {% if template.creator_id == current_user.id or current_user.is_admin %}
                     <li class="list-group-item" data-id="{{ template.id }}">
                         <div class="d-flex align-items-center">
                             <div class="drag-handle me-3">

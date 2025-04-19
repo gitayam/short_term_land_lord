@@ -202,7 +202,7 @@
                         </div>
                         {% endif %}
                         
-                        {% if property.rooms.count() > 0 %}
+                        {% if property.rooms|length > 0 %}
                         <div class="section">
                             <h4>Room Details</h4>
                             <div class="accordion" id="roomsAccordion">

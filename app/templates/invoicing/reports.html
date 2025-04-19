@@ -69,7 +69,7 @@
                         </div>
                     </div>
                     
-                    {% if current_user.is_admin() or current_user.is_property_owner() or current_user.is_property_manager() %}
+                    {% if current_user.is_admin or current_user.is_property_owner() or current_user.is_property_manager() %}
                     <div class="col-md-3">
                         <div class="form-group">
                             {{ form.service_provider.label }}

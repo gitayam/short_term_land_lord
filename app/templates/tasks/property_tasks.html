@@ -10,7 +10,7 @@
                 <i class="fas fa-plus"></i> Create New Task
             </a>
             {% endif %}
-            {% if current_user.is_property_owner() and current_user.id == property.owner_id or current_user.is_property_manager() or current_user.is_admin() %}
+            {% if property.owner_id == current_user.id or current_user.is_property_manager() or current_user.is_admin %}
             <a href="{{ url_for('tasks.reorder_tasks', property_id=property.id) }}" class="btn btn-info">
                 <i class="fas fa-sort"></i> Reorder Tasks
             </a>
@@ -92,7 +92,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if task.assignments.count() > 0 %}
+                                {% if task.assignments|length > 0 %}
                                 {% for assignment in task.assignments %}
                                 {% if assignment.user %}
                                 <span class="badge bg-dark">{{ assignment.user.get_full_name() }}</span>
