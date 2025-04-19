@@ -286,16 +286,16 @@ class TestPropertyRoutes(unittest.TestCase):
         self.assertIsNotNone(property)
         
         # Verify rooms were created
-        self.assertEqual(property.rooms.count(), 2)
+        self.assertEqual(len(property.rooms), 2)
         
         # Check first room
-        room1 = property.rooms.filter_by(name='Master Bedroom').first()
+        room1 = next((room for room in property.rooms if room.name == 'Master Bedroom'), None)
         self.assertIsNotNone(room1)
         self.assertEqual(room1.room_type, 'bedroom')
         self.assertEqual(room1.square_feet, 300)
         
         # Check second room
-        room2 = property.rooms.filter_by(name='Guest Bedroom').first()
+        room2 = next((room for room in property.rooms if room.name == 'Guest Bedroom'), None)
         self.assertIsNotNone(room2)
         self.assertEqual(room2.room_type, 'bedroom')
         self.assertEqual(room2.square_feet, 250)

@@ -398,7 +398,7 @@ class TestPropertyModel(unittest.TestCase):
         )
         db.session.add(task)
         db.session.commit()  # Commit to get a valid task.id before creating TaskProperty
-        
+    
         # Link the task to the property
         task_property = TaskProperty(
             task_id=task.id,
@@ -406,14 +406,14 @@ class TestPropertyModel(unittest.TestCase):
         )
         db.session.add(task_property)
         db.session.commit()
-        
+    
         # Property should have the task
         self.assertEqual(len(self.property.tasks), 1)
         self.assertEqual(self.property.tasks[0].task.title, 'Test Task')
-        
+    
         # Task should have the property
         self.assertEqual(len(task.properties), 1)
-        self.assertEqual(task.properties[0].property.name, 'Test Property')
+        self.assertEqual(task.properties[0].name, 'Test Property')
     
     def test_guest_access_token(self):
         """Test generating guest access token."""
