@@ -444,7 +444,7 @@ class Property(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Address components for use in tests
+    # Address components
     street_address = db.Column(db.String(128), nullable=True)
     city = db.Column(db.String(64), nullable=True)
     state = db.Column(db.String(64), nullable=True)
@@ -525,28 +525,29 @@ class Property(db.Model):
     
     def get_full_address(self):
         """Return the full address as a formatted string"""
-        if self.address:
-            return self.address
+        if self.street_address or self.city or self.state or self.zip_code or self.country:
+            parts = []
+            if self.street_address:
+                parts.append(self.street_address)
+            
+            city_state_zip = []
+            if self.city:
+                city_state_zip.append(self.city)
+            if self.state:
+                city_state_zip.append(self.state)
+            if self.zip_code:
+                city_state_zip.append(self.zip_code)
+            
+            if city_state_zip:
+                parts.append(", ".join(city_state_zip))
+            
+            if self.country:
+                parts.append(self.country)
+            
+            return ", ".join(parts)
         
-        parts = []
-        if self.street_address:
-            parts.append(self.street_address)
-        
-        city_state_zip = []
-        if self.city:
-            city_state_zip.append(self.city)
-        if self.state:
-            city_state_zip.append(self.state)
-        if self.zip_code:
-            city_state_zip.append(self.zip_code)
-        
-        if city_state_zip:
-            parts.append(", ".join(city_state_zip))
-        
-        if self.country:
-            parts.append(self.country)
-        
-        return ", ".join(parts)
+        # If no components are available, fall back to the address field
+        return self.address
     
     def generate_guest_access_token(self):
         """Generate a unique token for guest access"""
