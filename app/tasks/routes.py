@@ -319,7 +319,7 @@ def assign(id):
             task_assignment = TaskAssignment(
                 task_id=task.id,
                 user_id=form.user.data.id,
-                service_type=ServiceType(form.service_type.data) if form.service_type.data else None
+                service_type=form.service_type.data
             )
             
             # Send notification to the assignee
@@ -334,7 +334,7 @@ def assign(id):
                     task_assignment = TaskAssignment(
                         task_id=task.id,
                         user_id=user.id,
-                        service_type=ServiceType(form.service_type.data) if form.service_type.data else None
+                        service_type=form.service_type.data
                     )
                     
                     # Send notification to the assignee
@@ -347,7 +347,7 @@ def assign(id):
                         external_name=form.external_name.data,
                         external_phone=form.external_phone.data,
                         external_email=external_email,
-                        service_type=ServiceType(form.service_type.data) if form.service_type.data else None
+                        service_type=form.service_type.data
                     )
             else:
                 # Creating assignment for external person without email
@@ -355,7 +355,7 @@ def assign(id):
                     task_id=task.id,
                     external_name=form.external_name.data,
                     external_phone=form.external_phone.data,
-                    service_type=ServiceType(form.service_type.data) if form.service_type.data else None
+                    service_type=form.service_type.data
                 )
         
         db.session.add(task_assignment)

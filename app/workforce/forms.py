@@ -27,13 +27,15 @@ class WorkerPropertyAssignmentForm(FlaskForm):
                             get_label='get_full_name', allow_blank=True, blank_text='Select a worker...')
     properties = QuerySelectMultipleField('Properties', query_factory=lambda: Property.query.all(),
                                         get_label='name')
-    service_type = SelectField('Service Type', choices=[(t.value, t.name) for t in ServiceType], validators=[DataRequired()])
+    service_type = SelectField('Service Type', choices=[(t.value, t.name) for t in ServiceType], 
+                             validators=[DataRequired()], coerce=lambda x: ServiceType(x))
     submit = SubmitField('Assign Properties')
 
 
 class WorkerFilterForm(FlaskForm):
     """Form for filtering workers"""
-    service_type = SelectField('Service Type', choices=[('', 'All')] + [(t.value, t.name) for t in ServiceType], validators=[Optional()])
+    service_type = SelectField('Service Type', choices=[('', 'All')] + [(t.value, t.name) for t in ServiceType], 
+                             validators=[Optional()], coerce=lambda x: ServiceType(x) if x else None)
     property_id = SelectField('Property', coerce=int, validators=[Optional()])
     search = StringField('Search', validators=[Optional()])
     submit = SubmitField('Filter')

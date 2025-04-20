@@ -258,7 +258,7 @@ def assign_properties():
     if form.validate_on_submit():
         worker = form.worker.data
         properties = form.properties.data
-        service_type = ServiceType(form.service_type.data)
+        service_type = form.service_type.data
         
         if not worker:
             flash('Please select a worker to assign properties.', 'danger')

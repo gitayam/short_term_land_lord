@@ -10,8 +10,8 @@ class TaskForm(FlaskForm):
     title = StringField('Task Title', validators=[DataRequired(), Length(min=2, max=100)])
     description = TextAreaField('Description')
     due_date = DateTimeField('Due Date/Time', format='%Y-%m-%d %H:%M', validators=[Optional()])
-    status = SelectField('Status', validators=[DataRequired()], coerce=str)
-    priority = SelectField('Priority', validators=[DataRequired()], coerce=str)
+    status = SelectField('Status', validators=[DataRequired()], coerce=lambda x: TaskStatus(x))
+    priority = SelectField('Priority', validators=[DataRequired()], coerce=lambda x: TaskPriority(x))
     notes = TextAreaField('Notes')
     
     # Property selection
@@ -19,7 +19,7 @@ class TaskForm(FlaskForm):
     
     # Recurrence options
     is_recurring = BooleanField('Recurring Task')
-    recurrence_pattern = SelectField('Recurrence Pattern', coerce=str)
+    recurrence_pattern = SelectField('Recurrence Pattern', coerce=lambda x: RecurrencePattern(x))
     recurrence_interval = IntegerField('Repeat Every', default=1)
     recurrence_end_date = DateTimeField('End Date', format='%Y-%m-%d', validators=[Optional()])
     
@@ -76,7 +76,7 @@ class TaskAssignmentForm(FlaskForm):
     # Service type for service staff assignments
     service_type = SelectField('Service Type', choices=[(t.value, t.name.replace('_', ' ').title()) 
                                                       for t in ServiceType], 
-                             validators=[Optional()])
+                             validators=[Optional()], coerce=lambda x: ServiceType(x) if x else None)
     
     # Option to assign to external person
     external_name = StringField('Name', validators=[Optional(), Length(max=100)])
@@ -198,12 +198,12 @@ class ConvertToTaskForm(FlaskForm):
     title = StringField('Task Title', validators=[DataRequired(), Length(min=2, max=100)])
     description = TextAreaField('Description')
     due_date = DateTimeField('Due Date/Time', format='%Y-%m-%d %H:%M', validators=[Optional()])
-    priority = SelectField('Priority', validators=[DataRequired()], coerce=str)
+    priority = SelectField('Priority', validators=[DataRequired()], coerce=lambda x: TaskPriority(x))
     notes = TextAreaField('Notes')
     
     # Recurrence options
     is_recurring = BooleanField('Recurring Task')
-    recurrence_pattern = SelectField('Recurrence Pattern', coerce=str)
+    recurrence_pattern = SelectField('Recurrence Pattern', coerce=lambda x: RecurrencePattern(x))
     recurrence_interval = IntegerField('Repeat Every', default=1)
     recurrence_end_date = DateTimeField('End Date', format='%Y-%m-%d', validators=[Optional()])
     
