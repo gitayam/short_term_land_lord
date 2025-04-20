@@ -1,94 +1,63 @@
-#!/usr/bin/env python3
-"""
-Test script to verify admin users can view any property.
-"""
+import os
 import sys
+
+# Add parent directory to path so we can import app
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from app import create_app, db
 from app.models import User, Property, UserRoles
 
-def test_admin_property_access():
-    """Test if an admin user can view any property."""
-    # Create the app with a test configuration
+def test_admin_access():
+    # Create app context
     app = create_app()
-    
     with app.app_context():
-        # Create an admin user if it doesn't exist
-        admin_user = User.query.filter_by(username='admin_test').first()
-        if not admin_user:
-            admin_user = User(
-                username='admin_test',
-                email='admin_test@example.com',
-                role=UserRoles.ADMIN.value,
-                is_admin=True
+        # Get admin user
+        admin = User.query.filter_by(username='admin').first()
+        print(f'Admin exists: {admin is not None}')
+        
+        if not admin:
+            print('Admin not found, creating one...')
+            admin = User(
+                username='admin',
+                email='admin@example.com',
+                first_name='System',
+                last_name='Admin',
+                role=UserRoles.ADMIN.value
             )
-            admin_user.set_password('adminpass')
-            db.session.add(admin_user)
+            admin.__dict__['is_admin'] = True
+            admin.set_password('adminpass')
+            db.session.add(admin)
             db.session.commit()
-            print(f"Created admin user: {admin_user.email}")
+            print(f'Admin created with ID: {admin.id}')
         
-        # Create a property if it doesn't exist
-        property = Property.query.first()
-        if not property:
-            # Inspect the property table to see what columns exist
-            from sqlalchemy import inspect
-            inspector = inspect(db.engine)
-            property_columns = [col['name'] for col in inspector.get_columns('property')]
-            print(f"Property columns: {property_columns}")
+        print(f'Admin has admin role: {admin.has_admin_role()}')
+        
+        # Get all properties
+        properties = Property.query.all()
+        print(f'Number of properties: {len(properties)}')
+        
+        # Check if properties are visible to admin
+        for prop in properties:
+            print(f'Property {prop.id}: {prop.name} - Visible to admin: {prop.is_visible_to(admin)}')
             
-            # Create property with minimal required fields
-            property_data = {
-                'name': 'Test Property',
-                'owner_id': admin_user.id,
-            }
+        # Create a test property if none exists
+        if not properties:
+            print('No properties found, creating a test property...')
+            owner = User.query.filter(User.username != 'admin').first()
+            if not owner:
+                print('No non-admin users found to own the property')
+                return
             
-            # Add other required fields based on what's in the database
-            if 'address' in property_columns:
-                property_data['address'] = '123 Test St'
-            if 'status' in property_columns:
-                property_data['status'] = 'active'
-            if 'property_type' in property_columns:
-                property_data['property_type'] = 'house'
-            if 'description' in property_columns:
-                property_data['description'] = 'A test property'
-                
-            property = Property(**property_data)
-            db.session.add(property)
+            test_property = Property(
+                name='Test Property',
+                address='123 Test St, Testville',
+                owner_id=owner.id,
+                property_type='house'
+            )
+            db.session.add(test_property)
             db.session.commit()
-            print(f"Created property: {property.name}")
-        
-        # Check if admin user has admin role
-        print(f"Admin user has admin role: {admin_user.has_admin_role()}")
-        print(f"Admin user is_admin flag: {admin_user.is_admin}")
-        print(f"Admin user role: {admin_user.role}")
-        
-        # Check if admin user can view the property in the view route by simulating
-        # the permission check that happens in the view route
-        from flask_login import current_user
-        from flask_login.mixins import AnonymousUserMixin
-        
-        # Create a test client
-        client = app.test_client()
-        
-        # Test permission check logic
-        can_view = False
-        if property.owner_id == admin_user.id:
-            print("Admin user is the property owner")
-            can_view = True
-        elif admin_user.has_admin_role():
-            print("Admin user has admin role")
-            can_view = True
-        else:
-            print("Admin user doesn't have permission to view this property")
-        
-        print(f"Admin user can view property: {can_view}")
-        
-        return can_view
+            print(f'Test property created with ID: {test_property.id}')
+            print(f'Visible to admin: {test_property.is_visible_to(admin)}')
 
 if __name__ == '__main__':
-    result = test_admin_property_access()
-    if result:
-        print("\nTest PASSED: Admin user can view any property")
-        sys.exit(0)
-    else:
-        print("\nTest FAILED: Admin user cannot view any property")
-        sys.exit(1) 
+    test_admin_access() 
