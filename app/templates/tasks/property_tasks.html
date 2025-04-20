@@ -5,8 +5,8 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Tasks for {{ property.name }}</h1>
         <div>
-            {% if current_user.is_property_owner() and current_user.id == property.owner_id %}
-            <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
+            {% if current_user.is_property_owner() and current_user.id == property.owner_id or current_user.has_admin_role() or current_user.is_property_manager() %}
+            <a href="{{ url_for('tasks.create_task_for_property', property_id=property.id) }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Create New Task
             </a>
             {% endif %}
@@ -135,8 +135,8 @@
     {% else %}
     <div class="alert alert-info">
         <i class="fas fa-info-circle"></i> No tasks found for this property.
-        {% if current_user.is_property_owner() and current_user.id == property.owner_id %}
-        <a href="{{ url_for('tasks.create') }}" class="alert-link">Create a new task</a>.
+        {% if current_user.is_property_owner() and current_user.id == property.owner_id or current_user.has_admin_role() or current_user.is_property_manager() %}
+        <a href="{{ url_for('tasks.create_task_for_property', property_id=property.id) }}" class="alert-link">Create a new task</a>.
         {% endif %}
     </div>
     {% endif %}

@@ -22,7 +22,13 @@
                         </ul>
                     </div>
                     
-                    <form method="POST" enctype="multipart/form-data">
+                    <!-- Debug info will be shown here -->
+                    <div id="debug-info" class="alert alert-warning d-none">
+                        <h5>Form Debug Info:</h5>
+                        <div id="debug-content"></div>
+                    </div>
+                    
+                    <form method="POST" enctype="multipart/form-data" id="repair-request-form">
                         {{ form.hidden_tag() }}
                         
                         <div class="form-group">
@@ -201,6 +207,41 @@
                 
                 reader.readAsDataURL(file);
             }
+        }
+    });
+
+    // Debug form submission
+    document.getElementById('repair-request-form').addEventListener('submit', function(e) {
+        // Show debug info
+        var debugInfo = document.getElementById('debug-info');
+        var debugContent = document.getElementById('debug-content');
+        
+        try {
+            // Check form validity
+            var form = document.getElementById('repair-request-form');
+            var isValid = form.checkValidity();
+            
+            // Get form data
+            var formData = new FormData(form);
+            var formDataObj = {};
+            formData.forEach(function(value, key) {
+                formDataObj[key] = value;
+            });
+            
+            // Display form data
+            debugContent.innerHTML = '<p>Form valid: ' + isValid + '</p>';
+            debugContent.innerHTML += '<p>Form data: ' + JSON.stringify(formDataObj, null, 2) + '</p>';
+            
+            // Don't prevent form submission, just show debug info
+            debugInfo.classList.remove('d-none');
+            
+            // Let form submission continue after showing debug info
+            return true;
+        } catch (error) {
+            debugContent.innerHTML = '<p>Error: ' + error.message + '</p>';
+            debugInfo.classList.remove('d-none');
+            // Don't prevent submission on error
+            return true;
         }
     });
 </script>

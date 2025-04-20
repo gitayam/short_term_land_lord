@@ -413,7 +413,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0">Recent Service Activity</h6>
                         {% if current_user.is_admin or current_user.is_property_owner() or current_user.is_property_manager() %}
-                        <a href="{{ url_for('tasks.create') }}?property_id={{ property.id }}" class="btn btn-sm btn-primary">
+                        <a href="{{ url_for('tasks.create_task_for_property', property_id=property.id) }}" class="btn btn-sm btn-primary">
                             <i class="fas fa-plus"></i> Schedule New Service
                         </a>
                         {% endif %}
@@ -445,6 +445,13 @@
                     <div class="tab-content" id="serviceHistoryTabContent">
                         <!-- All Services -->
                         <div class="tab-pane fade show active" id="all-services" role="tabpanel" aria-labelledby="all-services-tab">
+                            {% if current_user.is_admin or current_user.is_property_owner() or current_user.is_property_manager() %}
+                            <div class="mb-3">
+                                <a href="{{ url_for('tasks.create_task_for_property', property_id=property.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-plus"></i> Schedule New Service
+                                </a>
+                            </div>
+                            {% endif %}
                             {% if service_history %}
                                 <div class="table-responsive">
                                     <table class="table table-striped table-hover">

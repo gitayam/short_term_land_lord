@@ -10,23 +10,23 @@
                         <i class="fas fa-tools mr-2"></i> Repair Request Details
                     </h4>
                     <div>
-                        {% if repair_request.status.value == 'pending' %}
+                        {% if repair_request.status.value == 'pending_status' %}
                         <span class="badge badge-warning">Pending</span>
-                        {% elif repair_request.status.value == 'approved' %}
+                        {% elif repair_request.status.value == 'approved_status' %}
                         <span class="badge badge-success">Approved</span>
-                        {% elif repair_request.status.value == 'rejected' %}
+                        {% elif repair_request.status.value == 'rejected_status' %}
                         <span class="badge badge-danger">Rejected</span>
-                        {% elif repair_request.status.value == 'converted_to_task' %}
+                        {% elif repair_request.status.value == 'converted_to_task_status' %}
                         <span class="badge badge-info">Converted to Task</span>
                         {% endif %}
                         
-                        {% if repair_request.severity.value == 'urgent' %}
+                        {% if repair_request.severity.value == 'urgent_severity' %}
                         <span class="badge badge-danger">Urgent</span>
-                        {% elif repair_request.severity.value == 'high' %}
+                        {% elif repair_request.severity.value == 'high_severity' %}
                         <span class="badge badge-warning">High</span>
-                        {% elif repair_request.severity.value == 'medium' %}
+                        {% elif repair_request.severity.value == 'medium_severity' %}
                         <span class="badge badge-info">Medium</span>
-                        {% elif repair_request.severity.value == 'low' %}
+                        {% elif repair_request.severity.value == 'low_severity' %}
                         <span class="badge badge-secondary">Low</span>
                         {% endif %}
                     </div>
@@ -36,7 +36,7 @@
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <p class="mb-1"><strong>Property:</strong> {{ repair_request.property.name }}</p>
+                            <p class="mb-1"><strong>Property:</strong> {{ repair_request.associated_property.name }}</p>
                             <p class="mb-1"><strong>Location:</strong> {{ repair_request.location }}</p>
                             <p class="mb-1"><strong>Reported by:</strong> {{ repair_request.reporter.get_full_name() }}</p>
                         </div>
@@ -78,7 +78,7 @@
                             <i class="fas fa-arrow-left mr-1"></i> Back to Requests
                         </a>
                         
-                        {% if repair_request.status.value == 'pending' and current_user.is_property_owner() and current_user.id == repair_request.property.owner_id %}
+                        {% if repair_request.status.value == 'pending_status' and current_user.is_property_owner() and current_user.id == repair_request.associated_property.owner_id %}
                         <div class="btn-group">
                             <a href="{{ url_for('tasks.convert_to_task', id=repair_request.id) }}" class="btn btn-success">
                                 <i class="fas fa-exchange-alt mr-1"></i> Convert to Task
@@ -95,6 +95,32 @@
                                     <i class="fas fa-times mr-1"></i> Reject
                                 </button>
                             </form>
+                        </div>
+                        {% endif %}
+                        
+                        {% if current_user.has_admin_role() or (current_user.is_property_owner() and current_user.id == repair_request.associated_property.owner_id) %}
+                        <div class="btn-group">
+                            <a href="{{ url_for('tasks.edit_repair_request', id=repair_request.id) }}" class="btn btn-primary">
+                                <i class="fas fa-edit mr-1"></i> Edit Request
+                            </a>
+                            
+                            {% if repair_request.status.value == 'pending_status' and not (current_user.is_property_owner() and current_user.id == repair_request.associated_property.owner_id) %}
+                            <a href="{{ url_for('tasks.convert_to_task', id=repair_request.id) }}" class="btn btn-success ml-2">
+                                <i class="fas fa-exchange-alt mr-1"></i> Convert to Task
+                            </a>
+                            <form action="{{ url_for('tasks.approve_repair_request', id=repair_request.id) }}" method="POST" class="d-inline ml-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-success">
+                                    <i class="fas fa-check mr-1"></i> Approve
+                                </button>
+                            </form>
+                            <form action="{{ url_for('tasks.reject_repair_request', id=repair_request.id) }}" method="POST" class="d-inline ml-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-danger">
+                                    <i class="fas fa-times mr-1"></i> Reject
+                                </button>
+                            </form>
+                            {% endif %}
                         </div>
                         {% endif %}
                     </div>

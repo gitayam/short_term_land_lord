@@ -5,7 +5,7 @@
     <div class="col-md-12">
         <h1>Tasks</h1>
         
-        {% if current_user.is_property_owner() %}
+        {% if current_user.is_property_owner() or current_user.has_admin_role() or current_user.is_property_manager() %}
         <div class="d-flex justify-content-end mb-3">
             <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> New Task
@@ -92,7 +92,7 @@
                 </div>
                 {% else %}
                 <div class="alert alert-info m-3">
-                    No tasks found. {% if current_user.is_property_owner() %}<a href="{{ url_for('tasks.create') }}">Create a new task</a>{% endif %}
+                    No tasks found. {% if current_user.is_property_owner() or current_user.has_admin_role() or current_user.is_property_manager() %}<a href="{{ url_for('tasks.create') }}">Create a new task</a>{% endif %}
                 </div>
                 {% endif %}
             </div>
