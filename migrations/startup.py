@@ -251,42 +251,104 @@ def fix_database_schema(app):
             return False, []
 
 def main():
-    """Main function to coordinate startup sequence"""
-    logger.info("Starting database preparation sequence...")
+    """Main function that gets called when this script is run directly"""
+    logger.info("Starting database initialization and fixes...")
+    
+    success, config = wait_for_postgres()
+    if not success:
+        logger.error("Could not connect to PostgreSQL. Exiting.")
+        sys.exit(1)
+    
+    # Reset any hanging transactions
+    reset_postgres_transactions(config['url'])
     
     try:
-        # Wait for PostgreSQL to be available
-        postgres_ready, config = wait_for_postgres()
-        if not postgres_ready:
-            logger.error("PostgreSQL not available. Exiting.")
-            sys.exit(1)
+        # Add the parent directory to sys.path so we can import 'app'
+        parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        sys.path.insert(0, parent_dir)
         
-        # Reset any problematic transactions
-        reset_result = reset_postgres_transactions(config['url'])
-        if not reset_result:
-            logger.warning("Transaction reset failed. Will continue anyway...")
+        # Import and run migration modules
+        try:
+            from model_fix import fix_user_model
+            logger.info("Running User model fix...")
+            fix_user_model()
+        except Exception as e:
+            logger.error(f"Error running User model fix: {e}")
         
-        # Set up minimal Flask app for database operations
+        try:
+            from app_init_patch import patch_app_init
+            logger.info("Applying app initialization patch...")
+            patch_app_init()
+        except Exception as e:
+            logger.error(f"Error applying app init patch: {e}")
+        
+        try:
+            from create_users_table import create_users_table
+            logger.info("Running create_users_table script...")
+            create_users_table()
+        except Exception as e:
+            logger.error(f"Error running create_users_table: {e}")
+        
+        try:
+            from add_property_address_fields import add_property_address_fields
+            logger.info("Running add_property_address_fields script...")
+            add_property_address_fields()
+        except Exception as e:
+            logger.error(f"Error running add_property_address_fields: {e}")
+            
+        try:
+            from add_property_details import add_property_details_fields
+            logger.info("Running add_property_details_fields script...")
+            add_property_details_fields()
+        except Exception as e:
+            logger.error(f"Error running add_property_details_fields: {e}")
+        
+        # Set up Flask app to use for more complex migrations
         app = setup_flask_app(config['url'])
         
-        # Fix database schema if needed
-        schema_result, missing_tables = fix_database_schema(app)
-        if not schema_result:
-            logger.warning("Schema fixes failed. Will continue anyway...")
+        with app.app_context():
+            # Fix database schema issues
+            fix_database_schema(app)
+            
+            try:
+                from create_admin import create_admin
+                logger.info("Creating/updating admin user from environment...")
+                create_admin()
+            except Exception as e:
+                logger.error(f"Error creating admin user: {e}")
+            
+            try:
+                from initialize_task_templates import initialize_templates
+                logger.info("Initializing task templates...")
+                initialize_templates()
+            except Exception as e:
+                logger.error(f"Error initializing task templates: {e}")
+            
+            # Run any other necessary migrations
+            try:
+                logger.info("Checking for additional database fixes...")
+                
+                # Import and run additional fixes
+                try:
+                    from fix_fk_constraints import fix_foreign_keys
+                    logger.info("Fixing foreign key constraints...")
+                    fix_foreign_keys()
+                except Exception as e:
+                    logger.error(f"Error fixing foreign keys: {e}")
+                
+                try:
+                    from fix_postgres_schema import fix_postgres_schema
+                    logger.info("Fixing PostgreSQL schema issues...")
+                    fix_postgres_schema()
+                except Exception as e:
+                    logger.error(f"Error fixing PostgreSQL schema: {e}")
+            except Exception as e:
+                logger.error(f"Error running additional database fixes: {e}")
         
-        if missing_tables:
-            logger.warning("Database is missing critical tables!")
-            # We continue because this will be handled by migrations in run_db_fixes.sh
-        
-        logger.info("Database preparation completed successfully!")
-        logger.info("Starting main application...")
-        
-        # In Docker, we'll exit and let the entrypoint script run the actual application
-        # For local testing, you might want to run the app directly
-        return 0
+        logger.info("All database fixes completed. System is ready.")
     except Exception as e:
-        logger.error(f"Unexpected error during database preparation: {str(e)}")
-        return 1
+        logger.error(f"Unexpected error during database initialization: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     sys.exit(main()) 
