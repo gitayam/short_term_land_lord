@@ -49,40 +49,9 @@ with app.app_context():
         print('Tables created directly.')
 " || echo "WARNING: Database verification failed but continuing..."
 
-# Create admin user if it doesn't exist
-echo "Ensuring admin user exists..."
-python3 -c "
-import os
-from app import create_app, db
-from app.models import User, UserRoles
-
-app = create_app()
-with app.app_context():
-    # Check if admin user exists
-    admin = User.query.filter_by(email='admin@example.com').first()
-    
-    if not admin:
-        # Create new admin user
-        admin = User(
-            username='admin',
-            email='admin@example.com',
-            first_name='Admin',
-            last_name='User',
-            role=UserRoles.ADMIN.value,
-            _is_admin=True
-        )
-        admin.set_password('adminpass')
-        db.session.add(admin)
-        db.session.commit()
-        print('Admin user created successfully')
-    else:
-        # Update admin role and password if admin exists
-        admin.role = UserRoles.ADMIN.value
-        admin._is_admin = True
-        admin.set_password('adminpass')
-        db.session.commit()
-        print('Admin user updated successfully')
-" || echo "WARNING: Admin user creation failed but continuing..."
+# Create admin user if it doesn't exist using the create_admin.py script
+echo "Ensuring admin user exists using environment variables..."
+python3 create_admin.py || echo "WARNING: Admin user creation failed but continuing..."
 
 echo "Starting web server..."
 exec flask run --host=0.0.0.0 

@@ -1,0 +1,13 @@
+MIGRATIONS DIRECTORY
+===================
+
+This directory contains database migration scripts and utilities needed for maintaining and updating the database schema. It includes both Alembic-based Flask migrations and custom database fix scripts.
+
+Key files:
+- run_db_fixes.sh: Main script to prepare and fix the database (run during app startup)
+- install_requirements.sh: Script to install required Python packages
+- startup.py: Script to fix any PostgreSQL transaction issues before app starts
+- reset_db.py: Script to create database tables directly if migrations fail
+- versions/: Directory containing Alembic migration versions
+
+When the app starts in Docker, these scripts are executed as part of the startup sequence.
