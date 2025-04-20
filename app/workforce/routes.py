@@ -146,7 +146,7 @@ def index():
         ).filter(
             TaskAssignment.user_id == current_user.id,
             Task.status == TaskStatus.PENDING
-        ).order_by(TaskProperty.sequence_number.asc(), Task.due_date.asc()).all()
+        ).order_by(Task.due_date.asc()).all()
         
         in_progress_tasks = db.session.query(Task).join(
             TaskAssignment, TaskAssignment.task_id == Task.id
@@ -328,7 +328,7 @@ def worker_detail(id):
     ).filter(
         TaskAssignment.user_id == worker.id,
         Task.status == TaskStatus.PENDING
-    ).order_by(TaskProperty.sequence_number.asc(), Task.due_date.asc()).all()
+    ).order_by(Task.due_date.asc()).all()
     
     in_progress_tasks = db.session.query(Task).join(
         TaskAssignment, TaskAssignment.task_id == Task.id

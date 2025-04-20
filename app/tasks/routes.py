@@ -642,8 +642,11 @@ def view_for_property(property_id):
     # Permission check
     can_view = False
     
+    # Admin users can view all property tasks
+    if current_user.has_admin_role():
+        can_view = True
     # Property owners can view tasks for their properties
-    if current_user.is_property_owner() and property.owner_id == current_user.id:
+    elif current_user.is_property_owner() and property.owner_id == current_user.id:
         can_view = True
     # Service staff can view tasks for properties they have tasks for
     elif current_user.is_service_staff():
@@ -675,7 +678,7 @@ def view_for_property(property_id):
         TaskProperty, TaskProperty.task_id == Task.id
     ).filter(
         TaskProperty.property_id == property_id
-    ).order_by(TaskProperty.sequence_number.asc(), Task.due_date.asc(), Task.priority.desc()).all()
+    ).order_by(Task.due_date.asc(), Task.priority.desc()).all()
     
     # If service staff, filter to only show their assigned tasks
     if current_user.is_service_staff():
@@ -959,7 +962,8 @@ def submit_repair_request(property_id):
             description=form.description.data,
             location=form.location.data,
             severity=RepairRequestSeverity(form.severity.data),
-            additional_notes=form.additional_notes.data
+            additional_notes=form.additional_notes.data,
+            status=RepairRequestStatus.PENDING  # Explicitly set status to PENDING
         )
         
         db.session.add(repair_request)
@@ -1041,6 +1045,51 @@ def view_repair_request(id):
     
     return render_template('tasks/view_repair_request.html', 
                           title=f'Repair Request: {repair_request.title}', 
+                          repair_request=repair_request)
+
+
+@bp.route('/repair-request/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_repair_request(id):
+    """Edit a repair request - admin only"""
+    # Get the repair request
+    repair_request = RepairRequest.query.get_or_404(id)
+    
+    # Check if user has permission to edit this repair request
+    if not current_user.has_admin_role() and not (current_user.is_property_owner() and repair_request.associated_property.owner_id == current_user.id):
+        flash('You do not have permission to edit this repair request.', 'danger')
+        return redirect(url_for('tasks.view_repair_request', id=id))
+    
+    form = RepairRequestForm()
+    
+    if form.validate_on_submit():
+        repair_request.title = form.title.data
+        repair_request.description = form.description.data
+        repair_request.location = form.location.data
+        repair_request.severity = form.severity.data
+        repair_request.additional_notes = form.additional_notes.data
+        
+        # Only admin can change status
+        if current_user.has_admin_role() and form.status.data:
+            repair_request.status = form.status.data
+        
+        db.session.commit()
+        flash('Repair request updated successfully.', 'success')
+        return redirect(url_for('tasks.view_repair_request', id=id))
+    
+    elif request.method == 'GET':
+        # Populate form with repair request data
+        form.title.data = repair_request.title
+        form.description.data = repair_request.description
+        form.location.data = repair_request.location
+        form.severity.data = repair_request.severity
+        form.additional_notes.data = repair_request.additional_notes
+        if hasattr(form, 'status'):
+            form.status.data = repair_request.status
+    
+    return render_template('tasks/repair_request_edit.html', 
+                          title=f'Edit Repair Request: {repair_request.title}', 
+                          form=form, 
                           repair_request=repair_request)
 
 
@@ -1277,7 +1326,7 @@ def can_view_repair_request(repair_request, user):
         return True
     
     # Property owner can view for their properties
-    if user.is_property_owner() and repair_request.property.owner_id == user.id:
+    if user.is_property_owner() and repair_request.associated_property.owner_id == user.id:
         return True
     
     return False
@@ -1290,7 +1339,7 @@ def can_manage_repair_request(repair_request, user):
         return True
         
     # Only property owner can manage
-    return user.is_property_owner() and repair_request.property.owner_id == user.id
+    return user.is_property_owner() and repair_request.associated_property.owner_id == user.id
 
 
 @bp.route('/property/<int:property_id>/reorder', methods=['GET', 'POST'])
@@ -1301,7 +1350,7 @@ def reorder_tasks(property_id):
     
     # Permission check - only property owners, managers and admins can reorder tasks
     if not (current_user.is_property_owner() and property.owner_id == current_user.id) and \
-       not current_user.is_property_manager() and not current_user.is_admin():
+       not current_user.is_property_manager() and not current_user.has_admin_role():
         flash('You do not have permission to reorder tasks for this property.', 'danger')
         return redirect(url_for('tasks.view_for_property', property_id=property_id))
     
@@ -1310,7 +1359,7 @@ def reorder_tasks(property_id):
         TaskProperty, TaskProperty.task_id == Task.id
     ).filter(
         TaskProperty.property_id == property_id
-    ).order_by(TaskProperty.sequence_number.asc(), Task.due_date.asc(), Task.priority.desc()).all()
+    ).order_by(Task.due_date.asc(), Task.priority.desc()).all()
     
     if request.method == 'POST':
         # Get the new order from the form submission
@@ -1369,7 +1418,7 @@ def create_template():
             title=form.title.data,
             description=form.description.data,
             category=form.category.data,
-            is_global=form.is_global.data if current_user.is_admin else False,
+            is_global=form.is_global.data if current_user.has_admin_role() else False,
             sequence_number=max_seq + 1,
             creator_id=current_user.id
         )
@@ -1392,7 +1441,7 @@ def edit_template(id):
     template = TaskTemplate.query.get_or_404(id)
     
     # Check if user can edit this template
-    if template.creator_id != current_user.id and not current_user.is_admin:
+    if template.creator_id != current_user.id and not current_user.has_admin_role():
         flash('You do not have permission to edit this template.', 'danger')
         return redirect(url_for('tasks.templates'))
     
@@ -1404,7 +1453,7 @@ def edit_template(id):
         template.category = form.category.data
         
         # Only admins can change global status
-        if current_user.is_admin:
+        if current_user.has_admin_role():
             template.is_global = form.is_global.data
         
         db.session.commit()
@@ -1424,7 +1473,7 @@ def delete_template(id):
     template = TaskTemplate.query.get_or_404(id)
     
     # Check if user can delete this template
-    if template.creator_id != current_user.id and not current_user.is_admin:
+    if template.creator_id != current_user.id and not current_user.has_admin_role():
         flash('You do not have permission to delete this template.', 'danger')
         return redirect(url_for('tasks.templates'))
     
@@ -1445,7 +1494,7 @@ def reorder_templates():
         template = TaskTemplate.query.get(template_id)
         
         # Only update templates the user owns
-        if template and (template.creator_id == current_user.id or current_user.is_admin):
+        if template and (template.creator_id == current_user.id or current_user.has_admin_role()):
             template.sequence_number = i
     
     db.session.commit()
@@ -1465,7 +1514,7 @@ def apply_template(template_id):
     # Initialize properties field with a query_factory
     if current_user.is_property_owner():
         form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
-    elif current_user.is_admin or current_user.is_property_manager:
+    elif current_user.has_admin_role() or current_user.is_property_manager():
         form.properties.query_factory = lambda: Property.query.all()
     else:
         form.properties.query_factory = lambda: []
@@ -1526,3 +1575,90 @@ def apply_template(template_id):
                            form=form,
                            from_template=True,
                            template=template)
+
+
+@bp.route('/property/<int:property_id>/create', methods=['GET', 'POST'])
+@login_required
+def create_task_for_property(property_id):
+    """Create a new task for a specific property"""
+    # Get the property
+    property = Property.query.get_or_404(property_id)
+    
+    # Check if user has permission to create tasks for this property
+    if not property.is_visible_to(current_user):
+        flash('You do not have permission to create tasks for this property.', 'danger')
+        return redirect(url_for('main.index'))
+    
+    form = TaskForm()
+    
+    # Initialize properties field with a query_factory
+    if current_user.is_property_owner():
+        form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
+    elif current_user.has_admin_role() or current_user.is_property_manager():
+        form.properties.query_factory = lambda: Property.query.all()
+    else:
+        form.properties.query_factory = lambda: []
+        
+    # Pre-select the property
+    if request.method == 'GET':
+        form.properties.data = [property]
+    
+    # Set up calendar choices
+    calendar_choices = []
+    for calendar in property.calendars:
+        calendar_choices.append((calendar.id, f"{property.name} - {calendar.name}"))
+    
+    form.calendar_id.choices = [(-1, 'None')] + calendar_choices
+    
+    # Get suggested task templates
+    task_templates = TaskTemplate.query.filter(
+        db.or_(
+            TaskTemplate.creator_id == current_user.id,
+            TaskTemplate.is_global == True
+        )
+    ).order_by(TaskTemplate.sequence_number.asc()).all()
+    
+    if form.validate_on_submit():
+        task = Task(
+            title=form.title.data,
+            description=form.description.data,
+            due_date=form.due_date.data,
+            status=form.status.data,
+            priority=form.priority.data,
+            notes=form.notes.data,
+            creator_id=current_user.id,
+            assign_to_next_cleaner=form.assign_to_next_cleaner.data,
+            property_id=property_id  # Set the property_id field directly
+        )
+        
+        # Handle recurrence if enabled
+        if form.is_recurring.data:
+            task.is_recurring = True
+            task.recurrence_pattern = form.recurrence_pattern.data
+            task.recurrence_interval = form.recurrence_interval.data
+            task.recurrence_end_date = form.recurrence_end_date.data
+        
+        # Handle calendar link if enabled
+        if form.linked_to_checkout.data and form.calendar_id.data and form.calendar_id.data != -1:
+            task.linked_to_checkout = True
+            task.calendar_id = form.calendar_id.data
+        
+        # Associate with properties (use the selected ones from the form)
+        if form.properties.data:
+            for prop in form.properties.data:
+                task_property = TaskProperty(
+                    property_id=prop.id
+                )
+                task.properties.append(task_property)
+        
+        db.session.add(task)
+        db.session.commit()
+        
+        flash('Task created successfully!', 'success')
+        return redirect(url_for('tasks.view_for_property', property_id=property_id))
+    
+    return render_template('tasks/create.html', 
+                          title=f'Create Task for {property.name}', 
+                          form=form,
+                          task_templates=task_templates,
+                          property=property)
