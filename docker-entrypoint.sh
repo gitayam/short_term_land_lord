@@ -5,26 +5,15 @@ set -e
 echo "Ensuring template directories exist..."
 mkdir -p /app/app/templates/custom
 
-# Simple database initialization
-echo "Setting up database..."
+# Run our comprehensive database preparation and fix script
+echo "Running database preparation and fixes..."
+bash /app/run_db_fixes.sh
 
 # Initialize migrations if needed
 if [ ! -d 'migrations' ] || [ ! -f 'migrations/env.py' ]; then
   echo "Initializing database migrations..."
   flask db init
 fi
-
-# Create database tables if they don't exist
-echo "Creating database tables if needed..."
-python /app/reset_db.py || true
-
-# Fix PostgreSQL schema issues
-echo "Fixing PostgreSQL schema issues..."
-python /app/fix_postgres_schema.py || true
-
-# Fix admin role issues
-echo "Checking and fixing admin role issues..."
-python /app/scripts/fix_admin_role.py || true
 
 echo "Starting web server..."
 exec flask run --host=0.0.0.0 
