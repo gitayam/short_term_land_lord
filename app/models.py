@@ -533,9 +533,11 @@ class Property(db.Model):
             city_state_zip = []
             if self.city:
                 city_state_zip.append(self.city)
-            if self.state:
+            if self.state and self.zip_code:
+                city_state_zip.append(f"{self.state} {self.zip_code}")
+            elif self.state:
                 city_state_zip.append(self.state)
-            if self.zip_code:
+            elif self.zip_code:
                 city_state_zip.append(self.zip_code)
             
             if city_state_zip:
