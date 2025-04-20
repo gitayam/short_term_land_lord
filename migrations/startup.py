@@ -216,8 +216,33 @@ def fix_database_schema(app):
             
             if missing_tables:
                 logger.warning(f"Critical tables are missing: {', '.join(missing_tables)}")
-                logger.warning("Database tables need to be created. You should run 'flask db upgrade' or setup the database")
-                logger.warning("The application may not function correctly until tables are created")
+                logger.warning("Creating missing database tables using db.create_all()")
+                try:
+                    # Import all models to ensure they're registered with SQLAlchemy
+                    from app.models import User, Property, PropertyCalendar, Room, Task, TaskAssignment
+                    # Create tables
+                    db.create_all()
+                    logger.info("Successfully created all missing database tables")
+                    
+                    # Initialize site settings if not already present
+                    from app.models import SiteSettings
+                    if SiteSettings.query.count() == 0:
+                        logger.info("Creating default site settings...")
+                        settings = [
+                            SiteSettings(key='guest_reviews_enabled', value='True', description='Enable guest reviews', visible=True),
+                            SiteSettings(key='cleaning_checklist_enabled', value='True', description='Enable cleaning checklists', visible=True),
+                            SiteSettings(key='maintenance_requests_enabled', value='True', description='Enable maintenance requests', visible=True),
+                            SiteSettings(key='require_cleaning_videos', value='False', description='Require videos for cleaning sessions', visible=True),
+                        ]
+                        
+                        for setting in settings:
+                            db.session.add(setting)
+                        
+                        db.session.commit()
+                        logger.info(f"Created {len(settings)} default site settings.")
+                except Exception as e:
+                    logger.error(f"Error creating tables: {e}")
+                    return False, missing_tables
             
             # Check if users table exists
             if 'users' in tables:
@@ -266,6 +291,59 @@ def main():
         # Add the parent directory to sys.path so we can import 'app'
         parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
         sys.path.insert(0, parent_dir)
+        
+        # CRITICAL FIX: Set up Flask app first and create tables if needed
+        app = setup_flask_app(config['url'])
+        
+        with app.app_context():
+            # Check if critical tables are missing and create them
+            from app import db
+            from sqlalchemy import inspect
+            
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            
+            critical_tables = ['users', 'site_settings', 'registration_requests']
+            missing_tables = [table for table in critical_tables if table not in tables]
+            
+            if missing_tables:
+                logger.warning(f"Critical tables are missing: {', '.join(missing_tables)}")
+                logger.warning("Creating database tables using db.create_all()")
+                
+                # Import all models to ensure they're registered with SQLAlchemy
+                from app.models import User, Property, PropertyCalendar, Room, Task, TaskAssignment
+                # Make sure all models are imported before create_all
+                try:
+                    from app.models import SiteSettings, RegistrationRequest
+                except ImportError:
+                    logger.warning("Some models could not be imported, continuing anyway")
+                
+                # Create all tables
+                try:
+                    db.create_all()
+                    logger.info("Successfully created all database tables")
+                    
+                    # Initialize site settings if not already present
+                    try:
+                        from app.models import SiteSettings
+                        if SiteSettings.query.count() == 0:
+                            logger.info("Creating default site settings...")
+                            settings = [
+                                SiteSettings(key='guest_reviews_enabled', value='True', description='Enable guest reviews', visible=True),
+                                SiteSettings(key='cleaning_checklist_enabled', value='True', description='Enable cleaning checklists', visible=True),
+                                SiteSettings(key='maintenance_requests_enabled', value='True', description='Enable maintenance requests', visible=True),
+                                SiteSettings(key='require_cleaning_videos', value='False', description='Require videos for cleaning sessions', visible=True),
+                            ]
+                            
+                            for setting in settings:
+                                db.session.add(setting)
+                            
+                            db.session.commit()
+                            logger.info(f"Created {len(settings)} default site settings.")
+                    except Exception as e:
+                        logger.error(f"Error creating site settings: {e}")
+                except Exception as e:
+                    logger.error(f"Error creating tables with db.create_all(): {e}")
         
         try:
             # Use consolidated migrations first

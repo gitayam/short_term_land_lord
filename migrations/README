@@ -1,13 +1,38 @@
 MIGRATIONS DIRECTORY
 ===================
 
-This directory contains database migration scripts and utilities needed for maintaining and updating the database schema. It includes both Alembic-based Flask migrations and custom database fix scripts.
+This directory contains database migration scripts and utilities needed for maintaining and updating the database schema. The migration system has been consolidated for better efficiency and reliability.
 
 Key files:
-- run_db_fixes.sh: Main script to prepare and fix the database (run during app startup)
-- install_requirements.sh: Script to install required Python packages
-- startup.py: Script to fix any PostgreSQL transaction issues before app starts
-- reset_db.py: Script to create database tables directly if migrations fail
+- run_all_migrations.py: Intelligent script that determines which migrations to run based on database state
+- run_all_migrations.sh: Shell script to run all migrations with command-line options
+- consolidated_user_migrations.py: Handles all user-related database migrations 
+- consolidated_property_migrations.py: Handles all property-related database migrations
+- consolidated_db_fixes.py: Combined script that handles all database fixes and repairs
+- fix_property_room_relationships.py: Fixes duplicate relationships between Property and Room models
+- reset_db.py: Creates database tables directly if migrations fail
+- docker_entrypoint.sh: Docker container entry point that runs migrations during startup
 - versions/: Directory containing Alembic migration versions
 
-When the app starts in Docker, these scripts are executed as part of the startup sequence.
+Usage:
+```bash
+# Run all migrations with database state detection
+./run_all_migrations.sh
+
+# Run with database reset (will erase existing data)
+./run_all_migrations.sh --reset
+
+# Run with forced database fixes
+./run_all_migrations.sh --force-fixes
+```
+
+When the app starts in Docker, these scripts are executed as part of the startup sequence. The system intelligently determines whether database reset is needed based on the state of the database.
+
+The migration system has been designed to avoid running unnecessary migrations and to combine related operations for better efficiency. The database will only be reset if explicitly requested or if critical tables are missing.
+
+Note on Model Relationships:
+- The Property model originally had duplicate relationships to Room:
+  - `property_rooms = db.relationship('Room', backref='property')`
+  - `rooms = db.relationship('Room', backref='property_parent', overlaps="property,property_rooms")`
+- This was fixed in the main code to use a single relationship: `rooms = db.relationship('Room', backref='property', lazy='dynamic')`
+- The fix_property_room_relationships.py script ensures database consistency with this change

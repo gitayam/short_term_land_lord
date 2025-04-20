@@ -154,6 +154,26 @@ def reset_database():
                                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                             )
                         """))
+                        
+                        # Insert default site settings
+                        logger.info("Adding default site settings...")
+                        default_settings = [
+                            ('site_name', 'Property Management System', 'System site name'),
+                            ('support_email', 'support@example.com', 'Support email address'),
+                            ('maintenance_phone', '555-123-4567', 'Maintenance phone number'),
+                            ('enable_registration', 'true', 'Allow new user registration'),
+                            ('require_approval', 'true', 'Require admin approval for new users'),
+                            ('theme_primary_color', '#3f51b5', 'Primary theme color'),
+                            ('theme_secondary_color', '#f50057', 'Secondary theme color'),
+                            ('guest_reviews_enabled', 'true', 'Enable guest reviews feature')
+                        ]
+                        
+                        for key, value, description in default_settings:
+                            db.session.execute(text("""
+                                INSERT INTO site_settings (key, value, description, visible)
+                                VALUES (:key, :value, :description, TRUE)
+                                ON CONFLICT (key) DO NOTHING
+                            """), {'key': key, 'value': value, 'description': description})
                     
                     # Create registration_requests table if it doesn't exist
                     if 'registration_requests' not in tables:
