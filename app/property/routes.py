@@ -240,7 +240,7 @@ def view(id):
         TaskProperty, TaskProperty.task_id == Task.id
     ).filter(
         TaskProperty.property_id == id
-    ).all()
+    ).order_by(Task.due_date.asc(), Task.priority.desc()).all()
     service_history['tasks'] = tasks
     
     # Get cleaning sessions for this property
@@ -265,7 +265,7 @@ def view(id):
         ).filter(
             TaskProperty.property_id == id,
             TaskAssignment.user_id == current_user.id
-        ).order_by(TaskProperty.sequence_number.asc(), Task.due_date.asc(), Task.priority.desc()).all()
+        ).order_by(Task.due_date.asc(), Task.priority.desc()).all()
     
     return render_template('property/view.html',
                           property=property,

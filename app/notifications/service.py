@@ -167,7 +167,7 @@ def send_repair_request_notification(repair_request, property_owner):
     
     # Create notification content
     title = f"New Repair Request: {repair_request.title}"
-    message = f"A new repair request has been submitted for {repair_request.property.name}:\n"
+    message = f"A new repair request has been submitted for {repair_request.associated_property.name}:\n"
     message += f"Title: {repair_request.title}\n"
     message += f"Location: {repair_request.location}\n"
     message += f"Severity: {repair_request.severity.value.capitalize()}\n"
@@ -190,7 +190,7 @@ def send_repair_request_notification(repair_request, property_owner):
             user=property_owner,
             subject=title,
             text_body=message,
-            html_body=f"<p>A new repair request has been submitted for <strong>{repair_request.property.name}</strong>:</p>"
+            html_body=f"<p>A new repair request has been submitted for <strong>{repair_request.associated_property.name}</strong>:</p>"
                      f"<p><strong>Title:</strong> {repair_request.title}<br>"
                      f"<strong>Location:</strong> {repair_request.location}<br>"
                      f"<strong>Severity:</strong> {repair_request.severity.value.capitalize()}<br>"
@@ -203,7 +203,7 @@ def send_repair_request_notification(repair_request, property_owner):
     if current_app.config.get('NOTIFICATION_SMS_ENABLED', True) and hasattr(property_owner, 'phone'):
         send_sms_notification(
             phone_number=property_owner.phone,
-            message=f"New repair request for {repair_request.property.name}: {repair_request.title} ({repair_request.severity.value.capitalize()}). Please check the app for details."
+            message=f"New repair request for {repair_request.associated_property.name}: {repair_request.title} ({repair_request.severity.value.capitalize()}). Please check the app for details."
         )
     
     return True

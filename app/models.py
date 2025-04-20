@@ -274,7 +274,7 @@ class User(UserMixin, db.Model):
     authentik_id = db.Column(db.String(36), unique=True, nullable=True)
     signal_identity = db.Column(db.String(36), unique=True, nullable=True)
     attributes = db.Column(db.Text)  # Store JSON as Text instead of JSON type
-    is_admin = db.Column(db.Boolean, default=False)
+    _is_admin = db.Column('is_admin', db.Boolean, default=False)
     
     # Relationships with explicit primary joins - use different backref names to avoid conflicts
     created_tasks = db.relationship('Task', foreign_keys='Task.creator_id', backref='task_creator', lazy='dynamic',
@@ -324,33 +324,9 @@ class User(UserMixin, db.Model):
     
     def has_admin_role(self):
         """Check if the user has admin privileges."""
-        # Check if the is_admin field is True or if the role is ADMIN
-        return bool(self.__dict__.get('is_admin', False)) or self.role == UserRoles.ADMIN.value
+        # Always return True for users with ADMIN role, regardless of is_admin column
+        return self.role == UserRoles.ADMIN.value or self._is_admin is True
 
-    @property
-    def is_admin(self):
-        return self.has_admin_role()
-    
-    @is_admin.setter
-    def is_admin(self, value):
-        """Set the is_admin attribute"""
-        self.__dict__['is_admin'] = value
-        # Update role to admin if is_admin is set to True
-        if value and self.role != UserRoles.ADMIN.value:
-            self.role = UserRoles.ADMIN.value
-    
-    # Define getters and setters for is_admin to maintain backward compatibility
-    @property
-    def _is_admin(self):
-        """Get the is_admin attribute correctly"""
-        # Use dict access to avoid recursion
-        return self.__dict__.get('is_admin', False)
-    
-    @_is_admin.setter
-    def _is_admin(self, value):
-        """Set the is_admin attribute"""
-        self.__dict__['is_admin'] = value
-        
     def is_cleaner(self):
         """Check if the user is a cleaner (service staff with cleaning service type)."""
         if not self.is_service_staff():
@@ -444,6 +420,16 @@ class User(UserMixin, db.Model):
         ).first()
         
         return assignment is not None
+
+    @property
+    def is_admin(self):
+        """Get admin status (True if role is ADMIN or is_admin column is True)"""
+        return self.role == UserRoles.ADMIN.value or self._is_admin is True
+        
+    @is_admin.setter
+    def is_admin(self, value):
+        """Set admin flag directly to database column"""
+        self._is_admin = value
 
 class Property(db.Model):
     __tablename__ = 'property'
@@ -914,6 +900,7 @@ class TaskProperty(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    sequence_number = db.Column(db.Integer, default=0)  # For ordering tasks within a property
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -1082,14 +1069,21 @@ class RepairRequest(db.Model):
     description = db.Column(db.Text, nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     reporter_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    status = db.Column(db.Enum('pending', 'in_progress', 'completed', 'cancelled', name='repair_status'), default='pending')
+    status = db.Column(db.Enum(RepairRequestStatus), default=RepairRequestStatus.PENDING)
     priority = db.Column(db.Enum('low', 'medium', 'high', 'urgent', name='repair_priority'), default='medium')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # Additional fields needed for repair requests
+    location = db.Column(db.String(255), nullable=True)
+    severity = db.Column(db.Enum(RepairRequestSeverity), default=RepairRequestSeverity.MEDIUM)
+    additional_notes = db.Column(db.Text, nullable=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
+    
     # Relationships
     reporter = db.relationship('User', foreign_keys=[reporter_id], backref='reported_repairs')
     associated_property = db.relationship('Property', foreign_keys=[property_id], backref='repair_requests')
+    associated_task = db.relationship('Task', foreign_keys=[task_id], backref='repair_request', uselist=False)
     
     def __repr__(self):
         return f'<RepairRequest {self.id}>'

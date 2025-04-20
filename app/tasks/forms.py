@@ -3,7 +3,7 @@ from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, TextAreaField, DateTimeField, SelectField, BooleanField, SubmitField, IntegerField, TelField, RadioField
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 from wtforms_sqlalchemy.fields import QuerySelectField, QuerySelectMultipleField
-from app.models import User, Property, TaskStatus, TaskPriority, RecurrencePattern, UserRoles, MediaType, RepairRequestSeverity, ServiceType
+from app.models import User, Property, TaskStatus, TaskPriority, RecurrencePattern, UserRoles, MediaType, RepairRequestSeverity, ServiceType, RepairRequestStatus
 
 
 class TaskForm(FlaskForm):
@@ -170,6 +170,7 @@ class RepairRequestForm(FlaskForm):
     description = TextAreaField('Description of Issue', validators=[DataRequired(), Length(min=10, max=500)])
     location = StringField('Location in Property', validators=[DataRequired(), Length(min=3, max=255)])
     severity = SelectField('Severity', validators=[DataRequired()], coerce=str)
+    status = SelectField('Status', validators=[Optional()], coerce=str)
     additional_notes = TextAreaField('Additional Notes', validators=[Optional(), Length(max=1000)])
     photos = FileField('Photos (Optional)', validators=[
         Optional(),
@@ -183,6 +184,14 @@ class RepairRequestForm(FlaskForm):
         # Set up severity choices
         self.severity.choices = [(severity.value, severity.name.title()) 
                                 for severity in RepairRequestSeverity]
+        
+        # Set up status choices
+        self.status.choices = [(status.value, status.name.title()) 
+                              for status in RepairRequestStatus]
+        
+        # Set default status to PENDING for new repair requests
+        if 'obj' not in kwargs or kwargs['obj'] is None:
+            self.status.data = RepairRequestStatus.PENDING.value
 
 
 class ConvertToTaskForm(FlaskForm):
