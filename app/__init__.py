@@ -5,6 +5,7 @@ from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from config import Config
+import os
 
 from app.user_model_fix import patch_user_model, patch_user_loader
 # Initialize extensions
@@ -76,6 +77,44 @@ def create_app(config_class=Config):
     
     from app.workforce import bp as workforce_bp
     app.register_blueprint(workforce_bp, url_prefix='/workforce')
+    
+    # Fix PostgreSQL transactions if needed
+    with app.app_context():
+        try:
+            # Only run the fix for PostgreSQL databases
+            if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql'):
+                app.logger.info("Checking PostgreSQL transactions and schema...")
+                
+                # Import and run the transaction fix script
+                from sqlalchemy import text
+                
+                # Reset any aborted transactions with autocommit isolation
+                with db.engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+                    # Find connections in an aborted state
+                    result = conn.execute(text("""
+                        SELECT pid, state 
+                        FROM pg_stat_activity 
+                        WHERE state = 'idle in transaction' OR 
+                              state = 'idle in transaction (aborted)' OR
+                              state = 'active'
+                    """))
+                    
+                    transactions = result.fetchall()
+                    
+                    if transactions:
+                        app.logger.warning(f"Found {len(transactions)} potentially problematic transactions. Resetting them...")
+                        for tx in transactions:
+                            # Don't terminate our own connection
+                            if tx.state != 'active':
+                                try:
+                                    conn.execute(text(f"SELECT pg_terminate_backend({tx.pid})"))
+                                    app.logger.info(f"Terminated connection {tx.pid} in state {tx.state}")
+                                except Exception as e:
+                                    app.logger.warning(f"Could not terminate connection {tx.pid}: {str(e)}")
+                
+                app.logger.info("PostgreSQL transaction check completed")
+        except Exception as e:
+            app.logger.warning(f"Could not check PostgreSQL transactions: {str(e)}")
     
     # Initialize site settings and User model
     with app.app_context():

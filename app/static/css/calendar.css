@@ -1,0 +1,95 @@
+/* Calendar styles */
+* {
+  box-sizing: border-box;
+}
+
+.calendar-container {
+  overflow-x: auto;
+}
+
+table.calendar {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+table.calendar th,
+table.calendar td {
+  border: 1px solid #ddd;
+  padding: 4px;
+  text-align: center;
+  min-width: 32px;
+}
+
+table.calendar th {
+  background-color: #f0f0f0;
+  font-weight: normal;
+}
+
+.listing-name {
+  text-align: left;
+  white-space: nowrap;
+  background: #fff;
+  font-weight: bold;
+  min-width: 250px;
+}
+
+/* cell backgrounds */
+td.available {
+  background: #fff;
+}
+td.booked {
+  background: teal;
+  border-radius: 4px;
+}
+
+/* month headers */
+.month-header {
+  background-color: #e9ecef;
+  font-weight: bold;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* outer gridlines */
+table.calendar td,
+table.calendar th {
+  border-top: none;
+  border-left: none;
+}
+table.calendar thead th,
+table.calendar tbody tr:first-child td {
+  border-top: 1px solid #ddd;
+}
+table.calendar tbody tr td:first-child,
+table.calendar thead th:first-child {
+  border-left: 1px solid #ddd;
+}
+
+.legend {
+  margin: 15px 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+}
+
+.legend-color.booked {
+  background-color: teal;
+}
+
+.legend-color.available {
+  background-color: #fff;
+  border: 1px solid #ddd;
+} 

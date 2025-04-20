@@ -4,7 +4,13 @@ from app import db
 from app.models import Property, PropertyCalendar, Task, TaskAssignment, TaskProperty, TaskStatus
 from app.calendar.forms import CalendarImportForm
 from sqlalchemy.orm import aliased
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+import json
+import icalendar
+import recurring_ical_events
+import requests
+from io import StringIO
+import random
 
 bp = Blueprint('calendar', __name__)
 
@@ -161,4 +167,135 @@ def get_task_color(task):
         'URGENT': '#dc3545'    # Danger/Red
     }
     
-    return priority_colors.get(task.priority.value, '#6c757d') 
+    return priority_colors.get(task.priority.value, '#6c757d')
+
+@bp.route('/availability', methods=['GET'])
+@login_required
+def availability_calendar():
+    """View availability calendar for all accessible properties"""
+    
+    # Get all properties the user has access to
+    if current_user.is_admin or current_user.has_admin_role():
+        properties = Property.query.all()
+    elif current_user.is_property_owner():
+        properties = Property.query.filter_by(owner_id=current_user.id).all()
+    else:
+        # For staff, find properties they have tasks assigned to
+        task_assignment_alias = aliased(TaskAssignment)
+        task_property_alias = aliased(TaskProperty)
+        
+        property_ids = db.session.query(task_property_alias.property_id)\
+            .join(Task, Task.id == task_property_alias.task_id)\
+            .join(task_assignment_alias, Task.id == task_assignment_alias.task_id)\
+            .filter(task_assignment_alias.user_id == current_user.id)\
+            .distinct().all()
+        
+        property_ids = [p[0] for p in property_ids]
+        properties = Property.query.filter(Property.id.in_(property_ids)).all()
+    
+    # Get booking data for each property
+    bookings_by_property = {}
+    start_dates = []
+    end_dates = []
+    
+    # Option to show mock data for testing
+    use_mock_data = request.args.get('mock', 'false').lower() == 'true'
+    
+    for prop in properties:
+        bookings = []
+        
+        # For testing: if mock parameter is set and no real calendars, generate mock data
+        if use_mock_data and (not prop.calendars or not any(cal.ical_url for cal in prop.calendars)):
+            # Generate some mock bookings for the next 2 months
+            today = datetime.now().date()
+            
+            # Random bookings in next 60 days
+            for _ in range(3):  # 3 mock bookings per property
+                # Random start date 0-45 days from now
+                start_offset = random.randint(0, 45)
+                # Random duration 2-7 days
+                duration = random.randint(2, 7)
+                
+                mock_start = today + timedelta(days=start_offset)
+                mock_end = mock_start + timedelta(days=duration)
+                
+                bookings.append({
+                    'summary': 'Mock Booking',
+                    'start': mock_start,
+                    'end': mock_end
+                })
+                
+                start_dates.append(mock_start)
+                end_dates.append(mock_end)
+        
+        # Process each calendar for the property
+        for calendar in prop.calendars:
+            if calendar.ical_url:
+                try:
+                    # Fetch and process the calendar
+                    response = requests.get(calendar.ical_url)
+                    if response.status_code == 200:
+                        cal_content = response.text
+                        cal = icalendar.Calendar.from_ical(cal_content)
+                        
+                        # Get a date range for the next 3 months
+                        start_date = datetime.now().date()
+                        end_date = start_date + timedelta(days=90)
+                        
+                        # Get the events, handling recurring events
+                        events = recurring_ical_events.of(cal).between(start_date, end_date)
+                        
+                        for event in events:
+                            summary = str(event.get('summary', 'Booking'))
+                            dtstart = event.get('dtstart').dt
+                            dtend = event.get('dtend').dt
+                            
+                            # Convert datetime to date if necessary
+                            if isinstance(dtstart, datetime):
+                                dtstart = dtstart.date()
+                            if isinstance(dtend, datetime):
+                                dtend = dtend.date()
+                            
+                            bookings.append({
+                                'summary': summary,
+                                'start': dtstart,
+                                'end': dtend
+                            })
+                            
+                            # Track the earliest and latest dates
+                            start_dates.append(dtstart)
+                            end_dates.append(dtend)
+                            
+                except Exception as e:
+                    flash(f"Error processing calendar for {prop.name}: {str(e)}", "warning")
+        
+        # Store bookings with string key for property ID to avoid key access issues in template
+        bookings_by_property[str(prop.id)] = {
+            'name': prop.name,
+            'bookings': bookings
+        }
+    
+    # Determine the date range to display
+    if start_dates and end_dates:
+        start_date = min(start_dates)
+        end_date = max(end_dates)
+    else:
+        # Default to current month plus next month if no bookings
+        start_date = date.today().replace(day=1)
+        end_date = (start_date + timedelta(days=60)).replace(day=1) - timedelta(days=1)
+    
+    # Generate a list of dates for the calendar
+    calendar_dates = []
+    current_date = start_date
+    while current_date <= end_date:
+        calendar_dates.append(current_date)
+        current_date += timedelta(days=1)
+    
+    return render_template('calendar/availability.html',
+                          title='Property Availability Calendar',
+                          properties=properties,
+                          bookings_by_property=bookings_by_property,
+                          calendar_dates=calendar_dates,
+                          start_date=start_date,
+                          end_date=end_date,
+                          use_mock_data=use_mock_data) 
