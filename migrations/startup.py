@@ -267,41 +267,103 @@ def main():
         parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
         sys.path.insert(0, parent_dir)
         
-        # Import and run migration modules
         try:
-            from model_fix import fix_user_model
-            logger.info("Running User model fix...")
-            fix_user_model()
-        except Exception as e:
-            logger.error(f"Error running User model fix: {e}")
-        
-        try:
-            from app_init_patch import patch_app_init
-            logger.info("Applying app initialization patch...")
-            patch_app_init()
-        except Exception as e:
-            logger.error(f"Error applying app init patch: {e}")
-        
-        try:
-            from create_users_table import create_users_table
-            logger.info("Running create_users_table script...")
-            create_users_table()
-        except Exception as e:
-            logger.error(f"Error running create_users_table: {e}")
-        
-        try:
-            from add_property_address_fields import add_property_address_fields
-            logger.info("Running add_property_address_fields script...")
-            add_property_address_fields()
-        except Exception as e:
-            logger.error(f"Error running add_property_address_fields: {e}")
+            # Use consolidated migrations first
+            logger.info("Running consolidated migrations...")
             
-        try:
-            from add_property_details import add_property_details_fields
-            logger.info("Running add_property_details_fields script...")
-            add_property_details_fields()
-        except Exception as e:
-            logger.error(f"Error running add_property_details_fields: {e}")
+            # Import and run consolidated user migrations
+            try:
+                from consolidated_user_migrations import run_consolidated_migrations as run_user_migrations
+                logger.info("Running consolidated user migrations...")
+                run_user_migrations()
+            except Exception as e:
+                logger.error(f"Error running consolidated user migrations: {e}")
+                # Fall back to individual migrations in case of failure
+                logger.info("Falling back to individual migrations...")
+                
+                try:
+                    from model_fix import fix_user_model
+                    logger.info("Running User model fix...")
+                    fix_user_model()
+                except Exception as e:
+                    logger.error(f"Error running User model fix: {e}")
+                
+                try:
+                    from create_users_table import create_users_table
+                    logger.info("Running create_users_table script...")
+                    create_users_table()
+                except Exception as e:
+                    logger.error(f"Error running create_users_table: {e}")
+                
+                try:
+                    from create_admin import create_admin
+                    logger.info("Creating/updating admin user from environment...")
+                    create_admin()
+                except Exception as e:
+                    logger.error(f"Error creating admin user: {e}")
+            
+            # Import and run consolidated property migrations
+            try:
+                from consolidated_property_migrations import run_consolidated_property_migrations
+                logger.info("Running consolidated property migrations...")
+                run_consolidated_property_migrations()
+            except Exception as e:
+                logger.error(f"Error running consolidated property migrations: {e}")
+                # Fall back to individual migrations in case of failure
+                
+                try:
+                    from add_property_address_fields import add_property_address_fields
+                    logger.info("Running add_property_address_fields script...")
+                    add_property_address_fields()
+                except Exception as e:
+                    logger.error(f"Error running add_property_address_fields: {e}")
+                    
+                try:
+                    from add_property_details import add_property_details_fields
+                    logger.info("Running add_property_details_fields script...")
+                    add_property_details_fields()
+                except Exception as e:
+                    logger.error(f"Error running add_property_details_fields: {e}")
+            
+        except ImportError as e:
+            logger.error(f"Could not import consolidated migrations: {e}")
+            logger.warning("Running individual migrations instead...")
+            
+            # Run individual migrations
+            try:
+                from model_fix import fix_user_model
+                logger.info("Running User model fix...")
+                fix_user_model()
+            except Exception as e:
+                logger.error(f"Error running User model fix: {e}")
+            
+            try:
+                from app_init_patch import patch_app_init
+                logger.info("Applying app initialization patch...")
+                patch_app_init()
+            except Exception as e:
+                logger.error(f"Error applying app init patch: {e}")
+            
+            try:
+                from create_users_table import create_users_table
+                logger.info("Running create_users_table script...")
+                create_users_table()
+            except Exception as e:
+                logger.error(f"Error running create_users_table: {e}")
+            
+            try:
+                from add_property_address_fields import add_property_address_fields
+                logger.info("Running add_property_address_fields script...")
+                add_property_address_fields()
+            except Exception as e:
+                logger.error(f"Error running add_property_address_fields: {e}")
+                
+            try:
+                from add_property_details import add_property_details_fields
+                logger.info("Running add_property_details_fields script...")
+                add_property_details_fields()
+            except Exception as e:
+                logger.error(f"Error running add_property_details_fields: {e}")
         
         # Set up Flask app to use for more complex migrations
         app = setup_flask_app(config['url'])
@@ -309,20 +371,6 @@ def main():
         with app.app_context():
             # Fix database schema issues
             fix_database_schema(app)
-            
-            try:
-                from create_admin import create_admin
-                logger.info("Creating/updating admin user from environment...")
-                create_admin()
-            except Exception as e:
-                logger.error(f"Error creating admin user: {e}")
-            
-            try:
-                from initialize_task_templates import initialize_templates
-                logger.info("Initializing task templates...")
-                initialize_templates()
-            except Exception as e:
-                logger.error(f"Error initializing task templates: {e}")
             
             # Run any other necessary migrations
             try:
@@ -342,6 +390,27 @@ def main():
                     fix_postgres_schema()
                 except Exception as e:
                     logger.error(f"Error fixing PostgreSQL schema: {e}")
+                
+                try:
+                    from fix_task_template import fix_task_templates
+                    logger.info("Fixing task templates...")
+                    fix_task_templates()
+                except Exception as e:
+                    logger.error(f"Error fixing task templates: {e}")
+                
+                try:
+                    from initialize_task_templates import initialize_templates
+                    logger.info("Initializing task templates...")
+                    initialize_templates()
+                except Exception as e:
+                    logger.error(f"Error initializing task templates: {e}")
+                
+                try:
+                    from fix_site_settings import fix_site_settings
+                    logger.info("Fixing site settings...")
+                    fix_site_settings()
+                except Exception as e:
+                    logger.error(f"Error fixing site settings: {e}")
             except Exception as e:
                 logger.error(f"Error running additional database fixes: {e}")
         
