@@ -13,6 +13,7 @@ def get_user_fk_target():
     return "users.id"
 
 class UserRoles(enum.Enum):
+    """Enumeration of user roles in the system."""
     PROPERTY_OWNER = "property_owner"
     SERVICE_STAFF = "service_staff"
     PROPERTY_MANAGER = "property_manager"
@@ -20,17 +21,20 @@ class UserRoles(enum.Enum):
     TENANT = "tenant"
 
 class TaskStatus(enum.Enum):
+    """Enumeration of possible task statuses."""
     PENDING = 'PENDING'
     IN_PROGRESS = 'IN_PROGRESS'
     COMPLETED = 'COMPLETED'
 
 class TaskPriority(enum.Enum):
+    """Enumeration of task priority levels."""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     URGENT = "urgent"
 
 class RecurrencePattern(enum.Enum):
+    """Enumeration of task recurrence patterns."""
     NONE = "none"
     DAILY = "daily"
     WEEKLY = "weekly"
@@ -54,15 +58,18 @@ class RecurrencePattern(enum.Enum):
         ]
 
 class MediaType(enum.Enum):
+    """Enumeration of supported media types."""
     PHOTO = "photo"
     VIDEO = "video"
 
 class StorageBackend(enum.Enum):
+    """Enumeration of available storage backends."""
     LOCAL = "local"
     S3 = "s3"
     RCLONE = "rclone"
 
 class ItemCategory(enum.Enum):
+    """Enumeration of inventory item categories."""
     CLEANING = "cleaning"
     BATHROOM = "bathroom"
     KITCHEN = "kitchen"
@@ -81,6 +88,7 @@ class ItemCategory(enum.Enum):
     OTHER = "other"
 
 class ServiceType(enum.Enum):
+    """Enumeration of available service types."""
     CLEANING = "cleaning"
     HANDYMAN = "handyman"
     LAWN_CARE = "lawn_care"
@@ -89,11 +97,16 @@ class ServiceType(enum.Enum):
     OTHER = "other"
 
 class GuestReviewRating(enum.Enum):
+    """Enumeration of possible guest review ratings."""
     BAD = 'BAD'
     OK = 'OK'
     GOOD = 'GOOD'
 
 class InventoryCatalogItem(db.Model):
+    """
+    Model for catalog items that can be added to property inventories.
+    Contains the master data for inventory items including pricing and descriptions.
+    """
     __tablename__ = 'inventory_catalog_item'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -138,6 +151,7 @@ class InventoryCatalogItem(db.Model):
         self.unit_price = value
 
 class TransactionType(enum.Enum):
+    """Enumeration of inventory transaction types."""
     RESTOCK = "restock"
     USAGE = "usage"
     TRANSFER_IN = "transfer_in"
@@ -145,18 +159,21 @@ class TransactionType(enum.Enum):
     ADJUSTMENT = "adjustment"
 
 class RepairRequestStatus(enum.Enum):
+    """Enumeration of repair request statuses."""
     PENDING = "pending_status"
     APPROVED = "approved_status"
     REJECTED = "rejected_status"
     CONVERTED = "converted_to_task_status"
 
 class RepairRequestSeverity(enum.Enum):
+    """Enumeration of repair request severity levels."""
     LOW = "low_severity"
     MEDIUM = "medium_severity"
     HIGH = "high_severity"
     URGENT = "urgent_severity"
 
 class NotificationType(enum.Enum):
+    """Enumeration of notification types."""
     TASK_ASSIGNMENT = "task_assignment"
     TASK_REMINDER = "task_reminder"
     CALENDAR_UPDATE = "calendar_update"
@@ -165,16 +182,22 @@ class NotificationType(enum.Enum):
     REPAIR_REQUEST = "repair_request"
 
 class NotificationChannel(enum.Enum):
+    """Enumeration of notification delivery channels."""
     EMAIL = "email"
     SMS = "sms"
     IN_APP = "in_app"
 
 class ApprovalStatus(enum.Enum):
+    """Enumeration of approval statuses for requests."""
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
 
 class RegistrationRequest(db.Model):
+    """
+    Model for handling user registration requests that require admin approval.
+    Stores applicant information and registration status.
+    """
     __tablename__ = 'registration_requests'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -629,6 +652,10 @@ class Property(db.Model):
             return "/static/img/default-property.jpg"
 
 class PropertyImage(db.Model):
+    """
+    Model for storing property images with metadata.
+    Links images to properties and tracks primary image status.
+    """
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     image_path = db.Column(db.String(255), nullable=False)
@@ -640,6 +667,10 @@ class PropertyImage(db.Model):
         return f'<PropertyImage {self.image_path}>'
 
 class PasswordReset(db.Model):
+    """
+    Model for handling password reset requests.
+    Stores reset tokens and their expiration times.
+    """
     id = db.Column(db.Integer, primary_key=True)
     token = db.Column(db.String(100), unique=True, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -673,6 +704,10 @@ class PasswordReset(db.Model):
         return reset.user
 
 class PropertyCalendar(db.Model):
+    """
+    Model for managing property availability calendars.
+    Supports multiple booking sources and synchronization status tracking.
+    """
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
 
@@ -752,11 +787,8 @@ class PropertyCalendar(db.Model):
 
 class Room(db.Model):
     """
-    Room model representing rooms within a property.
-
-    Each room belongs to a single property and can have furniture items.
-    The relationship with Property is defined through the property_id foreign key
-    and accessed via the 'property' backref.
+    Model representing rooms within a property.
+    Stores room details and maintains relationships with furniture items.
     """
     __tablename__ = 'room'
 
@@ -791,6 +823,10 @@ class Room(db.Model):
         return f'<Room {self.name}>'
 
 class RoomFurniture(db.Model):
+    """
+    Model for tracking furniture items within rooms.
+    Links furniture to specific rooms and tracks quantities.
+    """
     __tablename__ = 'room_furniture'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -806,6 +842,10 @@ class RoomFurniture(db.Model):
         return f'<RoomFurniture {self.name}>'
 
 class Task(db.Model):
+    """
+    Model for managing tasks within the system.
+    Supports recurring tasks, assignments, and property relationships.
+    """
     __tablename__ = 'task'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -904,6 +944,10 @@ class Task(db.Model):
         return self.severity.replace('_', ' ').title()
 
 class TaskAssignment(db.Model):
+    """
+    Model for tracking task assignments to users or external workers.
+    Supports different service types and assignment metadata.
+    """
     __tablename__ = 'task_assignment'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -936,6 +980,10 @@ class TaskAssignment(db.Model):
             return f'<TaskAssignment to {self.external_name}{contact_str}>'
 
 class TaskProperty(db.Model):
+    """
+    Model for linking tasks to properties.
+    Supports task sequencing within properties.
+    """
     __tablename__ = 'task_property'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -952,6 +1000,10 @@ class TaskProperty(db.Model):
         return f'<TaskProperty task_id={self.task_id} property_id={self.property_id}>'
 
 class CleaningSession(db.Model):
+    """
+    Model for tracking cleaning sessions at properties.
+    Records duration, cleaner information, and related media.
+    """
     __tablename__ = 'cleaning_session'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1028,6 +1080,10 @@ class CleaningSession(db.Model):
         ).first() is not None
 
 class CleaningFeedback(db.Model):
+    """
+    Model for storing feedback on cleaning sessions.
+    Tracks ratings and notes for quality control.
+    """
     id = db.Column(db.Integer, primary_key=True)
     cleaning_session_id = db.Column(db.Integer, db.ForeignKey('cleaning_session.id'), nullable=False, unique=True)
     rating = db.Column(db.Integer, nullable=False)  # 1-5 star rating
@@ -1042,6 +1098,10 @@ class CleaningFeedback(db.Model):
         return f'<CleaningFeedback {self.id} for session {self.cleaning_session_id} - Rating: {self.rating}>'
 
 class CleaningMedia(db.Model):
+    """
+    Model for managing media files associated with cleaning sessions.
+    Supports different storage backends and media types.
+    """
     id = db.Column(db.Integer, primary_key=True)
     cleaning_session_id = db.Column(db.Integer, db.ForeignKey('cleaning_session.id'), nullable=False)
     media_type = db.Column(db.Enum(MediaType), nullable=False)
@@ -1085,6 +1145,10 @@ issue_media = db.Table('issue_media',
 )
 
 class IssueReport(db.Model):
+    """
+    Model for tracking issues reported during cleaning sessions.
+    Links issues to specific locations and cleaning sessions.
+    """
     id = db.Column(db.Integer, primary_key=True)
     cleaning_session_id = db.Column(db.Integer, db.ForeignKey('cleaning_session.id'), nullable=False)
     description = db.Column(db.Text, nullable=False)
@@ -1103,6 +1167,10 @@ class IssueReport(db.Model):
         return f'<IssueReport {self.id} for session {self.cleaning_session_id}>'
 
 class RepairRequest(db.Model):
+    """
+    Model for managing property repair requests.
+    Tracks request status, severity, and associated tasks.
+    """
     __tablename__ = 'repair_request'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1130,6 +1198,10 @@ class RepairRequest(db.Model):
         return f'<RepairRequest {self.id}>'
 
 class RepairRequestMedia(db.Model):
+    """
+    Model for storing media files related to repair requests.
+    Supports different storage backends and file metadata.
+    """
     id = db.Column(db.Integer, primary_key=True)
     repair_request_id = db.Column(db.Integer, db.ForeignKey('repair_request.id'), nullable=False)
     file_path = db.Column(db.String(500), nullable=False)
@@ -1157,6 +1229,10 @@ class RepairRequestMedia(db.Model):
         return self.file_path
 
 class InventoryItem(db.Model):
+    """
+    Model for tracking inventory items at specific properties.
+    Manages quantities, thresholds, and location information.
+    """
     __tablename__ = 'inventory_item'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1202,6 +1278,10 @@ class InventoryItem(db.Model):
         self.updated_at = datetime.utcnow()
 
 class InventoryTransaction(db.Model):
+    """
+    Model for recording inventory movements and adjustments.
+    Tracks quantity changes and transaction types.
+    """
     __tablename__ = 'inventory_transaction'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1240,6 +1320,10 @@ class InventoryTransaction(db.Model):
         return str(self.transaction_type)
 
 class Notification(db.Model):
+    """
+    Model for system notifications.
+    Supports different notification types and tracks read status.
+    """
     __tablename__ = 'notification'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1257,6 +1341,10 @@ class Notification(db.Model):
         return f'<Notification {self.message}>'
 
 class Guest(db.Model):
+    """
+    Model for storing guest information.
+    Tracks guest contact details and history.
+    """
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(64), nullable=False)
     last_name = db.Column(db.String(64), nullable=False)
@@ -1269,6 +1357,10 @@ class Guest(db.Model):
         return f'<Guest {self.first_name} {self.last_name}>'
 
 class GuestReview(db.Model):
+    """
+    Model for storing reviews of guests.
+    Tracks ratings, comments, and stay information.
+    """
     __tablename__ = 'guest_review'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1300,6 +1392,10 @@ class GuestReview(db.Model):
         return self.rating == 'bad'
 
 class SiteSettings(db.Model):
+    """
+    Model for managing system-wide settings.
+    Stores configuration values with visibility controls.
+    """
     __tablename__ = 'site_settings'
 
     key = db.Column(db.String(64), primary_key=True)
@@ -1445,6 +1541,10 @@ def init_app(app):
             app.logger.error(f"Error initializing model: {e}", exc_info=True)
 
 class TaskTemplate(db.Model):
+    """
+    Model for storing reusable task templates.
+    Supports global and user-specific templates with recurrence patterns.
+    """
     __tablename__ = 'task_template'
 
     id = db.Column(db.Integer, primary_key=True)
