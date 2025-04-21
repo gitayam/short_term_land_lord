@@ -445,13 +445,16 @@
                     
                     // Create a temporary div to hold the HTML
                     const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = data.html;
+                    tempDiv.innerHTML = data.html.trim();
+                    
+                    // Get the first child (the room form)
+                    const roomForm = tempDiv.firstElementChild;
                     
                     // Append the new room form to the container
-                    roomsContainer.appendChild(tempDiv.firstChild);
+                    roomsContainer.appendChild(roomForm);
                     
                     // Set up event handlers for the new room form
-                    setupRoomFormHandlers(tempDiv.firstChild);
+                    setupRoomFormHandlers(roomForm);
                     
                     roomCounter++;
                     
@@ -523,9 +526,47 @@
             
             // Has TV checkbox change handler
             const hasTvCheckbox = roomForm.querySelector('.has-tv-checkbox');
-            hasTvCheckbox.addEventListener('change', function() {
-                const tvDetails = roomForm.querySelector('.tv-details');
-                tvDetails.style.display = this.checked ? 'block' : 'none';
+            if (hasTvCheckbox) {
+                hasTvCheckbox.addEventListener('change', function() {
+                    const tvDetails = roomForm.querySelector('.tv-details');
+                    tvDetails.style.display = this.checked ? 'block' : 'none';
+                });
+            }
+
+            // Add Furniture button handler
+            const addFurnitureBtn = roomForm.querySelector('.add-furniture-btn');
+            if (addFurnitureBtn) {
+                addFurnitureBtn.addEventListener('click', function() {
+                    const roomId = this.dataset.roomId;
+                    const template = document.getElementById('furniture-item-template');
+                    const furnitureContainer = roomForm.querySelector('.furniture-items');
+                    
+                    // Clone the template
+                    const newFurniture = template.content.cloneNode(true);
+                    
+                    // Update the name attributes with the correct room ID
+                    newFurniture.querySelectorAll('[name*="ROOM_ID"]').forEach(element => {
+                        element.name = element.name.replace('ROOM_ID', roomId);
+                    });
+                    
+                    // Add remove button handler
+                    const removeBtn = newFurniture.querySelector('.remove-furniture');
+                    if (removeBtn) {
+                        removeBtn.addEventListener('click', function() {
+                            this.closest('.furniture-item').remove();
+                        });
+                    }
+                    
+                    // Add the new furniture item to the container
+                    furnitureContainer.appendChild(newFurniture);
+                });
+            }
+
+            // Add remove handlers for existing furniture items
+            roomForm.querySelectorAll('.remove-furniture').forEach(button => {
+                button.addEventListener('click', function() {
+                    this.closest('.furniture-item').remove();
+                });
             });
         }
     });
