@@ -38,8 +38,8 @@ def send_task_assignment_notification(task, user):
         message=message
     )
     
-    # Send email notification if enabled
-    if current_app.config.get('NOTIFICATION_EMAIL_ENABLED', True):
+    # Send email notification if user preference is enabled
+    if getattr(user, 'email_notifications', True) and current_app.config.get('NOTIFICATION_EMAIL_ENABLED', True):
         send_email_notification(
             user=user,
             subject=title,
@@ -50,8 +50,8 @@ def send_task_assignment_notification(task, user):
                                      properties=properties)
         )
     
-    # Send SMS notification if enabled and user has a phone number
-    if current_app.config.get('NOTIFICATION_SMS_ENABLED', True) and hasattr(user, 'phone'):
+    # Send SMS notification if user preference is enabled and user has a phone number
+    if getattr(user, 'sms_notifications', False) and current_app.config.get('NOTIFICATION_SMS_ENABLED', True) and getattr(user, 'phone', None):
         send_sms_notification(
             phone_number=user.phone,
             message=f"New task assigned: {task.title}. Due: {task.due_date.strftime('%Y-%m-%d') if task.due_date else 'No due date'}. Priority: {task.priority.value.capitalize()}."
