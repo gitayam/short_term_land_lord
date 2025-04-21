@@ -245,6 +245,29 @@
     .fc .fc-day-today {
         background: #e6f7f7 !important;
     }
+
+    /* Hide FullCalendar's built-in resource area and header */
+    .fc .fc-resource-area, .fc .fc-resource-area-header, .fc .fc-col-header-cell.fc-resource-area-header, .fc .fc-resource-timeline-divider, .fc .fc-resource-timeline-divider, .fc .fc-resource-area-header-cell, .fc .fc-resource-area-cushion, .fc .fc-resource-area .fc-datagrid-cell-main, .fc .fc-resource-area .fc-datagrid-cell {
+        display: none !important;
+    }
+    .fc .fc-timeline-header {
+        display: none !important;
+    }
+    .fc .fc-resource-timeline-divider {
+        display: none !important;
+    }
+    .fc .fc-timeline-header-row-0 {
+        display: none !important;
+    }
+    .fc .fc-resource-area {
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        padding: 0 !important;
+    }
+    .fc .fc-timeline-lane-frame {
+        border-left: none !important;
+    }
 </style>
 {% endblock %}
 
@@ -349,42 +372,42 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- Calendar Initialization ---
         var calendarOptions = {
             schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
-            initialView: 'resourceTimelineMonth',
+            initialView: 'timelineMonth',
             views: {
-                resourceTimelineMonth: {
-                    type: 'resourceTimeline',
+                timelineMonth: {
+                    type: 'timeline',
                     duration: { months: 1 }
                 },
-                resourceTimelineWeek: {
-                    type: 'resourceTimeline',
+                timelineWeek: {
+                    type: 'timeline',
                     duration: { weeks: 1 }
                 },
-                resourceTimelineDay: {
-                    type: 'resourceTimeline',
+                timelineDay: {
+                    type: 'timeline',
                     duration: { days: 1 }
                 }
             },
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'resourceTimelineMonth,resourceTimelineWeek,resourceTimelineDay'
+                right: 'timelineMonth,timelineWeek,timelineDay'
             },
             editable: false,
             selectable: true,
             timeZone: 'local',
             aspectRatio: 1.8,
             height: 'auto',
-            resourceAreaWidth: '20%',
-            resourceAreaHeaderContent: 'Properties',
-            resources: resources,
             events: events,
             slotMinWidth: 50,
             eventContent: function(arg) {
                 // Show guest name, price, and status in a pill
                 var guest = arg.event.extendedProps && arg.event.extendedProps.guest_name ? arg.event.extendedProps.guest_name : '';
                 var price = arg.event.extendedProps && arg.event.extendedProps.amount ? ' $' + arg.event.extendedProps.amount : '';
-                var status = arg.event.extendedProps && arg.event.extendedProps.status ? " <span class='badge bg-light text-dark ms-1'>" + arg.event.extendedProps.status + "</span>" : '';
-                return { html: '<div class="fc-event-title">' + guest + price + status + '</div>' };
+                var status = arg.event.extendedProps && arg.event.extendedProps.status ? arg.event.extendedProps.status : '';
+                // Avoid double status if title is same as status
+                var title = guest || arg.event.title || 'Reserved';
+                var showStatus = status && status !== title ? " <span class='badge bg-light text-dark ms-1'>" + status + "</span>" : '';
+                return { html: '<div class="fc-event-title">' + title + price + showStatus + '</div>' };
             },
             eventDidMount: function(info) {
                 if (info.event.extendedProps && info.event.extendedProps.guest_name && typeof bootstrap !== 'undefined') {
