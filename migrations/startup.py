@@ -225,21 +225,7 @@ def fix_database_schema(app):
                     logger.info("Successfully created all missing database tables")
                     
                     # Initialize site settings if not already present
-                    from app.models import SiteSettings
-                    if SiteSettings.query.count() == 0:
-                        logger.info("Creating default site settings...")
-                        settings = [
-                            SiteSettings(key='guest_reviews_enabled', value='True', description='Enable guest reviews', visible=True),
-                            SiteSettings(key='cleaning_checklist_enabled', value='True', description='Enable cleaning checklists', visible=True),
-                            SiteSettings(key='maintenance_requests_enabled', value='True', description='Enable maintenance requests', visible=True),
-                            SiteSettings(key='require_cleaning_videos', value='False', description='Require videos for cleaning sessions', visible=True),
-                        ]
-                        
-                        for setting in settings:
-                            db.session.add(setting)
-                        
-                        db.session.commit()
-                        logger.info(f"Created {len(settings)} default site settings.")
+                    init_site_settings()
                 except Exception as e:
                     logger.error(f"Error creating tables: {e}")
                     return False, missing_tables
@@ -274,6 +260,21 @@ def fix_database_schema(app):
         except Exception as e:
             logger.error(f"Error fixing database schema: {e}")
             return False, []
+
+def init_site_settings():
+    """Initialize site settings with default values"""
+    from app.models import SiteSetting
+    if SiteSetting.query.count() == 0:
+        # Create default settings
+        settings = [
+            SiteSetting(key='guest_reviews_enabled', value='True', description='Enable guest reviews', visible=True),
+            SiteSetting(key='cleaning_checklist_enabled', value='True', description='Enable cleaning checklists', visible=True),
+            SiteSetting(key='maintenance_requests_enabled', value='True', description='Enable maintenance requests', visible=True),
+            SiteSetting(key='require_cleaning_videos', value='False', description='Require videos for cleaning sessions', visible=True),
+        ]
+        
+        db.session.add_all(settings)
+        db.session.commit()
 
 def main():
     """Main function that gets called when this script is run directly"""
@@ -314,7 +315,7 @@ def main():
                 from app.models import User, Property, PropertyCalendar, Room, Task, TaskAssignment
                 # Make sure all models are imported before create_all
                 try:
-                    from app.models import SiteSettings, RegistrationRequest
+                    from app.models import SiteSetting, RegistrationRequest
                 except ImportError:
                     logger.warning("Some models could not be imported, continuing anyway")
                 
@@ -324,24 +325,7 @@ def main():
                     logger.info("Successfully created all database tables")
                     
                     # Initialize site settings if not already present
-                    try:
-                        from app.models import SiteSettings
-                        if SiteSettings.query.count() == 0:
-                            logger.info("Creating default site settings...")
-                            settings = [
-                                SiteSettings(key='guest_reviews_enabled', value='True', description='Enable guest reviews', visible=True),
-                                SiteSettings(key='cleaning_checklist_enabled', value='True', description='Enable cleaning checklists', visible=True),
-                                SiteSettings(key='maintenance_requests_enabled', value='True', description='Enable maintenance requests', visible=True),
-                                SiteSettings(key='require_cleaning_videos', value='False', description='Require videos for cleaning sessions', visible=True),
-                            ]
-                            
-                            for setting in settings:
-                                db.session.add(setting)
-                            
-                            db.session.commit()
-                            logger.info(f"Created {len(settings)} default site settings.")
-                    except Exception as e:
-                        logger.error(f"Error creating site settings: {e}")
+                    init_site_settings()
                 except Exception as e:
                     logger.error(f"Error creating tables with db.create_all(): {e}")
         

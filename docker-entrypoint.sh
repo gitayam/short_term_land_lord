@@ -71,6 +71,10 @@ fi
 echo -e "${BLUE}Running database fixes...${NC}"
 python migrations/consolidated_db_fixes.py || true
 
+# Create admin user if it doesn't exist
+echo -e "${BLUE}Ensuring admin user exists...${NC}"
+python migrations/create_admin.py || true
+
 # Start the Flask application
 echo -e "${GREEN}Database is ready. Starting Flask application...${NC}"
 exec "$@" 

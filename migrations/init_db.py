@@ -1,17 +1,40 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+"""Initialize database with required tables and initial data."""
+
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Add the parent directory to sys.path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Load environment variables from .env file
+env_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) / '.env'
+load_dotenv(dotenv_path=env_path)
+
+from app import create_app, db
+from app.models import SiteSetting, User, Property, Room, Task, TaskAssignment, PropertyCalendar
+
+def init_site_settings():
+    """Initialize site settings with default values"""
+    from app.models import SiteSetting
+    if SiteSetting.query.count() == 0:
+        # Create default settings
+        settings = [
+            SiteSetting(key='guest_reviews_enabled', value='True', description='Enable guest reviews', visible=True),
+            SiteSetting(key='cleaning_checklist_enabled', value='True', description='Enable cleaning checklists', visible=True),
+            SiteSetting(key='maintenance_requests_enabled', value='True', description='Enable maintenance requests', visible=True),
+            SiteSetting(key='require_cleaning_videos', value='False', description='Require videos for cleaning sessions', visible=True),
+        ]
+        
+        db.session.add_all(settings)
+        db.session.commit()
 
 def init_database():
     """Initialize the database by creating all tables"""
     print("Creating database tables...")
     try:
-        from app import create_app, db
-        
         # Create app context
         print("Creating app context...")
         app = create_app()
@@ -21,7 +44,7 @@ def init_database():
             # First, import all models to ensure they're registered
             try:
                 print("Importing models...")
-                from app.models import SiteSettings, User, Property, Room, Task, TaskAssignment, PropertyCalendar
+                from app.models import SiteSetting, User, Property, Room, Task, TaskAssignment, PropertyCalendar
                 print("Models imported successfully")
             except ImportError as e:
                 print(f"Warning: Error importing models: {e}")
@@ -37,23 +60,7 @@ def init_database():
             
             # Initialize site settings if not already present
             try:
-                from app.models import SiteSettings
-                if SiteSettings.query.count() == 0:
-                    print("Creating default site settings...")
-                    settings = [
-                        SiteSettings(key='guest_reviews_enabled', value='True', description='Enable guest reviews', visible=True),
-                        SiteSettings(key='cleaning_checklist_enabled', value='True', description='Enable cleaning checklists', visible=True),
-                        SiteSettings(key='maintenance_requests_enabled', value='True', description='Enable maintenance requests', visible=True),
-                        SiteSettings(key='require_cleaning_videos', value='False', description='Require videos for cleaning sessions', visible=True),
-                    ]
-                    
-                    for setting in settings:
-                        db.session.add(setting)
-                    
-                    db.session.commit()
-                    print(f"Created {len(settings)} default site settings.")
-                else:
-                    print("Site settings already exist.")
+                init_site_settings()
             except Exception as e:
                 print(f"Error setting up site settings: {e}")
                 db.session.rollback()

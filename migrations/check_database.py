@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Database check script for short_term_land_lord project.
 This script checks all the tables in the database and reports any issues.
@@ -6,14 +6,18 @@ This script checks all the tables in the database and reports any issues.
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 import sqlalchemy as sa
 
 # Add the parent directory to sys.path
-parent_dir = Path(__file__).resolve().parent
-sys.path.insert(0, str(parent_dir))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Load environment variables from .env file
+env_path = Path(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) / '.env'
+load_dotenv(dotenv_path=env_path)
 
 from app import create_app, db
-from app.models import TaskStatus, GuestReviewRating, SiteSettings
+from app.models import TaskStatus, GuestReviewRating, SiteSetting
 
 def check_database():
     """Check database tables and structure"""

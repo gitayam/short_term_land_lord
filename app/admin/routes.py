@@ -1,11 +1,12 @@
-from flask import render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db
-from app.admin import bp
-from app.models import SiteSettings, User, UserRoles, RepairRequest, RepairRequestStatus, Property, RegistrationRequest, ApprovalStatus
+from app.models import SiteSetting, User, UserRoles, RepairRequest, RepairRequestStatus, Property, RegistrationRequest, ApprovalStatus
 from app.admin.forms import SiteSettingsForm, RequestReviewForm
 from app.auth.decorators import admin_required
 from app.auth.email import send_email
+
+bp = Blueprint('admin', __name__)
 
 @bp.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -15,27 +16,27 @@ def settings():
     form = SiteSettingsForm()
     
     if form.validate_on_submit():
-        # Save OpenAI API key
-        SiteSettings.set_setting('openai_api_key', form.openai_api_key.data, 'OpenAI API Key for AI functionality', False)
+        # Update OpenAI API key
+        SiteSetting.set_setting('openai_api_key', form.openai_api_key.data, 'OpenAI API Key for AI functionality', False)
         
-        # Save guest reviews enabled setting
-        SiteSettings.set_setting('guest_reviews_enabled', str(form.enable_guest_reviews.data).lower(), 'Enable guest reviews feature', True)
+        # Update guest reviews setting
+        SiteSetting.set_setting('guest_reviews_enabled', str(form.enable_guest_reviews.data).lower(), 'Enable guest reviews feature', True)
         
-        flash('Settings saved successfully!', 'success')
+        flash('Settings updated successfully!', 'success')
         return redirect(url_for('admin.settings'))
     
     elif request.method == 'GET':
-        # Pre-fill form with current settings
-        openai_api_key = SiteSettings.get_setting('openai_api_key')
+        # Get current settings
+        openai_api_key = SiteSetting.get_setting('openai_api_key')
         if openai_api_key:
             form.openai_api_key.data = openai_api_key
         
-        guest_reviews_enabled = SiteSettings.get_setting('guest_reviews_enabled')
+        guest_reviews_enabled = SiteSetting.get_setting('guest_reviews_enabled')
         if guest_reviews_enabled:
             form.enable_guest_reviews.data = guest_reviews_enabled.lower() == 'true'
     
-    # Get list of public settings for display
-    public_settings = SiteSettings.query.filter_by(visible=True).all()
+    # Get all public settings for display
+    public_settings = SiteSetting.query.filter_by(visible=True).all()
     
     return render_template('admin/settings.html', 
                           form=form, 

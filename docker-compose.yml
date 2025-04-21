@@ -13,6 +13,12 @@ services:
       - FLASK_APP=app
       - FLASK_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@db/flask_app
+      # Pass through admin configuration from .env
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_FIRST_NAME=${ADMIN_FIRST_NAME}
+      - ADMIN_LAST_NAME=${ADMIN_LAST_NAME}
     depends_on:
       db:
         condition: service_healthy

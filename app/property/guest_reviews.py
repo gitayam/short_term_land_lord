@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, abort
 from flask_login import login_required, current_user
 from app import db
-from app.models import Property, GuestReview, GuestReviewRating, User, UserRoles, SiteSettings
+from app.models import Property, GuestReview, GuestReviewRating, User, UserRoles, SiteSetting
 from app.auth.decorators import property_owner_required
 from datetime import datetime
 from flask_wtf import FlaskForm
@@ -29,7 +29,7 @@ def register_guest_review_routes(bp):
     def guest_reviews(id):
         """View all guest reviews for a property"""
         # Check if guest reviews are enabled
-        if not SiteSettings.is_guest_reviews_enabled():
+        if not SiteSetting.is_guest_reviews_enabled():
             flash('Guest reviews feature is currently disabled.', 'warning')
             return redirect(url_for('property.view', id=id))
             
@@ -53,7 +53,7 @@ def register_guest_review_routes(bp):
     def add_guest_review(id):
         """Add a new guest review for a property"""
         # Check if guest reviews are enabled
-        if not SiteSettings.is_guest_reviews_enabled():
+        if not SiteSetting.is_guest_reviews_enabled():
             flash('Guest reviews feature is currently disabled.', 'warning')
             return redirect(url_for('property.view', id=id))
             
@@ -93,7 +93,7 @@ def register_guest_review_routes(bp):
     def edit_guest_review(review_id):
         """Edit an existing guest review"""
         # Check if guest reviews are enabled
-        if not SiteSettings.is_guest_reviews_enabled():
+        if not SiteSetting.is_guest_reviews_enabled():
             flash('Guest reviews feature is currently disabled.', 'warning')
             return redirect(url_for('main.index'))
             
@@ -138,7 +138,7 @@ def register_guest_review_routes(bp):
     def delete_guest_review(review_id):
         """Delete a guest review"""
         # Check if guest reviews are enabled
-        if not SiteSettings.is_guest_reviews_enabled():
+        if not SiteSetting.is_guest_reviews_enabled():
             flash('Guest reviews feature is currently disabled.', 'warning')
             return redirect(url_for('main.index'))
             

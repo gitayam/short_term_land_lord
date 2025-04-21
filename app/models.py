@@ -278,8 +278,18 @@ class User(UserMixin, db.Model):
     _is_admin = db.Column('is_admin', db.Boolean, default=False)
     
     # Relationships with explicit primary joins - use different backref names to avoid conflicts
-    created_tasks = db.relationship('Task', foreign_keys='Task.creator_id', backref='task_creator', lazy='dynamic',
-                                   primaryjoin='User.id == Task.creator_id')
+    created_tasks = db.relationship('Task', 
+                                  foreign_keys='Task.creator_id', 
+                                  back_populates='creator',
+                                  overlaps="created_tasks_direct,task_creator",
+                                  lazy='dynamic')
+    
+    created_tasks_direct = db.relationship('Task', 
+                                         foreign_keys='Task.creator_id',
+                                         back_populates='creator',
+                                         overlaps="created_tasks,task_creator",
+                                         lazy='dynamic')
+    
     assigned_tasks = db.relationship('TaskAssignment', foreign_keys='TaskAssignment.user_id', backref='user', lazy='dynamic',
                                     primaryjoin='User.id == TaskAssignment.user_id')
     created_templates = db.relationship('TaskTemplate', foreign_keys='TaskTemplate.creator_id', backref='template_creator', lazy='dynamic',
@@ -842,7 +852,10 @@ class Task(db.Model):
     # Relationships - use task_creator backref instead of creator
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic')
     task_properties = db.relationship('TaskProperty', backref='task', cascade="all, delete-orphan")
-    creator = db.relationship('User', foreign_keys=[creator_id], backref='created_tasks_direct', overlaps="created_tasks,task_creator")
+    creator = db.relationship('User', 
+                            foreign_keys=[creator_id], 
+                            back_populates='created_tasks_direct',
+                            overlaps="created_tasks,task_creator")
     
     @property
     def properties(self):
@@ -1299,7 +1312,8 @@ class GuestReview(db.Model):
         """Check if this is a negative review"""
         return self.rating == 'bad'
 
-class SiteSettings(db.Model):
+class SiteSetting(db.Model):
+    """Model for storing site-wide settings"""
     __tablename__ = 'site_settings'
     
     key = db.Column(db.String(64), primary_key=True)
@@ -1396,12 +1410,12 @@ def create_admin_user_from_env():
 def migrate_site_settings():
     """Initialize default site settings if they don't exist"""
     # Initialize guest reviews setting (enabled by default)
-    if not db.session.get(SiteSettings, 'guest_reviews_enabled'):
-        SiteSettings.set_setting('guest_reviews_enabled', 'true', 'Enable guest reviews feature', True)
+    if not db.session.get(SiteSetting, 'guest_reviews_enabled'):
+        SiteSetting.set_setting('guest_reviews_enabled', 'true', 'Enable guest reviews feature', True)
     
     # Set placeholder for OpenAI API key
-    if not db.session.get(SiteSettings, 'openai_api_key'):
-        SiteSettings.set_setting('openai_api_key', '', 'OpenAI API Key for AI functionality', False)
+    if not db.session.get(SiteSetting, 'openai_api_key'):
+        SiteSetting.set_setting('openai_api_key', '', 'OpenAI API Key for AI functionality', False)
 
 @login_manager.user_loader
 def load_user(id):

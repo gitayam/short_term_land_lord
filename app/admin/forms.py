@@ -3,6 +3,7 @@ from wtforms import StringField, TextAreaField, BooleanField, SubmitField, Selec
 from wtforms.validators import Optional, Length, DataRequired
 
 class SiteSettingsForm(FlaskForm):
+    """Form for managing site settings"""
     # AI Features
     openai_api_key = StringField('OpenAI API Key', validators=[Optional(), Length(max=255)],
                                description="API key for OpenAI services (keep this secure)")
