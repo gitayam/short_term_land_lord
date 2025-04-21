@@ -224,45 +224,48 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("Calendar preview element not found");
         return;
     }
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek'
-        },
-        height: 'auto',
-        aspectRatio: 1.35,
-        dayMaxEvents: true,
-        events: [
-            {
-                title: 'Sample Booking',
-                start: new Date(),
-                end: new Date(new Date().setDate(new Date().getDate() + 2)),
-                className: 'airbnb-event',
-                extendedProps: { service: 'Airbnb', room: 'Main Suite' }
-            }
-        ],
-        eventTimeFormat: {
-            hour: 'numeric',
-            minute: '2-digit',
-            meridiem: 'short'
-        },
-        eventDisplay: 'block',
-        displayEventEnd: true,
-        eventDidMount: function(info) {
-            if (info.event.extendedProps && info.event.extendedProps.room) {
-                var roomElement = document.createElement('div');
-                roomElement.className = 'room-tag';
-                roomElement.innerText = info.event.extendedProps.room;
-                info.el.appendChild(roomElement);
-            }
-        }
-    });
-    calendar.render();
     // Remove loading indicator if present
     var loadingIndicator = calendarEl.querySelector('.text-center');
     if (loadingIndicator) loadingIndicator.remove();
+
+    // Fetch real events from /dashboard/events
+    fetch('/dashboard/events')
+        .then(response => response.json())
+        .then(events => {
+            console.log('Dashboard preview events:', events);
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek'
+                },
+                height: 'auto',
+                aspectRatio: 1.35,
+                dayMaxEvents: true,
+                events: events,
+                eventTimeFormat: {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    meridiem: 'short'
+                },
+                eventDisplay: 'block',
+                displayEventEnd: true,
+                eventDidMount: function(info) {
+                    if (info.event.extendedProps && info.event.extendedProps.room) {
+                        var roomElement = document.createElement('div');
+                        roomElement.className = 'room-tag';
+                        roomElement.innerText = info.event.extendedProps.room;
+                        info.el.appendChild(roomElement);
+                    }
+                }
+            });
+            calendar.render();
+        })
+        .catch(error => {
+            console.error('Error loading dashboard events:', error);
+            calendarEl.innerHTML = '<div class="alert alert-danger">Could not load calendar preview.</div>';
+        });
 });
 </script>
 {% endblock %}

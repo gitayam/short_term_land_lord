@@ -2,8 +2,9 @@
 
 {% block styles %}
 {{ super() }}
-{# Use FullCalendar v6 which includes scheduler features #}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css">
+{# Use FullCalendar v5 with scheduler #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+
 <style>
     body {
         background-color: #f8f9fa; /* Light background */
@@ -234,11 +235,9 @@
 
 {% block scripts %}
 {{ super() }}
-{# Include all required FullCalendar packages #}
-<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/index.global.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/resource-common@6.1.10/index.global.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.10/index.global.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.10/index.global.min.js'></script>
+{# Include FullCalendar v5 with scheduler #}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@5.11.3/main.min.js"></script>
 {# Include Bootstrap JS for modal #}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -270,10 +269,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // --- Calendar Initialization ---
         var calendarOptions = {
             schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
-            plugins: [
-                FullCalendar.resourceTimelinePlugin,
-                FullCalendar.interactionPlugin
-            ],
             initialView: 'resourceTimelineMonth',
             views: {
                 resourceTimelineMonth: {

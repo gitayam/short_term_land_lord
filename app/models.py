@@ -600,6 +600,7 @@ class Property(db.Model):
     images = db.relationship('PropertyImage', backref='property')
     rooms = db.relationship('Room', backref='property', lazy='dynamic')
     calendars = db.relationship('PropertyCalendar', backref='property')
+    bookings = db.relationship('Booking', backref='property', lazy=True, cascade='all, delete-orphan')
     
     @property
     def tasks(self):
@@ -1713,3 +1714,85 @@ guide_book_recommendations = db.Table('guide_book_recommendations',
     db.Column('recommendation_id', db.Integer, db.ForeignKey('recommendation_blocks.id'), primary_key=True),
     db.Column('created_at', db.DateTime, default=datetime.utcnow)
 )
+
+class Booking(db.Model):
+    """Model for property bookings/calendar events."""
+    __tablename__ = 'booking'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    calendar_id = db.Column(db.Integer, db.ForeignKey('property_calendar.id'), nullable=False)
+    external_id = db.Column(db.String(255))  # ID from external calendar if available
+    title = db.Column(db.String(255), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    guest_name = db.Column(db.String(255))
+    guest_phone = db.Column(db.String(50))
+    amount = db.Column(db.Numeric(10, 2))
+    status = db.Column(db.String(50), default='Confirmed')
+    source_url = db.Column(db.String(500))
+    notes = db.Column(db.Text)
+    room_name = db.Column(db.String(255))
+    is_entire_property = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_synced = db.Column(db.DateTime)
+    
+    # Relationships - rename backref to avoid conflicts
+    associated_property = db.relationship('Property', backref=db.backref('property_bookings', lazy=True))
+    calendar = db.relationship('PropertyCalendar', backref=db.backref('calendar_bookings', lazy=True))
+    tasks = db.relationship('BookingTask', backref='parent_booking', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        """Convert booking to dictionary for calendar display."""
+        return {
+            'id': self.id,
+            'title': self.title,
+            'start': self.start_date.isoformat(),
+            'end': (self.end_date + timedelta(days=1)).isoformat(),  # FullCalendar uses exclusive end dates
+            'resourceId': str(self.property_id),
+            'className': f'{self.calendar.service.lower()}-event',
+            'extendedProps': {
+                'property_name': self.associated_property.name,
+                'property_id': self.property_id,
+                'service': self.calendar.get_service_display(),
+                'room': None if self.is_entire_property else self.room_name,
+                'guest_name': self.guest_name,
+                'amount': float(self.amount) if self.amount else None,
+                'source_url': self.source_url,
+                'status': self.status,
+                'notes': self.notes,
+                'phone': self.guest_phone
+            }
+        }
+
+class BookingTask(db.Model):
+    """Model for tasks associated with bookings."""
+    __tablename__ = 'booking_task'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    booking_id = db.Column(db.Integer, db.ForeignKey('booking.id'), nullable=False)
+    assigned_to_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # Fix: Change 'user.id' to 'users.id'
+    task_type = db.Column(db.String(50), nullable=False)  # e.g., 'cleaning', 'maintenance', 'check-in'
+    status = db.Column(db.String(50), default='pending')  # pending, in_progress, completed, cancelled
+    due_date = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships - fix backref names
+    assigned_to = db.relationship('User', backref=db.backref('assigned_booking_tasks', lazy=True))
+
+    def to_dict(self):
+        """Convert task to dictionary for display."""
+        return {
+            'id': self.id,
+            'booking_id': self.booking_id,
+            'task_type': self.task_type,
+            'status': self.status,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'assigned_to': self.assigned_to.get_full_name() if self.assigned_to else None,
+            'notes': self.notes
+        }
