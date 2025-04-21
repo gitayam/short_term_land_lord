@@ -2,10 +2,14 @@ from datetime import datetime, timedelta
 import enum
 import secrets
 import os
+from flask import current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
-from app import db, login_manager
 from sqlalchemy import text
+from sqlalchemy.orm import aliased
+
+from app import db
+from app.extensions import login_manager
 
 # Add this function back - needed by invoicing module
 def get_user_fk_target():
@@ -318,8 +322,6 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         # Add debug logging for password checks
-        from flask import current_app
-
         if self.password_hash is None:
             current_app.logger.warning(f"User {self.email} has no password hash set")
             return False
@@ -612,9 +614,6 @@ class Property(db.Model):
         # Service staff can see properties they have tasks for
         if user.is_service_staff():
             # Check if the user has any assigned tasks for this property
-            from sqlalchemy.orm import aliased
-            from app.models import TaskProperty, TaskAssignment
-
             task_property_alias = aliased(TaskProperty)
             task_assignment_alias = aliased(TaskAssignment)
 
@@ -1442,8 +1441,6 @@ class SiteSettings(db.Model):
 
 def create_admin_user_from_env():
     """Create an admin user from environment variables if one doesn't exist"""
-    from flask import current_app
-
     # Check if we have admin credentials in environment
     admin_email = current_app.config.get('ADMIN_EMAIL')
     admin_username = current_app.config.get('ADMIN_USERNAME')
@@ -1518,7 +1515,6 @@ def load_user(id):
         # Fallback to ORM query
         return User.query.get(int(id))
     except Exception as e:
-        from flask import current_app
         current_app.logger.error(f"Error loading user: {e}")
         return None
 

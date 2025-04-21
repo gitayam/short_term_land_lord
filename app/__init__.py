@@ -1,27 +1,13 @@
+"""Flask application factory module."""
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from flask_mail import Mail
-from flask_migrate import Migrate
-from flask_wtf.csrf import CSRFProtect
 from config import Config
-import os
-
-from app.user_model_fix import patch_user_model, patch_user_loader
-# Initialize extensions
-db = SQLAlchemy()
-login_manager = LoginManager()
-login_manager.login_view = 'auth.login'
-login_manager.login_message = 'Please log in to access this page.'
-mail = Mail()
-migrate = Migrate()
-csrf = CSRFProtect()
+from app.extensions import db, login_manager, mail, migrate, csrf
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Initialize extensions with app
+    # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
@@ -163,6 +149,7 @@ def create_app(config_class=Config):
 
     with app.app_context():
         # Apply database compatibility fixes
+        from app.user_model_fix import patch_user_model, patch_user_loader
         patch_user_model()
         patch_user_loader()
 
