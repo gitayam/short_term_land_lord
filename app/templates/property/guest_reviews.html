@@ -38,17 +38,17 @@
                                 <td>{{ review.guest_name }}</td>
                                 <td>{{ review.check_in_date.strftime('%b %d, %Y') }} - {{ review.check_out_date.strftime('%b %d, %Y') }}</td>
                                 <td>
-                                    {% if review.rating.value == 'good' %}
+                                    {% if review.rating == 'good' %}
                                         <span class="badge bg-success">👍 Good</span>
-                                    {% elif review.rating.value == 'ok' %}
+                                    {% elif review.rating == 'ok' %}
                                         <span class="badge bg-warning text-dark">👌 OK</span>
-                                    {% elif review.rating.value == 'bad' %}
+                                    {% elif review.rating == 'bad' %}
                                         <span class="badge bg-danger">👎 Bad</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if review.comments %}
-                                        {{ review.comments|truncate(100) }}
+                                    {% if review.comment %}
+                                        {{ review.comment|truncate(100) }}
                                     {% else %}
                                         <em class="text-muted">No comments</em>
                                     {% endif %}

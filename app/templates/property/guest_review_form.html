@@ -46,9 +46,9 @@
                         </div>
                         
                         <div class="mb-3">
-                            {{ form.comments.label(class="form-label") }}
-                            {{ form.comments(class="form-control" + (" is-invalid" if form.comments.errors else ""), rows=5) }}
-                            {% for error in form.comments.errors %}
+                            {{ form.comment.label(class="form-label") }}
+                            {{ form.comment(class="form-control" + (" is-invalid" if form.comment.errors else ""), rows=5) }}
+                            {% for error in form.comment.errors %}
                                 <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
                             <div class="form-text">Add any notes about the guest's stay, behavior, cleanliness, etc.</div>

@@ -18,7 +18,7 @@ class GuestReviewForm(FlaskForm):
         ('ok', '👌 OK - Average guest'),
         ('bad', '👎 Bad - Problematic guest')
     ], validators=[DataRequired()])
-    comments = TextAreaField('Comments/Notes', validators=[Optional()])
+    comment = TextAreaField('Comments/Notes', validators=[Optional()])
     submit = SubmitField('Save Review')
 
 # Routes for guest reviews
@@ -41,7 +41,7 @@ def register_guest_review_routes(bp):
             return redirect(url_for('main.index'))
         
         # Get all reviews for this property
-        reviews = GuestReview.query.filter_by(property_id=id).order_by(GuestReview.check_out_date.desc()).all()
+        reviews = GuestReview.query.filter_by(property_id=id).order_by(GuestReview.created_at.desc()).all()
         
         return render_template('property/guest_reviews.html', 
                               property=property, 
@@ -73,7 +73,7 @@ def register_guest_review_routes(bp):
                 check_in_date=form.check_in_date.data,
                 check_out_date=form.check_out_date.data,
                 rating=form.rating.data,
-                comments=form.comments.data,
+                comment=form.comment.data,
                 creator_id=current_user.id
             )
             
@@ -112,7 +112,7 @@ def register_guest_review_routes(bp):
             review.check_in_date = form.check_in_date.data
             review.check_out_date = form.check_out_date.data
             review.rating = form.rating.data
-            review.comments = form.comments.data
+            review.comment = form.comment.data
             review.updated_at = datetime.utcnow()
             
             db.session.commit()
@@ -124,8 +124,8 @@ def register_guest_review_routes(bp):
             form.guest_name.data = review.guest_name
             form.check_in_date.data = review.check_in_date
             form.check_out_date.data = review.check_out_date
-            form.rating.data = review.rating.value
-            form.comments.data = review.comments
+            form.rating.data = review.rating
+            form.comment.data = review.comment
         
         return render_template('property/guest_review_form.html',
                               form=form,

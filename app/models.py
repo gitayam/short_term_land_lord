@@ -1275,9 +1275,11 @@ class GuestReview(db.Model):
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     booking_id = db.Column(db.String(100), nullable=True)  # External booking ID (Airbnb, etc.)
     creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    rating = db.Column(db.Integer, nullable=False)
+    rating = db.Column(db.String(10), nullable=False)  # Changed to String to store 'good', 'ok', 'bad'
     comment = db.Column(db.Text)
     guest_name = db.Column(db.String(100), nullable=False)  # Guest name if not tied to a user
+    check_in_date = db.Column(db.Date, nullable=False)  # Added check_in_date
+    check_out_date = db.Column(db.Date, nullable=False)  # Added check_out_date
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -1290,17 +1292,12 @@ class GuestReview(db.Model):
         
     def get_rating_display(self):
         """Get a human-readable representation of the rating"""
-        if self.rating <= 2:
-            return GuestReviewRating.BAD.value
-        elif self.rating <= 3:
-            return GuestReviewRating.OK.value
-        else:
-            return GuestReviewRating.GOOD.value
+        return self.rating.upper()
             
     @property
     def is_negative(self):
-        """Check if this is a negative review (2 stars or less)"""
-        return self.rating <= 2
+        """Check if this is a negative review"""
+        return self.rating == 'bad'
 
 class SiteSettings(db.Model):
     __tablename__ = 'site_settings'
