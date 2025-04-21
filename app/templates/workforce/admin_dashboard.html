@@ -71,7 +71,7 @@
                             <td>{{ worker.get_full_name() }}</td>
                             <td>{{ worker.email }}</td>
                             <td>
-                                {% set service_types = worker.task_assignments.with_entities(TaskAssignment.service_type).filter(TaskAssignment.service_type.isnot(None)).distinct().all() %}
+                                {% set service_types = worker.assigned_tasks.with_entities(TaskAssignment.service_type).filter(TaskAssignment.service_type.isnot(None)).distinct().all() %}
                                 {% for st in service_types %}
                                 <span class="badge bg-info">{{ st[0].name }}</span>
                                 {% endfor %}

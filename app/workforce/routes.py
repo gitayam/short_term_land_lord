@@ -134,7 +134,8 @@ def index():
                               title='Workforce Management',
                               workers=workers,
                               worker_properties=worker_properties,
-                              form=form)
+                              form=form,
+                              TaskAssignment=TaskAssignment)
     
     elif current_user.is_service_staff:
         # Service staff view - show their tasks and assigned properties
