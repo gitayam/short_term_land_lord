@@ -5,7 +5,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Repair Requests</h1>
         <div>
-            {% if current_user.is_property_owner() or current_user.has_admin_role() or current_user.is_property_manager() %}
+            {% if current_user.is_property_owner or current_user.has_admin_role or current_user.is_property_manager %}
             {% if properties %}
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" id="createRepairRequestDropdown" data-bs-toggle="dropdown" aria-expanded="false">

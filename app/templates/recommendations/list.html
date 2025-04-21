@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Recommendations for {{ property.name }}</h1>
+    
+    {% if current_user.is_admin or current_user.id == property.owner_id or current_user.is_property_manager %}
+    <div class="mb-3">
+        <a href="{{ url_for('recommendations.create_recommendation', property_id=property.id) }}" class="btn btn-primary">
+            Add New Recommendation
+        </a>
+    </div>
+    {% endif %}
+    
+    <div class="row mb-3">
+        <div class="col">
+            <form method="get" class="form-inline">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" placeholder="Search recommendations..." value="{{ search_query or '' }}">
+                    <select name="category" class="form-control">
+                        <option value="">All Categories</option>
+                        <option value="food" {% if current_category == 'food' %}selected{% endif %}>Food & Dining</option>
+                        <option value="outdoors" {% if current_category == 'outdoors' %}selected{% endif %}>Outdoors & Recreation</option>
+                        <option value="shopping" {% if current_category == 'shopping' %}selected{% endif %}>Shopping</option>
+                        <option value="attractions" {% if current_category == 'attractions' %}selected{% endif %}>Attractions</option>
+                        <option value="grocery" {% if current_category == 'grocery' %}selected{% endif %}>Grocery Stores</option>
+                        <option value="other" {% if current_category == 'other' %}selected{% endif %}>Other</option>
+                    </select>
+                    <button type="submit" class="btn btn-outline-secondary">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for recommendation in recommendations %}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                {% if recommendation.photo_path %}
+                <img src="{{ recommendation.get_photo_url() }}" class="card-img-top" alt="{{ recommendation.title }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ recommendation.title }}</h5>
+                    <p class="card-text">{{ recommendation.description }}</p>
+                    <p class="card-text"><small class="text-muted">Category: {{ recommendation.get_category_display() }}</small></p>
+                    {% if recommendation.hours %}
+                    <p class="card-text"><small class="text-muted">Hours: {{ recommendation.hours }}</small></p>
+                    {% endif %}
+                    <a href="{{ recommendation.map_link }}" target="_blank" class="btn btn-sm btn-outline-primary">View on Map</a>
+                    
+                    {% if current_user.is_admin or current_user.id == property.owner_id or current_user.is_property_manager %}
+                    <div class="mt-2">
+                        <a href="{{ url_for('recommendations.edit_recommendation', id=recommendation.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        <form action="{{ url_for('recommendations.delete_recommendation', id=recommendation.id) }}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this recommendation?')">Delete</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if not recommendations %}
+    <div class="alert alert-info">
+        No recommendations found.
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

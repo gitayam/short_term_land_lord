@@ -151,7 +151,7 @@
                     
                     {% if task.status.value != 'completed' and task.status != 'COMPLETED' and task.status.name != 'COMPLETED' %}
                     <div class="mt-4">
-                        {% if current_user.is_cleaner() %}
+                        {% if current_user.is_cleaner %}
                             {% if active_session and active_session.task_id == task.id %}
                                 <form method="post" action="{{ url_for('tasks.complete_cleaning', id=task.id) }}" class="d-inline">
                                     <button type="submit" class="btn btn-success">Complete Cleaning</button>
@@ -214,7 +214,7 @@
                 </div>
             </div>
             
-            {% if current_user.is_cleaner() or current_user.is_property_owner() %}
+            {% if current_user.is_cleaner or current_user.is_property_owner %}
                 {% if cleaning_history %}
                     <div class="card mt-4">
                         <div class="card-header">

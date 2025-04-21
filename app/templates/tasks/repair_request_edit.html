@@ -30,7 +30,7 @@
                             {{ render_field(form.severity, class="form-control") }}
                         </div>
                         
-                        {% if current_user.has_admin_role() %}
+                        {% if current_user.has_admin_role %}
                         <div class="form-group">
                             {{ render_field(form.status, class="form-control") }}
                         </div>

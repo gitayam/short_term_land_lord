@@ -13,6 +13,9 @@
                     <a href="{{ url_for('property.manage_guest_access', id=property.id) }}" class="btn btn-sm btn-outline-success">Guest Access</a>
                     <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-sm btn-outline-success">Manage Inventory</a>
                     <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-sm btn-outline-warning">View Tasks</a>
+                    <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" class="btn btn-sm btn-outline-info">
+                        <i class="fas fa-map-marker-alt"></i> Local Recommendations
+                    </a>
                 </div>
             </div>
             
@@ -141,7 +144,7 @@
                     </div>
                 </div>
                 
-                {% if current_user.is_cleaner() or current_user.id == property.owner_id %}
+                {% if current_user.is_cleaner or current_user.id == property.owner_id %}
                 <h5 class="mt-4">Cleaner Information</h5>
                 <div class="card card-body bg-light mb-3">
                     <div class="row">
@@ -326,7 +329,7 @@
                 </div>
                 {% endif %}
                 
-                {% if current_user.is_property_owner() or current_user.is_admin or current_user.is_property_manager() or (current_user.is_service_staff() and current_user.has_maintenance_permission) %}
+                {% if current_user.is_property_owner or current_user.is_admin or current_user.is_property_manager or (current_user.is_service_staff and current_user.has_maintenance_permission) %}
                 <h5 class="mt-4">Utility Information</h5>
                 <div class="card card-body bg-light mb-3">
                     <div class="row">
@@ -430,7 +433,7 @@
                 <div class="card card-body bg-light mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0">Recent Service Activity</h6>
-                        {% if current_user.is_admin or current_user.is_property_owner() or current_user.is_property_manager() %}
+                        {% if current_user.is_admin or current_user.is_property_owner or current_user.is_property_manager %}
                         <a href="{{ url_for('tasks.create_task_for_property', property_id=property.id) }}" class="btn btn-sm btn-primary">
                             <i class="fas fa-plus"></i> Schedule New Service
                         </a>
@@ -463,7 +466,7 @@
                     <div class="tab-content" id="serviceHistoryTabContent">
                         <!-- All Services -->
                         <div class="tab-pane fade show active" id="all-services" role="tabpanel" aria-labelledby="all-services-tab">
-                            {% if current_user.is_admin or current_user.is_property_owner() or current_user.is_property_manager() %}
+                            {% if current_user.is_admin or current_user.is_property_owner or current_user.is_property_manager %}
                             <div class="mb-3">
                                 <a href="{{ url_for('tasks.create_task_for_property', property_id=property.id) }}" class="btn btn-sm btn-primary">
                                     <i class="fas fa-plus"></i> Schedule New Service
@@ -540,7 +543,7 @@
                                                         <a href="{{ url_for('tasks.view', id=item.id) }}" class="btn btn-outline-primary">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
-                                                        {% if current_user.is_admin or current_user.is_property_owner() or current_user.is_property_manager() %}
+                                                        {% if current_user.is_admin or current_user.is_property_owner or current_user.is_property_manager %}
                                                         <a href="{{ url_for('tasks.edit', id=item.id) }}" class="btn btn-outline-secondary">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
@@ -850,7 +853,7 @@
 </div>
 
 <!-- Service Staff Dashboard (Only visible to service staff) -->
-{% if current_user.is_service_staff() %}
+{% if current_user.is_service_staff %}
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
         <h4 class="mb-0"><i class="fas fa-tools me-2"></i>Service Staff Dashboard</h4>

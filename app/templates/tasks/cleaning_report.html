@@ -6,7 +6,7 @@
         <h1>Cleaning Report</h1>
         <div>
             <a href="{{ url_for('tasks.view', id=session.task_id) }}" class="btn btn-secondary">Back to Task</a>
-            {% if current_user.is_property_owner() %}
+            {% if current_user.is_property_owner %}
             <a href="{{ url_for('property.view', id=session.property_id) }}" class="btn btn-primary">View Property</a>
             {% endif %}
         </div>

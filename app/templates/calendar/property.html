@@ -42,7 +42,7 @@
                 <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Property
                 </a>
-                {% if current_user.is_property_owner() %}
+                {% if current_user.is_property_owner %}
                 <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Add Task
                 </a>

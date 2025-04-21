@@ -60,7 +60,7 @@
                         <h5>No Available Destinations</h5>
                         <p class="mb-0">
                             You don't have any other properties available for transfer. 
-                            {% if current_user.is_property_owner() %}
+                            {% if current_user.is_property_owner %}
                             You can only transfer items between properties that you own.
                             {% else %}
                             Only property owners can transfer items between properties.

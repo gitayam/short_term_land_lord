@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Edit Recommendation</h2>
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        
+        <div class="mb-3">
+            <label for="title" class="form-label">Title</label>
+            {{ form.title(class="form-control") }}
+            {% if form.title.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.title.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            {{ form.description(class="form-control") }}
+            {% if form.description.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.description.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="category" class="form-label">Category</label>
+            {{ form.category(class="form-control") }}
+            {% if form.category.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.category.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="map_link" class="form-label">Map Link</label>
+            {{ form.map_link(class="form-control") }}
+            {% if form.map_link.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.map_link.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="best_time_to_go" class="form-label">Best Time to Go</label>
+            {{ form.best_time_to_go(class="form-control") }}
+            {% if form.best_time_to_go.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.best_time_to_go.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="recommended_meal" class="form-label">Recommended Meal</label>
+            {{ form.recommended_meal(class="form-control") }}
+            {% if form.recommended_meal.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.recommended_meal.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="wifi_name" class="form-label">WiFi Network Name</label>
+            {{ form.wifi_name(class="form-control") }}
+            {% if form.wifi_name.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.wifi_name.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="wifi_password" class="form-label">WiFi Password</label>
+            {{ form.wifi_password(class="form-control") }}
+            {% if form.wifi_password.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.wifi_password.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="parking_details" class="form-label">Parking Details</label>
+            {{ form.parking_details(class="form-control") }}
+            {% if form.parking_details.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.parking_details.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="photo" class="form-label">Photo</label>
+            {% if recommendation.photo_url %}
+            <div class="mb-2">
+                <img src="{{ recommendation.photo_url }}" alt="Current photo" class="img-thumbnail" style="max-width: 200px;">
+                <p class="text-muted">Upload a new photo to replace the current one</p>
+            </div>
+            {% endif %}
+            {{ form.photo(class="form-control") }}
+            {% if form.photo.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.photo.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update Recommendation</button>
+        <a href="{{ url_for('recommendations.list_recommendations') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %} 
