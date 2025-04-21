@@ -558,6 +558,9 @@ class Property(db.Model):
     checkin_time = db.Column(db.String(10), nullable=True)
     checkout_time = db.Column(db.String(10), nullable=True)
     
+    # Guide book token
+    guide_book_token = db.Column(db.String(64), unique=True)
+    
     # Relationships
     owner = db.relationship('User', foreign_keys=[owner_id], backref=db.backref('owned_properties', overlaps="owner_user,properties"), overlaps="owner_user,properties")
     property_tasks = db.relationship('Task', backref='property')
@@ -611,6 +614,13 @@ class Property(db.Model):
         """Generate a unique token for guest access"""
         self.guest_access_token = secrets.token_urlsafe(32)
         return self.guest_access_token
+    
+    def generate_guide_book_token(self):
+        """Generate a unique token for public guide book access."""
+        if not self.guide_book_token:
+            self.guide_book_token = secrets.token_urlsafe(32)
+            db.session.commit()
+        return self.guide_book_token
     
     def is_visible_to(self, user):
         """Check if the property is visible to the given user"""

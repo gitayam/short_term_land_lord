@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>{{ property.name }} Guide Book</h1>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">Property Details</h4>
+                    <p class="card-text">{{ property.description }}</p>
+                    
+                    {% if property.address %}
+                    <p><strong>Address:</strong> {{ property.address }}</p>
+                    {% endif %}
+
+                    {% if property.wifi_name %}
+                    <div class="mb-3">
+                        <h5>WiFi Information</h5>
+                        <p><strong>Network Name:</strong> {{ property.wifi_name }}</p>
+                        {% if property.wifi_password %}
+                        <p><strong>Password:</strong> {{ property.wifi_password }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if property.parking_details %}
+                    <div class="mb-3">
+                        <h5>Parking Information</h5>
+                        <p>{{ property.parking_details }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if recommendations %}
+    <div class="row">
+        <div class="col-12">
+            <h2>Local Recommendations</h2>
+            <hr>
+        </div>
+        {% for recommendation in recommendations %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                {% if recommendation.photo_url %}
+                <img src="{{ recommendation.photo_url }}" class="card-img-top" alt="{{ recommendation.title }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ recommendation.title }}</h5>
+                    {% if recommendation.category %}
+                    <span class="badge bg-primary">{{ recommendation.category }}</span>
+                    {% endif %}
+                    {% if recommendation.best_time_to_go %}
+                    <span class="badge bg-info">Best Time: {{ recommendation.best_time_to_go }}</span>
+                    {% endif %}
+                    <p class="card-text mt-3">{{ recommendation.description }}</p>
+                    
+                    {% if recommendation.recommended_meal %}
+                    <p><strong>Recommended Meal:</strong> {{ recommendation.recommended_meal }}</p>
+                    {% endif %}
+                    
+                    {% if recommendation.map_link %}
+                    <a href="{{ recommendation.map_link }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-map-marker-alt"></i> View on Map
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 
