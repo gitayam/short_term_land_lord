@@ -91,13 +91,24 @@ def run_migrations(args):
         user_migrations_result = run_user_migrations()
         any_migrations_applied = any_migrations_applied or user_migrations_result
         
-        # 2. Run property-related migrations if needed
+        # 2. Add is_suspended column to users table
+        logger.info("Checking is_suspended column migration...")
+        try:
+            from add_is_suspended import add_is_suspended_column
+            is_suspended_result = add_is_suspended_column()
+            any_migrations_applied = any_migrations_applied or is_suspended_result
+            logger.info("is_suspended column migration completed")
+        except Exception as e:
+            logger.error(f"Error running is_suspended column migration: {e}")
+            logger.warning("Continuing with migrations despite errors")
+        
+        # 3. Run property-related migrations if needed
         logger.info("Checking property table migrations...")
         from consolidated_property_migrations import run_consolidated_property_migrations
         property_migrations_result = run_consolidated_property_migrations()
         any_migrations_applied = any_migrations_applied or property_migrations_result
         
-        # 3. Run all database fixes using our consolidated script
+        # 4. Run all database fixes using our consolidated script
         if any_migrations_applied or args.force_fixes:
             logger.info("Running consolidated database fixes...")
             try:
@@ -110,7 +121,7 @@ def run_migrations(args):
                 logger.error(f"Error running consolidated database fixes: {e}")
                 logger.warning("Continuing with migrations despite fix errors")
             
-            # 4. Run specific fix for Property-Room relationships
+            # 5. Run specific fix for Property-Room relationships
             logger.info("Running Property-Room relationship fixes...")
             try:
                 from fix_property_room_relationships import fix_property_room_relationships
@@ -124,7 +135,7 @@ def run_migrations(args):
         else:
             logger.info("No migrations were applied and --force-fixes not specified, skipping database fixes")
             
-        # 5. Run task tags migration
+        # 6. Run task tags migration
         logger.info("Adding task tags for workorder functionality...")
         try:
             from add_task_tags_column import add_tags_column, mark_existing_workorders

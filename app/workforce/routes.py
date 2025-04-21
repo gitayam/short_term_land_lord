@@ -3,14 +3,15 @@ from flask_login import login_required, current_user
 from app import db
 from app.workforce import bp
 from app.workforce.forms import WorkerInvitationForm, WorkerPropertyAssignmentForm, WorkerFilterForm, COUNTRY_CODES
-from app.models import User, Property, Task, TaskAssignment, TaskProperty, UserRoles, ServiceType, TaskStatus
+from app.models import User, Property, Task, TaskAssignment, TaskProperty, UserRoles, ServiceType, TaskStatus, AdminAction
 from app.auth.decorators import admin_required, property_manager_required, workforce_management_required
-from app.auth.email import send_email
+from app.auth.email import send_email, send_password_reset_email
 from app.notifications.service import create_notification, NotificationType, NotificationChannel
 from sqlalchemy import or_, and_
 from datetime import datetime, timedelta
 import secrets
 import string
+from app.decorators import log_admin_action
 
 # Helper function to check if a worker is assigned to a property
 def is_worker_assigned_to_property(worker_id, property_id):
@@ -506,3 +507,210 @@ def my_invoices():
     # For now, we'll just redirect to a placeholder template
     return render_template('workforce/my_invoices.html',
                           title='My Invoices')
+
+@bp.route('/api/<int:user_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_staff(user_id):
+    """Delete a staff member's account"""
+    user = User.query.get_or_404(user_id)
+    
+    if user.is_admin or user.is_property_manager:
+        return jsonify({'success': False, 'message': 'Cannot delete admin or manager accounts'}), 403
+    
+    try:
+        # Log the action before deletion
+        admin_action = AdminAction(
+            admin_id=current_user.id,
+            target_user_id=user.id,
+            action_type='delete',
+            action_details=f'Deleted user account for {user.email}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(admin_action)
+        
+        # Delete related records first
+        TaskAssignment.query.filter_by(user_id=user.id).delete()
+        Notification.query.filter_by(recipient_id=user.id).delete()
+        
+        # Delete the user
+        db.session.delete(user)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'User account deleted successfully'})
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error deleting user {user_id}: {str(e)}')
+        return jsonify({'success': False, 'message': 'Failed to delete user account'}), 500
+
+@bp.route('/api/<int:user_id>/reset-password', methods=['POST'])
+@login_required
+@admin_required
+def reset_staff_password(user_id):
+    """Reset a staff member's password"""
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        # Generate password reset token
+        send_password_reset_email(user)
+        
+        # Log the action
+        admin_action = AdminAction(
+            admin_id=current_user.id,
+            target_user_id=user.id,
+            action_type='reset_password',
+            action_details=f'Initiated password reset for {user.email}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(admin_action)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Password reset email sent'})
+    except Exception as e:
+        current_app.logger.error(f'Error resetting password for user {user_id}: {str(e)}')
+        return jsonify({'success': False, 'message': 'Failed to send password reset email'}), 500
+
+@bp.route('/api/<int:user_id>/toggle-suspension', methods=['POST'])
+@login_required
+@admin_required
+def toggle_staff_suspension(user_id):
+    """Toggle suspension status of a staff member"""
+    user = User.query.get_or_404(user_id)
+    
+    if user.is_admin or user.is_property_manager:
+        return jsonify({'success': False, 'message': 'Cannot suspend admin or manager accounts'}), 403
+    
+    try:
+        action_type = 'reactivate' if user.is_suspended else 'suspend'
+        if action_type == 'suspend':
+            user.suspend()
+        else:
+            user.reactivate()
+        
+        # Log the action
+        admin_action = AdminAction(
+            admin_id=current_user.id,
+            target_user_id=user.id,
+            action_type=action_type,
+            action_details=f'{action_type.capitalize()}d user account {user.email}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(admin_action)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'User account {"suspended" if user.is_suspended else "reactivated"} successfully',
+            'is_suspended': user.is_suspended
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error toggling suspension for user {user_id}: {str(e)}')
+        return jsonify({'success': False, 'message': 'Failed to update user status'}), 500
+
+@bp.route('/api/<int:user_id>/resend-invite', methods=['POST'])
+@login_required
+@admin_required
+def resend_staff_invite(user_id):
+    """Resend invitation to a staff member"""
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        # Generate a new password
+        password = generate_password()
+        user.set_password(password)
+        
+        # Send invitation
+        send_worker_invitation(user, password, user.service_type)
+        
+        # Log the action
+        admin_action = AdminAction(
+            admin_id=current_user.id,
+            target_user_id=user.id,
+            action_type='resend_invite',
+            action_details=f'Resent invitation to {user.email}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(admin_action)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Invitation resent successfully'})
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error resending invite to user {user_id}: {str(e)}')
+        return jsonify({'success': False, 'message': 'Failed to resend invitation'}), 500
+
+@bp.route('/api/<int:user_id>/audit-log', methods=['GET'])
+@login_required
+@admin_required
+def get_staff_audit_log(user_id):
+    """Get audit log for a staff member"""
+    try:
+        actions = AdminAction.query.filter_by(target_user_id=user_id)\
+            .order_by(AdminAction.created_at.desc())\
+            .limit(50)\
+            .all()
+        
+        return jsonify({
+            'success': True,
+            'logs': [{
+                'action_type': action.action_type,
+                'details': action.action_details,
+                'admin': action.admin.get_full_name(),
+                'timestamp': action.created_at.isoformat(),
+                'ip_address': action.ip_address
+            } for action in actions]
+        })
+    except Exception as e:
+        current_app.logger.error(f'Error fetching audit log for user {user_id}: {str(e)}')
+        return jsonify({'success': False, 'message': 'Failed to fetch audit log'}), 500
+
+@bp.route('/api/<int:user_id>/manual-confirm', methods=['POST'])
+@login_required
+@admin_required
+@log_admin_action
+def manual_confirm(user_id):
+    """Manually confirm a user's account"""
+    user = User.query.get_or_404(user_id)
+    
+    if user.confirmed:
+        return jsonify({'success': False, 'message': 'User is already confirmed'}), 400
+    
+    try:
+        # Generate a new password for the user
+        password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+        user.set_password(password)
+        
+        # Mark the user as confirmed
+        user.confirmed = True
+        user.confirmed_at = datetime.utcnow()
+        
+        # Create admin action log
+        admin_action = AdminAction(
+            admin_id=current_user.id,
+            target_user_id=user.id,
+            action_type='manual_confirm',
+            action_details=f'Manually confirmed user account for {user.email}',
+            ip_address=request.remote_addr
+        )
+        db.session.add(admin_action)
+        
+        # Create notification for the user
+        create_notification(
+            recipient_id=user.id,
+            notification_type=NotificationType.ACCOUNT_CONFIRMED,
+            title='Your account has been confirmed',
+            message=f'Your account has been manually confirmed by an administrator. Your temporary password is: {password}',
+            channel=NotificationChannel.EMAIL
+        )
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'User account confirmed successfully. A notification with login credentials has been sent.'
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error confirming user {user_id}: {str(e)}')
+        return jsonify({'success': False, 'message': 'Failed to confirm user account'}), 500

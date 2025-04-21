@@ -13,21 +13,21 @@ from sqlalchemy import create_engine, inspect, text
 
 def bootstrap_database():
     """Create minimal tables required for application startup"""
-    # Set up database URL
-    database_url = os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@db/flask_app")
-    print(f"Using database URL: {database_url}")
-
-    # Check database connection
     try:
-        engine = create_engine(database_url)
+        print("Running simplified database bootstrap script...")
+        print(f"Using database URL: {os.getenv('DATABASE_URL')}")
+        
+        # Create engine and connect
+        engine = create_engine(os.getenv('DATABASE_URL'))
+        print("Database connection successful")
+        
+        # Check existing tables
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        print(f"Existing tables: {tables}")
+        
+        # Create tables if they don't exist
         with engine.connect() as conn:
-            print("Database connection successful")
-            
-            # Check if tables exist
-            inspector = inspect(engine)
-            tables = inspector.get_table_names()
-            print(f"Existing tables: {tables}")
-            
             if "users" not in tables:
                 print("Creating users table directly with SQL...")
                 # Create users table with ALL required columns
@@ -45,6 +45,7 @@ def bootstrap_database():
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         is_active BOOLEAN DEFAULT TRUE,
                         is_admin BOOLEAN DEFAULT FALSE,
+                        is_suspended BOOLEAN DEFAULT FALSE,
                         last_login TIMESTAMP,
                         authentik_id VARCHAR(64),
                         signal_identity VARCHAR(64),

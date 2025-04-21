@@ -268,6 +268,7 @@ class User(UserMixin, db.Model):
     phone = db.Column(db.String(20), nullable=True)
     password_hash = db.Column(db.String(256))  # Increased from 128 to 256 to accommodate scrypt hashes
     role = db.Column(db.String(20))
+    is_suspended = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
@@ -441,6 +442,22 @@ class User(UserMixin, db.Model):
     def is_admin(self, value):
         """Set admin flag directly to database column"""
         self._is_admin = value
+
+    def suspend(self):
+        """Suspend the user account"""
+        self.is_suspended = True
+        db.session.add(self)
+        db.session.commit()
+    
+    def reactivate(self):
+        """Reactivate the user account"""
+        self.is_suspended = False
+        db.session.add(self)
+        db.session.commit()
+    
+    def is_active(self):
+        """Override UserMixin's is_active to check suspension status"""
+        return not self.is_suspended
 
 class Property(db.Model):
     """
@@ -1486,3 +1503,22 @@ class TaskTemplate(db.Model):
     
     def __repr__(self):
         return f'<TaskTemplate {self.title}>'
+
+class AdminAction(db.Model):
+    """Model for tracking administrative actions"""
+    __tablename__ = 'admin_actions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    target_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    action_type = db.Column(db.String(50), nullable=False)  # e.g. 'delete_account', 'reset_password', 'suspend_account', 'reactivate_account', 'resend_invite'
+    action_details = db.Column(db.Text, nullable=True)  # Additional details about the action
+    ip_address = db.Column(db.String(45), nullable=True)  # IP address of the admin performing the action
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    admin = db.relationship('User', foreign_keys=[admin_id], backref='admin_actions')
+    target_user = db.relationship('User', foreign_keys=[target_user_id], backref='admin_action_targets')
+    
+    def __repr__(self):
+        return f'<AdminAction {self.action_type} by {self.admin_id} on {self.target_user_id}>'

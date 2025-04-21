@@ -134,6 +134,7 @@ def reset_database():
                                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                 is_active BOOLEAN DEFAULT TRUE,
                                 is_admin BOOLEAN DEFAULT FALSE,
+                                is_suspended BOOLEAN DEFAULT FALSE,
                                 last_login TIMESTAMP,
                                 authentik_id VARCHAR(36) UNIQUE,
                                 signal_identity VARCHAR(36) UNIQUE,
@@ -197,6 +198,26 @@ def reset_database():
                                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                 reviewed_by INTEGER REFERENCES users(id)
                             )
+                        """))
+                    
+                    # Create admin_actions table if it doesn't exist
+                    if 'admin_actions' not in tables:
+                        logger.info("Creating admin_actions table...")
+                        db.session.execute(text("""
+                            CREATE TABLE IF NOT EXISTS admin_actions (
+                                id SERIAL PRIMARY KEY,
+                                admin_id INTEGER NOT NULL REFERENCES users(id),
+                                target_user_id INTEGER NOT NULL REFERENCES users(id),
+                                action_type VARCHAR(50) NOT NULL,
+                                action_details TEXT,
+                                ip_address VARCHAR(45),
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                CONSTRAINT fk_admin_actions_admin FOREIGN KEY (admin_id) REFERENCES users(id),
+                                CONSTRAINT fk_admin_actions_target FOREIGN KEY (target_user_id) REFERENCES users(id)
+                            );
+                            CREATE INDEX ix_admin_actions_admin_id ON admin_actions (admin_id);
+                            CREATE INDEX ix_admin_actions_target_user_id ON admin_actions (target_user_id);
+                            CREATE INDEX ix_admin_actions_created_at ON admin_actions (created_at);
                         """))
                     
                     db.session.commit()
