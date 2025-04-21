@@ -227,10 +227,12 @@
 
     /* Calendar grid improvements */
     .fc .fc-timeline-slot-label, .fc .fc-col-header-cell {
-        font-weight: 600;
+        font-weight: 700;
         color: #222;
         background: #f8f9fa;
         border-bottom: 1px solid #eee;
+        font-size: 1.1em;
+        letter-spacing: 0.03em;
     }
     .fc .fc-timeline-slot {
         border-right: 1px solid #eee;
@@ -325,6 +327,7 @@
                 <p><strong>Guest/Summary:</strong> <span id="modalTitle"></span></p>
                 <p><strong>Dates:</strong> <span id="modalDates"></span></p>
                 <p><strong>Source:</strong> <span id="modalSource"></span></p>
+                <div id="modalActions" class="mt-3"></div>
                 <!-- Add more details if needed -->
             </div>
             <div class="modal-footer">
@@ -355,6 +358,19 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
         var resources = {{ resources|tojson|safe }};
         var events = {{ events|tojson|safe }};
+        
+        // --- Deduplicate events by external_id or id ---
+        var seen = new Set();
+        var dedupedEvents = [];
+        for (var i = 0; i < events.length; i++) {
+            var ev = events[i];
+            var key = ev.external_id || ev.id;
+            if (!seen.has(key)) {
+                dedupedEvents.push(ev);
+                seen.add(key);
+            }
+        }
+        events = dedupedEvents;
         
         // --- Input Validation ---
         if (!calendarEl) {
@@ -445,6 +461,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('modalDates').textContent = startDateStr + ' - ' + endDateStr;
                     document.getElementById('modalSource').textContent = props.service || 'N/A';
 
+                    // Add action buttons
+                    var actionsDiv = document.getElementById('modalActions');
+                    if (actionsDiv) {
+                        var assignTaskUrl = `/tasks/assign?property_id=${props.property_id || ''}&booking_id=${props.id || ''}`;
+                        var repairRequestUrl = `/tasks/repair_requests/create?property_id=${props.property_id || ''}&booking_id=${props.id || ''}`;
+                        actionsDiv.innerHTML = `
+                            <a href="${assignTaskUrl}" class="btn btn-outline-primary me-2">Assign Task</a>
+                            <a href="${repairRequestUrl}" class="btn btn-outline-danger">Create Repair Request</a>
+                        `;
+                    }
+
                     var eventModalElement = document.getElementById('eventModal');
                     if (eventModalElement) {
                         var eventModal = new bootstrap.Modal(eventModalElement);
@@ -459,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 info.jsEvent.preventDefault();
             },
             select: function(info) {
-                console.log('Selected ' + info.startStr + ' to ' + info.endStr + ' on resource ' + info.resource.id);
+                console.log('Selected ' + info.startStr + ' to ' + info.endStr + ' on resource ' + (info.resource ? info.resource.id : ''));
             }
         };
 
