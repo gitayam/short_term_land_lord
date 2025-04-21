@@ -1062,12 +1062,8 @@ class CleaningSession(db.Model):
             cleaner_name = self.assigned_cleaner.get_full_name()
         else:
             cleaner_name = f"User #{self.cleaner_id}"
-            
-        if hasattr(self, 'associated_property') and self.associated_property:
-            property_name = self.associated_property.name
-        else:
-            property_name = f"Property #{self.property_id}"
-            
+        
+        property_name = f"Property #{self.property_id}"
         return f'<CleaningSession {self.id} by {cleaner_name} at {property_name}>'
     
     def complete(self):
@@ -1209,7 +1205,6 @@ class RepairRequest(db.Model):
     
     # Relationships
     reporter = db.relationship('User', foreign_keys=[reporter_id], backref='reported_repairs')
-    associated_property = db.relationship('Property', foreign_keys=[property_id], backref='repair_requests')
     associated_task = db.relationship('Task', foreign_keys=[task_id], backref='repair_request', uselist=False)
     
     def __repr__(self):
@@ -1618,7 +1613,7 @@ class RecommendationBlock(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships - rename property to associated_property
-    associated_property = db.relationship('Property', backref='recommendations')
+    # associated_property = db.relationship('Property', backref='recommendations')
     
     def __repr__(self):
         return f'<RecommendationBlock {self.title} for Property {self.property_id}>'
@@ -1683,7 +1678,7 @@ class GuideBook(db.Model):
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     
     # Relationships
-    associated_property = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
+    # associated_property = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
     recommendations = db.relationship('RecommendationBlock', 
                                    secondary='guide_book_recommendations',
                                    backref=db.backref('guide_books', lazy=True))
@@ -1738,8 +1733,8 @@ class Booking(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_synced = db.Column(db.DateTime)
     
-    # Relationships - rename backref to avoid conflicts
-    associated_property = db.relationship('Property', backref=db.backref('property_bookings', lazy=True))
+    # Relationships - REMOVE associated_property and property_bookings
+    # associated_property = db.relationship('Property', backref=db.backref('property_bookings', lazy=True))
     calendar = db.relationship('PropertyCalendar', backref=db.backref('calendar_bookings', lazy=True))
     tasks = db.relationship('BookingTask', backref='parent_booking', lazy=True, cascade='all, delete-orphan')
 
@@ -1753,7 +1748,7 @@ class Booking(db.Model):
             'resourceId': str(self.property_id),
             'className': f'{self.calendar.service.lower()}-event',
             'extendedProps': {
-                'property_name': self.associated_property.name,
+                'property_name': self.property.name,  # Use self.property
                 'property_id': self.property_id,
                 'service': self.calendar.get_service_display(),
                 'room': None if self.is_entire_property else self.room_name,

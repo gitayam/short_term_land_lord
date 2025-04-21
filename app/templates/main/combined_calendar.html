@@ -19,6 +19,8 @@
         border-radius: 8px;
         padding: 20px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        width: 100%;
+        max-width: 100%;
     }
 
     /* FullCalendar Timeline Customizations */
@@ -215,6 +217,8 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        min-width: 120px;
+        position: relative;
     }
     .fc-timeline-event .fc-event-title, .fc-event .fc-event-title {
         color: #fff !important;
@@ -223,6 +227,18 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        flex: 1;
+    }
+    .event-checkout-label {
+        background: #fff;
+        color: #008489;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: 700;
+        padding: 2px 8px;
+        margin-left: 8px;
+        border: 1px solid #008489;
+        white-space: nowrap;
     }
 
     /* Calendar grid improvements */
@@ -270,13 +286,51 @@
     .fc .fc-timeline-lane-frame {
         border-left: none !important;
     }
+
+    /* Make timeline day headers visible and styled */
+    .fc .fc-col-header, .fc .fc-timeline-header {
+        display: table-header-group !important;
+        background: #f8f9fa;
+        z-index: 2;
+    }
+    .fc .fc-col-header-cell {
+        font-weight: 700;
+        color: #222;
+        background: #f8f9fa;
+        border-bottom: 1px solid #eee;
+        font-size: 1.1em;
+        letter-spacing: 0.03em;
+        padding: 8px 0 8px 0;
+        text-align: center;
+        border-radius: 0;
+        border-top: 2px solid #e0e0e0;
+        border-right: 1px solid #e0e0e0;
+        min-width: 40px;
+    }
+    .fc .fc-timeline-header {
+        background: #f8f9fa;
+    }
+    .fc .fc-timeline-slot-label {
+        font-weight: 700;
+        color: #222;
+        background: #f8f9fa;
+        border-bottom: 1px solid #eee;
+        font-size: 1.1em;
+        letter-spacing: 0.03em;
+        padding: 8px 0 8px 0;
+        text-align: center;
+        border-radius: 0;
+        border-top: 2px solid #e0e0e0;
+        border-right: 1px solid #e0e0e0;
+        min-width: 40px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 {# Simple top navigation bar like the image #}
 <nav class="top-nav">
-    <div class="top-nav-brand">Abnb</div> {# Placeholder brand name #}
+    <div class="top-nav-brand">OpenBnB</div> {# Placeholder brand name #}
     <div class="top-nav-links">
         <a href="#">Today</a>
         <a href="#" class="active">Calendar</a>
@@ -411,19 +465,28 @@ document.addEventListener('DOMContentLoaded', function() {
             editable: false,
             selectable: true,
             timeZone: 'local',
-            aspectRatio: 1.8,
+            aspectRatio: 3.5,
             height: 'auto',
             events: events,
-            slotMinWidth: 50,
+            slotMinWidth: 20,
             eventContent: function(arg) {
-                // Show guest name, price, and status in a pill
+                // Show guest name, price, and status in a pill, and checkout date as a label
                 var guest = arg.event.extendedProps && arg.event.extendedProps.guest_name ? arg.event.extendedProps.guest_name : '';
                 var price = arg.event.extendedProps && arg.event.extendedProps.amount ? ' $' + arg.event.extendedProps.amount : '';
                 var status = arg.event.extendedProps && arg.event.extendedProps.status ? arg.event.extendedProps.status : '';
-                // Avoid double status if title is same as status
                 var title = guest || arg.event.title || 'Reserved';
                 var showStatus = status && status !== title ? " <span class='badge bg-light text-dark ms-1'>" + status + "</span>" : '';
-                return { html: '<div class="fc-event-title">' + title + price + showStatus + '</div>' };
+                // Add checkout date as a label
+                var endDate = arg.event.end ? new Date(arg.event.end) : null;
+                var checkoutLabel = '';
+                if (endDate) {
+                    // Subtract one day for typical checkout
+                    endDate.setDate(endDate.getDate() - 1);
+                    var month = endDate.toLocaleString('default', { month: 'short' });
+                    var day = endDate.getDate();
+                    checkoutLabel = `<span class='event-checkout-label'>${month} ${day}</span>`;
+                }
+                return { html: `<div class=\"fc-event-title\">${title}${price}${showStatus}${checkoutLabel}</div>` };
             },
             eventDidMount: function(info) {
                 if (info.event.extendedProps && info.event.extendedProps.guest_name && typeof bootstrap !== 'undefined') {
