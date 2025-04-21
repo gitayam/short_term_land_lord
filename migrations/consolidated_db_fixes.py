@@ -16,6 +16,7 @@ import sys
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 # Add the parent directory to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -44,8 +45,6 @@ def fix_foreign_keys():
 
             if dialect == 'postgresql':
                 # Fix foreign keys for PostgreSQL
-                from sqlalchemy import text
-
                 # Get list of all tables
                 result = db.session.execute(text("""
                     SELECT tablename FROM pg_tables
@@ -94,8 +93,6 @@ def fix_postgres_schema():
             if db.engine.dialect.name != 'postgresql':
                 logger.info("Not using PostgreSQL, skipping PostgreSQL-specific fixes")
                 return True
-
-            from sqlalchemy import text
 
             # Fix enum types
             enums_to_fix = [
@@ -231,8 +228,6 @@ def fix_inventory_models():
 
             # Check relationships between rooms and properties
             if 'rooms' in tables and 'properties' in tables:
-                from sqlalchemy import text
-
                 # Check if rooms have property_id column
                 room_columns = [col['name'] for col in inspector.get_columns('rooms')]
 
@@ -289,15 +284,15 @@ def fix_site_settings():
             }
 
             # Import site settings model - adjust import based on your app structure
-            from app.models import SiteSetting
+            from app.models import SiteSettings
 
             # Add any missing settings
             for key, default_value in required_settings.items():
-                setting = SiteSetting.query.filter_by(key=key).first()
+                setting = SiteSettings.query.filter_by(key=key).first()
 
                 if not setting:
                     logger.info(f"Adding missing site setting: {key}")
-                    new_setting = SiteSetting(
+                    new_setting = SiteSettings(
                         key=key,
                         value=default_value,
                         description=f"System {key.replace('_', ' ')}",

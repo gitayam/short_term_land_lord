@@ -26,9 +26,10 @@ class UserRoles(enum.Enum):
 
 class TaskStatus(enum.Enum):
     """Enumeration of possible task statuses."""
-    PENDING = 'PENDING'
-    IN_PROGRESS = 'IN_PROGRESS'
-    COMPLETED = 'COMPLETED'
+    PENDING = 'pending'
+    IN_PROGRESS = 'in_progress'
+    COMPLETED = 'completed'
+    CANCELLED = 'cancelled'
 
 class TaskPriority(enum.Enum):
     """Enumeration of task priority levels."""
@@ -313,6 +314,13 @@ class User(UserMixin, db.Model):
                                        primaryjoin='User.id == TaskTemplate.creator_id')
     properties = db.relationship('Property', foreign_keys='Property.owner_id', backref='owner_user', lazy='dynamic',
                                 primaryjoin='User.id == Property.owner_id', overlaps="owned_properties,owner")
+    
+    # Fix the created_tasks_direct relationship
+    created_tasks_direct = db.relationship('Task', 
+                                         foreign_keys='Task.creator_id',
+                                         backref=db.backref('creator_direct', overlaps="created_tasks,task_creator"),
+                                         primaryjoin='User.id == Task.creator_id',
+                                         overlaps="created_tasks,task_creator")
 
     def __repr__(self):
         return f'<User {self.email}>'
