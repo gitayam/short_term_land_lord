@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request, make_response, render_template
 from flask_login import current_user
 from app import db
 from app.models import Property, RecommendationBlock
+from app.utils.zillow_scraper import fetch_zillow_details
 
 bp = Blueprint('property_routes', __name__)
 
@@ -66,4 +67,18 @@ def toggle_staff_pick(recommendation_id):
     
     return jsonify({
         'staff_pick': recommendation.staff_pick
-    }) 
+    })
+
+@bp.route('/api/fetch_zillow', methods=['POST'])
+def fetch_zillow():
+    data = request.get_json()
+    query = data.get('query', '').strip()
+    if not query:
+        return jsonify({'error': 'No address or URL provided.'}), 400
+    try:
+        details = fetch_zillow_details(query)
+        if not details:
+            return jsonify({'error': 'No data found for the given input.'}), 404
+        return jsonify(details)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500 
