@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app import db, login_manager
 from sqlalchemy import text
+from flask import url_for
 
 # Add this function back - needed by invoicing module
 def get_user_fk_target():
@@ -322,26 +323,31 @@ class User(UserMixin, db.Model):
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
     
+    @property
     def is_property_owner(self):
         """Check if the user has the property owner role."""
         return self.role == UserRoles.PROPERTY_OWNER.value
     
+    @property
     def is_service_staff(self):
         """Check if the user has the service staff role."""
         return self.role == UserRoles.SERVICE_STAFF.value
     
+    @property
     def is_property_manager(self):
         """Check if the user has the property manager role."""
         return self.role == UserRoles.PROPERTY_MANAGER.value
     
+    @property
     def has_admin_role(self):
         """Check if the user has admin privileges."""
         # Always return True for users with ADMIN role, regardless of is_admin column
         return self.role == UserRoles.ADMIN.value or self._is_admin is True
 
+    @property
     def is_cleaner(self):
         """Check if the user is a cleaner (service staff with cleaning service type)."""
-        if not self.is_service_staff():
+        if not self.is_service_staff:
             return False
         
         # Check if the user has any cleaning service assignments
@@ -353,9 +359,10 @@ class User(UserMixin, db.Model):
         
         return cleaning_assignments is not None
     
+    @property
     def is_maintenance(self):
         """Check if this user is a maintenance person."""
-        if not self.is_service_staff():
+        if not self.is_service_staff:
             return False
         
         # Check if the user has any maintenance service assignments
@@ -378,7 +385,7 @@ class User(UserMixin, db.Model):
             bool: True if user can reassign the task, False otherwise
         """
         # Admin users can reassign any task
-        if self.has_admin_role():
+        if self.has_admin_role:
             return True
             
         # Task creators can reassign their tasks
@@ -418,7 +425,7 @@ class User(UserMixin, db.Model):
             bool: True if user can complete the task, False otherwise
         """
         # Admin users can complete any task
-        if self.has_admin_role():
+        if self.has_admin_role:
             return True
             
         # Task creators can complete their tasks
@@ -608,11 +615,11 @@ class Property(db.Model):
     def is_visible_to(self, user):
         """Check if the property is visible to the given user"""
         # Property owners can see their own properties
-        if user.is_property_owner() and self.owner_id == user.id:
+        if user.is_property_owner and self.owner_id == user.id:
             return True
         
         # Admins can see all properties
-        if user.has_admin_role():
+        if user.has_admin_role:
             return True
         
         # Property managers can see all properties
@@ -620,7 +627,7 @@ class Property(db.Model):
             return True
         
         # Service staff can see properties they have tasks for
-        if user.is_service_staff():
+        if user.is_service_staff:
             # Check if the user has any assigned tasks for this property
             from sqlalchemy.orm import aliased
             from app.models import TaskProperty, TaskAssignment
@@ -1522,3 +1529,44 @@ class AdminAction(db.Model):
     
     def __repr__(self):
         return f'<AdminAction {self.action_type} by {self.admin_id} on {self.target_user_id}>'
+
+class RecommendationCategory(enum.Enum):
+    FOOD = "food"
+    OUTDOORS = "outdoors"
+    SHOPPING = "shopping"
+    ATTRACTIONS = "attractions"
+    GROCERY = "grocery"
+    OTHER = "other"
+
+class RecommendationBlock(db.Model):
+    """Model for storing location-based recommendations"""
+    __tablename__ = 'recommendation_blocks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)  # 300-char limit enforced in form
+    category = db.Column(db.String(20), nullable=False)  # Store enum as string in SQLite
+    map_link = db.Column(db.String(500), nullable=False)
+    best_time_to_go = db.Column(db.String(255), nullable=True)
+    recommended_meal = db.Column(db.String(255), nullable=True)  # For food recommendations
+    wifi_name = db.Column(db.String(255), nullable=True)  # WiFi network name (SSID)
+    wifi_password = db.Column(db.String(255), nullable=True)  # WiFi password if available
+    parking_details = db.Column(db.Text, nullable=True)  # Parking information
+    photo_path = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    property = db.relationship('Property', backref='recommendations')
+    
+    def __repr__(self):
+        return f'<RecommendationBlock {self.title} for Property {self.property_id}>'
+    
+    def get_category_display(self):
+        return self.category.title()
+    
+    def get_photo_url(self):
+        if self.photo_path:
+            return url_for('static', filename=f'recommendations/{self.photo_path}')
+        return None

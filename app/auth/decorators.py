@@ -9,7 +9,7 @@ def property_owner_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login'))
-        if not current_user.is_property_owner():
+        if not current_user.is_property_owner:
             flash('You do not have permission to access this page.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
@@ -21,7 +21,7 @@ def property_manager_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login', next=request.url))
-        if not (current_user.is_property_manager or current_user.is_property_owner or current_user.is_admin):
+        if not (current_user.is_property_owner or current_user.is_property_manager or current_user.has_admin_role):
             flash('You do not have access to this page.', 'danger')
             return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)
@@ -44,7 +44,7 @@ def invoice_access_required(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        if not (current_user.is_property_owner() or current_user.is_property_manager() or current_user.is_admin):
+        if not (current_user.is_property_owner or current_user.is_property_manager or current_user.has_admin_role):
             flash('Access denied. You must be a property owner, property manager, or admin to view this page.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)

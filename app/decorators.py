@@ -1,7 +1,8 @@
 from functools import wraps
-from flask import current_app, request
+from flask import current_app, request, flash, redirect, url_for
 from app.models import AdminAction, db
 from datetime import datetime
+from flask_login import current_user
 
 def log_admin_action(action_type):
     """
@@ -39,4 +40,22 @@ def log_admin_action(action_type):
             
             return result
         return decorated_function
-    return decorator 
+    return decorator
+
+def property_owner_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_property_owner:
+            flash('You must be a property owner to access this page.', 'error')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_or_owner_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not (current_user.is_admin or current_user.is_property_owner):
+            flash('You must be an admin or property owner to access this page.', 'error')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function 

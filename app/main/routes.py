@@ -15,13 +15,15 @@ def index():
 @bp.route('/dashboard')
 @login_required
 def dashboard():
-    # Get properties that are visible to the current user
-    if current_user.is_property_owner:
-        # Property owners see only their properties
-        properties = Property.query.filter_by(owner_id=current_user.id).all()
-    elif current_user.is_cleaner or current_user.is_maintenance or current_user.is_admin:
-        # Cleaners, maintenance staff, and admins see all properties
+    # Get all properties if admin or property manager
+    if current_user.has_admin_role or current_user.is_property_manager:
         properties = Property.query.all()
+    # Property owners see only their properties
+    elif current_user.is_property_owner:
+        properties = Property.query.filter_by(owner_id=current_user.id).all()
+    # Service staff see properties they have tasks for
+    elif current_user.is_service_staff:
+        properties = [p for p in Property.query.all() if p.is_visible_to(current_user)]
     else:
         properties = []
     
@@ -31,13 +33,15 @@ def dashboard():
 @login_required
 def combined_calendar():
     try:
-        # Get properties that are visible to the current user
-        if current_user.is_property_owner:
-            # Property owners see only their properties
-            properties = Property.query.filter_by(owner_id=current_user.id).order_by(Property.name).all()
-        elif current_user.is_cleaner or current_user.is_maintenance or current_user.is_admin:
-            # Cleaners, maintenance staff, and admins see all properties
+        # Get all properties if admin or property manager
+        if current_user.has_admin_role or current_user.is_property_manager:
             properties = Property.query.order_by(Property.name).all()
+        # Property owners see only their properties
+        elif current_user.is_property_owner:
+            properties = Property.query.filter_by(owner_id=current_user.id).order_by(Property.name).all()
+        # Service staff see properties they have tasks for
+        elif current_user.is_service_staff:
+            properties = [p for p in Property.query.order_by(Property.name).all() if p.is_visible_to(current_user)]
         else:
             properties = []
         

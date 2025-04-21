@@ -197,13 +197,13 @@ def view(id):
     # Get active cleaning session for current user if they are a cleaner
     active_session = None
     cleaning_history = []
-    if current_user.is_service_staff():
+    if current_user.is_service_staff:
         active_session = CleaningSession.get_active_session(current_user.id)
         # Get cleaning history for this task
         cleaning_history = CleaningSession.query.filter_by(
             task_id=task.id
         ).order_by(CleaningSession.start_time.desc()).all()
-    elif current_user.is_property_owner():
+    elif current_user.is_property_owner:
         # Property owners also see cleaning history
         cleaning_history = CleaningSession.query.filter_by(
             task_id=task.id
@@ -1092,7 +1092,7 @@ def create_repair_request():
 def can_view_task(task, user):
     """Check if a user can view a task"""
     # Admin users can view any task
-    if user.has_admin_role():
+    if user.has_admin_role:
         return True
         
     # Task creator can always view
@@ -1100,7 +1100,7 @@ def can_view_task(task, user):
         return True
     
     # Property owners can view tasks for their properties (if the task has properties)
-    if user.is_property_owner() and task.properties:
+    if user.is_property_owner and task.properties:
         # Get all properties owned by the user
         owned_property_ids = [p.id for p in user.properties]
         

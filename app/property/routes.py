@@ -15,11 +15,11 @@ import pytz
 from sqlalchemy.orm import aliased
 
 def property_owner_required(f):
-    """Decorator to ensure only property owners can access a route"""
+    """Decorator to ensure only property owners, admins, and property managers can access a route"""
     @login_required
     def decorated_function(*args, **kwargs):
-        if not current_user.is_property_owner:
-            flash('Access denied. You must be a property owner to view this page.', 'danger')
+        if not (current_user.is_property_owner or current_user.has_admin_role or current_user.is_property_manager):
+            flash('Access denied. You must be a property owner, admin, or property manager to view this page.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
     decorated_function.__name__ = f.__name__
@@ -28,7 +28,14 @@ def property_owner_required(f):
 @bp.route('/')
 @property_owner_required
 def index():
-    properties = Property.query.filter_by(owner_id=current_user.id).order_by(Property.created_at.desc()).all()
+    # Get all properties if admin or property manager
+    if current_user.has_admin_role or current_user.is_property_manager:
+        properties = Property.query.order_by(Property.created_at.desc()).all()
+    # Property owners see only their properties
+    elif current_user.is_property_owner:
+        properties = Property.query.filter_by(owner_id=current_user.id).order_by(Property.created_at.desc()).all()
+    else:
+        properties = []
     return render_template('property/index.html', title='My Properties', properties=properties)
 
 @bp.route('/create', methods=['GET', 'POST'])
@@ -200,13 +207,16 @@ def view(id):
     can_view = False
     
     # Property owners can view their own properties
-    if current_user.is_property_owner() and property.owner_id == current_user.id:
+    if current_user.is_property_owner and property.owner_id == current_user.id:
         can_view = True
     # Admins can view all properties
-    elif current_user.has_admin_role():
+    elif current_user.has_admin_role:
+        can_view = True
+    # Property managers can view all properties
+    elif current_user.is_property_manager:
         can_view = True
     # Service staff can view properties they have tasks for
-    elif current_user.is_service_staff():
+    elif current_user.is_service_staff:
         # Use aliases to avoid duplicate table errors
         task_property_alias = aliased(TaskProperty)
         task_assignment_alias = aliased(TaskAssignment)
@@ -257,7 +267,7 @@ def view(id):
     
     # For service staff, also get their specific assigned tasks
     service_staff_tasks = []
-    if current_user.is_service_staff():
+    if current_user.is_service_staff:
         service_staff_tasks = db.session.query(Task).join(
             TaskProperty, TaskProperty.task_id == Task.id
         ).join(

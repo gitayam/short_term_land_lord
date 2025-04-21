@@ -1,0 +1,27 @@
+from flask_wtf import FlaskForm
+from wtforms import StringField, TextAreaField, SelectField, FileField
+from wtforms.validators import DataRequired, Length, URL, Optional
+from app.models import RecommendationCategory
+
+class RecommendationBlockForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired(), Length(max=100)])
+    description = TextAreaField('Description', validators=[DataRequired(), Length(max=300)])
+    category = SelectField('Category', choices=[
+        ('food', 'Food & Dining'),
+        ('outdoors', 'Outdoors & Recreation'),
+        ('shopping', 'Shopping'),
+        ('attractions', 'Attractions'),
+        ('grocery', 'Grocery Stores'),
+        ('other', 'Other')
+    ], validators=[DataRequired()])
+    map_link = StringField('Map Link', validators=[DataRequired(), URL()])
+    best_time_to_go = StringField('Best Time to Go', validators=[Optional(), Length(max=255)])
+    recommended_meal = StringField('Recommended Meal', validators=[Optional(), Length(max=255)])
+    wifi_name = StringField('WiFi Network Name', validators=[Optional(), Length(max=255)])
+    wifi_password = StringField('WiFi Password', validators=[Optional(), Length(max=255)])
+    parking_details = TextAreaField('Parking Details', validators=[Optional()])
+    photo = FileField('Photo')
+    
+    def validate_description(self, field):
+        if len(field.data) > 300:
+            raise ValidationError('Description must be 300 characters or less') 
