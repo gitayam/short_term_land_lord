@@ -20,7 +20,7 @@ class RecommendationBlockForm(FlaskForm):
     wifi_name = StringField('WiFi Network Name', validators=[Optional(), Length(max=255)])
     wifi_password = StringField('WiFi Password', validators=[Optional(), Length(max=255)])
     parking_details = TextAreaField('Parking Details', validators=[Optional()])
-    add_to_guide = BooleanField('Add to Property Guide Book')
+    add_to_guide = BooleanField('Add to Property Guide Book', default=False)
     photo = FileField('Photo')
     
     def validate_description(self, field):

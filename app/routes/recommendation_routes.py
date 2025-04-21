@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 import os
 from app import db
@@ -25,6 +25,7 @@ def list_recommendations(property_id):
     category = request.args.get('category')
     search = request.args.get('search')
     in_guide_book = request.args.get('in_guide_book') == 'true'
+    guest_token = request.headers.get('X-Guest-Token') or request.cookies.get('guest_token')
     
     query = RecommendationBlock.query.filter_by(property_id=property_id)
     
@@ -45,7 +46,8 @@ def list_recommendations(property_id):
                          property=property,
                          recommendations=recommendations,
                          current_category=category,
-                         search_query=search)
+                         search_query=search,
+                         guest_token=guest_token)
 
 @bp.route('/property/<int:property_id>/new', methods=['GET', 'POST'])
 @login_required
@@ -101,30 +103,30 @@ def edit_recommendation(id):
     form = RecommendationBlockForm(obj=recommendation)
     
     if form.validate_on_submit():
-        recommendation.title = form.title.data
-        recommendation.description = form.description.data
-        recommendation.category = form.category.data
-        recommendation.map_link = form.map_link.data
-        recommendation.best_time_to_go = form.best_time_to_go.data
-        recommendation.recommended_meal = form.recommended_meal.data
-        recommendation.wifi_name = form.wifi_name.data
-        recommendation.wifi_password = form.wifi_password.data
-        recommendation.parking_details = form.parking_details.data
-        recommendation.in_guide_book = form.add_to_guide.data
-        
-        if form.photo.data:
-            file = form.photo.data
-            if file and allowed_file(file.filename):
-                try:
-                    file_path, storage_backend, file_size, mime_type = save_file_to_storage(
-                        file, recommendation.property_id, MediaType.PHOTO
-                    )
-                    recommendation.photo_path = file_path
-                except Exception as e:
-                    current_app.logger.error(f"Error saving photo: {str(e)}", exc_info=True)
-                    flash('Error saving photo, but recommendation was updated successfully.', 'warning')
-        
         try:
+            recommendation.title = form.title.data
+            recommendation.description = form.description.data
+            recommendation.category = form.category.data
+            recommendation.map_link = form.map_link.data
+            recommendation.best_time_to_go = form.best_time_to_go.data
+            recommendation.recommended_meal = form.recommended_meal.data
+            recommendation.wifi_name = form.wifi_name.data
+            recommendation.wifi_password = form.wifi_password.data
+            recommendation.parking_details = form.parking_details.data
+            recommendation.in_guide_book = bool(form.add_to_guide.data)  # Ensure boolean conversion
+            
+            if form.photo.data:
+                file = form.photo.data
+                if file and allowed_file(file.filename):
+                    try:
+                        file_path, storage_backend, file_size, mime_type = save_file_to_storage(
+                            file, recommendation.property_id, MediaType.PHOTO
+                        )
+                        recommendation.photo_path = file_path
+                    except Exception as e:
+                        current_app.logger.error(f"Error saving photo: {str(e)}", exc_info=True)
+                        flash('Error saving photo, but recommendation was updated successfully.', 'warning')
+            
             db.session.commit()
             flash('Recommendation updated successfully!', 'success')
             return redirect(url_for('recommendations.list_recommendations', property_id=recommendation.property_id))
@@ -215,4 +217,19 @@ def dashboard():
     return render_template(
         'recommendations/dashboard.html',
         recommendations=recommendations
-    ) 
+    )
+
+@bp.route('/api/recommendations/<int:id>/vote', methods=['POST'])
+def toggle_recommendation_vote(id):
+    """Toggle a vote for a recommendation."""
+    guest_token = request.headers.get('X-Guest-Token')
+    if not guest_token:
+        return jsonify({'error': 'Guest token required'}), 400
+    
+    recommendation = RecommendationBlock.query.get_or_404(id)
+    voted = recommendation.toggle_vote(guest_token)
+    
+    return jsonify({
+        'voted': voted,
+        'vote_count': recommendation.vote_count
+    }) 
