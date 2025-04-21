@@ -32,6 +32,22 @@ def test_admin_access():
         
         print(f'Admin has admin role: {admin.has_admin_role()}')
         
+        # Create a test property with both composite address and components
+        test_property = Property(
+            name='Test Property',
+            description='A test property',
+            street_address='123 Test St',
+            city='Test City',
+            state='Test State',
+            zip_code='12345',
+            country='Test Country',
+            address='123 Test St, Test City, Test State 12345, Test Country',  # Composite address
+            owner_id=admin.id,
+            property_type='house'
+        )
+        db.session.add(test_property)
+        db.session.commit()
+        
         # Get all properties
         properties = Property.query.all()
         print(f'Number of properties: {len(properties)}')
@@ -39,25 +55,6 @@ def test_admin_access():
         # Check if properties are visible to admin
         for prop in properties:
             print(f'Property {prop.id}: {prop.name} - Visible to admin: {prop.is_visible_to(admin)}')
-            
-        # Create a test property if none exists
-        if not properties:
-            print('No properties found, creating a test property...')
-            owner = User.query.filter(User.username != 'admin').first()
-            if not owner:
-                print('No non-admin users found to own the property')
-                return
-            
-            test_property = Property(
-                name='Test Property',
-                address='123 Test St, Testville',
-                owner_id=owner.id,
-                property_type='house'
-            )
-            db.session.add(test_property)
-            db.session.commit()
-            print(f'Test property created with ID: {test_property.id}')
-            print(f'Visible to admin: {test_property.is_visible_to(admin)}')
 
 if __name__ == '__main__':
     test_admin_access() 

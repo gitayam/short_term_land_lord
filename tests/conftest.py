@@ -58,7 +58,7 @@ def users(app, _db):
         first_name='Test',
         last_name='Manager',
         email='manager@example.com',
-        role=UserRoles.PROPERTY_MANAGER
+        role=UserRoles.PROPERTY_MANAGER.value
     )
     manager.set_password('password')
     
@@ -66,7 +66,7 @@ def users(app, _db):
         first_name='Test',
         last_name='Admin',
         email='admin@example.com',
-        role=UserRoles.ADMIN
+        role=UserRoles.ADMIN.value
     )
     admin.set_password('password')
     

@@ -286,7 +286,7 @@ class TestPropertyRoutes(unittest.TestCase):
         self.assertIsNotNone(property)
         
         # Verify rooms were created
-        self.assertEqual(len(property.rooms), 2)
+        self.assertEqual(len(property.rooms.all()), 2)
         
         # Check first room
         room1 = next((room for room in property.rooms if room.name == 'Master Bedroom'), None)

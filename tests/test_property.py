@@ -135,7 +135,7 @@ class TestPropertyModel(unittest.TestCase):
         db.session.commit()
         
         # Test property to rooms relationship
-        rooms = self.property.rooms
+        rooms = self.property.rooms.all()  # Add .all() to materialize the query
         self.assertEqual(len(rooms), 3)
         room_names = [room.name for room in rooms]
         self.assertIn('Master Bedroom', room_names)
