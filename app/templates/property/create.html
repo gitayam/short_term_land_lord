@@ -117,6 +117,9 @@
                     <form method="post" novalidate>
                         {{ form.hidden_tag() }}
                         
+                        <!-- Add hidden CSRF token for JS fetches -->
+                        <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
+                        
                         <div class="form-section" role="region" aria-labelledby="address-heading">
                             <h5 id="address-heading" class="mt-0 mb-3" tabindex="-1">🏠 Address Information</h5>
                             <!-- Zillow Fetch Button and Modal -->
@@ -152,13 +155,17 @@
                               const input = document.getElementById('zillowInput');
                               const errorDiv = document.getElementById('zillowError');
                               const loadingDiv = document.getElementById('zillowLoading');
+                              const csrfToken = document.getElementById('csrf_token').value;
                               fetchBtn.addEventListener('click', function() {
                                 errorDiv.style.display = 'none';
                                 loadingDiv.style.display = 'block';
                                 fetchBtn.disabled = true;
                                 fetch('/api/fetch_zillow', {
                                   method: 'POST',
-                                  headers: {'Content-Type': 'application/json'},
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                  },
                                   body: JSON.stringify({query: input.value})
                                 })
                                 .then(resp => resp.json())

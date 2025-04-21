@@ -1,9 +1,15 @@
 import secrets
-from flask import Blueprint, jsonify, request, make_response, render_template
+from flask import Blueprint, jsonify, request, make_response, render_template, current_app
 from flask_login import current_user
 from app import db
 from app.models import Property, RecommendationBlock
 from app.utils.zillow_scraper import fetch_zillow_details
+import logging
+import flask
+
+# Set log level to DEBUG for troubleshooting
+flask.current_app = None  # Avoids issues if not in app context
+logging.basicConfig(level=logging.DEBUG)
 
 bp = Blueprint('property_routes', __name__)
 
@@ -72,7 +78,11 @@ def toggle_staff_pick(recommendation_id):
 @bp.route('/api/fetch_zillow', methods=['POST'])
 def fetch_zillow():
     data = request.get_json()
-    query = data.get('query', '').strip()
+    current_app.logger.warning('DEBUG: /api/fetch_zillow request.get_json() = %s', data)
+    current_app.logger.error('DEBUG: /api/fetch_zillow request.get_json() = %s', data)
+    query = data.get('query', '').strip() if data else ''
+    current_app.logger.warning('DEBUG: /api/fetch_zillow query = %s', query)
+    current_app.logger.error('DEBUG: /api/fetch_zillow query = %s', query)
     if not query:
         return jsonify({'error': 'No address or URL provided.'}), 400
     try:
