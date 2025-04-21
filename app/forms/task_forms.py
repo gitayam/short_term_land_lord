@@ -148,7 +148,7 @@ class RepairRequestForm(FlaskForm):
         Length(max=255, message='Location must not exceed 255 characters')
     ])
     priority = SelectField('Priority', choices=[
-        (priority.name, priority.name.title())
+        (priority.value, priority.name.title())
         for priority in TaskPriority
     ], validators=[DataRequired()])
 

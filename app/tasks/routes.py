@@ -127,7 +127,7 @@ def create():
                 description=form.description.data,
                 due_date=form.due_date.data,
                 status=form.status.data,
-                priority=form.priority.data,
+                priority=TaskPriority(form.priority.data),
                 notes=form.notes.data,
                 creator_id=current_user.id,
                 property_id=None,  # Explicitly set to None
@@ -1030,7 +1030,7 @@ def create_repair_request():
                 description=form.description.data,
                 location=form.location.data,
                 status=TaskStatus.PENDING,
-                priority=form.priority.data,
+                priority=TaskPriority(form.priority.data),
                 due_date=form.due_date.data,
                 notes=form.additional_notes.data,
                 creator_id=current_user.id,
@@ -1407,9 +1407,12 @@ def apply_template(template_id):
             title=form.title.data,
             description=form.description.data,
             due_date=form.due_date.data,
-            priority=form.priority.data,
             status=TaskStatus.PENDING,
-            creator_id=current_user.id
+            priority=TaskPriority(form.priority.data),
+            notes=form.notes.data,
+            creator_id=current_user.id,
+            property_id=property_id if property_id else None,
+            assign_to_next_cleaner=False
         )
 
         # Handle recurrence if enabled
@@ -1493,11 +1496,11 @@ def create_task_for_property(property_id):
             description=form.description.data,
             due_date=form.due_date.data,
             status=form.status.data,
-            priority=form.priority.data,
+            priority=TaskPriority(form.priority.data),
             notes=form.notes.data,
             creator_id=current_user.id,
-            assign_to_next_cleaner=form.assign_to_next_cleaner.data,
-            property_id=property_id  # Set the property_id field directly
+            property_id=property_id,
+            assign_to_next_cleaner=form.assign_to_next_cleaner.data
         )
 
         # Handle recurrence if enabled
@@ -1601,19 +1604,13 @@ def create_workorder():
         task = Task(
             title=form.title.data,
             description=form.description.data,
-            status=form.status.data,
-            priority=form.priority.data,
             due_date=form.due_date.data,
-            creator_id=current_user.id,
+            status=TaskStatus.PENDING,
+            priority=TaskPriority(form.priority.data),
             notes=form.notes.data,
-            is_recurring=form.is_recurring.data,
-            recurrence_pattern=form.recurrence_pattern.data if form.is_recurring.data else None,
-            recurrence_interval=form.recurrence_interval.data if form.is_recurring.data else 1,
-            recurrence_end_date=form.recurrence_end_date.data,
-            linked_to_checkout=form.linked_to_checkout.data,
-            calendar_id=form.calendar_id.data if form.linked_to_checkout.data else None,
-            assign_to_next_cleaner=form.assign_to_next_cleaner.data,
-            tags='workorder'  # Always tag as workorder
+            creator_id=current_user.id,
+            property_id=form.property.data.id if form.property.data else None,
+            assign_to_next_cleaner=False
         )
 
         # Add any additional tags if specified
