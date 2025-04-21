@@ -280,6 +280,32 @@ class User(UserMixin, db.Model):
     attributes = db.Column(db.Text)  # Store JSON as Text instead of JSON type
     _is_admin = db.Column('is_admin', db.Boolean, default=False)
     
+    # New profile fields
+    profile_image = db.Column(db.String(255), nullable=True)
+    timezone = db.Column(db.String(50), default='UTC')
+    language = db.Column(db.String(10), default='en')
+    theme_preference = db.Column(db.String(20), default='light')
+    default_dashboard_view = db.Column(db.String(20), default='tasks')
+    default_calendar_view = db.Column(db.String(20), default='month')
+    default_task_sort = db.Column(db.String(20), default='due_date')
+    
+    # Notification preferences
+    email_notifications = db.Column(db.Boolean, default=True)
+    sms_notifications = db.Column(db.Boolean, default=False)
+    in_app_notifications = db.Column(db.Boolean, default=True)
+    notification_frequency = db.Column(db.String(20), default='immediate')  # immediate, daily, weekly
+    
+    # Security settings
+    two_factor_enabled = db.Column(db.Boolean, default=False)
+    two_factor_method = db.Column(db.String(20), nullable=True)  # sms, authenticator
+    last_password_change = db.Column(db.DateTime, nullable=True)
+    
+    # Connected services
+    google_calendar_connected = db.Column(db.Boolean, default=False)
+    google_calendar_token = db.Column(db.Text, nullable=True)
+    twilio_phone_verified = db.Column(db.Boolean, default=False)
+    slack_workspace_id = db.Column(db.String(100), nullable=True)
+    
     # Relationships with explicit primary joins - use different backref names to avoid conflicts
     created_tasks = db.relationship('Task', 
                                   foreign_keys='Task.creator_id', 

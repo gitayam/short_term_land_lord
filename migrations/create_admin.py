@@ -22,11 +22,15 @@ def create_admin():
     app = create_app()
     with app.app_context():
         # Get admin credentials from environment or use defaults
-        admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
-        admin_password = os.environ.get('ADMIN_PASSWORD', 'adminpass')
+        admin_email = os.environ.get('ADMIN_EMAIL')
+        admin_password = os.environ.get('ADMIN_PASSWORD')
         admin_first_name = os.environ.get('ADMIN_FIRST_NAME', 'Admin')
         admin_last_name = os.environ.get('ADMIN_LAST_NAME', 'User')
         admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
+        
+        if not admin_email or not admin_password:
+            print("Error: ADMIN_EMAIL and ADMIN_PASSWORD environment variables must be set")
+            sys.exit(1)
         
         print(f"Attempting to create/update admin user: {admin_email}")
         print(f"Using environment values from: {env_path}")
@@ -59,6 +63,15 @@ def create_admin():
             admin.set_password(admin_password)
             db.session.commit()
             print(f'Admin user {admin_email} updated successfully')
+        
+        # Verify admin user exists and has correct permissions
+        admin = User.query.filter_by(email=admin_email).first()
+        if not admin or not admin.has_admin_role:
+            print("Error: Failed to verify admin user permissions")
+            sys.exit(1)
+        
+        return True
 
 if __name__ == '__main__':
-    create_admin() 
+    if not create_admin():
+        sys.exit(1) 

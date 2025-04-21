@@ -49,7 +49,25 @@ def bootstrap_database():
                         last_login TIMESTAMP,
                         authentik_id VARCHAR(64),
                         signal_identity VARCHAR(64),
-                        attributes JSONB
+                        attributes JSONB,
+                        profile_image VARCHAR(255),
+                        timezone VARCHAR(50) DEFAULT 'UTC',
+                        language VARCHAR(10) DEFAULT 'en',
+                        theme_preference VARCHAR(20) DEFAULT 'light',
+                        default_dashboard_view VARCHAR(20) DEFAULT 'tasks',
+                        default_calendar_view VARCHAR(20) DEFAULT 'month',
+                        default_task_sort VARCHAR(20) DEFAULT 'due_date',
+                        email_notifications BOOLEAN DEFAULT TRUE,
+                        sms_notifications BOOLEAN DEFAULT FALSE,
+                        in_app_notifications BOOLEAN DEFAULT TRUE,
+                        notification_frequency VARCHAR(20) DEFAULT 'immediate',
+                        two_factor_enabled BOOLEAN DEFAULT FALSE,
+                        two_factor_method VARCHAR(20),
+                        last_password_change TIMESTAMP,
+                        google_calendar_connected BOOLEAN DEFAULT FALSE,
+                        google_calendar_token TEXT,
+                        twilio_phone_verified BOOLEAN DEFAULT FALSE,
+                        slack_workspace_id VARCHAR(100)
                     )
                 """))
                 print("Users table created successfully")
@@ -60,17 +78,35 @@ def bootstrap_database():
                     user_columns = inspector.get_columns('users')
                     column_names = [col['name'] for col in user_columns]
                     
-                    if 'authentik_id' not in column_names:
-                        print("Adding authentik_id column to users table")
-                        conn.execute(text("ALTER TABLE users ADD COLUMN authentik_id VARCHAR(64)"))
+                    # List of all required columns and their types
+                    required_columns = [
+                        ('profile_image', 'VARCHAR(255)'),
+                        ('timezone', 'VARCHAR(50) DEFAULT \'UTC\''),
+                        ('language', 'VARCHAR(10) DEFAULT \'en\''),
+                        ('theme_preference', 'VARCHAR(20) DEFAULT \'light\''),
+                        ('default_dashboard_view', 'VARCHAR(20) DEFAULT \'tasks\''),
+                        ('default_calendar_view', 'VARCHAR(20) DEFAULT \'month\''),
+                        ('default_task_sort', 'VARCHAR(20) DEFAULT \'due_date\''),
+                        ('email_notifications', 'BOOLEAN DEFAULT TRUE'),
+                        ('sms_notifications', 'BOOLEAN DEFAULT FALSE'),
+                        ('in_app_notifications', 'BOOLEAN DEFAULT TRUE'),
+                        ('notification_frequency', 'VARCHAR(20) DEFAULT \'immediate\''),
+                        ('two_factor_enabled', 'BOOLEAN DEFAULT FALSE'),
+                        ('two_factor_method', 'VARCHAR(20)'),
+                        ('last_password_change', 'TIMESTAMP'),
+                        ('google_calendar_connected', 'BOOLEAN DEFAULT FALSE'),
+                        ('google_calendar_token', 'TEXT'),
+                        ('twilio_phone_verified', 'BOOLEAN DEFAULT FALSE'),
+                        ('slack_workspace_id', 'VARCHAR(100)'),
+                        ('authentik_id', 'VARCHAR(64)'),
+                        ('signal_identity', 'VARCHAR(64)'),
+                        ('attributes', 'JSONB')
+                    ]
                     
-                    if 'signal_identity' not in column_names:
-                        print("Adding signal_identity column to users table")
-                        conn.execute(text("ALTER TABLE users ADD COLUMN signal_identity VARCHAR(64)"))
-                    
-                    if 'attributes' not in column_names:
-                        print("Adding attributes column to users table")
-                        conn.execute(text("ALTER TABLE users ADD COLUMN attributes JSONB"))
+                    for column_name, column_type in required_columns:
+                        if column_name not in column_names:
+                            print(f"Adding {column_name} column to users table")
+                            conn.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}"))
                     
                     print("User table columns updated successfully")
                 except Exception as e:

@@ -61,19 +61,28 @@ echo -e "${BLUE}Running simplified database bootstrap script...${NC}"
 python /app/migrations/db_bootstrap.py
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}Database bootstrap script failed. This may cause issues with the application.${NC}"
-    echo -e "${YELLOW}Continuing anyway...${NC}"
+    handle_failure "Database bootstrap script failed. Cannot continue."
 else
     echo -e "${GREEN}Database bootstrap completed successfully!${NC}"
 fi
 
 # Run site settings and other fixes
 echo -e "${BLUE}Running database fixes...${NC}"
-python migrations/consolidated_db_fixes.py || true
+python migrations/consolidated_db_fixes.py
+
+if [ $? -ne 0 ]; then
+    echo -e "${YELLOW}Database fixes encountered issues, but continuing...${NC}"
+fi
 
 # Create admin user if it doesn't exist
 echo -e "${BLUE}Ensuring admin user exists...${NC}"
-python migrations/create_admin.py || true
+python migrations/create_admin.py
+
+if [ $? -ne 0 ]; then
+    handle_failure "Failed to create admin user. Cannot continue."
+else
+    echo -e "${GREEN}Admin user created/verified successfully!${NC}"
+fi
 
 # Start the Flask application
 echo -e "${GREEN}Database is ready. Starting Flask application...${NC}"

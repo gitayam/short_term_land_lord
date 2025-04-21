@@ -91,7 +91,7 @@
                             {{ current_user.get_full_name() }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{{ url_for('profile.view_profile') }}">My Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('profile.profile') }}">My Profile</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
                         </ul>
