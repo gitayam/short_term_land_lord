@@ -37,7 +37,7 @@
     
     <div class="card">
         <div class="card-body">
-            <form method="post" action="{% if from_template %}{{ url_for('tasks.apply_template', template_id=template.id) }}{% else %}{{ url_for('tasks.create') }}{% endif %}">
+            <form method="post" action="{% if from_template %}{{ url_for('tasks.apply_template', template_id=template.id) }}{% else %}{{ url_for('tasks.create') }}{% endif %}" enctype="multipart/form-data">
                 {{ form.hidden_tag() }}
                 
                 <div class="row mb-3">
@@ -90,6 +90,15 @@
                     {% endfor %}
                     <small class="form-text text-muted">Optional. Hold Ctrl/Cmd to select multiple properties</small>
                 </div>
+
+                <div class="form-group mb-3">
+                    {{ form.location.label(class="form-label") }}
+                    {{ form.location(class="form-control") }}
+                    {% for error in form.location.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                    <small class="form-text text-muted">Specify the location within the property (e.g., "Master Bathroom", "Kitchen")</small>
+                </div>
                 
                 <div class="form-group mb-3">
                     {{ form.description.label(class="form-label") }}
@@ -105,6 +114,15 @@
                     {% for error in form.notes.errors %}
                     <span class="text-danger">{{ error }}</span>
                     {% endfor %}
+                </div>
+
+                <div class="form-group mb-3">
+                    {{ form.photos.label(class="form-label") }}
+                    {{ form.photos(class="form-control", accept="image/*") }}
+                    {% for error in form.photos.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                    <small class="form-text text-muted">Upload photos related to the task (optional). Supported formats: jpg, jpeg, png</small>
                 </div>
                 
                 <div class="card mb-3">
@@ -220,6 +238,36 @@
         
         // Listen for changes
         linkedToCheckoutCheckbox.addEventListener('change', toggleCalendarOptions);
+
+        // Photo preview functionality
+        const photoInput = document.querySelector('input[type="file"]');
+        if (photoInput) {
+            photoInput.addEventListener('change', function() {
+                // Clear previous previews
+                const previewContainer = document.getElementById('photo-preview') || document.createElement('div');
+                previewContainer.id = 'photo-preview';
+                previewContainer.className = 'mt-2';
+                previewContainer.innerHTML = '';
+                
+                // Add new previews
+                Array.from(this.files).forEach(file => {
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const preview = document.createElement('img');
+                            preview.src = e.target.result;
+                            preview.className = 'img-thumbnail me-2 mb-2';
+                            preview.style.maxHeight = '100px';
+                            previewContainer.appendChild(preview);
+                        }
+                        reader.readAsDataURL(file);
+                    }
+                });
+                
+                // Add preview container after the input
+                this.parentNode.appendChild(previewContainer);
+            });
+        }
     });
 </script>
 {% endblock %}

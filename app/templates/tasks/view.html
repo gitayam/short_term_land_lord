@@ -90,8 +90,8 @@
                     <div class="row mb-3">
                         <div class="col-md-3 fw-bold">Properties:</div>
                         <div class="col-md-9">
-                            {% if properties %}
-                                {% for property in properties %}
+                            {% if task.properties %}
+                                {% for property in task.properties %}
                                 <div class="mb-1">
                                     <a href="{{ url_for('property.view', id=property.id) }}">{{ property.name }}</a>
                                     <small class="text-muted">{{ property.get_full_address() }}</small>
@@ -141,6 +141,13 @@
                         <div class="col-md-9">{{ task.notes }}</div>
                     </div>
                     {% endif %}
+
+                    {% if task.additional_notes and 'repair_request' in task.tags %}
+                    <div class="row mb-3">
+                        <div class="col-md-3 fw-bold">Additional Notes:</div>
+                        <div class="col-md-9">{{ task.additional_notes }}</div>
+                    </div>
+                    {% endif %}
                     
                     {% if task.status.value != 'completed' and task.status != 'COMPLETED' and task.status.name != 'COMPLETED' %}
                     <div class="mt-4">
@@ -167,6 +174,41 @@
                                 <button type="submit" class="btn btn-success">Mark as Completed</button>
                             </form>
                         {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Task Tags -->
+                    {% if task.tags %}
+                    <div class="form-group mb-3">
+                        <label class="fw-bold d-block">Tags:</label>
+                        {% for tag in task.tags.split(',') %}
+                        <span class="badge bg-info me-1">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Repair Request Photos -->
+                    {% if task.tags and 'repair_request' in task.tags %}
+                    <div class="form-group mb-3">
+                        <label class="fw-bold d-block">Photos:</label>
+                        <div class="row mt-2">
+                            {% set found_photos = false %}
+                            {% for media in task.media %}
+                                {% if media.media_type == MediaType.PHOTO %}
+                                {% set found_photos = true %}
+                                <div class="col-md-3 mb-3">
+                                    <a href="{{ media.get_url() }}" target="_blank" class="d-block">
+                                        <img src="{{ media.get_url() }}" alt="Repair Request Photo" class="img-fluid rounded">
+                                    </a>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                            {% if not found_photos %}
+                            <div class="col-12">
+                                <p class="text-muted">No photos uploaded</p>
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
                     {% endif %}
                 </div>

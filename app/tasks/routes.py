@@ -1,8 +1,8 @@
-from flask import render_template, redirect, url_for, flash, request, current_app, abort, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, abort, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.tasks import bp
-from app.tasks.forms import (TaskForm, TaskAssignmentForm, TaskFilterForm, VideoUploadForm, 
+from app.forms.task_forms import (TaskForm, TaskAssignmentForm, TaskFilterForm, VideoUploadForm, 
                            IssueReportForm, CleaningFeedbackForm, RepairRequestForm, ConvertToTaskForm,
                            TaskTemplateForm)
 from app.models import (Task, TaskAssignment, TaskProperty, Property, User, 
@@ -19,6 +19,7 @@ from functools import wraps
 import os
 import secrets
 from werkzeug.utils import secure_filename
+import logging
 
 
 def cleaner_required(f):
@@ -119,43 +120,57 @@ def create():
     ).order_by(TaskTemplate.sequence_number.asc()).all()
     
     if form.validate_on_submit():
-        task = Task(
-            title=form.title.data,
-            description=form.description.data,
-            due_date=form.due_date.data,
-            status=form.status.data,
-            priority=form.priority.data,
-            notes=form.notes.data,
-            creator_id=current_user.id,
-            assign_to_next_cleaner=form.assign_to_next_cleaner.data
-        )
-        
-        # Handle recurrence if enabled
-        if form.is_recurring.data:
-            task.is_recurring = True
-            task.recurrence_pattern = form.recurrence_pattern.data
-            task.recurrence_interval = form.recurrence_interval.data
-            task.recurrence_end_date = form.recurrence_end_date.data
-        
-        # Handle calendar link if enabled
-        if form.linked_to_checkout.data and form.calendar_id.data and form.calendar_id.data != -1:
-            task.linked_to_checkout = True
-            task.calendar_id = form.calendar_id.data
-        
-        # Associate with properties
-        if form.properties.data:
-            for property in form.properties.data:
-                task_property = TaskProperty(
-                    task_id=task.id, 
-                    property_id=property.id
-                )
-                db.session.add(task_property)
-        
-        db.session.add(task)
-        db.session.commit()
-        
-        flash('Task created successfully!', 'success')
-        return redirect(url_for('tasks.view', id=task.id))
+        try:
+            # Create the task without requiring property_id
+            task = Task(
+                title=form.title.data,
+                description=form.description.data,
+                due_date=form.due_date.data,
+                status=form.status.data,
+                priority=form.priority.data,
+                notes=form.notes.data,
+                creator_id=current_user.id,
+                property_id=None,  # Explicitly set to None
+                assign_to_next_cleaner=form.assign_to_next_cleaner.data
+            )
+            
+            # Handle recurrence if enabled
+            if form.is_recurring.data:
+                task.is_recurring = True
+                task.recurrence_pattern = form.recurrence_pattern.data
+                task.recurrence_interval = form.recurrence_interval.data
+                task.recurrence_end_date = form.recurrence_end_date.data
+            
+            # Handle calendar link if enabled
+            if form.linked_to_checkout.data and form.calendar_id.data and form.calendar_id.data != -1:
+                task.linked_to_checkout = True
+                task.calendar_id = form.calendar_id.data
+            
+            db.session.add(task)
+            db.session.commit()
+            
+            # Now that we have a task ID, associate with properties if any were selected
+            if form.properties.data:
+                try:
+                    for property in form.properties.data:
+                        task_property = TaskProperty(
+                            task_id=task.id, 
+                            property_id=property.id
+                        )
+                        db.session.add(task_property)
+                    
+                    db.session.commit()
+                except Exception as e:
+                    current_app.logger.error(f"Error associating task with properties: {str(e)}")
+                    flash('Task was created but there was an error associating it with properties.', 'warning')
+            
+            flash('Task created successfully!', 'success')
+            return redirect(url_for('tasks.view', id=task.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error creating task: {str(e)}")
+            flash(f'There was an error creating the task: {str(e)}', 'danger')
     
     return render_template('tasks/create.html', 
                           title='Create Task', 
@@ -196,7 +211,8 @@ def view(id):
     
     return render_template('tasks/view.html', title=task.title, task=task, 
                           properties=properties, assignments=assignments,
-                          active_session=active_session, cleaning_history=cleaning_history)
+                          active_session=active_session, cleaning_history=cleaning_history,
+                          MediaType=MediaType)
 
 
 @bp.route('/<int:id>/edit', methods=['GET', 'POST'])
@@ -223,59 +239,71 @@ def edit(id):
     form.calendar_id.choices = [(-1, 'None')] + calendar_choices
     
     if form.validate_on_submit():
-        # Update task
-        task.title = form.title.data
-        task.description = form.description.data
-        task.due_date = form.due_date.data
-        task.status = TaskStatus(form.status.data)
-        task.priority = TaskPriority(form.priority.data)
-        task.notes = form.notes.data
-        task.is_recurring = form.is_recurring.data
-        task.recurrence_pattern = RecurrencePattern(form.recurrence_pattern.data) if form.is_recurring.data else RecurrencePattern.NONE
-        task.recurrence_interval = form.recurrence_interval.data if form.is_recurring.data else 1
-        task.recurrence_end_date = form.recurrence_end_date.data
-        task.linked_to_checkout = form.linked_to_checkout.data
-        task.calendar_id = form.calendar_id.data if form.calendar_id.data != -1 else None
-        task.assign_to_next_cleaner = form.assign_to_next_cleaner.data
-        
-        # Update properties
-        # First, remove all existing property associations
-        TaskProperty.query.filter_by(task_id=task.id).delete()
-        
-        # Then add the new ones
-        if form.properties.data:
-            for property in form.properties.data:
-                task_property = TaskProperty(
-                    task_id=task.id, 
-                    property_id=property.id
-                )
-                db.session.add(task_property)
-        
-        db.session.commit()
-        
-        flash('Task updated successfully!', 'success')
-        return redirect(url_for('tasks.view', id=task.id))
-    
+        try:
+            # Update task
+            task.title = form.title.data
+            task.description = form.description.data
+            task.due_date = form.due_date.data
+            task.status = TaskStatus(form.status.data)
+            task.priority = TaskPriority(form.priority.data)
+            task.notes = form.notes.data
+            task.is_recurring = form.is_recurring.data
+            task.recurrence_pattern = RecurrencePattern(form.recurrence_pattern.data) if form.is_recurring.data else RecurrencePattern.NONE
+            task.recurrence_interval = form.recurrence_interval.data if form.is_recurring.data else 1
+            task.recurrence_end_date = form.recurrence_end_date.data
+            task.linked_to_checkout = form.linked_to_checkout.data
+            task.calendar_id = form.calendar_id.data if form.calendar_id.data != -1 else None
+            task.assign_to_next_cleaner = form.assign_to_next_cleaner.data
+            # Make sure property_id is null if no direct property is assigned
+            task.property_id = None
+            
+            # First save the task changes
+            db.session.commit()
+            
+            # Update properties - handling separately to avoid null property_id issues
+            # First, remove all existing property associations
+            TaskProperty.query.filter_by(task_id=task.id).delete()
+            
+            # Then add the new ones
+            if form.properties.data:
+                for property in form.properties.data:
+                    task_property = TaskProperty(
+                        task_id=task.id, 
+                        property_id=property.id
+                    )
+                    db.session.add(task_property)
+                
+                db.session.commit()
+            
+            flash('Task updated successfully!', 'success')
+            return redirect(url_for('tasks.view', id=task.id))
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error updating task: {str(e)}")
+            flash(f'There was an error updating the task: {str(e)}', 'danger')
     elif request.method == 'GET':
-        # Populate form with existing data
+        # Fill form with current task data
         form.title.data = task.title
         form.description.data = task.description
         form.due_date.data = task.due_date
-        form.status.data = task.status.value
-        form.priority.data = task.priority.value
+        form.status.data = task.status.value if hasattr(task.status, 'value') else task.status
+        form.priority.data = task.priority.value if hasattr(task.priority, 'value') else task.priority
         form.notes.data = task.notes
         form.is_recurring.data = task.is_recurring
-        form.recurrence_pattern.data = task.recurrence_pattern.value
+        form.recurrence_pattern.data = task.recurrence_pattern.value if hasattr(task.recurrence_pattern, 'value') else task.recurrence_pattern
         form.recurrence_interval.data = task.recurrence_interval
         form.recurrence_end_date.data = task.recurrence_end_date
+        form.assign_to_next_cleaner.data = task.assign_to_next_cleaner
         form.linked_to_checkout.data = task.linked_to_checkout
         form.calendar_id.data = task.calendar_id if task.calendar_id else -1
-        form.assign_to_next_cleaner.data = task.assign_to_next_cleaner
         
-        # Set selected properties
-        form.properties.data = [tp.property for tp in task.properties]
+        # Current properties
+        form.properties.data = [tp.property for tp in task.task_properties]
     
-    return render_template('tasks/edit.html', title=f'Edit Task: {task.title}', form=form, task=task)
+    return render_template('tasks/edit.html', 
+                          title='Edit Task', 
+                          form=form,
+                          task=task)
 
 
 @bp.route('/<int:id>/delete', methods=['POST'])
@@ -308,6 +336,10 @@ def assign(id):
     
     form = TaskAssignmentForm()
     
+    # Check if there are any service staff users
+    service_staff = User.query.filter_by(role=UserRoles.SERVICE_STAFF.value).all()
+    has_service_staff = len(service_staff) > 0
+    
     # Update the user field query to only show service staff
     form.user.query = User.query.filter(User.role == UserRoles.SERVICE_STAFF.value)
     
@@ -326,7 +358,7 @@ def assign(id):
             send_task_assignment_notification(task, form.user.data)
         else:
             # Check if a user exists with this email or phone
-            external_email = request.form.get('external_email')
+            external_email = form.external_email.data
             if external_email:
                 user = User.query.filter_by(email=external_email).first()
                 if user:
@@ -364,7 +396,12 @@ def assign(id):
         flash('Task assigned successfully!', 'success')
         return redirect(url_for('tasks.view', id=task.id))
     
-    return render_template('tasks/assign.html', title='Assign Task', task=task, form=form, assignments=assignments)
+    return render_template('tasks/assign.html', 
+                          title='Assign Task', 
+                          task=task, 
+                          form=form, 
+                          assignments=assignments,
+                          has_service_staff=has_service_staff)
 
 
 @bp.route('/<int:task_id>/assignment/<int:assignment_id>/remove', methods=['POST'])
@@ -908,316 +945,148 @@ def cleaning_report(session_id):
                           inventory_used=inventory_used)
 
 
-@bp.route('/repair-requests', defaults={'status': 'all'})
-@bp.route('/repair-requests/<status>')
+@bp.route('/repair_requests')
 @login_required
-def repair_requests(status):
-    """View all repair requests"""
-    # Base query
-    query = RepairRequest.query
+def repair_requests():
+    """Show repair request tasks"""
     
-    # Filter by status if provided
-    if status != 'all' and status in [s.value for s in RepairRequestStatus]:
-        query = query.filter(RepairRequest.status == RepairRequestStatus(status))
+    # Get query parameters for sorting and filtering
+    sort_by = request.args.get('sort_by', 'priority')
+    property_id = request.args.get('property_id', type=int)
     
-    # Property owners see requests for their properties
+    # Base query - get tasks tagged as repair requests
+    query = Task.query.filter(Task.tags.like('%repair_request%'))
+    
+    # Apply property filter if specified
+    if property_id:
+        query = query.join(
+            TaskProperty, TaskProperty.task_id == Task.id
+        ).filter(
+            TaskProperty.property_id == property_id
+        )
+    
+    # Apply sorting
+    if sort_by == 'date':
+        query = query.order_by(Task.created_at.desc())
+    elif sort_by == 'due_date':
+        query = query.order_by(Task.due_date)
+    elif sort_by == 'property':
+        query = query.join(
+            TaskProperty, TaskProperty.task_id == Task.id
+        ).join(
+            Property, Property.id == TaskProperty.property_id
+        ).order_by(Property.name)
+    else:  # Default to priority
+        query = query.order_by(Task.priority.desc())
+    
+    # Get all properties for the filter dropdown
+    properties = []
     if current_user.is_property_owner():
-        # Get all properties owned by the current user
-        owned_property_ids = [p.id for p in current_user.properties]
-        query = query.filter(RepairRequest.property_id.in_(owned_property_ids))
+        properties = current_user.owned_properties
+    elif current_user.has_admin_role() or current_user.is_property_manager():
+        properties = Property.query.all()
     
-    # Cleaners and maintenance personnel see requests they submitted
-    elif current_user.is_service_staff():
-        query = query.filter(RepairRequest.reporter_id == current_user.id)
-    
-    # Order by created date (newest first) and severity
-    repair_requests = query.order_by(RepairRequest.created_at.desc(), RepairRequest.severity.desc()).all()
+    # Execute query
+    repair_requests = query.all()
     
     return render_template('tasks/repair_requests.html', 
                           title='Repair Requests', 
                           repair_requests=repair_requests,
-                          status_filter=status)
+                          properties=properties,
+                          current_property_id=property_id,
+                          sort_by=sort_by,
+                          TaskStatus=TaskStatus,
+                          TaskPriority=TaskPriority)
 
 
-@bp.route('/property/<int:property_id>/repair-request', methods=['GET', 'POST'])
+@bp.route('/repair_requests/create', methods=['GET', 'POST'])
 @login_required
-def submit_repair_request(property_id):
-    """Submit a repair request for a property"""
-    # Get the property
-    property = Property.query.get_or_404(property_id)
-    
-    # Check if the property is visible to the user
-    if not property.is_visible_to(current_user):
-        flash('You do not have permission to submit repair requests for this property.', 'danger')
-        return redirect(url_for('property.index'))
-    
+def create_repair_request():
+    """Create a new repair request."""
     form = RepairRequestForm()
     
-    if form.validate_on_submit():
-        # Create the repair request
-        repair_request = RepairRequest(
-            property_id=property_id,
-            reporter_id=current_user.id,
-            title=form.title.data,
-            description=form.description.data,
-            location=form.location.data,
-            severity=RepairRequestSeverity(form.severity.data),
-            additional_notes=form.additional_notes.data,
-            status=RepairRequestStatus.PENDING  # Explicitly set status to PENDING
-        )
-        
-        db.session.add(repair_request)
-        db.session.flush()  # Get the repair request ID without committing
-        
-        # Handle multiple photo uploads
-        photos = request.files.getlist('photos')
-        has_valid_photos = False
-        
-        for photo in photos:
-            # Skip if no file was selected
-            if not photo or photo.filename == '':
-                continue
-                
-            if allowed_file(photo.filename, current_app.config['ALLOWED_PHOTO_EXTENSIONS']):
-                has_valid_photos = True
-                try:
-                    # Generate a unique filename
-                    filename = f"{secrets.token_hex(16)}_{secure_filename(photo.filename)}"
-                    
-                    # Determine the storage path
-                    storage_dir = os.path.join(
-                        current_app.config['UPLOAD_FOLDER'],
-                        'repair_requests',
-                        str(repair_request.id)
-                    )
-                    
-                    # Create directory if it doesn't exist
-                    os.makedirs(storage_dir, exist_ok=True)
-                    
-                    # Save the file
-                    file_path = os.path.join(storage_dir, filename)
-                    photo.save(file_path)
-                    
-                    # Create a web-accessible path
-                    web_path = f"/static/uploads/repair_requests/{repair_request.id}/{filename}"
-                    
-                    # Create media record
-                    media = RepairRequestMedia(
-                        repair_request_id=repair_request.id,
-                        file_path=web_path,
-                        storage_backend=StorageBackend.LOCAL,
-                        original_filename=photo.filename,
-                        file_size=os.path.getsize(file_path),
-                        mime_type=photo.content_type
-                    )
-                    
-                    db.session.add(media)
-                    
-                except Exception as e:
-                    flash(f'Error uploading photo: {str(e)}', 'warning')
-        
-        # Commit the transaction
-        db.session.commit()
-        
-        # Send notification to property owner
-        send_repair_request_notification(repair_request, property.owner)
-        
-        flash('Repair request submitted successfully! The property owner has been notified.', 'success')
-        return redirect(url_for('property.view', id=property_id))
+    # Set up properties for the form based on user role
+    if current_user.is_admin or current_user.is_property_manager:
+        form.property.query_factory = lambda: Property.query.all()
+    else:
+        form.property.query_factory = lambda: Property.query.filter(
+            Property.id.in_([p.id for p in current_user.visible_properties])
+        ).all()
     
-    return render_template('tasks/repair_request_form.html', 
-                          title='Submit Repair Request', 
-                          form=form, 
-                          property=property)
-
-
-@bp.route('/repair-request/<int:id>')
-@login_required
-def view_repair_request(id):
-    """View a single repair request"""
-    # Get the repair request
-    repair_request = RepairRequest.query.get_or_404(id)
-    
-    # Check if user has permission to view this repair request
-    if not can_view_repair_request(repair_request, current_user):
-        flash('You do not have permission to view this repair request.', 'danger')
-        return redirect(url_for('tasks.repair_requests'))
-    
-    return render_template('tasks/view_repair_request.html', 
-                          title=f'Repair Request: {repair_request.title}', 
-                          repair_request=repair_request)
-
-
-@bp.route('/repair-request/<int:id>/edit', methods=['GET', 'POST'])
-@login_required
-def edit_repair_request(id):
-    """Edit a repair request - admin only"""
-    # Get the repair request
-    repair_request = RepairRequest.query.get_or_404(id)
-    
-    # Check if user has permission to edit this repair request
-    if not current_user.has_admin_role() and not (current_user.is_property_owner() and repair_request.associated_property.owner_id == current_user.id):
-        flash('You do not have permission to edit this repair request.', 'danger')
-        return redirect(url_for('tasks.view_repair_request', id=id))
-    
-    form = RepairRequestForm()
+    # Pre-select property if property_id is provided
+    property_id = request.args.get('property_id', type=int)
+    if property_id:
+        property = Property.query.get_or_404(property_id)
+        if not current_user.is_admin and property not in current_user.visible_properties:
+            flash('You do not have access to this property.', 'danger')
+            return redirect(url_for('tasks.repair_requests'))
+        form.property.data = property
     
     if form.validate_on_submit():
-        repair_request.title = form.title.data
-        repair_request.description = form.description.data
-        repair_request.location = form.location.data
-        repair_request.severity = form.severity.data
-        repair_request.additional_notes = form.additional_notes.data
-        
-        # Only admin can change status
-        if current_user.has_admin_role() and form.status.data:
-            repair_request.status = form.status.data
-        
-        db.session.commit()
-        flash('Repair request updated successfully.', 'success')
-        return redirect(url_for('tasks.view_repair_request', id=id))
+        try:
+            # Create the task
+            task = Task(
+                title=form.title.data,
+                description=form.description.data,
+                location=form.location.data,
+                status=TaskStatus.PENDING,
+                priority=form.priority.data,
+                due_date=form.due_date.data,
+                notes=form.additional_notes.data,
+                creator_id=current_user.id,
+                tags='repair_request'
+            )
+            
+            # Add task property
+            task_property = TaskProperty(
+                property_id=form.property.data.id
+            )
+            task.properties.append(task_property)
+            
+            # Handle photo uploads
+            if form.photos.data:
+                for photo in form.photos.data:
+                    if photo and allowed_file(photo.filename):
+                        try:
+                            # Save the file and get the relative path
+                            relative_path = save_file_to_storage(
+                                photo,
+                                'repair_requests',
+                                task.id
+                            )
+                            
+                            # Create TaskMedia record
+                            media = TaskMedia(
+                                task_id=task.id,
+                                file_path=relative_path,
+                                media_type=MediaType.IMAGE,
+                                uploaded_by=current_user.id
+                            )
+                            db.session.add(media)
+                            
+                        except Exception as e:
+                            logging.error(f"Failed to save photo for repair request {task.id}: {str(e)}")
+                            flash(f'Error saving photo: {photo.filename}', 'warning')
+            
+            db.session.add(task)
+            db.session.commit()
+            
+            # Send notification to property owner
+            try:
+                send_task_assignment_notification(task)
+            except Exception as e:
+                logging.error(f"Failed to send notification for repair request {task.id}: {str(e)}")
+                flash('Repair request created but notification could not be sent.', 'warning')
+            
+            flash('Repair request created successfully!', 'success')
+            return redirect(url_for('tasks.view', id=task.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"Error creating repair request: {str(e)}")
+            flash(f'Error creating repair request: {str(e)}', 'danger')
     
-    elif request.method == 'GET':
-        # Populate form with repair request data
-        form.title.data = repair_request.title
-        form.description.data = repair_request.description
-        form.location.data = repair_request.location
-        form.severity.data = repair_request.severity
-        form.additional_notes.data = repair_request.additional_notes
-        if hasattr(form, 'status'):
-            form.status.data = repair_request.status
-    
-    return render_template('tasks/repair_request_edit.html', 
-                          title=f'Edit Repair Request: {repair_request.title}', 
-                          form=form, 
-                          repair_request=repair_request)
-
-
-@bp.route('/repair-request/<int:id>/approve', methods=['POST'])
-@login_required
-def approve_repair_request(id):
-    """Approve a repair request"""
-    # Get the repair request
-    repair_request = RepairRequest.query.get_or_404(id)
-    
-    # Check if user has permission to approve this repair request
-    if not can_manage_repair_request(repair_request, current_user):
-        flash('You do not have permission to approve this repair request.', 'danger')
-        return redirect(url_for('tasks.view_repair_request', id=id))
-    
-    # Update status
-    repair_request.status = RepairRequestStatus.APPROVED
-    db.session.commit()
-    
-    flash('Repair request approved.', 'success')
-    return redirect(url_for('tasks.view_repair_request', id=id))
-
-
-@bp.route('/repair-request/<int:id>/reject', methods=['POST'])
-@login_required
-def reject_repair_request(id):
-    """Reject a repair request"""
-    # Get the repair request
-    repair_request = RepairRequest.query.get_or_404(id)
-    
-    # Check if user has permission to reject this repair request
-    if not can_manage_repair_request(repair_request, current_user):
-        flash('You do not have permission to reject this repair request.', 'danger')
-        return redirect(url_for('tasks.view_repair_request', id=id))
-    
-    # Update status
-    repair_request.status = RepairRequestStatus.REJECTED
-    db.session.commit()
-    
-    flash('Repair request rejected.', 'success')
-    return redirect(url_for('tasks.view_repair_request', id=id))
-
-
-@bp.route('/repair-request/<int:id>/convert', methods=['GET', 'POST'])
-@login_required
-def convert_to_task(id):
-    """Convert a repair request to a task"""
-    # Get the repair request
-    repair_request = RepairRequest.query.get_or_404(id)
-    
-    # Check if user has permission to convert this repair request
-    if not can_manage_repair_request(repair_request, current_user):
-        flash('You do not have permission to convert this repair request to a task.', 'danger')
-        return redirect(url_for('tasks.view_repair_request', id=id))
-    
-    # Check if already converted
-    if repair_request.status == RepairRequestStatus.CONVERTED:
-        flash('This repair request has already been converted to a task.', 'warning')
-        return redirect(url_for('tasks.view', id=repair_request.task_id))
-    
-    form = ConvertToTaskForm()
-    
-    if form.validate_on_submit():
-        # Create new task
-        task = Task(
-            title=form.title.data,
-            description=form.description.data,
-            due_date=form.due_date.data,
-            status=TaskStatus.PENDING,
-            priority=TaskPriority(form.priority.data),
-            notes=form.notes.data,
-            is_recurring=form.is_recurring.data,
-            recurrence_pattern=RecurrencePattern(form.recurrence_pattern.data) if form.is_recurring.data else RecurrencePattern.NONE,
-            recurrence_interval=form.recurrence_interval.data if form.is_recurring.data else 1,
-            recurrence_end_date=form.recurrence_end_date.data,
-            assign_to_next_cleaner=form.assign_to_next_cleaner.data,
-            creator_id=current_user.id
-        )
-        
-        # Add property to the task
-        task_property = TaskProperty(property_id=repair_request.property_id)
-        task.properties.append(task_property)
-        
-        db.session.add(task)
-        db.session.flush()  # Get the task ID without committing
-        
-        # Update repair request status and link to task
-        repair_request.status = RepairRequestStatus.CONVERTED
-        repair_request.task_id = task.id
-        
-        db.session.commit()
-        
-        flash('Repair request successfully converted to a task!', 'success')
-        return redirect(url_for('tasks.assign', id=task.id))
-    
-    elif request.method == 'GET':
-        # Pre-populate form with repair request data
-        form.title.data = f"Repair: {repair_request.title}"
-        form.description.data = f"Repair request details:\n\n{repair_request.description}\n\nLocation: {repair_request.location}"
-        
-        # Set priority based on severity
-        severity_to_priority = {
-            RepairRequestSeverity.URGENT: TaskPriority.URGENT,
-            RepairRequestSeverity.HIGH: TaskPriority.HIGH,
-            RepairRequestSeverity.MEDIUM: TaskPriority.MEDIUM,
-            RepairRequestSeverity.LOW: TaskPriority.LOW
-        }
-        form.priority.data = severity_to_priority.get(repair_request.severity, TaskPriority.MEDIUM).value
-        
-        # Set due date based on severity
-        now = datetime.utcnow()
-        if repair_request.severity == RepairRequestSeverity.URGENT:
-            form.due_date.data = now + timedelta(days=1)
-        elif repair_request.severity == RepairRequestSeverity.HIGH:
-            form.due_date.data = now + timedelta(days=3)
-        elif repair_request.severity == RepairRequestSeverity.MEDIUM:
-            form.due_date.data = now + timedelta(days=7)
-        else:
-            form.due_date.data = now + timedelta(days=14)
-        
-        # Add additional notes if any
-        if repair_request.additional_notes:
-            form.notes.data = f"Additional notes from reporter:\n{repair_request.additional_notes}"
-    
-    return render_template('tasks/convert_to_task.html', 
-                          title='Convert to Task', 
-                          form=form, 
-                          repair_request=repair_request)
+    return render_template('tasks/create_repair_request.html', form=form)
 
 
 def can_view_task(task, user):
@@ -1662,3 +1531,115 @@ def create_task_for_property(property_id):
                           form=form,
                           task_templates=task_templates,
                           property=property)
+
+
+@bp.route('/workorders')
+@login_required
+def workorders():
+    """Show workorder tasks"""
+    
+    # Get query parameters for sorting and filtering
+    sort_by = request.args.get('sort_by', 'priority')
+    property_id = request.args.get('property_id', type=int)
+    
+    # Base query - get tasks tagged as workorder
+    query = Task.query.filter(Task.tags.contains('workorder'))
+    
+    # Apply property filter if specified
+    if property_id:
+        query = query.join(
+            TaskProperty, TaskProperty.task_id == Task.id
+        ).filter(
+            TaskProperty.property_id == property_id
+        )
+    
+    # Apply sorting
+    if sort_by == 'date':
+        query = query.order_by(Task.created_at.desc())
+    elif sort_by == 'due_date':
+        query = query.order_by(Task.due_date)
+    elif sort_by == 'property':
+        # This is more complex as we need to sort by property name
+        query = query.join(
+            TaskProperty, TaskProperty.task_id == Task.id
+        ).join(
+            Property, Property.id == TaskProperty.property_id
+        ).order_by(Property.name)
+    else:  # Default to priority
+        query = query.order_by(Task.priority.desc())
+    
+    # Get all properties for the filter dropdown
+    properties = []
+    if current_user.is_property_owner():
+        properties = current_user.owned_properties
+    elif current_user.has_admin_role() or current_user.is_property_manager():
+        properties = Property.query.all()
+    
+    # Execute query
+    workorders = query.all()
+    
+    return render_template('tasks/workorders.html', 
+                          title='Work Orders', 
+                          workorders=workorders,
+                          properties=properties,
+                          current_property_id=property_id,
+                          sort_by=sort_by)
+
+
+@bp.route('/workorders/create', methods=['GET', 'POST'])
+@login_required
+def create_workorder():
+    """Create a new workorder"""
+    form = TaskForm()
+    
+    # Set up the form
+    form.properties.query = Property.query
+    
+    # Process form submission
+    if form.validate_on_submit():
+        # Create the task
+        task = Task(
+            title=form.title.data,
+            description=form.description.data,
+            status=form.status.data,
+            priority=form.priority.data,
+            due_date=form.due_date.data,
+            creator_id=current_user.id,
+            notes=form.notes.data,
+            is_recurring=form.is_recurring.data,
+            recurrence_pattern=form.recurrence_pattern.data if form.is_recurring.data else None,
+            recurrence_interval=form.recurrence_interval.data if form.is_recurring.data else 1,
+            recurrence_end_date=form.recurrence_end_date.data,
+            linked_to_checkout=form.linked_to_checkout.data,
+            calendar_id=form.calendar_id.data if form.linked_to_checkout.data else None,
+            assign_to_next_cleaner=form.assign_to_next_cleaner.data,
+            tags='workorder'  # Always tag as workorder
+        )
+        
+        # Add any additional tags if specified
+        if form.tags.data:
+            tags = [tag.strip() for tag in form.tags.data.split(',')]
+            if 'workorder' not in tags:
+                tags.append('workorder')
+            task.tags = ','.join(tags)
+        
+        db.session.add(task)
+        
+        # Add properties
+        if form.properties.data:
+            for property in form.properties.data:
+                task.add_property(property.id)
+        
+        db.session.commit()
+        
+        flash('Work order created successfully!', 'success')
+        return redirect(url_for('tasks.workorders'))
+    
+    # Default form values
+    form.status.data = TaskStatus.PENDING
+    form.priority.data = TaskPriority.MEDIUM
+    form.recurrence_pattern.data = RecurrencePattern.NONE
+    
+    return render_template('tasks/create_workorder.html', 
+                         title='Create Work Order',
+                         form=form)

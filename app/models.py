@@ -17,6 +17,7 @@ class UserRoles(enum.Enum):
     SERVICE_STAFF = "service_staff"
     PROPERTY_MANAGER = "property_manager"
     ADMIN = "admin"
+    TENANT = "tenant"
 
 class TaskStatus(enum.Enum):
     PENDING = 'PENDING'
@@ -432,6 +433,17 @@ class User(UserMixin, db.Model):
         self._is_admin = value
 
 class Property(db.Model):
+    """
+    Property model representing real estate properties in the system.
+    
+    Relationships:
+    - owner: The User who owns this property
+    - property_tasks: Tasks associated with this property
+    - property_inventory: Inventory items associated with this property
+    - images: Images of this property
+    - rooms: Rooms that belong to this property (lazy loaded)
+    - calendars: Calendars associated with this property
+    """
     __tablename__ = 'property'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -509,10 +521,9 @@ class Property(db.Model):
     # Relationships
     owner = db.relationship('User', foreign_keys=[owner_id], backref=db.backref('owned_properties', overlaps="owner_user,properties"), overlaps="owner_user,properties")
     property_tasks = db.relationship('Task', backref='property')
-    property_rooms = db.relationship('Room', backref='property')
     property_inventory = db.relationship('InventoryItem', backref='property')
     images = db.relationship('PropertyImage', backref='property')
-    rooms = db.relationship('Room', backref='property_parent', overlaps="property,property_rooms")
+    rooms = db.relationship('Room', backref='property', lazy='dynamic')
     calendars = db.relationship('PropertyCalendar', backref='property')
     
     @property
@@ -600,9 +611,7 @@ class Property(db.Model):
 
     def get_room_count(self):
         """Safely count the number of rooms"""
-        if self.rooms is None:
-            return 0
-        return len(self.rooms)
+        return self.rooms.count()
 
     def get_primary_image_url(self):
         """Get the URL of the primary property image or a default if none exists"""
@@ -742,6 +751,13 @@ class PropertyCalendar(db.Model):
             return 'fas fa-calendar-alt'
 
 class Room(db.Model):
+    """
+    Room model representing rooms within a property.
+    
+    Each room belongs to a single property and can have furniture items.
+    The relationship with Property is defined through the property_id foreign key
+    and accessed via the 'property' backref.
+    """
     __tablename__ = 'room'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -802,7 +818,7 @@ class Task(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = db.Column(db.DateTime, nullable=True)
     creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
     assign_to_next_cleaner = db.Column(db.Boolean, default=False)
     
     # Add recurring task fields
@@ -815,6 +831,13 @@ class Task(db.Model):
     notes = db.Column(db.Text, nullable=True)
     linked_to_checkout = db.Column(db.Boolean, default=False)
     calendar_id = db.Column(db.Integer, db.ForeignKey('property_calendar.id', name='fk_task_calendar'), nullable=True)
+    
+    # Tags for categorizing tasks (e.g., repair_request, workorder, etc.)
+    tags = db.Column(db.String(255), nullable=True)
+    
+    # Fields for repair requests
+    location = db.Column(db.String(255), nullable=True)  # Location within property
+    severity = db.Column(db.String(50), nullable=True)  # Severity level for repair requests
     
     # Relationships - use task_creator backref instead of creator
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic')
@@ -869,6 +892,16 @@ class Task(db.Model):
         else:
             # Handle case where priority is stored as an enum
             return self.priority.name.replace('_', ' ').title()
+            
+    def is_repair_request(self):
+        """Check if this task is a repair request"""
+        return self.tags and 'repair_request' in self.tags.split(',')
+        
+    def get_severity_display(self):
+        """Return a display-friendly severity name"""
+        if not self.severity:
+            return None
+        return self.severity.replace('_', ' ').title()
 
 class TaskAssignment(db.Model):
     __tablename__ = 'task_assignment'
@@ -935,8 +968,8 @@ class CleaningSession(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships with clear distinct names
-    associated_property = db.relationship('Property', foreign_keys=[property_id], overlaps="cleaning_sessions")
-    associated_task = db.relationship('Task', foreign_keys=[task_id], overlaps="associated_cleaning_sessions")
+    associated_property = db.relationship('Property', foreign_keys=[property_id], backref='cleaning_sessions')
+    associated_task = db.relationship('Task', foreign_keys=[task_id], backref='cleaning_sessions')
     
     def __repr__(self):
         if hasattr(self, 'assigned_cleaner') and self.assigned_cleaner:

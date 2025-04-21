@@ -134,6 +134,22 @@ def create_app(config_class=Config):
             app.logger.warning(f"Could not initialize site settings: {str(e)}")
             app.logger.info("You may need to run 'flask db upgrade' if this is a new installation")
     
+    # ADDED: Create all tables if they don't exist
+    with app.app_context():
+        try:
+            from sqlalchemy import inspect
+            
+            inspector = inspect(db.engine)
+            existing_tables = inspector.get_table_names()
+            
+            if 'property' not in existing_tables:
+                app.logger.info("Creating database tables...")
+                db.create_all()
+                app.logger.info("Database tables successfully created")
+            
+        except Exception as e:
+            app.logger.error(f"Error creating database tables: {str(e)}")
+    
     with app.app_context():
         # Apply database compatibility fixes
         patch_user_model()

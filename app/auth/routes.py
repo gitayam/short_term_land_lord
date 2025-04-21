@@ -1,11 +1,13 @@
 from flask import render_template, redirect, url_for, flash, request, session
-from flask_login import login_user, logout_user, current_user
+from flask_login import login_user, logout_user, current_user, login_required
 from datetime import datetime
 from app import db
 from app.auth import bp
-from app.auth.forms import LoginForm, RegistrationForm, RequestPasswordResetForm, ResetPasswordForm, SSOLoginForm, PropertyRegistrationForm
+from app.auth.forms import LoginForm, RegistrationForm, RequestPasswordResetForm, ResetPasswordForm, SSOLoginForm, PropertyRegistrationForm, InviteServiceStaffForm
 from app.models import User, PasswordReset, UserRoles, RegistrationRequest, ApprovalStatus
-from app.auth.email import send_password_reset_email
+from app.auth.email import send_password_reset_email, send_service_staff_invitation
+import secrets
+from app.utils.email import send_invitation_email
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -314,3 +316,42 @@ def reset_password(token):
         return redirect(url_for('auth.login'))
     
     return render_template('auth/reset_password.html', title='Reset Password', form=form)
+
+@bp.route('/invite_service_staff', methods=['GET', 'POST'])
+@login_required
+def invite_service_staff():
+    if not current_user.is_admin():
+        flash('You do not have permission to access this page.', 'danger')
+        return redirect(url_for('main.index'))
+    
+    form = InviteServiceStaffForm()
+    if form.validate_on_submit():
+        # Generate a random password for the new user
+        password = User.generate_random_password()
+        
+        # Create the new user
+        user = User(
+            email=form.email.data,
+            first_name=form.first_name.data,
+            last_name=form.last_name.data,
+            phone=form.phone.data,
+            password=password,
+            confirmed=False
+        )
+        
+        # Assign service staff role
+        service_staff_role = Role.query.filter_by(name='Service Staff').first()
+        if service_staff_role:
+            user.role = service_staff_role
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # Send invitation email with temporary password
+        token = user.generate_confirmation_token()
+        send_service_staff_invitation(user, token, password)
+        
+        flash('An invitation has been sent to {}.'.format(user.email), 'success')
+        return redirect(url_for('auth.invite_service_staff'))
+    
+    return render_template('auth/invite_service_staff.html', form=form)

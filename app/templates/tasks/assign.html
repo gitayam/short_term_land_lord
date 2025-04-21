@@ -58,6 +58,7 @@
                     <h5 class="mb-0">Add Assignment</h5>
                 </div>
                 <div class="card-body">
+                    {% if has_service_staff %}
                     <form method="post" action="{{ url_for('tasks.assign', id=task.id) }}">
                         {{ form.hidden_tag() }}
                         
@@ -121,9 +122,67 @@
                         </div>
                         
                         <div class="text-end">
-                            <button type="submit" class="btn btn-primary">{{ form.submit.label }}</button>
+                            {{ form.submit(class="btn btn-primary") }}
                         </div>
                     </form>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <h5>No Service Staff Available</h5>
+                        <p>There are currently no service staff members in the system. You can:</p>
+                        <ul>
+                            <li>Invite service staff using the button below</li>
+                            <li>Assign to an external person using the form below</li>
+                        </ul>
+                        <a href="{{ url_for('auth.invite_service_staff') }}" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Invite Service Staff
+                        </a>
+                    </div>
+                    
+                    <hr>
+                    
+                    <form method="post" action="{{ url_for('tasks.assign', id=task.id) }}">
+                        {{ form.hidden_tag() }}
+                        {{ form.assign_to_user(value="0", style="display: none;") }}
+                        
+                        <div class="form-group mb-3">
+                            {{ form.external_name.label(class="form-label") }}
+                            {{ form.external_name(class="form-control") }}
+                            {% for error in form.external_name.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.external_phone.label(class="form-label") }}
+                            {{ form.external_phone(class="form-control") }}
+                            <div class="form-text">Enter phone number to send SMS notifications</div>
+                            {% for error in form.external_phone.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.external_email.label(class="form-label") }}
+                            {{ form.external_email(class="form-control") }}
+                            <div class="form-text">Enter email to send email notifications</div>
+                            {% for error in form.external_email.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.service_type.label(class="form-label") }}
+                            {{ form.service_type(class="form-select") }}
+                            {% for error in form.service_type.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="text-end">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -138,15 +197,18 @@
         const externalAssignment = document.getElementById('external-assignment');
         
         function toggleAssignmentType() {
-            userAssignment.style.display = assignToUserCheckbox.checked ? 'block' : 'none';
-            externalAssignment.style.display = assignToUserCheckbox.checked ? 'none' : 'block';
+            if (userAssignment && externalAssignment) {  // Only toggle if elements exist
+                userAssignment.style.display = assignToUserCheckbox.checked ? 'block' : 'none';
+                externalAssignment.style.display = assignToUserCheckbox.checked ? 'none' : 'block';
+            }
         }
         
         // Initial state
-        toggleAssignmentType();
-        
-        // Listen for changes
-        assignToUserCheckbox.addEventListener('change', toggleAssignmentType);
+        if (assignToUserCheckbox) {  // Only setup if checkbox exists
+            toggleAssignmentType();
+            // Listen for changes
+            assignToUserCheckbox.addEventListener('change', toggleAssignmentType);
+        }
     });
 </script>
 {% endblock %}

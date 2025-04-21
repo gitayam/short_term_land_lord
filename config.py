@@ -73,3 +73,4 @@ class TestConfig(Config):
     NOTIFICATION_SMS_ENABLED = False
     # Force the User model to use 'user' in tests
     USER_TABLE_NAME = 'user'
+    SERVER_NAME = 'localhost:5000'  # Add SERVER_NAME for URL generation in tests
