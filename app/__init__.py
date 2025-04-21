@@ -77,6 +77,9 @@ def create_app(config_class=Config):
     
     from app.workforce import bp as workforce_bp
     app.register_blueprint(workforce_bp, url_prefix='/workforce')
+
+    from app.routes.health import bp as health_bp
+    app.register_blueprint(health_bp)
     
     # Fix PostgreSQL transactions if needed
     with app.app_context():
