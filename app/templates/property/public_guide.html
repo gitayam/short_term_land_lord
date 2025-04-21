@@ -54,7 +54,23 @@
                 <img src="{{ recommendation.photo_url }}" class="card-img-top" alt="{{ recommendation.title }}">
                 {% endif %}
                 <div class="card-body">
-                    <h5 class="card-title">{{ recommendation.title }}</h5>
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ recommendation.title }}</h5>
+                        <div>
+                            {% if recommendation.staff_pick %}
+                            <span class="badge bg-success me-1" title="Staff Pick">
+                                <i class="fas fa-star"></i> Staff Pick
+                            </span>
+                            {% endif %}
+                            <button class="btn btn-sm {% if recommendation.has_voted(guest_token) %}btn-primary{% else %}btn-outline-primary{% endif %} vote-btn"
+                                    data-recommendation-id="{{ recommendation.id }}"
+                                    onclick="toggleVote(this, '{{ recommendation.id }}')">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span class="vote-count">{{ recommendation.vote_count }}</span>
+                            </button>
+                        </div>
+                    </div>
+                    
                     {% if recommendation.category %}
                     <span class="badge bg-primary">{{ recommendation.category }}</span>
                     {% endif %}
@@ -79,4 +95,32 @@
     </div>
     {% endif %}
 </div>
+
+{% block scripts %}
+<script>
+function toggleVote(button, recommendationId) {
+    fetch(`/api/recommendations/${recommendationId}/vote`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Guest-Token': '{{ guest_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const voteCount = button.querySelector('.vote-count');
+        voteCount.textContent = data.vote_count;
+        
+        if (data.voted) {
+            button.classList.remove('btn-outline-primary');
+            button.classList.add('btn-primary');
+        } else {
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-outline-primary');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+</script>
+{% endblock %}
 {% endblock %} 

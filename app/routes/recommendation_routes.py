@@ -2,9 +2,10 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 import os
 from app import db
-from app.models import RecommendationBlock, Property, MediaType
+from app.models import RecommendationBlock, Property, MediaType, RecommendationVote
 from app.forms.recommendation_forms import RecommendationBlockForm
 from app.utils.storage import allowed_file, save_file_to_storage
+from sqlalchemy import func
 
 bp = Blueprint('recommendations', __name__)
 
@@ -93,12 +94,11 @@ def create_recommendation(property_id):
 @login_required
 def edit_recommendation(id):
     recommendation = RecommendationBlock.query.get_or_404(id)
-    if not can_manage_recommendations(recommendation.property):
+    if not can_manage_recommendations(recommendation.associated_property):
         flash('You do not have permission to edit this recommendation.', 'error')
         return redirect(url_for('main.index'))
     
     form = RecommendationBlockForm(obj=recommendation)
-    form.add_to_guide.data = recommendation.in_guide_book
     
     if form.validate_on_submit():
         recommendation.title = form.title.data
@@ -124,9 +124,17 @@ def edit_recommendation(id):
                     current_app.logger.error(f"Error saving photo: {str(e)}", exc_info=True)
                     flash('Error saving photo, but recommendation was updated successfully.', 'warning')
         
-        db.session.commit()
-        flash('Recommendation updated successfully!', 'success')
-        return redirect(url_for('recommendations.list_recommendations', property_id=recommendation.property_id))
+        try:
+            db.session.commit()
+            flash('Recommendation updated successfully!', 'success')
+            return redirect(url_for('recommendations.list_recommendations', property_id=recommendation.property_id))
+        except Exception as e:
+            current_app.logger.error(f"Error updating recommendation: {str(e)}", exc_info=True)
+            db.session.rollback()
+            flash('Error updating recommendation. Please try again.', 'error')
+    
+    # For GET requests or if form validation fails, set the checkbox state
+    form.add_to_guide.data = recommendation.in_guide_book
     
     return render_template('recommendations/edit.html', form=form, recommendation=recommendation)
 
@@ -134,7 +142,7 @@ def edit_recommendation(id):
 @login_required
 def delete_recommendation(id):
     recommendation = RecommendationBlock.query.get_or_404(id)
-    if not can_manage_recommendations(recommendation.property):
+    if not can_manage_recommendations(recommendation.associated_property):
         flash('You do not have permission to delete this recommendation.', 'error')
         return redirect(url_for('main.index'))
     
@@ -172,4 +180,39 @@ def view_guide_book(property_id):
     
     return render_template('recommendations/guide_book.html',
                          property=property,
-                         categorized_recommendations=categorized_recommendations) 
+                         categorized_recommendations=categorized_recommendations)
+
+@bp.route('/recommendations/dashboard', methods=['GET'])
+@login_required
+def dashboard():
+    """Dashboard for managing recommendations and viewing votes."""
+    if not current_user.is_property_owner and not current_user.has_admin_role:
+        flash('Access denied. You must be a property owner or admin to view this page.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get recommendations for the user's properties, ordered by vote count
+    query = RecommendationBlock.query
+    
+    if not current_user.has_admin_role:
+        # Filter by user's properties if not admin
+        query = query.join(Property).filter(Property.owner_id == current_user.id)
+    
+    # Use a subquery to count votes
+    vote_count = db.session.query(
+        RecommendationVote.recommendation_id,
+        func.count(RecommendationVote.id).label('vote_count')
+    ).group_by(RecommendationVote.recommendation_id).subquery()
+    
+    # Join with vote counts and order by votes
+    recommendations = query.outerjoin(
+        vote_count,
+        RecommendationBlock.id == vote_count.c.recommendation_id
+    ).order_by(
+        vote_count.c.vote_count.desc().nullslast(),
+        RecommendationBlock.created_at.desc()
+    ).all()
+    
+    return render_template(
+        'recommendations/dashboard.html',
+        recommendations=recommendations
+    ) 

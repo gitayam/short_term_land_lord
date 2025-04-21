@@ -1548,6 +1548,21 @@ class RecommendationCategory(enum.Enum):
     GROCERY = "grocery"
     OTHER = "other"
 
+class RecommendationVote(db.Model):
+    """Model for storing recommendation votes from guests"""
+    __tablename__ = 'recommendation_votes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    recommendation_id = db.Column(db.Integer, db.ForeignKey('recommendation_blocks.id'), nullable=False)
+    guest_token = db.Column(db.String(64), nullable=False)  # Unique token per guest stay
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    recommendation = db.relationship('RecommendationBlock', backref='votes')
+    
+    def __repr__(self):
+        return f'<RecommendationVote for recommendation {self.recommendation_id}>'
+
 class RecommendationBlock(db.Model):
     """Model for storing location-based recommendations"""
     __tablename__ = 'recommendation_blocks'
@@ -1565,11 +1580,12 @@ class RecommendationBlock(db.Model):
     parking_details = db.Column(db.Text, nullable=True)  # Parking information
     in_guide_book = db.Column(db.Boolean, default=False)  # Whether this recommendation is in the guide book
     photo_path = db.Column(db.String(500), nullable=True)
+    staff_pick = db.Column(db.Boolean, default=False)  # Whether this is marked as a staff pick
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
-    property = db.relationship('Property', backref='recommendations')
+    # Relationships - rename property to associated_property
+    associated_property = db.relationship('Property', backref='recommendations')
     
     def __repr__(self):
         return f'<RecommendationBlock {self.title} for Property {self.property_id}>'
@@ -1577,7 +1593,37 @@ class RecommendationBlock(db.Model):
     def get_category_display(self):
         return self.category.title()
     
-    def get_photo_url(self):
+    @property
+    def photo_url(self):
         if self.photo_path:
             return url_for('static', filename=f'recommendations/{self.photo_path}')
         return None
+    
+    @property
+    def vote_count(self):
+        """Get the total number of votes for this recommendation"""
+        return len(self.votes)
+    
+    def has_voted(self, guest_token):
+        """Check if a guest has already voted for this recommendation"""
+        return any(vote.guest_token == guest_token for vote in self.votes)
+    
+    def toggle_vote(self, guest_token):
+        """Toggle a vote for this recommendation"""
+        existing_vote = RecommendationVote.query.filter_by(
+            recommendation_id=self.id,
+            guest_token=guest_token
+        ).first()
+        
+        if existing_vote:
+            db.session.delete(existing_vote)
+            db.session.commit()
+            return False
+        else:
+            vote = RecommendationVote(
+                recommendation_id=self.id,
+                guest_token=guest_token
+            )
+            db.session.add(vote)
+            db.session.commit()
+            return True

@@ -2,118 +2,135 @@
 
 {% block content %}
 <div class="container mt-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('property.view', id=property.id) }}">{{ property.name }}</a></li>
-            <li class="breadcrumb-item active">Guide Book</li>
-        </ol>
-    </nav>
-
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
+    <div class="row">
+        <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0">
-                    <i class="fas fa-book"></i> {{ property.name }} Guide Book
-                </h1>
-                {% if current_user.is_admin or current_user.id == property.owner_id or current_user.is_property_manager %}
-                <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" class="btn btn-light">
-                    <i class="fas fa-edit"></i> Manage Recommendations
+                <h1>{{ property.name }} Guide Book</h1>
+                {% if current_user.is_authenticated and (current_user.is_property_owner or current_user.has_admin_role) %}
+                <a href="{{ url_for('recommendations.create_recommendation', property_id=property.id) }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Recommendation
                 </a>
                 {% endif %}
             </div>
+            <hr>
         </div>
-        
-        {% if not categorized_recommendations %}
-        <div class="card-body">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i> No guide book entries have been added yet.
-                {% if current_user.is_admin or current_user.id == property.owner_id or current_user.is_property_manager %}
-                <a href="{{ url_for('recommendations.create_recommendation', property_id=property.id) }}" class="alert-link">Add some recommendations</a> to get started.
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
     </div>
 
     {% for category, recommendations in categorized_recommendations.items() %}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h2 class="h5 mb-0">
-                {% if category == 'Food & Dining' %}
-                    <i class="fas fa-utensils"></i>
-                {% elif category == 'Outdoors & Recreation' %}
-                    <i class="fas fa-hiking"></i>
-                {% elif category == 'Shopping' %}
-                    <i class="fas fa-shopping-bag"></i>
-                {% elif category == 'Attractions' %}
-                    <i class="fas fa-landmark"></i>
-                {% elif category == 'Grocery Stores' %}
-                    <i class="fas fa-shopping-cart"></i>
-                {% else %}
-                    <i class="fas fa-star"></i>
-                {% endif %}
-                {{ category }}
-            </h2>
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>{{ category }}</h2>
         </div>
-        <div class="card-body">
-            <div class="row">
-                {% for recommendation in recommendations %}
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        {% if recommendation.photo_path %}
-                        <img src="{{ recommendation.get_photo_url() }}" class="card-img-top" alt="{{ recommendation.title }}" style="height: 200px; object-fit: cover;">
-                        {% endif %}
-                        <div class="card-body">
-                            <h5 class="card-title">{{ recommendation.title }}</h5>
-                            <p class="card-text">{{ recommendation.description }}</p>
-                            
-                            {% if recommendation.best_time_to_go %}
-                            <p class="card-text">
-                                <small class="text-muted">
-                                    <i class="far fa-clock"></i> Best Time to Visit: {{ recommendation.best_time_to_go }}
-                                </small>
-                            </p>
+        {% for recommendation in recommendations %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                {% if recommendation.photo_url %}
+                <img src="{{ recommendation.photo_url }}" class="card-img-top" alt="{{ recommendation.title }}">
+                {% endif %}
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ recommendation.title }}</h5>
+                        <div class="d-flex align-items-center">
+                            {% if recommendation.staff_pick %}
+                            <span class="badge bg-success me-2" title="Staff Pick">
+                                <i class="fas fa-star"></i> Staff Pick
+                            </span>
                             {% endif %}
-                            
-                            {% if recommendation.recommended_meal %}
-                            <p class="card-text">
-                                <small class="text-muted">
-                                    <i class="fas fa-utensils"></i> Recommended: {{ recommendation.recommended_meal }}
-                                </small>
-                            </p>
-                            {% endif %}
-                            
-                            {% if recommendation.wifi_name %}
-                            <div class="card-text mb-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-wifi"></i> WiFi Network: {{ recommendation.wifi_name }}
-                                    {% if recommendation.wifi_password %}
-                                    <br>Password: {{ recommendation.wifi_password }}
-                                    {% endif %}
-                                </small>
-                            </div>
-                            {% endif %}
-                            
-                            {% if recommendation.parking_details %}
-                            <p class="card-text">
-                                <small class="text-muted">
-                                    <i class="fas fa-parking"></i> Parking: {{ recommendation.parking_details }}
-                                </small>
-                            </p>
-                            {% endif %}
-                            
-                            {% if recommendation.map_link %}
-                            <a href="{{ recommendation.map_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-map-marker-alt"></i> View on Map
-                            </a>
-                            {% endif %}
+                            <button class="btn btn-sm {% if recommendation.has_voted(guest_token) %}btn-primary{% else %}btn-outline-primary{% endif %} vote-btn"
+                                    data-recommendation-id="{{ recommendation.id }}"
+                                    onclick="toggleVote(this, '{{ recommendation.id }}')">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span class="vote-count">{{ recommendation.vote_count }}</span>
+                            </button>
                         </div>
                     </div>
+
+                    <p class="card-text">{{ recommendation.description }}</p>
+                    
+                    {% if recommendation.best_time_to_go %}
+                    <p><strong>Best Time to Go:</strong> {{ recommendation.best_time_to_go }}</p>
+                    {% endif %}
+                    
+                    {% if recommendation.recommended_meal %}
+                    <p><strong>Recommended Meal:</strong> {{ recommendation.recommended_meal }}</p>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        {% if recommendation.map_link %}
+                        <a href="{{ recommendation.map_link }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-map-marker-alt"></i> View on Map
+                        </a>
+                        {% endif %}
+                        
+                        {% if current_user.is_authenticated and (current_user.is_property_owner or current_user.has_admin_role) %}
+                        <div class="btn-group">
+                            <a href="{{ url_for('recommendations.edit_recommendation', id=recommendation.id) }}" 
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-danger" 
+                                    onclick="deleteRecommendation('{{ recommendation.id }}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
-                {% endfor %}
             </div>
         </div>
+        {% endfor %}
     </div>
     {% endfor %}
 </div>
+
+{% block scripts %}
+<script>
+function toggleVote(button, recommendationId) {
+    fetch(`/api/recommendations/${recommendationId}/vote`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Guest-Token': '{{ guest_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const voteCount = button.querySelector('.vote-count');
+        voteCount.textContent = data.vote_count;
+        
+        if (data.voted) {
+            button.classList.remove('btn-outline-primary');
+            button.classList.add('btn-primary');
+        } else {
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-outline-primary');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function deleteRecommendation(recommendationId) {
+    if (confirm('Are you sure you want to delete this recommendation?')) {
+        fetch(`/recommendations/${recommendationId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Error deleting recommendation');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting recommendation');
+        });
+    }
+}
+</script>
+{% endblock %}
 {% endblock %} 
