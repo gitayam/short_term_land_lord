@@ -41,15 +41,16 @@ class RoomForm(FlaskForm):
     delete = BooleanField('Delete this room', default=False)
 
 class PropertyForm(FlaskForm):
-    name = StringField('Property Name', validators=[DataRequired(), Length(min=2, max=100)])
-    description = TextAreaField('Description')
-    
-    # Address information
+    # Address information (moved to top)
     street_address = StringField('Street Address 🏠', validators=[DataRequired(), Length(max=100)])
     city = StringField('City 🏙️', validators=[DataRequired(), Length(max=50)])
     state = StringField('State/Province 🗺️', validators=[DataRequired(), Length(max=50)])
     zip_code = StringField('ZIP/Postal Code 📮', validators=[DataRequired(), Length(max=20)])
     country = StringField('Country 🌎', validators=[DataRequired(), Length(max=50)], default='United States')
+    
+    # Basic information (name now optional)
+    name = StringField('Property Name (Optional)', validators=[Optional(), Length(min=2, max=100)])
+    description = TextAreaField('Description')
     
     # Property specifications
     property_type = SelectField('Property Type 🏘️', choices=[

@@ -458,7 +458,7 @@ class Property(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    name = db.Column(db.String(128), nullable=False)
+    name = db.Column(db.String(128), nullable=True)
     address = db.Column(db.String(256), nullable=False)
     description = db.Column(db.Text)
     property_type = db.Column(db.String(32), nullable=False, default='house')  # e.g., 'apartment', 'house', 'condo'

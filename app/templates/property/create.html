@@ -101,13 +101,66 @@
                     <form method="post" novalidate>
                         {{ form.hidden_tag() }}
                         
+                        <div class="form-section" role="region" aria-labelledby="address-heading">
+                            <h5 id="address-heading" class="mt-0 mb-3" tabindex="-1">🏠 Address Information</h5>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        {{ form.street_address.label(class="form-label") }}
+                                        {{ form.street_address(class="form-control", aria_required="true", tabindex="1") }}
+                                        {% for error in form.street_address.errors %}
+                                        <div class="text-danger" role="alert">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        {{ form.city.label(class="form-label") }}
+                                        {{ form.city(class="form-control", aria_required="true", tabindex="2") }}
+                                        {% for error in form.city.errors %}
+                                        <div class="text-danger" role="alert">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        {{ form.state.label(class="form-label") }}
+                                        {{ form.state(class="form-control", aria_required="true", tabindex="3") }}
+                                        {% for error in form.state.errors %}
+                                        <div class="text-danger" role="alert">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        {{ form.zip_code.label(class="form-label") }}
+                                        {{ form.zip_code(class="form-control", aria_required="true", tabindex="4") }}
+                                        {% for error in form.zip_code.errors %}
+                                        <div class="text-danger" role="alert">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="mb-3">
+                                        {{ form.country.label(class="form-label") }}
+                                        {{ form.country(class="form-control", aria_required="true", tabindex="5") }}
+                                        {% for error in form.country.errors %}
+                                        <div class="text-danger" role="alert">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="form-section" role="region" aria-labelledby="basic-info-heading">
-                            <h5 id="basic-info-heading" class="mt-0 mb-3" tabindex="-1">📋 Basic Information</h5>
+                            <h5 id="basic-info-heading" class="mt-4 mb-3" tabindex="-1">📋 Basic Information</h5>
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         {{ form.name.label(class="form-label") }}
-                                        {{ form.name(class="form-control", aria_required="true", tabindex="1") }}
+                                        {{ form.name(class="form-control", tabindex="6") }}
                                         {% for error in form.name.errors %}
                                         <div class="text-danger" role="alert">{{ error }}</div>
                                         {% endfor %}
@@ -116,19 +169,16 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         {{ form.property_type.label(class="form-label") }}
-                                        {{ form.property_type(class="form-select select2-enable", aria_required="true", tabindex="2") }}
+                                        {{ form.property_type(class="form-select select2-enable", aria_required="true", tabindex="7") }}
                                         {% for error in form.property_type.errors %}
                                         <div class="text-danger" role="alert">{{ error }}</div>
                                         {% endfor %}
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="form-section" role="region" aria-labelledby="description-heading">
                             <div class="mb-3">
                                 {{ form.description.label(class="form-label") }}
-                                {{ form.description(class="form-control", rows=3, aria_required="true", tabindex="3") }}
+                                {{ form.description(class="form-control", rows=3, tabindex="8") }}
                                 {% for error in form.description.errors %}
                                 <div class="text-danger" role="alert">{{ error }}</div>
                                 {% endfor %}
@@ -141,7 +191,7 @@
                                 <div class="col-md-12">
                                     <div class="mb-3">
                                         {{ form.ical_url.label(class="form-label") }}
-                                        {{ form.ical_url(class="form-control", aria_required="true", tabindex="4") }}
+                                        {{ form.ical_url(class="form-control", aria_required="true", tabindex="9") }}
                                         {% for error in form.ical_url.errors %}
                                         <div class="text-danger" role="alert">{{ error }}</div>
                                         {% endfor %}
@@ -160,7 +210,7 @@
                                     <div class="mb-3">
                                         {{ form.checkin_time.label(class="form-label") }}
                                         <div class="time-picker-wrapper">
-                                            {{ form.checkin_time(class="form-control time-picker", placeholder="15:00", data_input="true", aria_required="true", tabindex="5") }}
+                                            {{ form.checkin_time(class="form-control time-picker", placeholder="15:00", data_input="true", aria_required="true", tabindex="10") }}
                                             <i class="fas fa-clock time-picker-icon" aria-hidden="true"></i>
                                         </div>
                                         {% for error in form.checkin_time.errors %}
@@ -173,7 +223,7 @@
                                     <div class="mb-3">
                                         {{ form.checkout_time.label(class="form-label") }}
                                         <div class="time-picker-wrapper">
-                                            {{ form.checkout_time(class="form-control time-picker", placeholder="11:00", data_input="true", aria_required="true", tabindex="6") }}
+                                            {{ form.checkout_time(class="form-control time-picker", placeholder="11:00", data_input="true", aria_required="true", tabindex="11") }}
                                             <i class="fas fa-clock time-picker-icon" aria-hidden="true"></i>
                                         </div>
                                         {% for error in form.checkout_time.errors %}
@@ -191,7 +241,7 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         {{ form.trash_day.label(class="form-label") }}
-                                        {{ form.trash_day(class="form-select select2-enable", aria_required="true", tabindex="7") }}
+                                        {{ form.trash_day(class="form-select select2-enable", aria_required="true", tabindex="12") }}
                                         {% for error in form.trash_day.errors %}
                                         <div class="text-danger" role="alert">{{ error }}</div>
                                         {% endfor %}
@@ -200,61 +250,8 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         {{ form.recycling_day.label(class="form-label") }}
-                                        {{ form.recycling_day(class="form-select select2-enable", aria_required="true", tabindex="8") }}
+                                        {{ form.recycling_day(class="form-select select2-enable", aria_required="true", tabindex="13") }}
                                         {% for error in form.recycling_day.errors %}
-                                        <div class="text-danger" role="alert">{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-section" role="region" aria-labelledby="address-heading">
-                            <h5 id="address-heading" class="mt-4 mb-3" tabindex="-1">🏠 Address Information</h5>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="mb-3">
-                                        {{ form.street_address.label(class="form-label") }}
-                                        {{ form.street_address(class="form-control", aria_required="true", tabindex="9") }}
-                                        {% for error in form.street_address.errors %}
-                                        <div class="text-danger" role="alert">{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        {{ form.city.label(class="form-label") }}
-                                        {{ form.city(class="form-control", aria_required="true", tabindex="10") }}
-                                        {% for error in form.city.errors %}
-                                        <div class="text-danger" role="alert">{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        {{ form.state.label(class="form-label") }}
-                                        {{ form.state(class="form-control", aria_required="true", tabindex="11") }}
-                                        {% for error in form.state.errors %}
-                                        <div class="text-danger" role="alert">{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="mb-3">
-                                        {{ form.zip_code.label(class="form-label") }}
-                                        {{ form.zip_code(class="form-control", aria_required="true", tabindex="12") }}
-                                        {% for error in form.zip_code.errors %}
-                                        <div class="text-danger" role="alert">{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="mb-3">
-                                        {{ form.country.label(class="form-label") }}
-                                        {{ form.country(class="form-control", aria_required="true", tabindex="13") }}
-                                        {% for error in form.country.errors %}
                                         <div class="text-danger" role="alert">{{ error }}</div>
                                         {% endfor %}
                                     </div>

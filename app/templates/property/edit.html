@@ -34,7 +34,58 @@
                     <form method="post" novalidate>
                         {{ form.hidden_tag() }}
                         
-                        <h5 class="mt-0 mb-3">📋 Basic Information</h5>
+                        <h5 class="mt-0 mb-3">🏠 Address Information</h5>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form.street_address.label(class="form-label") }}
+                                    {{ form.street_address(class="form-control") }}
+                                    {% for error in form.street_address.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.city.label(class="form-label") }}
+                                    {{ form.city(class="form-control") }}
+                                    {% for error in form.city.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.state.label(class="form-label") }}
+                                    {{ form.state(class="form-control") }}
+                                    {% for error in form.state.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    {{ form.zip_code.label(class="form-label") }}
+                                    {{ form.zip_code(class="form-control") }}
+                                    {% for error in form.zip_code.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.country.label(class="form-label") }}
+                                    {{ form.country(class="form-control") }}
+                                    {% for error in form.country.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3">📋 Basic Information</h5>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -281,57 +332,6 @@
                             </div>
                         </div>
                         {% endif %}
-                        
-                        <h5 class="mt-4 mb-3">🏠 Address Information</h5>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="mb-3">
-                                    {{ form.street_address.label(class="form-label") }}
-                                    {{ form.street_address(class="form-control") }}
-                                    {% for error in form.street_address.errors %}
-                                    <div class="text-danger">{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    {{ form.city.label(class="form-label") }}
-                                    {{ form.city(class="form-control") }}
-                                    {% for error in form.city.errors %}
-                                    <div class="text-danger">{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="mb-3">
-                                    {{ form.state.label(class="form-label") }}
-                                    {{ form.state(class="form-control") }}
-                                    {% for error in form.state.errors %}
-                                    <div class="text-danger">{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="mb-3">
-                                    {{ form.zip_code.label(class="form-label") }}
-                                    {{ form.zip_code(class="form-control") }}
-                                    {% for error in form.zip_code.errors %}
-                                    <div class="text-danger">{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="mb-3">
-                                    {{ form.country.label(class="form-label") }}
-                                    {{ form.country(class="form-control") }}
-                                    {% for error in form.country.errors %}
-                                    <div class="text-danger">{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
                         
                         <h5 class="mt-4 mb-3">🔑 Property Access Information</h5>
                         <div class="row">
