@@ -7,7 +7,6 @@ from app.auth.forms import LoginForm, RegistrationForm, RequestPasswordResetForm
 from app.models import User, PasswordReset, UserRoles, RegistrationRequest, ApprovalStatus
 from app.auth.email import send_password_reset_email, send_service_staff_invitation
 import secrets
-from app.utils.email import send_invitation_email
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():

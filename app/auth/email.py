@@ -20,3 +20,20 @@ def send_password_reset_email(user):
         text_body=render_template('email/reset_password.txt', user=user, token=token),
         html_body=render_template('email/reset_password.html', user=user, token=token)
     )
+
+def send_service_staff_invitation(email, first_name, last_name, inviter, message=None):
+    """Send an invitation email to a service staff member"""
+    send_email(
+        subject='Invitation to Join as Service Staff',
+        recipients=[email],
+        text_body=render_template('email/service_staff_invite.txt',
+                                first_name=first_name,
+                                last_name=last_name,
+                                inviter=inviter,
+                                message=message),
+        html_body=render_template('email/service_staff_invite.html',
+                                first_name=first_name,
+                                last_name=last_name,
+                                inviter=inviter,
+                                message=message)
+    )

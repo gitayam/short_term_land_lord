@@ -1,0 +1,16 @@
+Dear {{ first_name }} {{ last_name }},
+
+You have been invited by {{ inviter.first_name }} {{ inviter.last_name }} to join our platform as a service staff member.
+
+{% if message %}
+Personal message from {{ inviter.first_name }}:
+{{ message }}
+{% endif %}
+
+Please click the link below to complete your registration:
+{{ url_for('auth.register', _external=True) }}
+
+If you did not expect this invitation, please ignore this email.
+
+Best regards,
+The Team 

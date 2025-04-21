@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .button { display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+        .message { margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Welcome to Our Platform</h2>
+        
+        <p>Dear {{ first_name }} {{ last_name }},</p>
+        
+        <p>You have been invited by {{ inviter.first_name }} {{ inviter.last_name }} to join our platform as a service staff member.</p>
+        
+        {% if message %}
+        <div class="message">
+            <p><strong>Personal message from {{ inviter.first_name }}:</strong></p>
+            <p>{{ message }}</p>
+        </div>
+        {% endif %}
+        
+        <p>To complete your registration, please click the button below:</p>
+        
+        <p>
+            <a href="{{ url_for('auth.register', _external=True) }}" class="button">
+                Complete Registration
+            </a>
+        </p>
+        
+        <p>If you did not expect this invitation, please ignore this email.</p>
+        
+        <p>
+            Best regards,<br>
+            The Team
+        </p>
+    </div>
+</body>
+</html> 
