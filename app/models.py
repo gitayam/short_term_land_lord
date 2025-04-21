@@ -19,6 +19,7 @@ class UserRoles(enum.Enum):
     PROPERTY_MANAGER = "property_manager"
     ADMIN = "admin"
     TENANT = "tenant"
+    PROPERTY_GUEST = "property_guest"
 
 class TaskStatus(enum.Enum):
     PENDING = 'PENDING'
@@ -337,6 +338,11 @@ class User(UserMixin, db.Model):
     def is_property_manager(self):
         """Check if the user has the property manager role."""
         return self.role == UserRoles.PROPERTY_MANAGER.value
+    
+    @property
+    def is_property_guest(self):
+        """Check if the user has the property guest role."""
+        return self.role == UserRoles.PROPERTY_GUEST.value
     
     @property
     def has_admin_role(self):
