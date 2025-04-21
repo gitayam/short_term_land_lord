@@ -3,6 +3,8 @@
 A comprehensive property management system designed specifically for short-term rental properties. This platform streamlines the coordination between property owners, cleaners, and maintenance staff while providing enhanced calendar integration with popular booking platforms like Airbnb and VRBO.
 
 ## Features
+![main-page](docs/media/main-page.png)
+
 
 - **Calendar Management**: Import and sync calendar events from Airbnb, VRBO, and other booking platforms
 - **Property Management**: Track property details, amenities, and access information
@@ -13,14 +15,15 @@ A comprehensive property management system designed specifically for short-term 
 - **Maintenance Requests**: Report and track maintenance issues
 - **Guest Access Portal**: Provide information to guests with customizable access
 
+![property-edit](docs/media/property-edit.png)
+
 ## Development Setup
 
 ### Prerequisites
 
-- Python 3.9+
-- PostgreSQL
 - Git
 - Docker and Docker Compose (recommended)
+- If not using Docker, you will need Python 3.9+ and PostgreSQL
 
 ### Docker Setup (Recommended)
 
@@ -33,6 +36,7 @@ A comprehensive property management system designed specifically for short-term 
 2. Copy the example environment file:
    ```bash
    cp .env.example .env
+   nano .env
    ```
 
 3. Configure your environment variables in `.env`:
