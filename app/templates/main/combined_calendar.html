@@ -183,6 +183,68 @@
     .top-nav-links a:hover {
         background-color: #f8f9fa;
     }
+
+    .sidebar-property-list {
+        min-height: 100vh;
+        background: #fff;
+        border-right: 1px solid #eee;
+        padding: 0;
+    }
+    .property-list-item {
+        transition: background 0.1s;
+        cursor: pointer;
+    }
+    .property-list-item.active, .property-list-item:hover {
+        background: #f5f5f5;
+    }
+    .property-list-item img {
+        border-radius: 8px;
+        border: 1px solid #eee;
+    }
+
+    /* Event pill style */
+    .fc-timeline-event, .fc-event {
+        background: #008489 !important;
+        color: #fff !important;
+        border-radius: 20px !important;
+        font-size: 1em !important;
+        font-weight: 500;
+        padding: 6px 16px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        border: none !important;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .fc-timeline-event .fc-event-title, .fc-event .fc-event-title {
+        color: #fff !important;
+        font-weight: 600;
+        font-size: 1em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Calendar grid improvements */
+    .fc .fc-timeline-slot-label, .fc .fc-col-header-cell {
+        font-weight: 600;
+        color: #222;
+        background: #f8f9fa;
+        border-bottom: 1px solid #eee;
+    }
+    .fc .fc-timeline-slot {
+        border-right: 1px solid #eee;
+    }
+    .fc .fc-resource-area-header {
+        background: #f8f9fa;
+        font-size: 1.1em;
+        font-weight: 700;
+    }
+
+    /* Highlight today */
+    .fc .fc-day-today {
+        background: #e6f7f7 !important;
+    }
 </style>
 {% endblock %}
 
@@ -199,9 +261,27 @@
     </div>
 </nav>
 
-<div class="container-fluid"> {# Use container-fluid for better width utilization #}
+<div class="container-fluid">
     <div class="row">
-        <div class="col-12">
+        <!-- Sidebar: Property List -->
+        <div class="col-md-3 col-lg-2 d-none d-md-block sidebar-property-list" style="background:#fff; border-right:1px solid #eee; min-height:700px; padding:0;">
+            <div class="p-3 border-bottom">
+                <input type="text" class="form-control" id="propertySearch" placeholder="Search listings...">
+            </div>
+            <div id="propertyList" class="list-group list-group-flush">
+                {% for resource in resources %}
+                <a href="#" class="list-group-item list-group-item-action d-flex align-items-center property-list-item" data-resource-id="{{ resource.id }}">
+                    <img src="{{ resource.image_url }}" alt="{{ resource.title }}" class="rounded me-2" style="width:40px; height:40px; object-fit:cover;">
+                    <div>
+                        <div class="fw-bold">{{ resource.title }}</div>
+                        <div class="text-muted small">{{ resource.city }}, {{ resource.state }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        <!-- Main Calendar Area -->
+        <div class="col-md-9 col-lg-10">
             <div class="calendar-container">
                 <div id="calendar"></div>
             </div>
@@ -300,7 +380,11 @@ document.addEventListener('DOMContentLoaded', function() {
             events: events,
             slotMinWidth: 50,
             eventContent: function(arg) {
-                return { html: `<div class="fc-event-title">${arg.event.title}</div>` };
+                // Show guest name, price, and status in a pill
+                var guest = arg.event.extendedProps && arg.event.extendedProps.guest_name ? arg.event.extendedProps.guest_name : '';
+                var price = arg.event.extendedProps && arg.event.extendedProps.amount ? ' $' + arg.event.extendedProps.amount : '';
+                var status = arg.event.extendedProps && arg.event.extendedProps.status ? " <span class='badge bg-light text-dark ms-1'>" + arg.event.extendedProps.status + "</span>" : '';
+                return { html: '<div class="fc-event-title">' + guest + price + status + '</div>' };
             },
             eventDidMount: function(info) {
                 if (info.event.extendedProps && info.event.extendedProps.guest_name && typeof bootstrap !== 'undefined') {

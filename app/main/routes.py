@@ -51,7 +51,16 @@ def combined_calendar():
             return render_template('main/combined_calendar.html', title='Combined Calendar', properties=[], resources=[], events=[])
         
         # Prepare resources list for FullCalendar
-        resources = [{'id': str(prop.id), 'title': prop.name} for prop in properties]
+        resources = [
+            {
+                'id': str(prop.id),
+                'title': prop.name,
+                'image_url': prop.get_primary_image_url() if hasattr(prop, 'get_primary_image_url') else '/static/img/default-property.jpg',
+                'city': prop.city,
+                'state': prop.state
+            }
+            for prop in properties
+        ]
         
         # Get all calendars for all properties
         all_calendars = []
