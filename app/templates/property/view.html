@@ -89,12 +89,30 @@
                                 {% endif %}
                                 {% if property.trash_day or property.recycling_day %}
                                 <tr>
-                                    <th>Trash Day:</th>
-                                    <td>{{ property.trash_day|title if property.trash_day else 'Not specified' }}</td>
+                                    <th>Trash Collection:</th>
+                                    <td>
+                                        {% if property.trash_day %}
+                                            {{ property.trash_day|title }} 
+                                            <span class="badge {% if property.trash_day|format_next_collection == 'TODAY' %}bg-danger{% elif property.trash_day|format_next_collection == 'TOMORROW' %}bg-warning{% else %}bg-info{% endif %}">
+                                                {{ property.trash_day|format_next_collection }}
+                                            </span>
+                                        {% else %}
+                                            Not specified
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 <tr>
-                                    <th>Recycling Day:</th>
-                                    <td>{{ property.recycling_day|title if property.recycling_day else 'Not specified' }}</td>
+                                    <th>Recycling Collection:</th>
+                                    <td>
+                                        {% if property.recycling_day %}
+                                            {{ property.recycling_day|title }}
+                                            <span class="badge {% if property.recycling_day|format_next_collection == 'TODAY' %}bg-danger{% elif property.recycling_day|format_next_collection == 'TOMORROW' %}bg-warning{% else %}bg-info{% endif %}">
+                                                {{ property.recycling_day|format_next_collection }}
+                                            </span>
+                                        {% else %}
+                                            Not specified
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endif %}
                             </tbody>

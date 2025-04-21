@@ -82,7 +82,14 @@ class PropertyForm(FlaskForm):
     checkout_time = StringField('Check-out Time ⏰', validators=[Optional(), Length(max=10)], 
                                description="Standard check-out time (e.g., '11:00')")
     
-    # Service schedule
+    # Waste Collection Schedule
+    trash_schedule_type = SelectField('Trash Collection Schedule 🗑️', choices=[
+        ('weekly', '📅 Weekly'),
+        ('biweekly', '📅 Biweekly'),
+        ('monthly', '📅 Monthly'),
+        ('custom', '📅 Custom')
+    ], validators=[Optional()])
+    
     trash_day = SelectField('Trash Collection Day 🗑️', choices=[
         ('', 'Select Day'),
         ('monday', 'Monday'),
@@ -91,10 +98,17 @@ class PropertyForm(FlaskForm):
         ('thursday', 'Thursday'),
         ('friday', 'Friday'),
         ('saturday', 'Saturday'),
-        ('sunday', 'Sunday'),
-        ('biweekly', 'Biweekly'),
-        ('monthly', 'Monthly'),
-        ('custom', 'Custom Schedule')
+        ('sunday', 'Sunday')
+    ], validators=[Optional()])
+    
+    trash_schedule_details = TextAreaField('Trash Schedule Details 🗑️', validators=[Optional()],
+                                         description='For biweekly, monthly, or custom schedules')
+    
+    recycling_schedule_type = SelectField('Recycling Collection Schedule ♻️', choices=[
+        ('weekly', '📅 Weekly'),
+        ('biweekly', '📅 Biweekly'),
+        ('monthly', '📅 Monthly'),
+        ('custom', '📅 Custom')
     ], validators=[Optional()])
     
     recycling_day = SelectField('Recycling Collection Day ♻️', choices=[
@@ -105,11 +119,11 @@ class PropertyForm(FlaskForm):
         ('thursday', 'Thursday'),
         ('friday', 'Friday'),
         ('saturday', 'Saturday'),
-        ('sunday', 'Sunday'),
-        ('biweekly', 'Biweekly'),
-        ('monthly', 'Monthly'),
-        ('custom', 'Custom Schedule')
+        ('sunday', 'Sunday')
     ], validators=[Optional()])
+    
+    recycling_schedule_details = TextAreaField('Recycling Schedule Details ♻️', validators=[Optional()],
+                                             description='For biweekly, monthly, or custom schedules')
     
     recycling_notes = TextAreaField('Recycling Instructions ♻️', validators=[Optional()],
                                   description='Special instructions for recycling (no bags, acceptable items, etc.)')

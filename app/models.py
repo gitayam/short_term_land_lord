@@ -478,8 +478,14 @@ class Property(db.Model):
     bathrooms = db.Column(db.Float, nullable=True)
     square_feet = db.Column(db.Integer, nullable=True)
     year_built = db.Column(db.Integer, nullable=True)
+    
+    # Waste collection schedule
     trash_day = db.Column(db.String(20), nullable=True)  # e.g., 'Monday', 'Tuesday and Friday'
+    trash_schedule_type = db.Column(db.String(20), nullable=True)  # 'weekly', 'biweekly', 'monthly', 'custom'
+    trash_schedule_details = db.Column(db.Text, nullable=True)  # JSON string for complex schedules
     recycling_day = db.Column(db.String(20), nullable=True)
+    recycling_schedule_type = db.Column(db.String(20), nullable=True)  # 'weekly', 'biweekly', 'monthly', 'custom'
+    recycling_schedule_details = db.Column(db.Text, nullable=True)  # JSON string for complex schedules
     recycling_notes = db.Column(db.Text, nullable=True)
     
     # Utility information
