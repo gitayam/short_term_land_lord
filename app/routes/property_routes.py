@@ -58,7 +58,7 @@ def toggle_staff_pick(recommendation_id):
     recommendation = RecommendationBlock.query.get_or_404(recommendation_id)
     
     # Verify the user owns this property or is an admin
-    if not current_user.has_admin_role and recommendation.associated_property.owner_id != current_user.id:
+    if not current_user.has_admin_role and recommendation.property.owner_id != current_user.id:
         return jsonify({'error': 'Unauthorized'}), 403
     
     recommendation.staff_pick = not recommendation.staff_pick

@@ -6,7 +6,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app import db, login_manager
 from sqlalchemy import text
-from flask import url_for
+from flask import url_for, current_app
+import uuid
+import random
 
 # Add this function back - needed by invoicing module
 def get_user_fk_target():
@@ -334,7 +336,6 @@ class User(UserMixin, db.Model):
     
     def check_password(self, password):
         # Add debug logging for password checks
-        from flask import current_app
         
         if self.password_hash is None:
             current_app.logger.warning(f"User {self.email} has no password hash set")
@@ -593,6 +594,9 @@ class Property(db.Model):
     # Guide book token
     guide_book_token = db.Column(db.String(64), unique=True)
     
+    # New: Color theme for property
+    color = db.Column(db.String(16), nullable=True, default=None)
+    
     # Relationships
     owner = db.relationship('User', foreign_keys=[owner_id], backref=db.backref('owned_properties', overlaps="owner_user,properties"), overlaps="owner_user,properties")
     property_tasks = db.relationship('Task', backref='property')
@@ -710,6 +714,19 @@ class Property(db.Model):
         else:
             # Return a default image if no images exist
             return "/static/img/default-property.jpg"
+
+    def assign_random_color(self):
+        """Assign a random unused color from a palette if not set."""
+        if self.color:
+            return
+        palette = [
+            '#008489', '#FF5A5F', '#3D67FF', '#34C759', '#F7B32B',
+            '#8E8E93', '#767676', '#FF8C42', '#6A4C93', '#00B894',
+            '#00BFFF', '#FF6F61', '#FFB347', '#B2BABB', '#A569BD'
+        ]
+        used_colors = set([p.color for p in Property.query.filter(Property.color.isnot(None)).all()])
+        available = [c for c in palette if c not in used_colors]
+        self.color = random.choice(available) if available else random.choice(palette)
 
 class PropertyImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1504,7 +1521,6 @@ def load_user(id):
         # Fallback to ORM query
         return User.query.get(int(id))
     except Exception as e:
-        from flask import current_app
         current_app.logger.error(f"Error loading user: {e}")
         return None
 
@@ -1740,15 +1756,35 @@ class Booking(db.Model):
 
     def to_dict(self):
         """Convert booking to dictionary for calendar display."""
-        return {
+        # Ensure start_date is not None
+        if self.start_date is None:
+            current_app.logger.warning(f"Booking {self.id} has no start_date, falling back to end_date")
+            # Fall back to end_date if start_date is missing
+            if self.end_date is None:
+                current_app.logger.error(f"Booking {self.id} has neither start_date nor end_date")
+                return None  # Skip this booking
+            self.start_date = self.end_date
+            
+        # Ensure end_date is not None
+        if self.end_date is None:
+            current_app.logger.warning(f"Booking {self.id} has no end_date, using start_date + 1 day")
+            self.end_date = self.start_date
+            
+        # Format as YYYY-MM-DD strings for FullCalendar
+        start_str = self.start_date.strftime('%Y-%m-%d')
+        # FullCalendar uses exclusive end dates, so add 1 day
+        end_str = (self.end_date + timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        event_dict = {
             'id': self.id,
             'title': self.title,
-            'start': self.start_date.isoformat(),
-            'end': (self.end_date + timedelta(days=1)).isoformat(),  # FullCalendar uses exclusive end dates
+            'start': start_str,
+            'end': end_str,
+            'allDay': True,  # Important for proper rendering
             'resourceId': str(self.property_id),
             'className': f'{self.calendar.service.lower()}-event',
             'extendedProps': {
-                'property_name': self.property.name,  # Use self.property
+                'property_name': self.property.name,
                 'property_id': self.property_id,
                 'service': self.calendar.get_service_display(),
                 'room': None if self.is_entire_property else self.room_name,
@@ -1760,6 +1796,8 @@ class Booking(db.Model):
                 'phone': self.guest_phone
             }
         }
+        
+        return event_dict
 
 class BookingTask(db.Model):
     """Model for tasks associated with bookings."""

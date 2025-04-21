@@ -50,6 +50,12 @@ def combined_calendar():
             flash('No properties found.', 'warning')
             return render_template('main/combined_calendar.html', title='Combined Calendar', properties=[], resources=[], events=[])
         
+        # Assign color if not set
+        for prop in properties:
+            if not prop.color:
+                prop.assign_random_color()
+                db.session.commit()
+        
         # Prepare resources list for FullCalendar
         resources = [
             {
@@ -57,7 +63,8 @@ def combined_calendar():
                 'title': prop.name,
                 'image_url': prop.get_primary_image_url() if hasattr(prop, 'get_primary_image_url') else '/static/img/default-property.jpg',
                 'city': prop.city,
-                'state': prop.state
+                'state': prop.state,
+                'color': prop.color or '#008489'
             }
             for prop in properties
         ]
