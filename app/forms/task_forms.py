@@ -31,6 +31,10 @@ class TaskForm(FlaskForm):
         get_label='name',
         allow_blank=True
     )
+    location = StringField('Location', validators=[
+        Optional(),
+        Length(max=255, message='Location must not exceed 255 characters')
+    ])
     due_date = DateField('Due Date', validators=[Optional()])
     status = SelectField('Status', choices=[
         (status.value, status.name.replace('_', ' ').title())
@@ -51,6 +55,8 @@ class TaskForm(FlaskForm):
     assign_to_next_cleaner = BooleanField('Assign to Next Available Cleaner')
     linked_to_checkout = BooleanField('Link to Property Checkout')
     calendar_id = SelectField('Calendar', coerce=int, validators=[Optional()])
+    photos = MultipleFileField('Photos', validators=[Optional()])
+    submit = SubmitField('Create Task')
 
 class TaskAssignmentForm(FlaskForm):
     assign_to_user = BooleanField('Assign to Existing User')
