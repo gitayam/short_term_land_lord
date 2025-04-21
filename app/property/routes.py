@@ -706,9 +706,13 @@ def guest_view(token):
     # Find property by guest access token
     property = Property.query.filter_by(guest_access_token=token, guest_access_enabled=True).first_or_404()
     
+    # Get rooms list
+    rooms = property.rooms.all()
+    
     return render_template('property/guest_view.html', 
                           title=f'Welcome to {property.name}',
-                          property=property)
+                          property=property,
+                          rooms=rooms)
 
 @bp.route('/<int:id>/calendars')
 @login_required

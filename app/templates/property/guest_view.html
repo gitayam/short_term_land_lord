@@ -42,6 +42,9 @@
             border-radius: 0 0 5px 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+        .sticky-sidebar {
+            top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -202,11 +205,12 @@
                         </div>
                         {% endif %}
                         
-                        {% if property.rooms|length > 0 %}
+                        <!-- Room Details Section -->
+                        {% if rooms %}
                         <div class="section">
                             <h4>Room Details</h4>
                             <div class="accordion" id="roomsAccordion">
-                                {% for room in property.rooms %}
+                                {% for room in rooms %}
                                 <div class="accordion-item">
                                     <h2 class="accordion-header" id="room-heading-{{ room.id }}">
                                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
@@ -503,12 +507,16 @@
                                     
                                     <div class="mt-3">
                                         <div class="d-grid gap-2">
-                                            <a href="https://www.google.com/maps/search/?api=1&query={{ property.get_full_address()|urlencode }}" 
-                                               class="btn btn-primary btn-lg" target="_blank" rel="noopener">
+                                            <a href="https://www.google.com/maps/search/?api=1&amp;query={{ property.get_full_address()|replace(' ', '+') }}"
+                                               class="btn btn-primary btn-lg"
+                                               target="_blank"
+                                               rel="noopener">
                                                <i class="bi bi-geo-alt-fill"></i> Open in Google Maps
                                             </a>
-                                            <a href="https://maps.apple.com/?q={{ property.get_full_address()|urlencode }}" 
-                                               class="btn btn-secondary btn-lg" target="_blank" rel="noopener">
+                                            <a href="https://maps.apple.com/?q={{ property.get_full_address()|replace(' ', '+') }}"
+                                               class="btn btn-secondary btn-lg"
+                                               target="_blank"
+                                               rel="noopener">
                                                <i class="bi bi-apple"></i> Open in Apple Maps
                                             </a>
                                         </div>
@@ -534,7 +542,7 @@
             </div>
             
             <div class="col-md-4">
-                <div class="card sticky-top" style="top: 20px;">
+                <div class="card sticky-top sticky-sidebar">
                     <div class="card-header bg-dark text-white">
                         <h5 class="mb-0">Quick Access</h5>
                     </div>
@@ -559,7 +567,7 @@
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
-                            <a href="https://www.google.com/maps/search/?api=1&query={{ property.get_full_address()|urlencode }}" 
+                            <a href="https://www.google.com/maps/search/?api=1&amp;query={{ property.get_full_address()|urlencode }}" 
                                class="btn btn-primary" target="_blank" rel="noopener">
                                <i class="bi bi-geo-alt-fill"></i> Google Maps
                             </a>
@@ -606,7 +614,7 @@
                     </div>
                     <div class="card-body">
                         <p>Found something that needs repair or maintenance?</p>
-                        <a href="{{ url_for('tasks.submit_repair_request', property_id=property.id) }}" class="btn btn-warning w-100">
+                        <a href="{{ url_for('tasks.repair_requests', property_id=property.id) }}" class="btn btn-warning w-100">
                             <i class="bi bi-tools"></i> Submit Repair Request
                         </a>
                     </div>
