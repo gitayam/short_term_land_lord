@@ -114,6 +114,18 @@
             {% endif %}
         </div>
 
+        <div class="mb-3 form-check">
+            {{ form.add_to_guide(class="form-check-input") }}
+            <label class="form-check-label" for="add_to_guide">Add to Property Guide Book</label>
+            {% if form.add_to_guide.errors %}
+            <div class="alert alert-danger">
+                {% for error in form.add_to_guide.errors %}
+                <span>{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
         <div class="mb-3">
             <label for="photo" class="form-label">Photo</label>
             {% if recommendation.photo_url %}

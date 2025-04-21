@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, FileField
+from wtforms import StringField, TextAreaField, SelectField, FileField, BooleanField
 from wtforms.validators import DataRequired, Length, URL, Optional
 from app.models import RecommendationCategory
 
@@ -20,6 +20,7 @@ class RecommendationBlockForm(FlaskForm):
     wifi_name = StringField('WiFi Network Name', validators=[Optional(), Length(max=255)])
     wifi_password = StringField('WiFi Password', validators=[Optional(), Length(max=255)])
     parking_details = TextAreaField('Parking Details', validators=[Optional()])
+    add_to_guide = BooleanField('Add to Property Guide Book')
     photo = FileField('Photo')
     
     def validate_description(self, field):

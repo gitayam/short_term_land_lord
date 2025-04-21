@@ -1553,6 +1553,7 @@ class RecommendationBlock(db.Model):
     wifi_name = db.Column(db.String(255), nullable=True)  # WiFi network name (SSID)
     wifi_password = db.Column(db.String(255), nullable=True)  # WiFi password if available
     parking_details = db.Column(db.Text, nullable=True)  # Parking information
+    in_guide_book = db.Column(db.Boolean, default=False)  # Whether this recommendation is in the guide book
     photo_path = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

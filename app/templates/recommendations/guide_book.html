@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('property.view', id=property.id) }}">{{ property.name }}</a></li>
+            <li class="breadcrumb-item active">Guide Book</li>
+        </ol>
+    </nav>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-book"></i> {{ property.name }} Guide Book
+                </h1>
+                {% if current_user.is_admin or current_user.id == property.owner_id or current_user.is_property_manager %}
+                <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" class="btn btn-light">
+                    <i class="fas fa-edit"></i> Manage Recommendations
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if not categorized_recommendations %}
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No guide book entries have been added yet.
+                {% if current_user.is_admin or current_user.id == property.owner_id or current_user.is_property_manager %}
+                <a href="{{ url_for('recommendations.create_recommendation', property_id=property.id) }}" class="alert-link">Add some recommendations</a> to get started.
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% for category, recommendations in categorized_recommendations.items() %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="h5 mb-0">
+                {% if category == 'Food & Dining' %}
+                    <i class="fas fa-utensils"></i>
+                {% elif category == 'Outdoors & Recreation' %}
+                    <i class="fas fa-hiking"></i>
+                {% elif category == 'Shopping' %}
+                    <i class="fas fa-shopping-bag"></i>
+                {% elif category == 'Attractions' %}
+                    <i class="fas fa-landmark"></i>
+                {% elif category == 'Grocery Stores' %}
+                    <i class="fas fa-shopping-cart"></i>
+                {% else %}
+                    <i class="fas fa-star"></i>
+                {% endif %}
+                {{ category }}
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for recommendation in recommendations %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        {% if recommendation.photo_path %}
+                        <img src="{{ recommendation.get_photo_url() }}" class="card-img-top" alt="{{ recommendation.title }}" style="height: 200px; object-fit: cover;">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ recommendation.title }}</h5>
+                            <p class="card-text">{{ recommendation.description }}</p>
+                            
+                            {% if recommendation.best_time_to_go %}
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="far fa-clock"></i> Best Time to Visit: {{ recommendation.best_time_to_go }}
+                                </small>
+                            </p>
+                            {% endif %}
+                            
+                            {% if recommendation.recommended_meal %}
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-utensils"></i> Recommended: {{ recommendation.recommended_meal }}
+                                </small>
+                            </p>
+                            {% endif %}
+                            
+                            {% if recommendation.wifi_name %}
+                            <div class="card-text mb-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-wifi"></i> WiFi Network: {{ recommendation.wifi_name }}
+                                    {% if recommendation.wifi_password %}
+                                    <br>Password: {{ recommendation.wifi_password }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endif %}
+                            
+                            {% if recommendation.parking_details %}
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-parking"></i> Parking: {{ recommendation.parking_details }}
+                                </small>
+                            </p>
+                            {% endif %}
+                            
+                            {% if recommendation.map_link %}
+                            <a href="{{ recommendation.map_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-map-marker-alt"></i> View on Map
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %} 
