@@ -114,12 +114,12 @@
             {% endif %}
         </div>
 
-        <div class="mb-3 form-check">
-            {{ form.add_to_guide(class="form-check-input") }}
-            <label class="form-check-label" for="add_to_guide">Add to Property Guide Book</label>
-            {% if form.add_to_guide.errors %}
+        <div class="mb-3">
+            <label for="guide_books" class="form-label">Add to Guide Books</label>
+            {{ form.guide_books(class="form-select") }}
+            {% if form.guide_books.errors %}
             <div class="alert alert-danger">
-                {% for error in form.add_to_guide.errors %}
+                {% for error in form.guide_books.errors %}
                 <span>{{ error }}</span>
                 {% endfor %}
             </div>

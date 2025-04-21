@@ -13,6 +13,7 @@ from icalendar import Calendar
 from dateutil import rrule, parser
 import pytz
 from sqlalchemy.orm import aliased
+import secrets
 
 def property_owner_required(f):
     """Decorator to ensure only property owners, admins, and property managers can access a route"""
@@ -85,7 +86,10 @@ def create():
             wifi_password=form.wifi_password.data,
             special_instructions=form.special_instructions.data,
             entry_instructions=form.entry_instructions.data,
-            owner_id=current_user.id
+            owner_id=current_user.id,
+            
+            # Generate guide book token
+            guide_book_token=secrets.token_urlsafe(32)
         )
         db.session.add(property)
         db.session.commit()

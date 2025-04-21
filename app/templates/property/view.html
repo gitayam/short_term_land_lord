@@ -29,7 +29,7 @@
                         <p class="mb-0 text-muted">Discover recommended restaurants, activities, and local attractions</p>
                     </div>
                     <div>
-                        <a href="{{ url_for('recommendations.view_guide_book', property_id=property.id) }}" class="btn btn-primary">
+                        <a href="{{ url_for('property_routes.public_guide_book', token=property.guide_book_token) }}" class="btn btn-primary">
                             <i class="fas fa-book-open"></i> View Guide Book
                         </a>
                     </div>
@@ -445,6 +445,34 @@
                 </div>
                 {% endif %}
                 
+                <!-- Guide Book Section -->
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Property Guide Book</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if property.guide_book_token %}
+                            <p>Guide book is <strong>enabled</strong> for this property.</p>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control form-control-sm" value="{{ url_for('property_routes.public_guide_book', token=property.guide_book_token, _external=True) }}" id="guide-book-url" readonly>
+                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="copyGuideBookUrl()" id="copy-guide-book-btn">
+                                    <i class="bi bi-clipboard"></i> Copy
+                                </button>
+                            </div>
+                        {% else %}
+                            <p>Guide book is <strong>not enabled</strong> for this property.</p>
+                        {% endif %}
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('recommendations.list_guide_books', property_id=property.id) }}" class="btn btn-info">
+                                <i class="bi bi-book"></i> Manage Guide Books
+                            </a>
+                            <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" class="btn btn-outline-info">
+                                <i class="bi bi-list-stars"></i> Manage Recommendations
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Service History Section -->
                 <h5 class="mt-4">Service History</h5>
                 <div class="card card-body bg-light mb-3">
@@ -823,6 +851,34 @@
                     </div>
                 </div>
                 
+                <!-- Guide Book Section -->
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Property Guide Book</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if property.guide_book_token %}
+                            <p>Guide book is <strong>enabled</strong> for this property.</p>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control form-control-sm" value="{{ url_for('property_routes.public_guide_book', token=property.guide_book_token, _external=True) }}" id="guide-book-url" readonly>
+                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="copyGuideBookUrl()" id="copy-guide-book-btn">
+                                    <i class="bi bi-clipboard"></i> Copy
+                                </button>
+                            </div>
+                        {% else %}
+                            <p>Guide book is <strong>not enabled</strong> for this property.</p>
+                        {% endif %}
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('recommendations.list_guide_books', property_id=property.id) }}" class="btn btn-info">
+                                <i class="bi bi-book"></i> Manage Guide Books
+                            </a>
+                            <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" class="btn btn-outline-info">
+                                <i class="bi bi-list-stars"></i> Manage Recommendations
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Combined Repair Request Section (available to all users) -->
                 <div class="card mt-3">
                     <div class="card-header bg-warning text-dark">
@@ -1044,6 +1100,32 @@
             setTimeout(() => {
                 copyBtn.innerHTML = originalText;
             }, 2000);
+        }
+    }
+    
+    function copyGuideBookUrl() {
+        const guideBookUrl = document.getElementById('guide-book-url');
+        const copyButton = document.getElementById('copy-guide-book-btn');
+        
+        if (!guideBookUrl) {
+            console.error('Guide book URL element not found');
+            return;
+        }
+        
+        try {
+            guideBookUrl.select();
+            document.execCommand('copy');
+            
+            // Update button text and icon temporarily
+            const originalContent = copyButton.innerHTML;
+            copyButton.innerHTML = '<i class="bi bi-check"></i> Copied!';
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                copyButton.innerHTML = originalContent;
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy guide book URL:', err);
         }
     }
 </script>

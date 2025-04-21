@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">
+            {% if guide_book %}
+            Edit Guide Book
+            {% else %}
+            Create New Guide Book
+            {% endif %}
+        </h1>
+
+        <form method="post" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            {{ form.csrf_token }}
+            
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
+                    Name
+                </label>
+                {{ form.name(class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline") }}
+                {% if form.name.errors %}
+                <p class="text-red-500 text-xs italic">{{ form.name.errors[0] }}</p>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
+                    Description
+                </label>
+                {{ form.description(class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-32") }}
+                {% if form.description.errors %}
+                <p class="text-red-500 text-xs italic">{{ form.description.errors[0] }}</p>
+                {% endif %}
+            </div>
+
+            <div class="mb-6">
+                <label class="flex items-center">
+                    {{ form.is_public(class="mr-2") }}
+                    <span class="text-gray-700 text-sm font-bold">Make this guide book public</span>
+                </label>
+                {% if form.is_public.errors %}
+                <p class="text-red-500 text-xs italic">{{ form.is_public.errors[0] }}</p>
+                {% endif %}
+            </div>
+
+            {% if guide_book and guide_book.recommendations %}
+            <div class="mb-6">
+                <h2 class="text-lg font-bold mb-4">Manage Recommendations</h2>
+                <div class="space-y-2">
+                    {% for recommendation in guide_book.recommendations %}
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-gray-700">{{ recommendation.title }}</span>
+                        <button type="button" 
+                                onclick="removeRecommendation('{{ recommendation.id }}')"
+                                class="text-red-500 hover:text-red-700">
+                            Remove
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="flex items-center justify-between">
+                <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" 
+                        type="submit">
+                    {% if guide_book %}
+                    Save Changes
+                    {% else %}
+                    Create Guide Book
+                    {% endif %}
+                </button>
+                <a href="{{ url_for('recommendations.list_guide_books', property_id=property.id) }}" 
+                   class="text-blue-500 hover:text-blue-800">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if guide_book %}
+<script>
+function removeRecommendation(recommendationId) {
+    if (confirm('Are you sure you want to remove this recommendation from the guide book?')) {
+        fetch(`/recommendations/${recommendationId}/remove-from-guide`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to remove recommendation. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+</script>
+{% endif %}
+{% endblock %} 

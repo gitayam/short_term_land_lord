@@ -1,5 +1,10 @@
 import secrets
-from flask import jsonify, request, make_response
+from flask import Blueprint, jsonify, request, make_response, render_template
+from flask_login import current_user
+from app import db
+from app.models import Property, RecommendationBlock
+
+bp = Blueprint('property_routes', __name__)
 
 @bp.route('/property/<token>/guide', methods=['GET'])
 def public_guide_book(token):

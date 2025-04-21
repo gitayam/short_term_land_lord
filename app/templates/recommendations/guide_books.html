@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold">Guide Books for {{ property.name }}</h1>
+        <a href="{{ url_for('recommendations.create_guide_book', property_id=property.id) }}" 
+           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Create New Guide Book
+        </a>
+    </div>
+
+    {% if guide_books %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for guide_book in guide_books %}
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex justify-between items-start mb-4">
+                <h2 class="text-xl font-semibold">{{ guide_book.name }}</h2>
+                {% if guide_book.is_public %}
+                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Public</span>
+                {% else %}
+                <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">Private</span>
+                {% endif %}
+            </div>
+            
+            {% if guide_book.description %}
+            <p class="text-gray-600 mb-4">{{ guide_book.description }}</p>
+            {% endif %}
+            
+            <div class="flex flex-wrap gap-2 mb-4">
+                <span class="text-sm text-gray-500">
+                    {{ guide_book.recommendations|length }} recommendations
+                </span>
+                <span class="text-sm text-gray-500">
+                    Created {{ guide_book.created_at.strftime('%Y-%m-%d') }}
+                </span>
+            </div>
+            
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ url_for('recommendations.view_guide_book', id=guide_book.id) }}" 
+                   class="bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold py-1 px-3 rounded">
+                    View
+                </a>
+                <a href="{{ url_for('recommendations.edit_guide_book', id=guide_book.id) }}" 
+                   class="bg-gray-500 hover:bg-gray-700 text-white text-sm font-bold py-1 px-3 rounded">
+                    Edit
+                </a>
+                {% if guide_book.is_public and guide_book.access_token %}
+                <button onclick="copyToClipboard('{{ url_for('recommendations.view_guide_book', id=guide_book.id, _external=True) }}')"
+                        class="bg-green-500 hover:bg-green-700 text-white text-sm font-bold py-1 px-3 rounded">
+                    Copy Public Link
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8">
+        <p class="text-gray-600 mb-4">No guide books created yet.</p>
+        <p class="text-gray-500">Create your first guide book to start organizing your recommendations!</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        alert('Public link copied to clipboard!');
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+    });
+}
+</script>
+{% endblock %} 

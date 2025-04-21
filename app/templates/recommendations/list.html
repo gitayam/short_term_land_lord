@@ -58,11 +58,17 @@
                 {% if recommendation.in_guide_book %}
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <span><i class="fas fa-book"></i> Guide Book Entry</span>
-                    {% if recommendation.staff_pick %}
-                    <span class="badge bg-warning text-dark">
-                        <i class="fas fa-star"></i> Staff Pick
-                    </span>
-                    {% endif %}
+                    <div>
+                        {% if recommendation.staff_pick %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-star"></i> Staff Pick
+                        </span>
+                        {% endif %}
+                        <a href="{{ url_for('recommendations.list_guide_books', property_id=property.id) }}#recommendation-{{ recommendation.id }}"
+                           class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-book"></i> View in Guide Books
+                        </a>
+                    </div>
                 </div>
                 {% endif %}
 
@@ -202,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function toggleVote(button, recommendationId) {
-    fetch(`/api/recommendations/${recommendationId}/vote`, {
+    fetch(`/property/api/recommendations/${recommendationId}/vote`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

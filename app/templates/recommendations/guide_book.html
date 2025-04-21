@@ -2,37 +2,50 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1>{{ property.name }} Guide Book</h1>
-                {% if current_user.is_authenticated and (current_user.is_property_owner or current_user.has_admin_role) %}
-                <a href="{{ url_for('recommendations.create_recommendation', property_id=property.id) }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Add Recommendation
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>{{ property.name }} Guide Book</h1>
+            <p class="text-muted mb-0">
+                <i class="fas fa-book"></i> A curated collection of our best recommendations
+                {% if property.guide_book_token %}
+                <a href="{{ url_for('property_routes.public_guide_book', token=property.guide_book_token) }}" 
+                   class="btn btn-sm btn-outline-info ms-2" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> Public Link
                 </a>
                 {% endif %}
-            </div>
-            <hr>
+            </p>
         </div>
+        {% if current_user.is_authenticated and (current_user.is_property_owner or current_user.has_admin_role) %}
+        <div>
+            <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-list"></i> All Recommendations
+            </a>
+            <a href="{{ url_for('recommendations.create_recommendation', property_id=property.id) }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Recommendation
+            </a>
+        </div>
+        {% endif %}
     </div>
 
     {% for category, recommendations in categorized_recommendations.items() %}
     <div class="row mb-4">
         <div class="col-12">
-            <h2>{{ category }}</h2>
+            <h2 class="border-bottom pb-2">{{ category }}</h2>
         </div>
         {% for recommendation in recommendations %}
         <div class="col-md-6 mb-4">
-            <div class="card h-100">
+            <div class="card h-100 shadow-sm">
                 {% if recommendation.photo_url %}
-                <img src="{{ recommendation.photo_url }}" class="card-img-top" alt="{{ recommendation.title }}">
+                <img src="{{ recommendation.photo_url }}" class="card-img-top" alt="{{ recommendation.title }}" style="height: 200px; object-fit: cover;">
                 {% endif %}
+                
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h5 class="card-title mb-0">{{ recommendation.title }}</h5>
                         <div class="d-flex align-items-center">
                             {% if recommendation.staff_pick %}
-                            <span class="badge bg-success me-2" title="Staff Pick">
+                            <span class="badge bg-warning text-dark me-2" title="Staff Pick">
                                 <i class="fas fa-star"></i> Staff Pick
                             </span>
                             {% endif %}
@@ -47,21 +60,73 @@
 
                     <p class="card-text">{{ recommendation.description }}</p>
                     
-                    {% if recommendation.best_time_to_go %}
-                    <p><strong>Best Time to Go:</strong> {{ recommendation.best_time_to_go }}</p>
+                    <div class="mb-3">
+                        <span class="badge bg-secondary">{{ recommendation.get_category_display() }}</span>
+                        {% if recommendation.best_time_to_go %}
+                        <span class="badge bg-info">
+                            <i class="far fa-clock"></i> Best Time: {{ recommendation.best_time_to_go }}
+                        </span>
+                        {% endif %}
+                        {% if recommendation.recommended_meal %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-utensils"></i> {{ recommendation.recommended_meal }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    {% if recommendation.wifi_name %}
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-wifi"></i> WiFi: {{ recommendation.wifi_name }}
+                            {% if recommendation.wifi_password %}
+                            <br><i class="fas fa-key"></i> Password: {{ recommendation.wifi_password }}
+                            <br>
+                            <button type="button" class="btn btn-sm btn-outline-info mt-2" data-bs-toggle="modal" data-bs-target="#wifiModal{{ recommendation.id }}">
+                                <i class="fas fa-qrcode"></i> Show WiFi QR Code
+                            </button>
+                            
+                            <!-- WiFi QR Code Modal -->
+                            <div class="modal fade" id="wifiModal{{ recommendation.id }}" tabindex="-1" aria-labelledby="wifiModalLabel{{ recommendation.id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="wifiModalLabel{{ recommendation.id }}">WiFi QR Code</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-center">
+                                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=WIFI:S:{{ recommendation.wifi_name|urlencode }};T:WPA;P:{{ recommendation.wifi_password|urlencode }};;{{ recommendation.title|urlencode }}" 
+                                                 alt="WiFi QR Code"
+                                                 class="img-fluid">
+                                            <p class="mt-3">Scan this QR code to connect to WiFi</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </small>
+                    </div>
                     {% endif %}
-                    
-                    {% if recommendation.recommended_meal %}
-                    <p><strong>Recommended Meal:</strong> {{ recommendation.recommended_meal }}</p>
+
+                    {% if recommendation.parking_details %}
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-parking"></i> Parking: {{ recommendation.parking_details }}
+                        </small>
+                    </div>
                     {% endif %}
-                    
-                    <div class="d-flex justify-content-between align-items-center mt-3">
+                </div>
+
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
                         {% if recommendation.map_link %}
-                        <a href="{{ recommendation.map_link }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                        <a href="{{ recommendation.map_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-map-marker-alt"></i> View on Map
                         </a>
                         {% endif %}
-                        
+
                         {% if current_user.is_authenticated and (current_user.is_property_owner or current_user.has_admin_role) %}
                         <div class="btn-group">
                             <a href="{{ url_for('recommendations.edit_recommendation', id=recommendation.id) }}" 
@@ -85,9 +150,10 @@
 </div>
 
 {% block scripts %}
+{{ super() }}
 <script>
 function toggleVote(button, recommendationId) {
-    fetch(`/api/recommendations/${recommendationId}/vote`, {
+    fetch(`/property/api/recommendations/${recommendationId}/vote`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -131,6 +197,14 @@ function deleteRecommendation(recommendationId) {
         });
     }
 }
+
+// Initialize all modals
+document.addEventListener('DOMContentLoaded', function() {
+    var modals = document.querySelectorAll('.modal');
+    modals.forEach(function(modal) {
+        new bootstrap.Modal(modal);
+    });
+});
 </script>
 {% endblock %}
 {% endblock %} 

@@ -1627,3 +1627,43 @@ class RecommendationBlock(db.Model):
             db.session.add(vote)
             db.session.commit()
             return True
+
+    def is_in_guide_book(self, guide_book_id=None):
+        """Check if recommendation is in a specific guide book or any guide book"""
+        if guide_book_id:
+            return any(gb.id == guide_book_id for gb in self.guide_books)
+        return len(self.guide_books) > 0
+
+class GuideBook(db.Model):
+    """Model for property guide books"""
+    __tablename__ = 'guide_books'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    is_public = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Foreign Keys
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Relationships
+    associated_property = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
+    recommendations = db.relationship('RecommendationBlock', 
+                                   secondary='guide_book_recommendations',
+                                   backref=db.backref('guide_books', lazy=True))
+
+    def __repr__(self):
+        return f'<GuideBook {self.name}>'
+
+    @property
+    def recommendations_count(self):
+        return len(self.recommendations)
+
+# Association table for guide books and recommendations
+guide_book_recommendations = db.Table('guide_book_recommendations',
+    db.Column('guide_book_id', db.Integer, db.ForeignKey('guide_books.id'), primary_key=True),
+    db.Column('recommendation_id', db.Integer, db.ForeignKey('recommendation_blocks.id'), primary_key=True),
+    db.Column('created_at', db.DateTime, default=datetime.utcnow)
+)

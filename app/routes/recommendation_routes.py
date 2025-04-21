@@ -2,8 +2,8 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 import os
 from app import db
-from app.models import RecommendationBlock, Property, MediaType, RecommendationVote
-from app.forms.recommendation_forms import RecommendationBlockForm
+from app.models import RecommendationBlock, Property, MediaType, RecommendationVote, GuideBook
+from app.forms.recommendation_forms import RecommendationBlockForm, GuideBookForm
 from app.utils.storage import allowed_file, save_file_to_storage
 from sqlalchemy import func
 
@@ -49,6 +49,103 @@ def list_recommendations(property_id):
                          search_query=search,
                          guest_token=guest_token)
 
+@bp.route('/property/<int:property_id>/guide-books')
+@login_required
+def list_guide_books(property_id):
+    """List all guide books for a property."""
+    property = Property.query.get_or_404(property_id)
+    if not property.is_visible_to(current_user):
+        flash('You do not have permission to view this property.', 'error')
+        return redirect(url_for('main.index'))
+    
+    guide_books = GuideBook.query.filter_by(property_id=property_id).order_by(GuideBook.name).all()
+    return render_template('recommendations/guide_books.html',
+                         property=property,
+                         guide_books=guide_books)
+
+@bp.route('/property/<int:property_id>/guide-books/new', methods=['GET', 'POST'])
+@login_required
+def create_guide_book(property_id):
+    """Create a new guide book."""
+    property = Property.query.get_or_404(property_id)
+    if not can_manage_recommendations(property):
+        flash('You do not have permission to create guide books for this property.', 'error')
+        return redirect(url_for('main.index'))
+    
+    form = GuideBookForm()
+    if form.validate_on_submit():
+        guide_book = GuideBook(
+            property_id=property_id,
+            name=form.name.data,
+            description=form.description.data,
+            is_public=form.is_public.data
+        )
+        if guide_book.is_public:
+            guide_book.generate_access_token()
+        
+        db.session.add(guide_book)
+        db.session.commit()
+        flash('Guide book created successfully!', 'success')
+        return redirect(url_for('recommendations.list_guide_books', property_id=property_id))
+    
+    return render_template('recommendations/create_guide_book.html',
+                         form=form,
+                         property=property)
+
+@bp.route('/guide-books/<int:id>')
+def view_guide_book(id):
+    """View a specific guide book."""
+    guide_book = GuideBook.query.get_or_404(id)
+    property = guide_book.associated_property
+    
+    if not guide_book.is_public and not property.is_visible_to(current_user):
+        flash('You do not have permission to view this guide book.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Group recommendations by category
+    categorized_recommendations = {}
+    for rec in guide_book.recommendations:
+        category = rec.get_category_display()
+        if category not in categorized_recommendations:
+            categorized_recommendations[category] = []
+        categorized_recommendations[category].append(rec)
+    
+    return render_template('recommendations/guide_book.html',
+                         guide_book=guide_book,
+                         property=property,
+                         categorized_recommendations=categorized_recommendations,
+                         guest_token=request.headers.get('X-Guest-Token') or request.cookies.get('guest_token'))
+
+@bp.route('/guide-books/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_guide_book(id):
+    """Edit a guide book."""
+    guide_book = GuideBook.query.get_or_404(id)
+    if not can_manage_recommendations(guide_book.associated_property):
+        flash('You do not have permission to edit this guide book.', 'error')
+        return redirect(url_for('main.index'))
+    
+    form = GuideBookForm(obj=guide_book)
+    if form.validate_on_submit():
+        guide_book.name = form.name.data
+        guide_book.description = form.description.data
+        guide_book.is_public = form.is_public.data
+        if guide_book.is_public:
+            guide_book.generate_access_token()
+        
+        db.session.commit()
+        flash('Guide book updated successfully!', 'success')
+        return redirect(url_for('recommendations.view_guide_book', id=id))
+    
+    return render_template('recommendations/edit_guide_book.html',
+                         form=form,
+                         guide_book=guide_book)
+
+def _get_guide_book_choices(property_id):
+    """Get guide book choices for the form select field."""
+    guide_books = GuideBook.query.filter_by(property_id=property_id).order_by(GuideBook.name).all()
+    return [(gb.id, gb.name) for gb in guide_books]
+
 @bp.route('/property/<int:property_id>/new', methods=['GET', 'POST'])
 @login_required
 def create_recommendation(property_id):
@@ -58,6 +155,8 @@ def create_recommendation(property_id):
         return redirect(url_for('main.index'))
     
     form = RecommendationBlockForm()
+    form.guide_books.choices = _get_guide_book_choices(property_id)
+    
     if form.validate_on_submit():
         recommendation = RecommendationBlock(
             property_id=property_id,
@@ -69,9 +168,13 @@ def create_recommendation(property_id):
             recommended_meal=form.recommended_meal.data,
             wifi_name=form.wifi_name.data,
             wifi_password=form.wifi_password.data,
-            parking_details=form.parking_details.data,
-            in_guide_book=form.add_to_guide.data
+            parking_details=form.parking_details.data
         )
+        
+        # Add to selected guide books
+        if form.guide_books.data:
+            guide_books = GuideBook.query.filter(GuideBook.id.in_(form.guide_books.data)).all()
+            recommendation.guide_books.extend(guide_books)
         
         if form.photo.data:
             file = form.photo.data
@@ -101,6 +204,10 @@ def edit_recommendation(id):
         return redirect(url_for('main.index'))
     
     form = RecommendationBlockForm(obj=recommendation)
+    form.guide_books.choices = _get_guide_book_choices(recommendation.property_id)
+    
+    if request.method == 'GET':
+        form.guide_books.data = [gb.id for gb in recommendation.guide_books]
     
     if form.validate_on_submit():
         try:
@@ -113,7 +220,12 @@ def edit_recommendation(id):
             recommendation.wifi_name = form.wifi_name.data
             recommendation.wifi_password = form.wifi_password.data
             recommendation.parking_details = form.parking_details.data
-            recommendation.in_guide_book = bool(form.add_to_guide.data)  # Ensure boolean conversion
+            
+            # Update guide books
+            recommendation.guide_books = []
+            if form.guide_books.data:
+                guide_books = GuideBook.query.filter(GuideBook.id.in_(form.guide_books.data)).all()
+                recommendation.guide_books.extend(guide_books)
             
             if form.photo.data:
                 file = form.photo.data
@@ -134,9 +246,6 @@ def edit_recommendation(id):
             current_app.logger.error(f"Error updating recommendation: {str(e)}", exc_info=True)
             db.session.rollback()
             flash('Error updating recommendation. Please try again.', 'error')
-    
-    # For GET requests or if form validation fails, set the checkbox state
-    form.add_to_guide.data = recommendation.in_guide_book
     
     return render_template('recommendations/edit.html', form=form, recommendation=recommendation)
 
@@ -161,28 +270,6 @@ def delete_recommendation(id):
     db.session.commit()
     flash('Recommendation deleted successfully!', 'success')
     return redirect(url_for('recommendations.list_recommendations', property_id=property_id))
-
-@bp.route('/property/<int:property_id>/guide-book')
-def view_guide_book(property_id):
-    property = Property.query.get_or_404(property_id)
-    
-    # Get all guide book recommendations
-    recommendations = RecommendationBlock.query.filter_by(
-        property_id=property_id,
-        in_guide_book=True
-    ).order_by(RecommendationBlock.category, RecommendationBlock.title).all()
-    
-    # Group recommendations by category
-    categorized_recommendations = {}
-    for rec in recommendations:
-        category = rec.get_category_display()
-        if category not in categorized_recommendations:
-            categorized_recommendations[category] = []
-        categorized_recommendations[category].append(rec)
-    
-    return render_template('recommendations/guide_book.html',
-                         property=property,
-                         categorized_recommendations=categorized_recommendations)
 
 @bp.route('/recommendations/dashboard', methods=['GET'])
 @login_required
@@ -219,7 +306,7 @@ def dashboard():
         recommendations=recommendations
     )
 
-@bp.route('/api/recommendations/<int:id>/vote', methods=['POST'])
+@bp.route('/property/api/recommendations/<int:id>/vote', methods=['POST'])
 def toggle_recommendation_vote(id):
     """Toggle a vote for a recommendation."""
     guest_token = request.headers.get('X-Guest-Token')
@@ -232,4 +319,18 @@ def toggle_recommendation_vote(id):
     return jsonify({
         'voted': voted,
         'vote_count': recommendation.vote_count
-    }) 
+    })
+
+@bp.route('/property/<int:property_id>/guide')
+def view_property_guide_book(property_id):
+    """View the guide book for a property."""
+    property = Property.query.get_or_404(property_id)
+    
+    # Get the first guide book for the property
+    guide_book = GuideBook.query.filter_by(property_id=property_id).first()
+    
+    if not guide_book:
+        flash('No guide book found for this property.', 'warning')
+        return redirect(url_for('recommendations.list_guide_books', property_id=property_id))
+    
+    return redirect(url_for('recommendations.view_guide_book', id=guide_book.id)) 

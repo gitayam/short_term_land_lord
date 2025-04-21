@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, FileField, BooleanField
+from wtforms import StringField, TextAreaField, SelectField, FileField, BooleanField, SelectMultipleField
 from wtforms.validators import DataRequired, Length, URL, Optional
 from app.models import RecommendationCategory
 
@@ -20,9 +20,15 @@ class RecommendationBlockForm(FlaskForm):
     wifi_name = StringField('WiFi Network Name', validators=[Optional(), Length(max=255)])
     wifi_password = StringField('WiFi Password', validators=[Optional(), Length(max=255)])
     parking_details = TextAreaField('Parking Details', validators=[Optional()])
-    add_to_guide = BooleanField('Add to Property Guide Book', default=False)
+    guide_books = SelectMultipleField('Add to Guide Books', coerce=int)
     photo = FileField('Photo')
+    add_to_guide = BooleanField('Add to Property Guide Book', default=False)
     
     def validate_description(self, field):
         if len(field.data) > 300:
-            raise ValidationError('Description must be 300 characters or less') 
+            raise ValidationError('Description must be 300 characters or less')
+
+class GuideBookForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired(), Length(max=100)])
+    description = TextAreaField('Description', validators=[Optional(), Length(max=500)])
+    is_public = BooleanField('Make Public', default=True) 
