@@ -1,16 +1,24 @@
-Dear {{ first_name }} {{ last_name }},
+Welcome to Our Platform
 
-You have been invited by {{ inviter.first_name }} {{ inviter.last_name }} to join our platform as a service staff member.
+Dear {{ user.first_name }} {{ user.last_name }},
+
+You have been invited by {{ inviter.first_name }} {{ inviter.last_name }} to join our platform as a {{ service_type_display }} staff member.
 
 {% if message %}
 Personal message from {{ inviter.first_name }}:
 {{ message }}
 {% endif %}
 
-Please click the link below to complete your registration:
+Your login credentials are:
+Email: {{ user.email }}
+Password: {{ password }}
+
+To complete your registration, please visit:
 {{ url_for('auth.register', _external=True) }}
 
 If you did not expect this invitation, please ignore this email.
 
-Best regards,
-The Team 
+---
+© {{ now.year }} Short Term Landlord. All rights reserved.
+Home: {{ url_for('main.index', _external=True) }}
+Contact Support: support@shorttermlandlord.com 

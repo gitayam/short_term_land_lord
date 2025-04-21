@@ -2,7 +2,7 @@ from flask import render_template, redirect, url_for, flash, request, current_ap
 from flask_login import login_required, current_user
 from app import db
 from app.workforce import bp
-from app.workforce.forms import WorkerInvitationForm, WorkerPropertyAssignmentForm, WorkerFilterForm
+from app.workforce.forms import WorkerInvitationForm, WorkerPropertyAssignmentForm, WorkerFilterForm, COUNTRY_CODES
 from app.models import User, Property, Task, TaskAssignment, TaskProperty, UserRoles, ServiceType, TaskStatus
 from app.auth.decorators import admin_required, property_manager_required, workforce_management_required
 from app.auth.email import send_email
@@ -194,6 +194,7 @@ def invite_worker():
             first_name=form.first_name.data,
             last_name=form.last_name.data,
             email=form.email.data,
+            phone=form.phone.data,
             role=UserRoles.SERVICE_STAFF.value
         )
         user.set_password(password)
@@ -201,10 +202,73 @@ def invite_worker():
         db.session.add(user)
         db.session.commit()
         
-        # Send invitation email with login credentials
-        send_worker_invitation(user, password, form.service_type.data, form.message.data)
+        # Get service type display name
+        service_type_display = dict((t.value, t.name) for t in ServiceType).get(form.service_type.data, form.service_type.data)
         
-        flash(f'Invitation sent to {user.get_full_name()} ({user.email}).', 'success')
+        # Send invitation via selected channels
+        delivery_status = {'email': False, 'sms': False}
+        error_messages = []
+        
+        # Send email if requested
+        if form.send_email.data:
+            try:
+                send_worker_invitation(user, password, form.service_type.data, form.message.data)
+                delivery_status['email'] = True
+            except Exception as e:
+                error_messages.append(f'Email delivery failed: {str(e)}')
+        
+        # Send SMS if requested
+        if form.send_sms.data and form.phone.data:
+            try:
+                from app.utils.sms import send_sms
+                # Get the country code prefix
+                country_code = next((code[1].split(' ')[0] for code in COUNTRY_CODES if code[0] == form.country_code.data), '+1')
+                # Format the phone number with country code
+                phone_number = form.phone.data.strip()
+                # Remove any non-digit characters except +
+                phone_number = ''.join(c for c in phone_number if c.isdigit() or c == '+')
+                # Remove any existing country code from the phone number
+                if phone_number.startswith('+'):
+                    phone_number = phone_number[1:]
+                # Ensure proper E.164 format
+                full_phone = f"{country_code}{phone_number}"
+                
+                message = (
+                    f"Hi {user.first_name}, you've been invited to join Short Term Landlord as a {service_type_display} staff member. "
+                    f"Please check your email ({user.email}) for your login credentials and registration link. "
+                    f"Contact support@shorttermlandlord.com if you have any questions."
+                )
+                
+                # Log the SMS attempt
+                current_app.logger.info(f"Attempting to send SMS to {full_phone}")
+                success, error = send_sms(full_phone, message)
+                
+                if success:
+                    delivery_status['sms'] = True
+                    current_app.logger.info(f"SMS sent successfully to {full_phone}")
+                else:
+                    error_messages.append(f'SMS delivery failed: {error}')
+                    current_app.logger.error(f"SMS delivery failed: {error}")
+            except Exception as e:
+                error_msg = f'SMS delivery failed: {str(e)}'
+                error_messages.append(error_msg)
+                current_app.logger.error(error_msg)
+        
+        # Prepare flash message based on delivery status
+        if delivery_status['email'] or delivery_status['sms']:
+            status_msg = []
+            if delivery_status['email']:
+                status_msg.append('email')
+            if delivery_status['sms']:
+                status_msg.append('SMS')
+            flash(f'Invitation sent to {user.get_full_name()} via {", ".join(status_msg)}.', 'success')
+        else:
+            flash('Failed to send invitation. Please try again.', 'danger')
+        
+        if error_messages:
+            for error in error_messages:
+                flash(error, 'warning')
+        
         return redirect(url_for('workforce.index'))
     
     return render_template('workforce/invite_worker.html',
@@ -217,24 +281,23 @@ def send_worker_invitation(user, password, service_type, custom_message=None):
     
     subject = 'You have been invited to join the Property Management System'
     
-    # Create email body
-    body = f"""
-    Dear {user.get_full_name()},
+    # Create email context
+    context = {
+        'user': user,
+        'inviter': current_user,
+        'service_type_display': service_type_display,
+        'password': password,
+        'message': custom_message,
+        'now': datetime.utcnow()
+    }
     
-    You have been invited to join our Property Management System as a {service_type_display} staff member.
-    
-    Your login credentials are:
-    Email: {user.email}
-    Password: {password}
-    
-    Please log in at {request.host_url} and change your password as soon as possible.
-    """
-    
-    if custom_message:
-        body += f"\n\nAdditional message from the administrator:\n{custom_message}"
-    
-    # Send the email
-    send_email(subject, recipients=[user.email], text_body=body, html_body=body)
+    # Send the email with both HTML and plain text versions
+    send_email(
+        subject=subject,
+        recipients=[user.email],
+        text_body=render_template('email/service_staff_invite.txt', **context),
+        html_body=render_template('email/service_staff_invite.html', **context)
+    )
     
     # Also create an in-app notification
     create_notification(

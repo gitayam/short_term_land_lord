@@ -38,13 +38,30 @@
                             <div class="form-text">The invitation will be sent to this email address.</div>
                         </div>
                         
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    {{ form.country_code(class="form-control") }}
+                                </div>
+                                {{ form.phone(class="form-control", placeholder="Enter phone number") }}
+                            </div>
+                            {% if form.phone.errors %}
+                                {% for error in form.phone.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
                         <div class="mb-3">
-                            {{ form.phone.label(class="form-label") }}
-                            {{ form.phone(class="form-control") }}
-                            {% for error in form.phone.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                            <div class="form-text">Optional phone number for SMS notifications.</div>
+                            <div class="form-check">
+                                {{ form.send_email(class="form-check-input") }}
+                                {{ form.send_email.label(class="form-check-label") }}
+                            </div>
+                            <div class="form-check">
+                                {{ form.send_sms(class="form-check-input") }}
+                                {{ form.send_sms.label(class="form-check-label") }}
+                            </div>
                         </div>
                         
                         <div class="mb-3">

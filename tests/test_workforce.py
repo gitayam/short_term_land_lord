@@ -1,7 +1,7 @@
 import unittest
 from flask import url_for
 from app import create_app, db
-from app.models import User, UserRoles, Property, Task, TaskAssignment, TaskProperty
+from app.models import User, UserRoles, Property, Task, TaskAssignment, TaskProperty, Notification, NotificationType
 from config import TestConfig
 from datetime import datetime
 
@@ -97,9 +97,12 @@ class TestWorkforceRoutes(unittest.TestCase):
             'first_name': 'New',
             'last_name': 'Worker',
             'email': 'worker@example.com',
+            'phone': '+1234567890',
+            'send_email': True,
+            'send_sms': True,
             'service_type': 'cleaning',
             'message': 'Welcome to our team!',
-            'submit': 'Send Invitation'  # Include the submit field
+            'submit': 'Send Invitation'
         })
         
         # We should get a redirect response
@@ -115,6 +118,13 @@ class TestWorkforceRoutes(unittest.TestCase):
         self.assertEqual(worker.first_name, 'New')
         self.assertEqual(worker.last_name, 'Worker')
         self.assertEqual(worker.role, UserRoles.SERVICE_STAFF.value)
+        self.assertEqual(worker.phone, '+1234567890')
+        
+        # Verify notifications were created
+        notifications = Notification.query.filter_by(
+            notification_type=NotificationType.INVITATION
+        ).all()
+        self.assertGreaterEqual(len(notifications), 1)  # At least one notification should be created
     
     def test_assign_properties_page(self):
         """Test property assignment page access."""
