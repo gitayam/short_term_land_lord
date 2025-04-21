@@ -234,128 +234,147 @@
 
 {% block scripts %}
 {{ super() }}
-{# Use FullCalendar v6 #}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.js"></script>
-{# Include Bootstrap JS if modal is used #}
+{# Include all required FullCalendar packages #}
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/resource-common@6.1.10/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.10/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.10/index.global.min.js'></script>
+{# Include Bootstrap JS for modal #}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
-    var resources = {{ resources|tojson|safe }};
-    var events = {{ events|tojson|safe }};
     
-    // --- Input Validation ---
-    if (!calendarEl) {
-        console.error("Calendar container element '#calendar' not found.");
-        return;
-    }
-    if (!Array.isArray(resources)) {
-        console.warn("Resources data is not a valid array. Defaulting to empty.", resources);
-        resources = [];
-    }
-     if (!Array.isArray(events)) {
-        console.warn("Events data is not a valid array. Defaulting to empty.", events);
-        events = [];
-    }
-
-    // --- Calendar Initialization ---
+    // Add debug logging for incoming data
+    console.log('Resources:', {{ resources|tojson|safe }});
+    console.log('Events:', {{ events|tojson|safe }});
+    
     try {
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives', // Example: Use your actual license key if needed
-            initialView: 'resourceTimelineMonth',
-            aspectRatio: 1.8, // Adjust for desired height vs width
-            height: 'auto', // Adjust height based on resources
-            resourceAreaWidth: '20%', // Width for the property list column
-            resourceAreaHeaderContent: 'Properties',
+        var resources = {{ resources|tojson|safe }};
+        var events = {{ events|tojson|safe }};
+        
+        // --- Input Validation ---
+        if (!calendarEl) {
+            throw new Error("Calendar container element '#calendar' not found.");
+        }
+        if (!Array.isArray(resources)) {
+            console.warn("Resources data is not a valid array:", resources);
+            resources = [];
+        }
+        if (!Array.isArray(events)) {
+            console.warn("Events data is not a valid array:", events);
+            events = [];
+        }
 
+        // --- Calendar Initialization ---
+        var calendarOptions = {
+            schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
+            plugins: [
+                FullCalendar.resourceTimelinePlugin,
+                FullCalendar.interactionPlugin
+            ],
+            initialView: 'resourceTimelineMonth',
+            views: {
+                resourceTimelineMonth: {
+                    type: 'resourceTimeline',
+                    duration: { months: 1 }
+                },
+                resourceTimelineWeek: {
+                    type: 'resourceTimeline',
+                    duration: { weeks: 1 }
+                },
+                resourceTimelineDay: {
+                    type: 'resourceTimeline',
+                    duration: { days: 1 }
+                }
+            },
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'resourceTimelineMonth,resourceTimelineWeek,resourceTimelineDay' // Available views
+                right: 'resourceTimelineMonth,resourceTimelineWeek,resourceTimelineDay'
             },
-            
-            editable: true, // Allows dragging/resizing events - set to false if not needed
-            selectable: true, // Allows selecting date ranges
-
+            editable: false,
+            selectable: true,
+            timeZone: 'local',
+            aspectRatio: 1.8,
+            height: 'auto',
+            resourceAreaWidth: '20%',
+            resourceAreaHeaderContent: 'Properties',
             resources: resources,
             events: events,
-
-            slotMinWidth: 50, // Minimum width for each day column, adjust for density
-
-            // Simplify event display for timeline view
+            slotMinWidth: 50,
             eventContent: function(arg) {
-                 // Just display the event title (guest name/summary)
-                 return { html: `<div class="fc-event-title">${arg.event.title}</div>` };
+                return { html: `<div class="fc-event-title">${arg.event.title}</div>` };
             },
-            
             eventDidMount: function(info) {
-                 // Optional: Add tooltips or further customization here
-                 // Example: Using Bootstrap tooltips (requires Bootstrap JS)
-                 if (info.event.extendedProps && info.event.extendedProps.guest_name && typeof bootstrap !== 'undefined') {
-                     try {
-                         var tooltipContent = `Guest: ${info.event.extendedProps.guest_name}<br>Source: ${info.event.extendedProps.service}`;
-                         // Ensure the element exists before creating a tooltip
-                         if (info.el) {
-                             var tooltip = new bootstrap.Tooltip(info.el, {
-                                 title: tooltipContent,
-                                 html: true,
-                                 placement: 'top',
-                                 trigger: 'hover',
-                                 container: 'body' // Important for positioning within calendar
-                             });
-                         }
-                     } catch (e) {
-                         console.error("Error initializing tooltip:", e, info.el);
-                     }
-                 }
+                if (info.event.extendedProps && info.event.extendedProps.guest_name && typeof bootstrap !== 'undefined') {
+                    try {
+                        var tooltipContent = `Guest: ${info.event.extendedProps.guest_name}<br>Source: ${info.event.extendedProps.service}`;
+                        if (info.el) {
+                            new bootstrap.Tooltip(info.el, {
+                                title: tooltipContent,
+                                html: true,
+                                placement: 'top',
+                                trigger: 'hover',
+                                container: 'body'
+                            });
+                        }
+                    } catch (e) {
+                        console.warn("Tooltip initialization error:", e);
+                    }
+                }
             },
-
             eventClick: function(info) {
-                // Optional: Show details in a modal on click
-                var event = info.event;
-                var props = event.extendedProps || {}; // Ensure props exists
-                
-                // Format start and end dates carefully
-                var startDateStr = event.start ? event.start.toLocaleDateString() : 'N/A';
-                var endDateStr = 'N/A';
-                if (event.end) {
-                    // FullCalendar's end date is exclusive, subtract one day for display
-                    var endDate = new Date(event.end);
-                    endDate.setDate(endDate.getDate() - 1);
-                    endDateStr = endDate.toLocaleDateString();
-                }
-                
-                document.getElementById('modalPropertyName').textContent = props.property_name || 'N/A';
-                document.getElementById('modalTitle').textContent = event.title || 'N/A';
-                document.getElementById('modalDates').textContent = startDateStr + ' - ' + endDateStr;
-                document.getElementById('modalSource').textContent = props.service || 'N/A';
+                try {
+                    var event = info.event;
+                    var props = event.extendedProps || {};
+                    
+                    var startDateStr = event.start ? event.start.toLocaleDateString() : 'N/A';
+                    var endDateStr = 'N/A';
+                    if (event.end) {
+                        var endDate = new Date(event.end);
+                        endDate.setDate(endDate.getDate() - 1);
+                        endDateStr = endDate.toLocaleDateString();
+                    }
+                    
+                    document.getElementById('modalPropertyName').textContent = props.property_name || 'N/A';
+                    document.getElementById('modalTitle').textContent = event.title || 'N/A';
+                    document.getElementById('modalDates').textContent = startDateStr + ' - ' + endDateStr;
+                    document.getElementById('modalSource').textContent = props.service || 'N/A';
 
-                var eventModalElement = document.getElementById('eventModal');
-                if (eventModalElement) {
-                    var eventModal = new bootstrap.Modal(eventModalElement);
-                    eventModal.show();
-                } else {
-                     console.error("Event modal element not found.");
+                    var eventModalElement = document.getElementById('eventModal');
+                    if (eventModalElement) {
+                        var eventModal = new bootstrap.Modal(eventModalElement);
+                        eventModal.show();
+                    } else {
+                        console.error("Event modal element not found");
+                    }
+                } catch (e) {
+                    console.error("Error showing event details:", e);
                 }
                 
-                // Prevent browser navigation if event has a URL
-                info.jsEvent.preventDefault(); 
+                info.jsEvent.preventDefault();
             },
-            
             select: function(info) {
-              // Optional: Handle date range selection
-              console.log('Selected ' + info.startStr + ' to ' + info.endStr + ' on resource ' + info.resource.id);
-              // Could trigger a modal to add a new booking/block
-            }, // <-- Add comma here
+                console.log('Selected ' + info.startStr + ' to ' + info.endStr + ' on resource ' + info.resource.id);
+            }
+        };
 
-        });
-
+        var calendar = new FullCalendar.Calendar(calendarEl, calendarOptions);
         calendar.render();
+        console.log('Calendar successfully rendered');
         
     } catch (error) {
         console.error("Error initializing FullCalendar:", error);
-        calendarEl.innerHTML = '<div class="alert alert-danger">Could not load the calendar. Please check the console for errors.</div>';
+        if (calendarEl) {
+            calendarEl.innerHTML = `
+                <div class="alert alert-danger">
+                    <h4>Calendar Loading Error</h4>
+                    <p>Could not load the calendar. Error details have been logged to the console.</p>
+                    <p><small>Error: ${error.message}</small></p>
+                </div>`;
+        }
     }
 });
 </script>
