@@ -30,21 +30,21 @@ def test_admin_roles():
         
         # Don't actually add these users to the database, just test the method
         print(f"Test 1 - is_admin=True, role=PROPERTY_OWNER")
-        print(f"has_admin_role(): {user1.has_admin_role()}")
+        print(f"has_admin_role: {user1.has_admin_role}")
         print(f"Expected: True")
         
         print(f"\nTest 2 - is_admin=False, role=ADMIN")
-        print(f"has_admin_role(): {user2.has_admin_role()}")
+        print(f"has_admin_role: {user2.has_admin_role}")
         print(f"Expected: True")
         
-        # Both tests should pass if has_admin_role() works correctly
-        return user1.has_admin_role() and user2.has_admin_role()
+        # Both tests should pass if has_admin_role works correctly
+        return user1.has_admin_role and user2.has_admin_role
 
 if __name__ == '__main__':
     result = test_admin_roles()
     if result:
-        print("\nTest PASSED: has_admin_role() works correctly!")
+        print("\nTest PASSED: has_admin_role works correctly!")
         sys.exit(0)
     else:
-        print("\nTest FAILED: has_admin_role() not working correctly!")
+        print("\nTest FAILED: has_admin_role not working correctly!")
         sys.exit(1) 

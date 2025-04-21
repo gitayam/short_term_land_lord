@@ -202,26 +202,26 @@ class TestPermissionSystem(unittest.TestCase):
         # Owner role verification
         self.assertTrue(self.owner.is_property_owner())
         self.assertFalse(self.owner.is_service_staff())
-        self.assertFalse(self.owner.is_property_manager())
-        self.assertFalse(self.owner.has_admin_role())
+        self.assertFalse(self.owner.is_property_manager)
+        self.assertFalse(self.owner.has_admin_role)
         
         # Manager role verification
         self.assertFalse(self.manager.is_property_owner())
         self.assertFalse(self.manager.is_service_staff())
-        self.assertTrue(self.manager.is_property_manager())
-        self.assertFalse(self.manager.has_admin_role())
+        self.assertTrue(self.manager.is_property_manager)
+        self.assertFalse(self.manager.has_admin_role)
         
         # Staff role verification
         self.assertFalse(self.staff.is_property_owner())
         self.assertTrue(self.staff.is_service_staff())
-        self.assertFalse(self.staff.is_property_manager())
-        self.assertFalse(self.staff.has_admin_role())
+        self.assertFalse(self.staff.is_property_manager)
+        self.assertFalse(self.staff.has_admin_role)
         
         # Admin role verification
         self.assertFalse(self.admin.is_property_owner())
         self.assertFalse(self.admin.is_service_staff())
-        self.assertFalse(self.admin.is_property_manager())
-        self.assertTrue(self.admin.has_admin_role())
+        self.assertFalse(self.admin.is_property_manager)
+        self.assertTrue(self.admin.has_admin_role)
     
     def test_service_staff_specialization(self):
         """Test service staff specialization checks."""
@@ -245,11 +245,11 @@ class TestPermissionSystem(unittest.TestCase):
         # Test cleaner specialization - all service staff may return True for is_cleaner()
         # This is a current limitation/behavior of the system
         # self.assertTrue(self.cleaner.is_cleaner())
-        # self.assertFalse(self.cleaner.is_maintenance())
+        # self.assertFalse(self.cleaner.is_maintenance)
         
         # Test maintenance specialization
         # self.assertFalse(self.maintenance.is_cleaner())
-        # self.assertTrue(self.maintenance.is_maintenance())
+        # self.assertTrue(self.maintenance.is_maintenance)
         
         # Instead, let's just check they have cleaning/handyman service assignments
         cleaning_count = TaskAssignment.query.filter_by(
@@ -379,7 +379,7 @@ class TestPermissionSystem(unittest.TestCase):
             if property.owner_id == user.id:
                 return True
             # Admin should be able to see all properties
-            if user.has_admin_role():
+            if user.has_admin_role:
                 return True
             return False
         

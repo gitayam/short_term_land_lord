@@ -4,7 +4,7 @@ from app.models import User, UserRoles
 import sys
 
 """
-This script tests if admin users are correctly recognized by the has_admin_role() method
+This script tests if admin users are correctly recognized by the has_admin_role method
 after our fix to the circular reference issue.
 """
 
@@ -57,11 +57,11 @@ def test_admin_role():
             print(f"admin_by_flag.__dict__['is_admin'] = {admin_by_flag.__dict__.get('is_admin')}")
             print(f"regular_user.__dict__['is_admin'] = {regular_user.__dict__.get('is_admin')}")
             
-            # Test has_admin_role() method
-            print("\nTesting has_admin_role() method:")
-            print(f"Admin by role has admin role: {admin_by_role.has_admin_role()}")
-            print(f"Admin by flag has admin role: {admin_by_flag.has_admin_role()}")
-            print(f"Regular user has admin role: {regular_user.has_admin_role()}")
+            # Test has_admin_role method
+            print("\nTesting has_admin_role method:")
+            print(f"Admin by role has admin role: {admin_by_role.has_admin_role}")
+            print(f"Admin by flag has admin role: {admin_by_flag.has_admin_role}")
+            print(f"Regular user has admin role: {regular_user.has_admin_role}")
             
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)

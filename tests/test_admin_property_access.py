@@ -30,7 +30,7 @@ def test_admin_access():
             db.session.commit()
             print(f'Admin created with ID: {admin.id}')
         
-        print(f'Admin has admin role: {admin.has_admin_role()}')
+        print(f'Admin has admin role: {admin.has_admin_role}')
         
         # Create a test property with both composite address and components
         test_property = Property(

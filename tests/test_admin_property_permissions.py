@@ -129,9 +129,9 @@ class TestAdminPropertyPermissions(unittest.TestCase):
         db.session.add(admin_role_user)
         db.session.commit()
         
-        # Check that has_admin_role() returns True despite is_admin=False
+        # Check that has_admin_role returns True despite is_admin=False
         # because the role is set to ADMIN
-        self.assertTrue(admin_role_user.has_admin_role())
+        self.assertTrue(admin_role_user.has_admin_role)
         
         # Create a user with non-admin role but is_admin flag set to True
         is_admin_user = User(
@@ -146,10 +146,10 @@ class TestAdminPropertyPermissions(unittest.TestCase):
         db.session.add(is_admin_user)
         db.session.commit()
         
-        # Check that has_admin_role() returns True because is_admin=True
+        # Check that has_admin_role returns True because is_admin=True
         # despite the role not being ADMIN
-        self.assertTrue(is_admin_user.has_admin_role())
+        self.assertTrue(is_admin_user.has_admin_role)
         
         # Also test the property getter
         self.assertTrue(is_admin_user.is_admin)
-        self.assertTrue(admin_role_user.is_admin)  # This should be True because of has_admin_role() 
+        self.assertTrue(admin_role_user.is_admin)  # This should be True because of has_admin_role 
