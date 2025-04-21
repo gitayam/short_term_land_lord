@@ -77,10 +77,29 @@ class PropertyForm(FlaskForm):
     ical_url = URLField('Property Calendar URL (iCal) 📅', validators=[Optional(), URL(), Length(max=500)])
     
     # Check-in and check-out times
-    checkin_time = StringField('Check-in Time ⏰', validators=[Optional(), Length(max=10)], 
-                              description="Standard check-in time (e.g., '15:00')")
-    checkout_time = StringField('Check-out Time ⏰', validators=[Optional(), Length(max=10)], 
-                               description="Standard check-out time (e.g., '11:00')")
+    checkin_time = StringField('Check-in Time ⏰', 
+                              validators=[Optional(), Length(max=10)],
+                              render_kw={
+                                  'class': 'form-control time-picker',
+                                  'data-input': 'true',
+                                  'placeholder': '15:00',
+                                  'aria-label': 'Check-in time in 24-hour format',
+                                  'aria-describedby': 'checkin-help',
+                                  'pattern': '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+                              },
+                              description="Standard check-in time in 24-hour format (e.g., '15:00')")
+                              
+    checkout_time = StringField('Check-out Time ⏰', 
+                               validators=[Optional(), Length(max=10)],
+                               render_kw={
+                                   'class': 'form-control time-picker',
+                                   'data-input': 'true',
+                                   'placeholder': '11:00',
+                                   'aria-label': 'Check-out time in 24-hour format',
+                                   'aria-describedby': 'checkout-help',
+                                   'pattern': '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+                               },
+                               description="Standard check-out time in 24-hour format (e.g., '11:00')")
     
     # Waste Collection Schedule
     trash_schedule_type = SelectField('Trash Collection Schedule 🗑️', choices=[

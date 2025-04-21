@@ -3,7 +3,8 @@
 {% block styles %}
 {{ super() }}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
 <style>
     .room-title {
         font-weight: bold;
@@ -25,17 +26,20 @@
     }
     .time-picker-wrapper {
         position: relative;
-    }
-    .time-picker-wrapper .form-control {
-        padding-right: 40px;
+        display: inline-block;
+        width: 100%;
     }
     .time-picker-wrapper .time-picker-icon {
         position: absolute;
         right: 10px;
         top: 50%;
         transform: translateY(-50%);
-        pointer-events: none;
+        cursor: pointer;
         color: #6c757d;
+        pointer-events: none;
+    }
+    .time-picker-input {
+        padding-right: 30px !important;
     }
     /* Focus styles for better visibility */
     .form-control:focus,
@@ -82,6 +86,18 @@
 
     .form-section:focus-within {
         background-color: rgba(0, 123, 255, 0.05);
+    }
+
+    .flatpickr-time {
+        height: auto !important;
+        padding: 8px;
+    }
+    .flatpickr-time input {
+        height: 32px !important;
+        font-size: 16px;
+    }
+    .flatpickr-calendar {
+        width: auto !important;
     }
 </style>
 {% endblock %}
@@ -210,8 +226,8 @@
                                     <div class="mb-3">
                                         {{ form.checkin_time.label(class="form-label") }}
                                         <div class="time-picker-wrapper">
-                                            {{ form.checkin_time(class="form-control time-picker", placeholder="15:00", data_input="true", aria_required="true", tabindex="10") }}
-                                            <i class="fas fa-clock time-picker-icon" aria-hidden="true"></i>
+                                            {{ form.checkin_time(class="form-control time-picker", placeholder="15:00") }}
+                                            <i class="fas fa-clock time-picker-icon"></i>
                                         </div>
                                         {% for error in form.checkin_time.errors %}
                                         <div class="text-danger" role="alert">{{ error }}</div>
@@ -223,8 +239,8 @@
                                     <div class="mb-3">
                                         {{ form.checkout_time.label(class="form-label") }}
                                         <div class="time-picker-wrapper">
-                                            {{ form.checkout_time(class="form-control time-picker", placeholder="11:00", data_input="true", aria_required="true", tabindex="11") }}
-                                            <i class="fas fa-clock time-picker-icon" aria-hidden="true"></i>
+                                            {{ form.checkout_time(class="form-control time-picker", placeholder="11:00") }}
+                                            <i class="fas fa-clock time-picker-icon"></i>
                                         </div>
                                         {% for error in form.checkout_time.errors %}
                                         <div class="text-danger" role="alert">{{ error }}</div>
@@ -558,33 +574,50 @@ $(document).ready(function() {
         theme: 'bootstrap-5',
         width: '100%',
         placeholder: 'Select an option',
-        allowClear: true,
-        // Enable keyboard navigation
-        containerCssClass: ':all:',
-        dropdownCssClass: ':all:',
-        // Enable search
-        minimumResultsForSearch: 1
+        allowClear: true
     });
 
     // Initialize time pickers
-    flatpickr(".time-picker", {
-        enableTime: true,
-        noCalendar: true,
-        dateFormat: "H:i",
-        time_24hr: true,
-        minuteIncrement: 15,
-        defaultHour: 12,
-        defaultMinute: 0,
-        allowInput: true,
-        // Keyboard navigation
-        enableSeconds: false,
-        disableMobile: false,
-        // Accessibility
-        ariaDateFormat: "H:i",
-        // Position the calendar better
-        position: "auto",
-        // Show clear button
-        allowClear: true
+    const timeInputs = document.querySelectorAll('.time-picker');
+    timeInputs.forEach(input => {
+        flatpickr(input, {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true,
+            minuteIncrement: 15,
+            defaultHour: 12,
+            defaultMinute: 0,
+            allowInput: true,
+            clickOpens: true,
+            static: true,
+            
+            // Ensure the time picker opens above the input if there's not enough space below
+            position: "auto",
+            
+            // Callbacks
+            onOpen: function(selectedDates, dateStr, instance) {
+                instance.element.parentNode.classList.add('is-active');
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                instance.element.parentNode.classList.remove('is-active');
+            },
+            onChange: function(selectedDates, dateStr, instance) {
+                if (dateStr) {
+                    instance.element.classList.add('has-value');
+                } else {
+                    instance.element.classList.remove('has-value');
+                }
+            }
+        });
+
+        // Create and append the clock icon if it doesn't exist
+        const wrapper = input.parentNode;
+        if (!wrapper.querySelector('.time-picker-icon')) {
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-clock time-picker-icon';
+            wrapper.appendChild(icon);
+        }
     });
 
     // Improve keyboard navigation

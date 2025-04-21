@@ -2,6 +2,9 @@
 
 {% block styles %}
 {{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
 <style>
     .room-title {
         font-weight: bold;
@@ -17,6 +20,34 @@
     .room-form.marked-for-deletion {
         opacity: 0.5;
         background-color: #ffdddd;
+    }
+    .flatpickr-time {
+        height: auto !important;
+        padding: 8px;
+    }
+    .flatpickr-time input {
+        height: 32px !important;
+        font-size: 16px;
+    }
+    .flatpickr-calendar {
+        width: auto !important;
+    }
+    .time-picker-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+    .time-picker-wrapper .time-picker-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #6c757d;
+        pointer-events: none;
+    }
+    .time-picker-input {
+        padding-right: 30px !important;
     }
 </style>
 {% endblock %}
@@ -136,21 +167,27 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     {{ form.checkin_time.label(class="form-label") }}
-                                    {{ form.checkin_time(class="form-control", placeholder="15:00") }}
+                                    <div class="time-picker-wrapper">
+                                        {{ form.checkin_time(class="form-control time-picker", placeholder="15:00") }}
+                                        <i class="fas fa-clock time-picker-icon"></i>
+                                    </div>
                                     {% for error in form.checkin_time.errors %}
-                                    <div class="text-danger">{{ error }}</div>
+                                    <div class="text-danger" role="alert">{{ error }}</div>
                                     {% endfor %}
-                                    <div class="form-text">Standard check-in time (e.g., "15:00")</div>
+                                    <div class="form-text" id="checkin-help">Standard check-in time (e.g., "15:00")</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     {{ form.checkout_time.label(class="form-label") }}
-                                    {{ form.checkout_time(class="form-control", placeholder="11:00") }}
+                                    <div class="time-picker-wrapper">
+                                        {{ form.checkout_time(class="form-control time-picker", placeholder="11:00") }}
+                                        <i class="fas fa-clock time-picker-icon"></i>
+                                    </div>
                                     {% for error in form.checkout_time.errors %}
-                                    <div class="text-danger">{{ error }}</div>
+                                    <div class="text-danger" role="alert">{{ error }}</div>
                                     {% endfor %}
-                                    <div class="form-text">Standard check-out time (e.g., "11:00")</div>
+                                    <div class="form-text" id="checkout-help">Standard check-out time (e.g., "11:00")</div>
                                 </div>
                             </div>
                         </div>
@@ -509,171 +546,84 @@
 
 {% block scripts %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const roomsContainer = document.getElementById('rooms-container');
-        const addRoomButton = document.getElementById('add-room');
-        
-        // Get room count from data attribute
-        let roomCounter = parseInt(document.getElementById('room-counter-data').getAttribute('data-room-count'));
-        
-        // Add room button click handler
-        addRoomButton.addEventListener('click', function() {
-            console.log("Add room button clicked, fetching template");
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2-enable').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Select an option',
+        allowClear: true
+    });
+
+    // Initialize time pickers
+    const timeInputs = document.querySelectorAll('.time-picker');
+    timeInputs.forEach(input => {
+        flatpickr(input, {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true,
+            minuteIncrement: 15,
+            defaultHour: 12,
+            defaultMinute: 0,
+            allowInput: true,
+            clickOpens: true,
+            static: true,
             
-            // Show loading indicator
-            addRoomButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
-            addRoomButton.disabled = true;
+            // Ensure the time picker opens above the input if there's not enough space below
+            position: "auto",
             
-            fetch("{{ url_for('property.room_form_template') }}?index=" + roomCounter)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok: ' + response.statusText);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log("Template received, adding to DOM");
-                    
-                    if (!data.success) {
-                        throw new Error(data.error || 'Unknown error occurred');
-                    }
-                    
-                    // Create a temporary div to hold the HTML
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = data.html.trim();
-                    
-                    // Get the first child (the room form)
-                    const roomForm = tempDiv.firstElementChild;
-                    
-                    // Append the new room form to the container
-                    roomsContainer.appendChild(roomForm);
-                    
-                    // Set up event handlers for the new room form
-                    setupRoomFormHandlers(roomForm);
-                    
-                    roomCounter++;
-                    
-                    // Enable button again
-                    addRoomButton.innerHTML = '<i class="bi bi-plus-circle"></i> Add Room 🏠';
-                    addRoomButton.disabled = false;
-                })
-                .catch(error => {
-                    console.error('Error fetching room form template:', error);
-                    alert('Failed to add room: ' + error.message);
-                    
-                    // Enable button again
-                    addRoomButton.innerHTML = '<i class="bi bi-plus-circle"></i> Add Room 🏠';
-                    addRoomButton.disabled = false;
-                });
+            // Callbacks
+            onOpen: function(selectedDates, dateStr, instance) {
+                instance.element.parentNode.classList.add('is-active');
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                instance.element.parentNode.classList.remove('is-active');
+            },
+            onChange: function(selectedDates, dateStr, instance) {
+                if (dateStr) {
+                    instance.element.classList.add('has-value');
+                } else {
+                    instance.element.classList.remove('has-value');
+                }
+            }
         });
-        
-        // Set up event handlers for all existing room forms
-        document.querySelectorAll('.room-form').forEach(setupRoomFormHandlers);
-        
-        // Function to set up event handlers for a room form
-        function setupRoomFormHandlers(roomForm) {
-            // Remove room button
-            const removeRoomBtn = roomForm.querySelector('.remove-room');
-            if (removeRoomBtn) {
-                removeRoomBtn.addEventListener('click', function() {
-                    const roomId = roomForm.dataset.roomId;
-                    if (roomId && !roomId.startsWith('new_')) {
-                        // For existing rooms, mark for deletion instead of removing from DOM
-                        const deleteCheckbox = document.getElementById('delete_' + roomId);
-                        if (deleteCheckbox) {
-                            deleteCheckbox.checked = true;
-                            roomForm.classList.add('marked-for-deletion');
-                        }
-                    } else {
-                        // For new rooms, just remove from DOM
-                        roomForm.remove();
-                    }
-                });
-            }
-            
-            // Delete checkbox change handler (for existing rooms)
-            const deleteCheckbox = roomForm.querySelector('.delete-room-checkbox');
-            if (deleteCheckbox) {
-                deleteCheckbox.addEventListener('change', function() {
-                    if (this.checked) {
-                        roomForm.classList.add('marked-for-deletion');
-                    } else {
-                        roomForm.classList.remove('marked-for-deletion');
-                    }
-                });
-            }
-            
-            // Room type change handler
-            const roomTypeSelect = roomForm.querySelector('.room-type-select');
-            if (roomTypeSelect) {
-                roomTypeSelect.addEventListener('change', function() {
-                    const roomId = roomForm.dataset.roomId;
-                    const bedroomOptions = roomForm.querySelector('.bedroom-options');
-                    const bathroomOptions = roomForm.querySelector('.bathroom-options');
-                    
-                    if (this.value === 'bedroom') {
-                        bedroomOptions.style.display = 'block';
-                        bathroomOptions.style.display = 'none';
-                    } else if (this.value === 'bathroom') {
-                        bedroomOptions.style.display = 'none';
-                        bathroomOptions.style.display = 'block';
-                    } else {
-                        bedroomOptions.style.display = 'none';
-                        bathroomOptions.style.display = 'none';
-                    }
-                });
-            }
-            
-            // Has TV checkbox change handler
-            const hasTvCheckbox = roomForm.querySelector('.has-tv-checkbox');
-            if (hasTvCheckbox) {
-                hasTvCheckbox.addEventListener('change', function() {
-                    const tvDetails = roomForm.querySelector('.tv-details');
-                    if (tvDetails) {
-                        tvDetails.style.display = this.checked ? 'block' : 'none';
-                    }
-                });
-            }
+    });
 
-            // Add Furniture button handler
-            const addFurnitureBtn = roomForm.querySelector('.add-furniture-btn');
-            if (addFurnitureBtn) {
-                addFurnitureBtn.addEventListener('click', function() {
-                    const roomId = this.dataset.roomId;
-                    const template = document.getElementById('furniture-item-template');
-                    const furnitureContainer = roomForm.querySelector('.furniture-items');
-                    
-                    if (template && furnitureContainer) {
-                        // Clone the template
-                        const newFurniture = template.content.cloneNode(true);
-                        
-                        // Update the name attributes with the correct room ID
-                        newFurniture.querySelectorAll('[name*="ROOM_ID"]').forEach(element => {
-                            element.name = element.name.replace('ROOM_ID', roomId);
-                        });
-                        
-                        // Add remove button handler
-                        const removeBtn = newFurniture.querySelector('.remove-furniture');
-                        if (removeBtn) {
-                            removeBtn.addEventListener('click', function() {
-                                this.closest('.furniture-item').remove();
-                            });
-                        }
-                        
-                        // Add the new furniture item to the container
-                        furnitureContainer.appendChild(newFurniture);
-                    }
-                });
-            }
+    // Handle trash and recycling schedule type changes
+    function updateScheduleFields(type) {
+        const scheduleType = document.getElementById(`${type}_schedule_type`).value;
+        const dayField = document.querySelector(`.${type}-day-field`);
+        const detailsField = document.querySelector(`.${type}-schedule-details`);
+        
+        if (scheduleType === 'weekly') {
+            dayField.style.display = 'block';
+            detailsField.style.display = 'none';
+        } else if (scheduleType === 'biweekly' || scheduleType === 'monthly' || scheduleType === 'custom') {
+            dayField.style.display = 'none';
+            detailsField.style.display = 'block';
+        } else {
+            dayField.style.display = 'none';
+            detailsField.style.display = 'none';
+        }
+    }
 
-            // Add remove handlers for existing furniture items
-            roomForm.querySelectorAll('.remove-furniture').forEach(button => {
-                button.addEventListener('click', function() {
-                    this.closest('.furniture-item').remove();
-                });
-            });
+    // Initialize and handle schedule type changes
+    ['trash', 'recycling'].forEach(type => {
+        const select = document.getElementById(`${type}_schedule_type`);
+        if (select) {
+            select.addEventListener('change', () => updateScheduleFields(type));
+            updateScheduleFields(type); // Initialize on page load
         }
     });
+
+    // Handle room deletion marking
+    $('.delete-room-checkbox').change(function() {
+        $(this).closest('.room-form').toggleClass('marked-for-deletion', this.checked);
+    });
+});
 </script>
 {% endblock %}
