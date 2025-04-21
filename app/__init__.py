@@ -81,6 +81,9 @@ def create_app(config_class=Config):
     from app.routes.health import bp as health_bp
     app.register_blueprint(health_bp)
     
+    from app.routes.recommendation_routes import bp as recommendations_bp
+    app.register_blueprint(recommendations_bp, url_prefix='/recommendations')
+    
     # Fix PostgreSQL transactions if needed
     with app.app_context():
         try:
