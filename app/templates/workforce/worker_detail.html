@@ -45,12 +45,12 @@
                 <div class="card-body">
                     {% if assigned_properties %}
                     <div class="list-group">
-                        {% for property in assigned_properties %}
-                        <a href="{{ url_for('property.view', id=property.id) }}" class="list-group-item list-group-item-action">
+                        {% for assigned_property in assigned_properties %}
+                        <a href="{{ url_for('property.view', id=assigned_property.id) }}" class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between">
-                                <h5 class="mb-1">{{ property.name }}</h5>
+                                <h5 class="mb-1">{{ assigned_property.name }}</h5>
                             </div>
-                            <p class="mb-1">{{ property.get_full_address() }}</p>
+                            <p class="mb-1">{{ assigned_property.get_full_address() }}</p>
                         </a>
                         {% endfor %}
                     </div>
@@ -111,8 +111,7 @@
                                             <td>{{ task.title }}</td>
                                             <td>
                                                 {% if task.properties %}
-                                                {% set property = task.properties[0].property %}
-                                                {{ property.name }}
+                                                {{ task.properties[0].name }}
                                                 {% else %}
                                                 N/A
                                                 {% endif %}
@@ -178,8 +177,7 @@
                                             <td>{{ task.title }}</td>
                                             <td>
                                                 {% if task.properties %}
-                                                {% set property = task.properties[0].property %}
-                                                {{ property.name }}
+                                                {{ task.properties[0].name }}
                                                 {% else %}
                                                 N/A
                                                 {% endif %}
@@ -244,8 +242,7 @@
                                             <td>{{ task.title }}</td>
                                             <td>
                                                 {% if task.properties %}
-                                                {% set property = task.properties[0].property %}
-                                                {{ property.name }}
+                                                {{ task.properties[0].name }}
                                                 {% else %}
                                                 N/A
                                                 {% endif %}

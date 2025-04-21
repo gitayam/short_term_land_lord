@@ -283,9 +283,17 @@ def assign_properties():
                 creator_id=current_user.id
             )
             
-            # Associate task with property
-            task_property = TaskProperty(property=property)
-            task.properties.append(task_property)
+            # Add task to session first to get an ID
+            db.session.add(task)
+            db.session.flush()  # This will assign an ID to the task without committing
+            
+            # Now create the task_property with the task's ID
+            task_property = TaskProperty(
+                task_id=task.id,
+                property_id=property.id,
+                sequence_number=0
+            )
+            db.session.add(task_property)
             
             # Assign worker to task
             task_assignment = TaskAssignment(
@@ -293,8 +301,6 @@ def assign_properties():
                 service_type=service_type
             )
             task.assignments.append(task_assignment)
-            
-            db.session.add(task)
         
         db.session.commit()
         
