@@ -28,10 +28,10 @@ def patch_user_model():
     try:
         from app import db
         from app.models import User
-        
+
         # Set the tablename to 'users'
         User.__tablename__ = 'users'
-        
+
         # Verify the table exists in the database
         from sqlalchemy import inspect
         inspector = inspect(db.engine)
@@ -39,10 +39,10 @@ def patch_user_model():
             current_app.logger.info("Users table exists in the database")
         else:
             current_app.logger.warning("Users table does not exist in the database - it will be created if migrations are run")
-        
+
         # Log that we've patched the model
         current_app.logger.info(f"User model patched: tablename={User.__tablename__}")
-        
+
         return True
     except Exception as e:
         current_app.logger.error(f"Failed to patch User model: {e}", exc_info=True)
@@ -55,7 +55,7 @@ def patch_user_loader():
     """
     try:
         from app import db, login_manager
-        
+
         @login_manager.user_loader
         def load_user(id):
             """Load user by ID."""
@@ -65,21 +65,21 @@ def patch_user_loader():
                 sql = text(f"SELECT * FROM {table_name} WHERE id = :id")
                 result = db.session.execute(sql, {'id': id})
                 user_data = result.fetchone()
-                
+
                 if user_data:
                     from app.models import User
                     user = User()
                     for key, value in user_data._mapping.items():
                         setattr(user, key, value)
                     return user
-                
+
                 # Fallback to ORM query
                 from app.models import User
                 return User.query.get(int(id))
             except Exception as e:
                 current_app.logger.error(f"Error loading user: {e}", exc_info=True)
                 return None
-        
+
         current_app.logger.info("User loader patched to use consistent table name")
         return True
     except Exception as e:
@@ -93,14 +93,14 @@ def fix_user_model():
     """
     from flask import Flask
     app = Flask(__name__)
-    
+
     # Import after Flask app creation to avoid circular imports
     from app import db
-    
+
     with app.app_context():
         success_model = patch_user_model()
         success_loader = patch_user_loader()
-        
+
         return success_model and success_loader
 
 if __name__ == "__main__":

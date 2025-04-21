@@ -14,7 +14,7 @@ def test_admin_access():
         # Get admin user
         admin = User.query.filter_by(username='admin').first()
         print(f'Admin exists: {admin is not None}')
-        
+
         if not admin:
             print('Admin not found, creating one...')
             admin = User(
@@ -29,9 +29,9 @@ def test_admin_access():
             db.session.add(admin)
             db.session.commit()
             print(f'Admin created with ID: {admin.id}')
-        
+
         print(f'Admin has admin role: {admin.has_admin_role()}')
-        
+
         # Create a test property with both composite address and components
         test_property = Property(
             name='Test Property',
@@ -47,14 +47,14 @@ def test_admin_access():
         )
         db.session.add(test_property)
         db.session.commit()
-        
+
         # Get all properties
         properties = Property.query.all()
         print(f'Number of properties: {len(properties)}')
-        
+
         # Check if properties are visible to admin
         for prop in properties:
             print(f'Property {prop.id}: {prop.name} - Visible to admin: {prop.is_visible_to(admin)}')
 
 if __name__ == '__main__':
-    test_admin_access() 
+    test_admin_access()

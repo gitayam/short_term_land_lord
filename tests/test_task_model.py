@@ -17,20 +17,20 @@ from app.models import User, Task, TaskAssignment, TaskProperty
 def test_task_model():
     """Test the Task model functionality"""
     print("Starting Task model test...")
-    
+
     # Create app context
     app = create_app()
-    
+
     with app.app_context():
         # Test database dialect detection
         dialect = db.engine.dialect.name
         print(f"Detected database dialect: {dialect}")
-        
+
         # Test table names
         print(f"\nTask model table name: {Task.__tablename__}")
         print(f"TaskAssignment model table name: {TaskAssignment.__tablename__}")
         print(f"TaskProperty model table name: {TaskProperty.__tablename__}")
-        
+
         # Test direct table access
         print("\nTesting direct table access...")
         try:
@@ -38,7 +38,7 @@ def test_task_model():
             result = db.session.execute(text(f"SELECT COUNT(*) FROM {Task.__tablename__}"))
             count = result.scalar()
             print(f"Found {count} tasks in table")
-            
+
             # List tasks
             result = db.session.execute(text(f"SELECT id, title, status FROM {Task.__tablename__} LIMIT 5"))
             tasks = result.fetchall()
@@ -50,7 +50,7 @@ def test_task_model():
                 print("No tasks found in table")
         except Exception as e:
             print(f"Error accessing task table directly: {e}")
-        
+
         # Test ORM access
         print("\nTesting ORM access...")
         try:
@@ -62,7 +62,7 @@ def test_task_model():
                     print(f"- ID: {task.id}, Title: {task.title}, Status: {task.status}")
         except Exception as e:
             print(f"Error accessing tasks via ORM: {e}")
-        
+
         # Test task creation
         print("\nTesting task creation...")
         try:
@@ -77,7 +77,7 @@ def test_task_model():
                 )
                 db.session.add(test_user)
                 db.session.commit()
-            
+
             # Create a new task
             new_task = Task(
                 title="Test Task",
@@ -90,7 +90,7 @@ def test_task_model():
             db.session.add(new_task)
             db.session.commit()
             print(f"Created new task: {new_task.title} (ID: {new_task.id})")
-            
+
             # Test task assignment
             assignment = TaskAssignment(
                 task_id=new_task.id,
@@ -99,11 +99,11 @@ def test_task_model():
             db.session.add(assignment)
             db.session.commit()
             print(f"Created task assignment for user {test_user.id}")
-            
+
         except Exception as e:
             print(f"Error creating task: {e}")
-        
+
         print("\nTask model test complete!")
 
 if __name__ == "__main__":
-    test_task_model() 
+    test_task_model()

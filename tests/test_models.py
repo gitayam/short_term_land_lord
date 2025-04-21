@@ -14,7 +14,7 @@ class TestUserModel(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-        
+
         # Create a test user for each role
         self.owner = User(
             first_name='Test',
@@ -23,7 +23,7 @@ class TestUserModel(unittest.TestCase):
             role=UserRoles.PROPERTY_OWNER.value
         )
         self.owner.set_password('password')
-        
+
         self.staff = User(
             first_name='Test',
             last_name='Staff',
@@ -31,7 +31,7 @@ class TestUserModel(unittest.TestCase):
             role=UserRoles.SERVICE_STAFF.value
         )
         self.staff.set_password('password')
-        
+
         self.manager = User(
             first_name='Test',
             last_name='Manager',
@@ -39,7 +39,7 @@ class TestUserModel(unittest.TestCase):
             role=UserRoles.PROPERTY_MANAGER.value
         )
         self.manager.set_password('password')
-        
+
         self.admin = User(
             first_name='Test',
             last_name='Admin',
@@ -47,10 +47,10 @@ class TestUserModel(unittest.TestCase):
             role=UserRoles.ADMIN.value
         )
         self.admin.set_password('password')
-        
+
         db.session.add_all([self.owner, self.staff, self.manager, self.admin])
         db.session.commit()
-        
+
         # Create a test property
         self.property = Property(
             name='Test Property',
@@ -65,7 +65,7 @@ class TestUserModel(unittest.TestCase):
         )
         db.session.add(self.property)
         db.session.commit()
-        
+
         # Create a task
         self.task = Task(
             title='Test Task',
@@ -77,14 +77,14 @@ class TestUserModel(unittest.TestCase):
         )
         db.session.add(self.task)
         db.session.commit()
-        
+
         # Link task to property
         self.task_property = TaskProperty(
             task_id=self.task.id,
             property_id=self.property.id
         )
         db.session.add(self.task_property)
-        
+
         # Create cleaning assignment for the staff
         self.cleaning_assignment = TaskAssignment(
             task_id=self.task.id,
@@ -92,7 +92,7 @@ class TestUserModel(unittest.TestCase):
             service_type=ServiceType.CLEANING
         )
         db.session.add(self.cleaning_assignment)
-        
+
         # Create maintenance assignment for the staff
         self.maintenance_assignment = TaskAssignment(
             task=self.task,
@@ -100,19 +100,19 @@ class TestUserModel(unittest.TestCase):
             service_type=ServiceType.HANDYMAN
         )
         db.session.add(self.maintenance_assignment)
-        
+
         db.session.commit()
-    
+
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
-    
+
     def test_password_hashing(self):
         """Test password hashing and verification."""
         self.assertTrue(self.owner.check_password('password'))
         self.assertFalse(self.owner.check_password('wrong_password'))
-    
+
     def test_user_roles(self):
         """Test role verification methods."""
         # Owner checks
@@ -120,30 +120,30 @@ class TestUserModel(unittest.TestCase):
         self.assertFalse(self.owner.is_service_staff())
         self.assertFalse(self.owner.is_property_manager())
         self.assertFalse(self.owner.is_admin)
-        
+
         # Staff checks
         self.assertFalse(self.staff.is_property_owner())
         self.assertTrue(self.staff.is_service_staff())
         self.assertFalse(self.staff.is_property_manager())
         self.assertFalse(self.staff.is_admin)
-        
+
         # Manager checks
         self.assertFalse(self.manager.is_property_owner())
         self.assertFalse(self.manager.is_service_staff())
         self.assertTrue(self.manager.is_property_manager())
         self.assertFalse(self.manager.is_admin)
-        
+
         # Admin checks
         self.assertFalse(self.admin.is_property_owner())
         self.assertFalse(self.admin.is_service_staff())
         self.assertFalse(self.admin.is_property_manager())
         self.assertTrue(self.admin.is_admin)
-    
+
     def test_legacy_methods(self):
         """Test legacy compatibility methods."""
         self.assertTrue(self.staff.is_cleaner())
         self.assertTrue(self.staff.is_maintenance())
-    
+
     def test_can_complete_task(self):
         """Test task completion permissions."""
         # Create a property
@@ -160,7 +160,7 @@ class TestUserModel(unittest.TestCase):
         )
         db.session.add(property)
         db.session.commit()  # Commit to get a valid property.id before creating Task
-        
+
         # Create a task with property_id
         task = Task(
             title='Test Task',
@@ -174,14 +174,14 @@ class TestUserModel(unittest.TestCase):
         )
         db.session.add(task)
         db.session.commit()
-        
+
         # Link task to property
         task_property = TaskProperty(
             task_id=task.id,
             property_id=property.id
         )
         db.session.add(task_property)
-        
+
         # Create assignment for the staff
         assignment = TaskAssignment(
             task=task,
@@ -189,7 +189,7 @@ class TestUserModel(unittest.TestCase):
         )
         db.session.add(assignment)
         db.session.commit()
-        
+
         # Verify completion permissions
         # Creator can complete
         self.assertTrue(self.owner.can_complete_task(task))
@@ -207,7 +207,7 @@ class TestUserModel(unittest.TestCase):
         self.assertFalse(new_staff.can_complete_task(task))
         # Admin can complete any task
         self.assertTrue(self.admin.can_complete_task(task))
-    
+
     def test_get_full_name(self):
         """Test the get_full_name method."""
         self.assertEqual(self.owner.get_full_name(), 'Test Owner')
@@ -228,7 +228,7 @@ class TestUserModel(unittest.TestCase):
         )
         db.session.add(property)
         db.session.commit()  # Commit to get a valid property.id
-        
+
         # Create a task with property_id
         task = Task(
             title='Test Task',
@@ -242,14 +242,14 @@ class TestUserModel(unittest.TestCase):
         )
         db.session.add(task)
         db.session.commit()
-        
+
         # Link task to property
         task_property = TaskProperty(
             task_id=task.id,
             property_id=property.id
         )
         db.session.add(task_property)
-        
+
         # Create assignment for the staff
         assignment = TaskAssignment(
             task=task,
@@ -257,7 +257,7 @@ class TestUserModel(unittest.TestCase):
         )
         db.session.add(assignment)
         db.session.commit()
-        
+
         # Verify reassignment permissions
         # Creator can reassign
         self.assertTrue(self.owner.can_reassign_task(task))
@@ -274,7 +274,7 @@ class TestPropertyModel(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-        
+
         # Create a test user for each role
         self.owner = User(
             first_name='Test',
@@ -283,7 +283,7 @@ class TestPropertyModel(unittest.TestCase):
             role=UserRoles.PROPERTY_OWNER.value
         )
         self.owner.set_password('password')
-        
+
         self.staff = User(
             first_name='Test',
             last_name='Staff',
@@ -291,7 +291,7 @@ class TestPropertyModel(unittest.TestCase):
             role=UserRoles.SERVICE_STAFF.value
         )
         self.staff.set_password('password')
-        
+
         self.manager = User(
             first_name='Test',
             last_name='Manager',
@@ -299,7 +299,7 @@ class TestPropertyModel(unittest.TestCase):
             role=UserRoles.PROPERTY_MANAGER.value
         )
         self.manager.set_password('password')
-        
+
         self.admin = User(
             first_name='Test',
             last_name='Admin',
@@ -307,10 +307,10 @@ class TestPropertyModel(unittest.TestCase):
             role=UserRoles.ADMIN.value
         )
         self.admin.set_password('password')
-        
+
         db.session.add_all([self.owner, self.staff, self.manager, self.admin])
         db.session.commit()
-        
+
         # Create a test property
         self.property = Property(
             name='Test Property',
@@ -325,12 +325,12 @@ class TestPropertyModel(unittest.TestCase):
         )
         db.session.add(self.property)
         db.session.commit()
-        
+
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
-    
+
     def test_property_creation(self):
         """Test property creation."""
         # Property should exist in the database
@@ -339,20 +339,20 @@ class TestPropertyModel(unittest.TestCase):
         self.assertEqual(property_in_db.name, 'Test Property')
         self.assertEqual(property_in_db.description, 'A test property')
         self.assertEqual(property_in_db.owner, self.owner)
-    
+
     def test_get_full_address(self):
         """Test getting the full address."""
         expected_address = '123 Test St, Test City, Test State 12345, Test Country'
         self.assertEqual(self.property.get_full_address(), expected_address)
-    
+
     def test_is_visible_to(self):
         """Test the is_visible_to method."""
         # Owner can see their property
         self.assertTrue(self.property.is_visible_to(self.owner))
-        
+
         # Staff initially might be able to see property based on model implementation
         initial_visibility = self.property.is_visible_to(self.staff)
-    
+
         # Create a task for the property
         task = Task(
             title='Test Task',
@@ -365,14 +365,14 @@ class TestPropertyModel(unittest.TestCase):
         )
         db.session.add(task)
         db.session.commit()  # Commit to get a valid task.id before creating TaskProperty
-        
+
         # Link the task to the property
         task_property = TaskProperty(
             task_id=task.id,
             property_id=self.property.id
         )
         db.session.add(task_property)
-        
+
         # Assign the task to the staff user
         assignment = TaskAssignment(
             task=task,
@@ -380,10 +380,10 @@ class TestPropertyModel(unittest.TestCase):
         )
         db.session.add(assignment)
         db.session.commit()
-        
+
         # After assigning a task, staff should definitely be able to see the property
         self.assertTrue(self.property.is_visible_to(self.staff))
-    
+
     def test_property_relationships(self):
         """Test property relationships."""
         # Create a task for this property
@@ -398,7 +398,7 @@ class TestPropertyModel(unittest.TestCase):
         )
         db.session.add(task)
         db.session.commit()  # Commit to get a valid task.id before creating TaskProperty
-    
+
         # Link the task to the property
         task_property = TaskProperty(
             task_id=task.id,
@@ -406,28 +406,28 @@ class TestPropertyModel(unittest.TestCase):
         )
         db.session.add(task_property)
         db.session.commit()
-    
+
         # Property should have the task
         self.assertEqual(len(self.property.tasks), 1)
         self.assertEqual(self.property.tasks[0].task.title, 'Test Task')
-    
+
         # Task should have the property
         self.assertEqual(len(task.properties), 1)
         self.assertEqual(task.properties[0].name, 'Test Property')
-    
+
     def test_guest_access_token(self):
         """Test generating guest access token."""
         # Initially no token
         self.assertIsNone(self.property.guest_access_token)
-    
+
         # Generate a token
         token = self.property.generate_guest_access_token()
         self.assertIsNotNone(token)
         self.assertEqual(token, self.property.guest_access_token)
-    
+
         # Token should be at least 32 chars
         self.assertGreaterEqual(len(token), 32)
-        
+
     def test_room_and_furniture(self):
         """Test room and furniture relationships."""
         # Create a room
@@ -439,7 +439,7 @@ class TestPropertyModel(unittest.TestCase):
         )
         db.session.add(room)
         db.session.commit()
-        
+
         # Create furniture for the room
         furniture = RoomFurniture(
             name="King Bed",
@@ -449,16 +449,16 @@ class TestPropertyModel(unittest.TestCase):
         )
         db.session.add(furniture)
         db.session.commit()
-        
+
         # Test relationships
         self.assertIn(room, self.property.rooms)
         self.assertIn(furniture, room.room_furniture)
-        
+
         # Test furniture fields
         self.assertEqual(furniture.name, "King Bed")
         self.assertEqual(furniture.furniture_type, "bed")
         self.assertEqual(furniture.description, "Memory foam mattress")
-        
+
         # Test room fields
         self.assertEqual(room.name, "Master Bedroom")
         self.assertEqual(room.room_type, "bedroom")
@@ -466,4 +466,4 @@ class TestPropertyModel(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()

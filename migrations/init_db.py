@@ -11,11 +11,11 @@ def init_database():
     print("Creating database tables...")
     try:
         from app import create_app, db
-        
+
         # Create app context
         print("Creating app context...")
         app = create_app()
-        
+
         with app.app_context():
             print("Starting db.create_all()...")
             # First, import all models to ensure they're registered
@@ -26,7 +26,7 @@ def init_database():
             except ImportError as e:
                 print(f"Warning: Error importing models: {e}")
                 print("Continuing with available models")
-            
+
             # Create all tables
             try:
                 db.create_all()
@@ -34,7 +34,7 @@ def init_database():
             except Exception as e:
                 print(f"Error during db.create_all(): {e}")
                 return False
-            
+
             # Initialize site settings if not already present
             try:
                 from app.models import SiteSettings
@@ -46,10 +46,10 @@ def init_database():
                         SiteSettings(key='maintenance_requests_enabled', value='True', description='Enable maintenance requests', visible=True),
                         SiteSettings(key='require_cleaning_videos', value='False', description='Require videos for cleaning sessions', visible=True),
                     ]
-                    
+
                     for setting in settings:
                         db.session.add(setting)
-                    
+
                     db.session.commit()
                     print(f"Created {len(settings)} default site settings.")
                 else:
@@ -57,7 +57,7 @@ def init_database():
             except Exception as e:
                 print(f"Error setting up site settings: {e}")
                 db.session.rollback()
-                
+
             print("Database initialization complete!")
             return True
     except Exception as e:
@@ -67,4 +67,4 @@ def init_database():
 if __name__ == "__main__":
     print("Running init_db.py directly...")
     success = init_database()
-    sys.exit(0 if success else 1) 
+    sys.exit(0 if success else 1)

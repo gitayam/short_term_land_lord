@@ -15,4 +15,4 @@ app = create_app()
 with app.app_context():
     print("Running repair_request migration...")
     upgrade()
-    print("Migration completed successfully.") 
+    print("Migration completed successfully.")

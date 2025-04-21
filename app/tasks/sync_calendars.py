@@ -29,10 +29,10 @@ logger.addHandler(logging.StreamHandler())
 def sync_calendars():
     """Sync all property calendars"""
     app = create_app()
-    
+
     with app.app_context():
         logger.info("Starting calendar sync process")
-        
+
         # Get all calendars
         try:
             calendars = PropertyCalendar.query.all()
@@ -40,30 +40,30 @@ def sync_calendars():
         except Exception as e:
             logger.critical(f"Failed to retrieve calendars from database: {str(e)}", exc_info=True)
             return
-        
+
         success_count = 0
         error_count = 0
         updated_calendars = []
-        
+
         for calendar in calendars:
             try:
                 logger.info(f"Syncing calendar {calendar.id} - {calendar.name}")
-                
+
                 # Fetch the iCal data
                 try:
                     response = requests.get(calendar.ical_url, timeout=10)
                     if response.status_code == 200:
                         # Try to parse the iCal data to validate
                         cal = Calendar.from_ical(response.text)
-                        
+
                         # Set sync status
                         calendar.last_synced = datetime.utcnow()
                         calendar.sync_status = 'Success'
                         calendar.sync_error = None
-                        
+
                         # Track updated calendars for notifications
                         updated_calendars.append(calendar.id)
-                        
+
                         logger.info(f"Calendar {calendar.id} synced successfully")
                         success_count += 1
                     else:
@@ -90,7 +90,7 @@ def sync_calendars():
                     calendar.sync_error = str(e)[:255]  # Limit error message length
                     logger.error(f"Calendar {calendar.id} sync failed: {str(e)}")
                     error_count += 1
-            
+
                 # Save the calendar status
                 try:
                     db.session.commit()
@@ -100,28 +100,28 @@ def sync_calendars():
             except Exception as e:
                 logger.error(f"Unexpected error processing calendar {calendar.id}: {str(e)}", exc_info=True)
                 error_count += 1
-        
+
         # Send notifications for tasks affected by calendar changes
         if updated_calendars:
             try:
                 # Get the property IDs associated with the updated calendars
                 property_ids = [calendar.property_id for calendar in PropertyCalendar.query.filter(
                     PropertyCalendar.id.in_(updated_calendars)).all()]
-                
+
                 # Find tasks linked to the properties with updated calendars
                 affected_tasks = Task.query.filter(Task.property_id.in_(property_ids)).all()
                 affected_task_ids = [task.id for task in affected_tasks]
-                
+
                 if affected_task_ids:
                     logger.info(f"Sending notifications for {len(affected_task_ids)} affected tasks")
                     notify_calendar_changes(affected_task_ids)
             except Exception as e:
                 logger.error(f"Error sending calendar update notifications: {str(e)}")
-        
+
         logger.info(f"Calendar sync completed. Success: {success_count}, Errors: {error_count}")
 
 if __name__ == "__main__":
     try:
         sync_calendars()
     except Exception as e:
-        logger.critical(f"Critical error in calendar sync: {str(e)}", exc_info=True) 
+        logger.critical(f"Critical error in calendar sync: {str(e)}", exc_info=True)

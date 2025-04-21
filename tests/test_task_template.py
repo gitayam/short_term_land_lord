@@ -17,18 +17,18 @@ from app.models import User, TaskTemplate
 def test_task_template():
     """Test the TaskTemplate model functionality"""
     print("Starting TaskTemplate model test...")
-    
+
     # Create app context
     app = create_app()
-    
+
     with app.app_context():
         # Test database dialect detection
         dialect = db.engine.dialect.name
         print(f"Detected database dialect: {dialect}")
-        
+
         # Test table name
         print(f"\nTaskTemplate model table name: {TaskTemplate.__tablename__}")
-        
+
         # Test direct table access
         print("\nTesting direct table access...")
         try:
@@ -36,7 +36,7 @@ def test_task_template():
             result = db.session.execute(text(f"SELECT COUNT(*) FROM {TaskTemplate.__tablename__}"))
             count = result.scalar()
             print(f"Found {count} task templates in table")
-            
+
             # List templates
             result = db.session.execute(text(f"SELECT id, title FROM {TaskTemplate.__tablename__} LIMIT 5"))
             templates = result.fetchall()
@@ -48,7 +48,7 @@ def test_task_template():
                 print("No task templates found in table")
         except Exception as e:
             print(f"Error accessing task template table directly: {e}")
-        
+
         # Test ORM access
         print("\nTesting ORM access...")
         try:
@@ -60,7 +60,7 @@ def test_task_template():
                     print(f"- ID: {template.id}, Title: {template.title}")
         except Exception as e:
             print(f"Error accessing task templates via ORM: {e}")
-        
+
         # Test template creation
         print("\nTesting task template creation...")
         try:
@@ -75,7 +75,7 @@ def test_task_template():
                 )
                 db.session.add(test_user)
                 db.session.commit()
-            
+
             # Create a new task template
             new_template = TaskTemplate(
                 title="Test Template",
@@ -87,16 +87,16 @@ def test_task_template():
             db.session.add(new_template)
             db.session.commit()
             print(f"Created new task template: {new_template.title} (ID: {new_template.id})")
-            
+
             # Test template retrieval
             retrieved_template = TaskTemplate.query.get(new_template.id)
             print(f"Retrieved template: {retrieved_template.title}")
             print(f"Template creator: {retrieved_template.creator.email}")
-            
+
         except Exception as e:
             print(f"Error creating/retrieving task template: {e}")
-        
+
         print("\nTaskTemplate model test complete!")
 
 if __name__ == "__main__":
-    test_task_template() 
+    test_task_template()

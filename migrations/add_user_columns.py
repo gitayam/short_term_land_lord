@@ -17,26 +17,26 @@ from app import create_app, db
 def add_user_columns():
     """Add missing columns to users table in PostgreSQL"""
     print("Adding missing columns to users table...")
-    
+
     # Check if we're using PostgreSQL
     db_uri = db.engine.url
     if 'postgres' not in db_uri.drivername:
         print(f"Not a PostgreSQL database ({db_uri.drivername}). No fixes needed.")
         return
-    
+
     # Get raw connection
     conn = db.engine.raw_connection()
     try:
         cursor = conn.cursor()
-        
+
         # First, check if we need to rename the table
         try:
             cursor.execute("""
-            SELECT table_name 
-            FROM information_schema.tables 
+            SELECT table_name
+            FROM information_schema.tables
             WHERE table_name='user' AND table_schema='public'
             """)
-            
+
             if cursor.fetchone() and not table_exists(cursor, 'users'):
                 print("Renaming 'user' table to 'users'...")
                 cursor.execute("ALTER TABLE IF EXISTS \"user\" RENAME TO users")
@@ -45,7 +45,7 @@ def add_user_columns():
                 print("Table renamed successfully")
         except Exception as e:
             print(f"Error checking/renaming table: {e}")
-        
+
         # Check and add username column
         try:
             if not column_exists(cursor, 'users', 'username'):
@@ -56,7 +56,7 @@ def add_user_columns():
                 print("username column already exists")
         except Exception as e:
             print(f"Error adding username column: {e}")
-        
+
         # Check and add authentik_id column
         try:
             if not column_exists(cursor, 'users', 'authentik_id'):
@@ -66,7 +66,7 @@ def add_user_columns():
                 print("authentik_id column already exists")
         except Exception as e:
             print(f"Error adding authentik_id column: {e}")
-        
+
         # Check and add signal_identity column
         try:
             if not column_exists(cursor, 'users', 'signal_identity'):
@@ -76,7 +76,7 @@ def add_user_columns():
                 print("signal_identity column already exists")
         except Exception as e:
             print(f"Error adding signal_identity column: {e}")
-        
+
         # Check and add attributes column
         try:
             if not column_exists(cursor, 'users', 'attributes'):
@@ -86,7 +86,7 @@ def add_user_columns():
                 print("attributes column already exists")
         except Exception as e:
             print(f"Error adding attributes column: {e}")
-        
+
         # Check and add is_active column
         try:
             if not column_exists(cursor, 'users', 'is_active'):
@@ -96,7 +96,7 @@ def add_user_columns():
                 print("is_active column already exists")
         except Exception as e:
             print(f"Error adding is_active column: {e}")
-        
+
         # Check and add is_admin column
         try:
             if not column_exists(cursor, 'users', 'is_admin'):
@@ -106,7 +106,7 @@ def add_user_columns():
                 print("is_admin column already exists")
         except Exception as e:
             print(f"Error adding is_admin column: {e}")
-        
+
         # Check and add date_joined column
         try:
             if not column_exists(cursor, 'users', 'date_joined'):
@@ -118,7 +118,7 @@ def add_user_columns():
                 print("date_joined column already exists")
         except Exception as e:
             print(f"Error adding date_joined column: {e}")
-        
+
         # Check and add last_login column
         try:
             if not column_exists(cursor, 'users', 'last_login'):
@@ -128,27 +128,27 @@ def add_user_columns():
                 print("last_login column already exists")
         except Exception as e:
             print(f"Error adding last_login column: {e}")
-        
+
         # Update foreign keys
         update_foreign_keys(cursor)
-                
+
         # Commit all changes
         conn.commit()
         print("Committed all changes")
-        
+
     except Exception as e:
         print(f"Error: {e}")
         conn.rollback()
     finally:
         conn.close()
-    
+
     print("User columns fix complete!")
 
 def column_exists(cursor, table_name, column_name):
     """Helper to check if a column exists in the table"""
     cursor.execute(f"""
-    SELECT column_name 
-    FROM information_schema.columns 
+    SELECT column_name
+    FROM information_schema.columns
     WHERE table_name='{table_name}' AND column_name='{column_name}'
     """)
     return cursor.fetchone() is not None
@@ -156,8 +156,8 @@ def column_exists(cursor, table_name, column_name):
 def table_exists(cursor, table_name):
     """Helper to check if a table exists"""
     cursor.execute(f"""
-    SELECT table_name 
-    FROM information_schema.tables 
+    SELECT table_name
+    FROM information_schema.tables
     WHERE table_name='{table_name}' AND table_schema='public'
     """)
     return cursor.fetchone() is not None
@@ -172,15 +172,15 @@ def update_foreign_keys(cursor):
         WHERE constraint_type = 'FOREIGN KEY'
         AND table_schema = 'public'
         """)
-        
+
         constraints = cursor.fetchall()
-        
+
         for constraint in constraints:
             constraint_name = constraint[0]
-            
+
             # Get the reference details for this constraint
             cursor.execute(f"""
-            SELECT tc.table_name, kcu.column_name, 
+            SELECT tc.table_name, kcu.column_name,
                    ccu.table_name AS foreign_table_name,
                    ccu.column_name AS foreign_column_name
             FROM information_schema.table_constraints AS tc
@@ -191,27 +191,27 @@ def update_foreign_keys(cursor):
             WHERE tc.constraint_name = '{constraint_name}'
             AND tc.constraint_type = 'FOREIGN KEY'
             """)
-            
+
             ref = cursor.fetchone()
             if ref and ref[2] == 'user':  # If this constraint references the 'user' table
                 source_table = ref[0]
                 source_column = ref[1]
                 target_column = ref[3]
-                
+
                 print(f"Updating foreign key {constraint_name} from {source_table}.{source_column} to users.{target_column}")
-                
+
                 # Drop the old constraint
                 cursor.execute(f"ALTER TABLE {source_table} DROP CONSTRAINT {constraint_name}")
-                
+
                 # Create a new constraint pointing to the 'users' table
                 new_constraint_name = f"fk_{source_table}_{source_column}_users"
                 cursor.execute(f"""
-                ALTER TABLE {source_table} 
+                ALTER TABLE {source_table}
                 ADD CONSTRAINT {new_constraint_name}
                 FOREIGN KEY ({source_column})
                 REFERENCES users({target_column})
                 """)
-                
+
                 print(f"Updated constraint {constraint_name} to {new_constraint_name}")
     except Exception as e:
         print(f"Error updating foreign keys: {e}")
@@ -220,4 +220,4 @@ def update_foreign_keys(cursor):
 if __name__ == "__main__":
     app = create_app()
     with app.app_context():
-        add_user_columns() 
+        add_user_columns()

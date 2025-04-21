@@ -26,10 +26,10 @@ def add_tags_column():
     with app.app_context():
         inspector = inspect(db.engine)
         columns = [column['name'] for column in inspector.get_columns('task')]
-        
+
         if 'tags' not in columns:
             logger.info("Adding 'tags' column to task table")
-            
+
             # For SQLite (development)
             if db.engine.url.drivername.startswith('sqlite'):
                 db.session.execute(text("""
@@ -40,7 +40,7 @@ def add_tags_column():
                 db.session.execute(text("""
                     ALTER TABLE task ADD COLUMN IF NOT EXISTS tags VARCHAR(255);
                 """))
-                
+
             db.session.commit()
             logger.info("Successfully added 'tags' column to task table")
         else:
@@ -52,18 +52,18 @@ def mark_existing_workorders():
     with app.app_context():
         # Get tasks that likely represent workorders based on title or description
         workorder_keywords = ['repair', 'fix', 'replace', 'install', 'maintenance', 'broken', 'leaking']
-        
+
         # Build query to find tasks with workorder-like keywords
         tasks_to_update = []
         for task in Task.query.all():
             title_lower = task.title.lower() if task.title else ""
             desc_lower = task.description.lower() if task.description else ""
-            
+
             is_workorder = any(keyword in title_lower or keyword in desc_lower for keyword in workorder_keywords)
-            
+
             if is_workorder and not task.tags:
                 tasks_to_update.append(task.id)
-        
+
         # Update tasks with workorder tag
         if tasks_to_update:
             count = 0
@@ -72,11 +72,11 @@ def mark_existing_workorders():
                 if task:
                     task.tags = "workorder"
                     count += 1
-                    
+
                     # Commit in smaller batches to avoid long transactions
                     if count % 50 == 0:
                         db.session.commit()
-            
+
             # Final commit for any remaining changes
             db.session.commit()
             logger.info(f"Tagged {count} existing tasks as workorders")
@@ -91,4 +91,4 @@ if __name__ == "__main__":
         logger.info("Task tags column migration completed successfully")
     except Exception as e:
         logger.error(f"Error during migration: {str(e)}")
-        sys.exit(1) 
+        sys.exit(1)

@@ -27,13 +27,13 @@ def create_admin():
         admin_first_name = os.environ.get('ADMIN_FIRST_NAME', 'Admin')
         admin_last_name = os.environ.get('ADMIN_LAST_NAME', 'User')
         admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
-        
+
         print(f"Attempting to create/update admin user: {admin_email}")
         print(f"Using environment values from: {env_path}")
-        
+
         # Check if admin already exists
         admin = User.query.filter_by(email=admin_email).first()
-        
+
         if not admin:
             # Create new admin user
             admin = User(
@@ -61,4 +61,4 @@ def create_admin():
             print(f'Admin user {admin_email} updated successfully')
 
 if __name__ == '__main__':
-    create_admin() 
+    create_admin()

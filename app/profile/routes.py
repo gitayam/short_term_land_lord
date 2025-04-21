@@ -24,7 +24,7 @@ def edit_profile():
         form.first_name.data = current_user.first_name
         form.last_name.data = current_user.last_name
         form.email.data = current_user.email
-    
+
     return render_template('profile/edit_profile.html', title='Edit Profile', form=form)
 
 @bp.route('/change_password', methods=['GET', 'POST'])
@@ -36,5 +36,5 @@ def change_password():
         db.session.commit()
         flash('Your password has been changed.', 'success')
         return redirect(url_for('profile.view_profile'))
-    
+
     return render_template('profile/change_password.html', title='Change Password', form=form)

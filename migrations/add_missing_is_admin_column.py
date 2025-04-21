@@ -14,22 +14,22 @@ def add_is_admin_column():
     """Add is_admin column to users table if it doesn't exist"""
     # Create app with the application factory
     app = create_app()
-    
+
     with app.app_context():
         inspector = inspect(db.engine)
-        
+
         print("Checking database tables...")
         tables = inspector.get_table_names()
         print(f"Found tables: {tables}")
-        
+
         if 'users' not in tables:
             print("users table not found! Cannot add column.")
             return False
-        
+
         # Table exists, check if column exists
         columns = [col['name'] for col in inspector.get_columns('users')]
         print(f"Columns in users table: {columns}")
-        
+
         # Check for is_admin column
         if 'is_admin' not in columns:
             print("Adding is_admin column to users table...")
@@ -38,7 +38,7 @@ def add_is_admin_column():
                 connection.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE"))
                 connection.commit()
             print("is_admin column added successfully!")
-            
+
             # Update admin users
             from app.models import User, UserRoles
             admin_users = User.query.filter_by(role=UserRoles.ADMIN.value).all()
@@ -50,7 +50,7 @@ def add_is_admin_column():
                         {"user_id": user.id}
                     )
                     connection.commit()
-            
+
             return True
         else:
             print("is_admin column already exists in users table!")
@@ -65,4 +65,4 @@ if __name__ == '__main__':
             print("No changes needed - column already exists or table not found.")
     except Exception as e:
         print(f"Error: {str(e)}")
-        sys.exit(1) 
+        sys.exit(1)

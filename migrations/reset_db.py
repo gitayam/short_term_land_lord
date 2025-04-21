@@ -20,59 +20,59 @@ logger = logging.getLogger('db_reset')
 def create_app():
     """Create a minimal Flask app for database operations"""
     app = Flask(__name__)
-    
+
     # Get database URL from environment or use default
     database_url = os.environ.get('DATABASE_URL', 'postgresql://postgres:postgres@db/flask_app')
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
+
     # Initialize extensions
     from app import db
     db.init_app(app)
-    
+
     return app, db
 
 def reset_database():
     """Create all tables in the database"""
     logger.info("Creating database tables using SQLAlchemy's create_all...")
-    
+
     try:
         # Create app and get db
         app, db = create_app()
-        
+
         with app.app_context():
             # Import all models to ensure they're registered with SQLAlchemy
             from app.models import User, Property, Task, TaskAssignment, Room
-            
+
             # Check if users table exists
             from sqlalchemy import inspect
             inspector = inspect(db.engine)
             tables = inspector.get_table_names()
-            
+
             if 'users' in tables and 'site_settings' in tables:
                 logger.info("Critical tables already exist. Skipping table creation.")
                 return True
-            
+
             # Create all tables
             logger.info("Creating all database tables...")
             try:
                 # Attempt direct creation with SQLAlchemy
                 db.create_all()
                 logger.info("Successfully created all database tables.")
-                
+
                 # Try to create an admin user if none exists
                 try:
                     admin_count = db.session.execute(
                         db.text("SELECT COUNT(*) FROM users WHERE role = 'admin'")
                     ).scalar()
-                    
+
                     if admin_count == 0:
                         # Get admin credentials from environment
                         admin_email = os.environ.get('ADMIN_EMAIL')
                         admin_password = os.environ.get('ADMIN_PASSWORD')
                         admin_first_name = os.environ.get('ADMIN_FIRST_NAME', 'System')
                         admin_last_name = os.environ.get('ADMIN_LAST_NAME', 'Administrator')
-                        
+
                         if admin_email and admin_password:
                             logger.info(f"Creating admin user from environment: {admin_email}")
                             admin = User(
@@ -105,18 +105,18 @@ def reset_database():
                 except Exception as e:
                     logger.warning(f"Could not create admin user: {e}")
                     db.session.rollback()
-                
+
                 return True
             except Exception as e:
                 logger.error(f"Error creating tables: {e}")
-                
+
                 # Fallback to SQL script if create_all fails
                 try:
                     logger.info("Attempting to create critical tables using SQL...")
-                    
+
                     # Create critical tables using SQL
                     from sqlalchemy import text
-                    
+
                     # Create users table if it doesn't exist
                     if 'users' not in tables:
                         logger.info("Creating users table...")
@@ -140,7 +140,7 @@ def reset_database():
                                 attributes TEXT
                             )
                         """))
-                    
+
                     # Create site_settings table if it doesn't exist
                     if 'site_settings' not in tables:
                         logger.info("Creating site_settings table...")
@@ -154,7 +154,7 @@ def reset_database():
                                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                             )
                         """))
-                        
+
                         # Insert default site settings
                         logger.info("Adding default site settings...")
                         default_settings = [
@@ -167,14 +167,14 @@ def reset_database():
                             ('theme_secondary_color', '#f50057', 'Secondary theme color'),
                             ('guest_reviews_enabled', 'true', 'Enable guest reviews feature')
                         ]
-                        
+
                         for key, value, description in default_settings:
                             db.session.execute(text("""
                                 INSERT INTO site_settings (key, value, description, visible)
                                 VALUES (:key, :value, :description, TRUE)
                                 ON CONFLICT (key) DO NOTHING
                             """), {'key': key, 'value': value, 'description': description})
-                    
+
                     # Create registration_requests table if it doesn't exist
                     if 'registration_requests' not in tables:
                         logger.info("Creating registration_requests table...")
@@ -198,7 +198,7 @@ def reset_database():
                                 reviewed_by INTEGER REFERENCES users(id)
                             )
                         """))
-                    
+
                     db.session.commit()
                     logger.info("Successfully created critical tables using SQL.")
                     return True
@@ -212,4 +212,4 @@ def reset_database():
 
 if __name__ == "__main__":
     success = reset_database()
-    sys.exit(0 if success else 1) 
+    sys.exit(0 if success else 1)

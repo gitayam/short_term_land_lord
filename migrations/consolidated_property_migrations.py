@@ -24,10 +24,10 @@ from app import create_app, db
 def ensure_property_table():
     """Ensure the property table exists with basic columns"""
     app = create_app()
-    
+
     with app.app_context():
         inspector = inspect(db.engine)
-        
+
         if 'property' not in inspector.get_table_names():
             print("Property table doesn't exist, creating it...")
             with db.engine.connect() as conn:
@@ -55,7 +55,7 @@ def ensure_property_table():
                         FOREIGN KEY (owner_id) REFERENCES users(id)
                     )
                     """))
-            
+
             print("Property table created successfully!")
             return True
         else:
@@ -65,18 +65,18 @@ def ensure_property_table():
 def add_property_columns():
     """Add all necessary property columns if they don't exist"""
     app = create_app()
-    
+
     with app.app_context():
         inspector = inspect(db.engine)
-        
+
         if 'property' not in inspector.get_table_names():
             print("Property table does not exist, skipping migration")
             return False
-        
+
         # Get existing columns
         columns = {col['name']: col for col in inspector.get_columns('property')}
         changes_made = False
-        
+
         # All columns to add with their types
         columns_to_add = {
             # Address components
@@ -85,7 +85,7 @@ def add_property_columns():
             'state': 'VARCHAR(64)',
             'zip_code': 'VARCHAR(16)',
             'country': 'VARCHAR(64)',
-            
+
             # Property details
             'bedrooms': 'INTEGER',
             'bathrooms': 'FLOAT',
@@ -94,7 +94,7 @@ def add_property_columns():
             'trash_day': 'VARCHAR(20)',
             'recycling_day': 'VARCHAR(20)',
             'recycling_notes': 'TEXT',
-            
+
             # Utility information
             'internet_provider': 'VARCHAR(100)',
             'internet_account': 'VARCHAR(100)',
@@ -108,29 +108,29 @@ def add_property_columns():
             'trash_provider': 'VARCHAR(100)',
             'trash_account': 'VARCHAR(100)',
             'trash_contact': 'VARCHAR(100)',
-            
+
             # Access information
             'cleaning_supplies_location': 'TEXT',
             'wifi_network': 'VARCHAR(100)',
             'wifi_password': 'VARCHAR(100)',
             'special_instructions': 'TEXT',
             'entry_instructions': 'TEXT',
-            
+
             # Cleaner-specific information
             'total_beds': 'INTEGER',
             'bed_sizes': 'VARCHAR(255)',
             'number_of_tvs': 'INTEGER',
             'number_of_showers': 'INTEGER',
             'number_of_tubs': 'INTEGER',
-            
+
             # Calendar integration
             'ical_url': 'VARCHAR(500)',
-            
+
             # Check-in/out times
             'checkin_time': 'VARCHAR(10)',
             'checkout_time': 'VARCHAR(10)',
         }
-        
+
         # Add each column if it doesn't exist
         with db.engine.connect() as conn:
             for column_name, column_type in columns_to_add.items():
@@ -143,7 +143,7 @@ def add_property_columns():
                         changes_made = True
                     except Exception as e:
                         print(f"Error adding {column_name} column: {e}")
-        
+
         # Try to populate address components from address field if they were just added
         if changes_made and 'street_address' in columns_to_add and 'street_address' not in columns:
             try:
@@ -153,22 +153,22 @@ def add_property_columns():
                         # First, get all properties
                         result = conn.execute(text("SELECT id, address FROM property"))
                         properties = result.fetchall()
-                        
+
                         for prop in properties:
                             prop_id = prop[0]
                             address = prop[1]
-                            
+
                             # Simple parsing - split by commas and try to extract components
                             parts = address.split(',')
-                            
+
                             street_address = parts[0].strip() if len(parts) > 0 else None
                             city = parts[1].strip() if len(parts) > 1 else None
-                            
+
                             # If there are more parts, try to extract state and zip
                             state_zip = None
                             if len(parts) > 2:
                                 state_zip = parts[2].strip()
-                            
+
                             state = None
                             zip_code = None
                             if state_zip:
@@ -177,12 +177,12 @@ def add_property_columns():
                                     state = state_zip_parts[0]
                                 if len(state_zip_parts) > 1:
                                     zip_code = state_zip_parts[1]
-                            
+
                             country = parts[3].strip() if len(parts) > 3 else 'United States'
-                            
+
                             # Update the property with extracted components
                             update_query = text("""
-                                UPDATE property 
+                                UPDATE property
                                 SET street_address = :street_address,
                                     city = :city,
                                     state = :state,
@@ -190,7 +190,7 @@ def add_property_columns():
                                     country = :country
                                 WHERE id = :id
                             """)
-                            
+
                             conn.execute(update_query, {
                                 'street_address': street_address,
                                 'city': city,
@@ -202,32 +202,32 @@ def add_property_columns():
                 print("Address components populated successfully")
             except Exception as e:
                 print(f"Error populating address components: {e}")
-        
+
         if changes_made:
             print("Property columns added successfully!")
         else:
             print("All property columns already exist")
-        
+
         return changes_made
 
 def run_consolidated_property_migrations():
     """Run all property-related migrations in the correct order"""
     try:
         print("Starting consolidated property migrations...")
-        
+
         # 1. Ensure property table exists
         ensure_property_table()
-        
+
         # 2. Add all property-related columns
         add_property_columns()
-        
+
         print("All property-related migrations completed successfully!")
         return True
-        
+
     except Exception as e:
         print(f"Error in consolidated property migrations: {str(e)}")
         return False
 
 if __name__ == '__main__':
     success = run_consolidated_property_migrations()
-    sys.exit(0 if success else 1) 
+    sys.exit(0 if success else 1)

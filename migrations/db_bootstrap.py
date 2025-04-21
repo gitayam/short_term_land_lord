@@ -22,12 +22,12 @@ def bootstrap_database():
         engine = create_engine(database_url)
         with engine.connect() as conn:
             print("Database connection successful")
-            
+
             # Check if tables exist
             inspector = inspect(engine)
             tables = inspector.get_table_names()
             print(f"Existing tables: {tables}")
-            
+
             if "users" not in tables:
                 print("Creating users table directly with SQL...")
                 # Create users table with ALL required columns
@@ -58,23 +58,23 @@ def bootstrap_database():
                 try:
                     user_columns = inspector.get_columns('users')
                     column_names = [col['name'] for col in user_columns]
-                    
+
                     if 'authentik_id' not in column_names:
                         print("Adding authentik_id column to users table")
                         conn.execute(text("ALTER TABLE users ADD COLUMN authentik_id VARCHAR(64)"))
-                    
+
                     if 'signal_identity' not in column_names:
                         print("Adding signal_identity column to users table")
                         conn.execute(text("ALTER TABLE users ADD COLUMN signal_identity VARCHAR(64)"))
-                    
+
                     if 'attributes' not in column_names:
                         print("Adding attributes column to users table")
                         conn.execute(text("ALTER TABLE users ADD COLUMN attributes JSONB"))
-                    
+
                     print("User table columns updated successfully")
                 except Exception as e:
                     print(f"Error checking or adding columns: {e}")
-            
+
             if "site_settings" not in tables:
                 print("Creating site_settings table directly with SQL...")
                 # Create site_settings table
@@ -88,27 +88,27 @@ def bootstrap_database():
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """))
-                
+
                 # Add basic site settings
                 conn.execute(text("""
                     INSERT INTO site_settings (key, value, description, visible)
-                    VALUES 
+                    VALUES
                         ('app_name', 'Property Management', 'Application Name', TRUE),
                         ('guest_reviews_enabled', 'True', 'Enable guest reviews', TRUE),
                         ('cleaning_checklist_enabled', 'True', 'Enable cleaning checklists', TRUE),
                         ('maintenance_requests_enabled', 'True', 'Enable maintenance requests', TRUE)
                     ON CONFLICT (key) DO NOTHING
                 """))
-                
+
                 print("Site settings table created and populated successfully")
-            
+
             # Check for any existing transactions (and commit them)
             try:
                 conn.execute(text("COMMIT"))
                 print("Committed any pending transactions")
             except:
                 pass
-                
+
             return True
     except Exception as e:
         print(f"Database error: {e}")
@@ -122,4 +122,4 @@ if __name__ == "__main__":
         sys.exit(0)
     else:
         print("Database initialization failed")
-        sys.exit(1) 
+        sys.exit(1)

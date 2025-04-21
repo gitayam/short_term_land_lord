@@ -40,10 +40,10 @@ class RecurrencePattern(enum.Enum):
     # EVERY_CLEANING = "every_cleaning"
     # WEEKLY_CLEANING = "weekly_cleaning"
     # MONTHLY_CLEANING = "monthly_cleaning"
-    
+
     # Instead, use the existing values but interpret them differently in the UI
     # This preserves database compatibility
-    
+
     @classmethod
     def get_cleaning_patterns(cls):
         """Return cleaning-specific patterns for display in the UI"""
@@ -71,7 +71,7 @@ class ItemCategory(enum.Enum):
     GENERAL = "general"
     APPLIANCES = "appliances"
     CLEANING_TOOLS = "cleaning_tools"
-    LINENS = "linens" 
+    LINENS = "linens"
     ELECTRONICS = "electronics"
     OUTDOOR = "outdoor"
     FURNITURE = "furniture"
@@ -95,7 +95,7 @@ class GuestReviewRating(enum.Enum):
 
 class InventoryCatalogItem(db.Model):
     __tablename__ = 'inventory_catalog_item'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(128), nullable=False)
@@ -109,30 +109,30 @@ class InventoryCatalogItem(db.Model):
     currency = db.Column(db.String(3), default='USD')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships - explicitly define the primaryjoin to handle table name issues
-    creator = db.relationship('User', 
+    creator = db.relationship('User',
                              foreign_keys=[creator_id],
                              backref='created_catalog_items',
                              primaryjoin="InventoryCatalogItem.creator_id == User.id")
-    
+
     def __repr__(self):
         return f'<InventoryCatalogItem {self.name}>'
-        
+
     @property
     def unit_of_measure(self):
         """Alias for unit to maintain compatibility with templates"""
         return self.unit
-        
+
     @unit_of_measure.setter
     def unit_of_measure(self, value):
         self.unit = value
-        
+
     @property
     def unit_cost(self):
         """Alias for unit_price to maintain compatibility with templates"""
         return self.unit_price
-        
+
     @unit_cost.setter
     def unit_cost(self, value):
         self.unit_price = value
@@ -176,7 +176,7 @@ class ApprovalStatus(enum.Enum):
 
 class RegistrationRequest(db.Model):
     __tablename__ = 'registration_requests'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(64), nullable=False)
     last_name = db.Column(db.String(64), nullable=False)
@@ -184,28 +184,28 @@ class RegistrationRequest(db.Model):
     phone = db.Column(db.String(20), nullable=True)
     role = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    
+
     # For property owners/managers
     property_name = db.Column(db.String(128), nullable=True)
     property_address = db.Column(db.String(256), nullable=True)
     property_description = db.Column(db.Text, nullable=True)
-    
+
     # Messages and notes
     message = db.Column(db.Text, nullable=True)  # Message from applicant
     admin_notes = db.Column(db.Text, nullable=True)  # Notes from admin during review
-    
+
     # Status tracking
     status = db.Column(db.Enum(ApprovalStatus), default=ApprovalStatus.PENDING)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    
+
     # Relationship with the admin who reviewed the request
     reviewer = db.relationship('User', foreign_keys=[reviewed_by], backref='reviewed_requests')
-    
+
     def __repr__(self):
         return f'<RegistrationRequest {self.email} ({self.status.value})>'
-    
+
     def approve(self, admin_user):
         """Approve this registration request and create the user account"""
         # Create the user
@@ -217,14 +217,14 @@ class RegistrationRequest(db.Model):
             role=self.role,
             password_hash=self.password_hash  # Already hashed during request creation
         )
-        
+
         # Set admin flag if role is admin (unlikely, but possible)
         if user.role == UserRoles.ADMIN.value:
             user.is_admin = True
-            
+
         db.session.add(user)
         db.session.flush()  # Flush to get the user ID
-        
+
         # If this is a property owner, create their property too
         if self.role == UserRoles.PROPERTY_OWNER.value and self.property_name:
             property = Property(
@@ -235,15 +235,15 @@ class RegistrationRequest(db.Model):
                 status='active'
             )
             db.session.add(property)
-        
+
         # Update request status
         self.status = ApprovalStatus.APPROVED
         self.reviewed_by = admin_user.id
         self.updated_at = datetime.utcnow()
-        
+
         db.session.commit()
         return user
-    
+
     def reject(self, admin_user, reason=None):
         """Reject this registration request"""
         self.status = ApprovalStatus.REJECTED
@@ -259,7 +259,7 @@ class User(UserMixin, db.Model):
     Table name is explicitly set to 'users' for consistency across all environments
     """
     __tablename__ = 'users'  # Always use 'users' as the table name
-    
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True, nullable=True)
     first_name = db.Column(db.String(64))
@@ -276,7 +276,7 @@ class User(UserMixin, db.Model):
     signal_identity = db.Column(db.String(36), unique=True, nullable=True)
     attributes = db.Column(db.Text)  # Store JSON as Text instead of JSON type
     _is_admin = db.Column('is_admin', db.Boolean, default=False)
-    
+
     # Relationships with explicit primary joins - use different backref names to avoid conflicts
     created_tasks = db.relationship('Task', foreign_keys='Task.creator_id', backref='task_creator', lazy='dynamic',
                                    primaryjoin='User.id == Task.creator_id')
@@ -286,43 +286,43 @@ class User(UserMixin, db.Model):
                                        primaryjoin='User.id == TaskTemplate.creator_id')
     properties = db.relationship('Property', foreign_keys='Property.owner_id', backref='owner_user', lazy='dynamic',
                                 primaryjoin='User.id == Property.owner_id', overlaps="owned_properties,owner")
-    
+
     def __repr__(self):
         return f'<User {self.email}>'
-    
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
-    
+
     def check_password(self, password):
         # Add debug logging for password checks
         from flask import current_app
-        
+
         if self.password_hash is None:
             current_app.logger.warning(f"User {self.email} has no password hash set")
             return False
-            
+
         result = check_password_hash(self.password_hash, password)
         if not result:
             current_app.logger.warning(f"Password check failed for user {self.email}")
         else:
             current_app.logger.info(f"Password check successful for user {self.email}")
         return result
-    
+
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
-    
+
     def is_property_owner(self):
         """Check if the user has the property owner role."""
         return self.role == UserRoles.PROPERTY_OWNER.value
-    
+
     def is_service_staff(self):
         """Check if the user has the service staff role."""
         return self.role == UserRoles.SERVICE_STAFF.value
-    
+
     def is_property_manager(self):
         """Check if the user has the property manager role."""
         return self.role == UserRoles.PROPERTY_MANAGER.value
-    
+
     def has_admin_role(self):
         """Check if the user has admin privileges."""
         # Always return True for users with ADMIN role, regardless of is_admin column
@@ -332,51 +332,51 @@ class User(UserMixin, db.Model):
         """Check if the user is a cleaner (service staff with cleaning service type)."""
         if not self.is_service_staff():
             return False
-        
+
         # Check if the user has any cleaning service assignments
         # Avoid circular import by using the current module's TaskAssignment and ServiceType
         cleaning_assignments = TaskAssignment.query.filter_by(
-            user_id=self.id, 
+            user_id=self.id,
             service_type=ServiceType.CLEANING
         ).first()
-        
+
         return cleaning_assignments is not None
-    
+
     def is_maintenance(self):
         """Check if this user is a maintenance person."""
         if not self.is_service_staff():
             return False
-        
+
         # Check if the user has any maintenance service assignments
         maintenance_assignments = TaskAssignment.query.filter_by(
-            user_id=self.id, 
+            user_id=self.id,
             service_type=ServiceType.HANDYMAN
         ).first()
-        
+
         return maintenance_assignments is not None
-        
+
     def can_reassign_task(self, task):
         """Check if this user has permission to reassign a task.
-        
+
         Admins and task creators can reassign tasks.
-        
+
         Args:
             task: The task to check reassignment permissions for
-            
+
         Returns:
             bool: True if user can reassign the task, False otherwise
         """
         # Admin users can reassign any task
         if self.has_admin_role():
             return True
-            
+
         # Task creators can reassign their tasks
         if task.creator_id == self.id:
             return True
-            
+
         # Anyone else cannot reassign
         return False
-    
+
     @property
     def role_enum(self):
         """Get the role as an enum."""
@@ -386,7 +386,7 @@ class User(UserMixin, db.Model):
             except ValueError:
                 pass
         return None
-    
+
     @role_enum.setter
     def role_enum(self, role_enum):
         """Set the role from an enum."""
@@ -397,36 +397,36 @@ class User(UserMixin, db.Model):
 
     def can_complete_task(self, task):
         """Check if this user has permission to complete a task.
-        
+
         Admins, task creators, and assigned users can complete tasks.
-        
+
         Args:
             task: The task to check completion permissions for
-            
+
         Returns:
             bool: True if user can complete the task, False otherwise
         """
         # Admin users can complete any task
         if self.has_admin_role():
             return True
-            
+
         # Task creators can complete their tasks
         if task.creator_id == self.id:
             return True
-            
+
         # Check if user is assigned to the task
         assignment = TaskAssignment.query.filter_by(
-            task_id=task.id, 
+            task_id=task.id,
             user_id=self.id
         ).first()
-        
+
         return assignment is not None
 
     @property
     def is_admin(self):
         """Get admin status (True if role is ADMIN or is_admin column is True)"""
         return self.role == UserRoles.ADMIN.value or self._is_admin is True
-        
+
     @is_admin.setter
     def is_admin(self, value):
         """Set admin flag directly to database column"""
@@ -435,7 +435,7 @@ class User(UserMixin, db.Model):
 class Property(db.Model):
     """
     Property model representing real estate properties in the system.
-    
+
     Relationships:
     - owner: The User who owns this property
     - property_tasks: Tasks associated with this property
@@ -445,7 +445,7 @@ class Property(db.Model):
     - calendars: Calendars associated with this property
     """
     __tablename__ = 'property'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(128), nullable=False)
@@ -455,14 +455,14 @@ class Property(db.Model):
     status = db.Column(db.Enum('active', 'inactive', 'maintenance', name='property_status'), default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Address components
     street_address = db.Column(db.String(128), nullable=True)
     city = db.Column(db.String(64), nullable=True)
     state = db.Column(db.String(64), nullable=True)
     zip_code = db.Column(db.String(16), nullable=True)
     country = db.Column(db.String(64), nullable=True)
-    
+
     # Property details
     bedrooms = db.Column(db.Integer, nullable=True)
     bathrooms = db.Column(db.Float, nullable=True)
@@ -471,7 +471,7 @@ class Property(db.Model):
     trash_day = db.Column(db.String(20), nullable=True)  # e.g., 'Monday', 'Tuesday and Friday'
     recycling_day = db.Column(db.String(20), nullable=True)
     recycling_notes = db.Column(db.Text, nullable=True)
-    
+
     # Utility information
     internet_provider = db.Column(db.String(100), nullable=True)
     internet_account = db.Column(db.String(100), nullable=True)
@@ -485,24 +485,24 @@ class Property(db.Model):
     trash_provider = db.Column(db.String(100), nullable=True)
     trash_account = db.Column(db.String(100), nullable=True)
     trash_contact = db.Column(db.String(100), nullable=True)
-    
+
     # Access information
     cleaning_supplies_location = db.Column(db.Text, nullable=True)
     wifi_network = db.Column(db.String(100), nullable=True)
     wifi_password = db.Column(db.String(100), nullable=True)
     special_instructions = db.Column(db.Text, nullable=True)
     entry_instructions = db.Column(db.Text, nullable=True)
-    
+
     # Cleaner-specific information
     total_beds = db.Column(db.Integer, nullable=True)
     bed_sizes = db.Column(db.String(255), nullable=True)
     number_of_tvs = db.Column(db.Integer, nullable=True)
     number_of_showers = db.Column(db.Integer, nullable=True)
     number_of_tubs = db.Column(db.Integer, nullable=True)
-    
+
     # Calendar integration
     ical_url = db.Column(db.String(500), nullable=True)
-    
+
     # Guest access fields
     guest_access_enabled = db.Column(db.Boolean, default=False)
     guest_access_token = db.Column(db.String(64), unique=True, nullable=True)
@@ -513,11 +513,11 @@ class Property(db.Model):
     local_attractions = db.Column(db.Text, nullable=True)
     emergency_contact = db.Column(db.Text, nullable=True)
     guest_faq = db.Column(db.Text, nullable=True)
-    
+
     # Check-in/out times
     checkin_time = db.Column(db.String(10), nullable=True)
     checkout_time = db.Column(db.String(10), nullable=True)
-    
+
     # Relationships
     owner = db.relationship('User', foreign_keys=[owner_id], backref=db.backref('owned_properties', overlaps="owner_user,properties"), overlaps="owner_user,properties")
     property_tasks = db.relationship('Task', backref='property')
@@ -525,26 +525,26 @@ class Property(db.Model):
     images = db.relationship('PropertyImage', backref='property')
     rooms = db.relationship('Room', backref='property', lazy='dynamic')
     calendars = db.relationship('PropertyCalendar', backref='property')
-    
+
     @property
     def tasks(self):
         """Get all tasks associated with this property through TaskProperty"""
         return self.task_properties
-    
+
     def __repr__(self):
         return f'<Property {self.name}>'
-    
+
     def get_full_address(self):
         """Return the full address as a formatted string"""
         if self.street_address or self.city or self.state or self.zip_code or self.country:
             parts = []
             if self.street_address:
                 parts.append(self.street_address)
-            
+
             city_state_zip = []
             if self.city:
                 city_state_zip.append(self.city)
-            
+
             state_zip = ""
             if self.state and self.zip_code:
                 state_zip = f"{self.state} {self.zip_code}"
@@ -552,49 +552,49 @@ class Property(db.Model):
                 state_zip = self.state
             elif self.zip_code:
                 state_zip = self.zip_code
-            
+
             if state_zip:
                 city_state_zip.append(state_zip)
-            
+
             if city_state_zip:
                 parts.append(", ".join(city_state_zip))
-            
+
             if self.country:
                 parts.append(self.country)
-            
+
             return ", ".join(parts)
-        
+
         # If no components are available, fall back to the address field
         return self.address
-    
+
     def generate_guest_access_token(self):
         """Generate a unique token for guest access"""
         self.guest_access_token = secrets.token_urlsafe(32)
         return self.guest_access_token
-    
+
     def is_visible_to(self, user):
         """Check if the property is visible to the given user"""
         # Property owners can see their own properties
         if user.is_property_owner() and self.owner_id == user.id:
             return True
-        
+
         # Admins can see all properties
         if user.has_admin_role():
             return True
-        
+
         # Property managers can see all properties
         if user.role == UserRoles.PROPERTY_MANAGER.value:
             return True
-        
+
         # Service staff can see properties they have tasks for
         if user.is_service_staff():
             # Check if the user has any assigned tasks for this property
             from sqlalchemy.orm import aliased
             from app.models import TaskProperty, TaskAssignment
-            
+
             task_property_alias = aliased(TaskProperty)
             task_assignment_alias = aliased(TaskAssignment)
-            
+
             assigned_tasks = db.session.query(Task).join(
                 task_property_alias, Task.id == task_property_alias.task_id
             ).filter(
@@ -604,9 +604,9 @@ class Property(db.Model):
             ).filter(
                 task_assignment_alias.user_id == user.id
             ).first()
-            
+
             return assigned_tasks is not None
-        
+
         return False
 
     def get_room_count(self):
@@ -617,7 +617,7 @@ class Property(db.Model):
         """Get the URL of the primary property image or a default if none exists"""
         # Check if property has any images
         primary_images = [img for img in self.images if img.is_primary]
-        
+
         if primary_images:
             # Return the first primary image
             return primary_images[0].image_path
@@ -635,7 +635,7 @@ class PropertyImage(db.Model):
     is_primary = db.Column(db.Boolean, default=False)
     caption = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def __repr__(self):
         return f'<PropertyImage {self.image_path}>'
 
@@ -645,15 +645,15 @@ class PasswordReset(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     @classmethod
     def create_token(cls, user, expiration=3600):
         # Generate a secure token
         token = secrets.token_urlsafe(32)
-        
+
         # Delete any existing tokens for this user
         cls.query.filter_by(user_id=user.id).delete()
-        
+
         # Create new token
         reset = cls(
             token=token,
@@ -661,29 +661,29 @@ class PasswordReset(db.Model):
             expires_at=datetime.utcnow() + timedelta(seconds=expiration)
         )
         db.session.add(reset)
-        
+
         return token
-    
+
     @classmethod
     def verify_token(cls, token):
         reset = cls.query.filter_by(token=token).first()
         if reset is None or reset.expires_at < datetime.utcnow():
             return None
-        
+
         return reset.user
 
 class PropertyCalendar(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
-    
+
     # Calendar information
     name = db.Column(db.String(100), nullable=False)
     ical_url = db.Column(db.String(500), nullable=False)
-    
+
     # Whether this calendar covers the entire property or just a specific room
     is_entire_property = db.Column(db.Boolean, default=True)
     room_name = db.Column(db.String(100), nullable=True)  # Optional, only if is_entire_property is False
-    
+
     # Source of the calendar
     SERVICE_CHOICES = [
         ('airbnb', 'Airbnb'),
@@ -694,19 +694,19 @@ class PropertyCalendar(db.Model):
         ('other', 'Other')
     ]
     service = db.Column(db.String(20), nullable=False, default='other')
-    
+
     # Last synchronization information
     last_synced = db.Column(db.DateTime, nullable=True)
     sync_status = db.Column(db.String(50), nullable=True)
     sync_error = db.Column(db.String(255), nullable=True)
-    
+
     # When the calendar was added
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     def __repr__(self):
         return f'<PropertyCalendar {self.name} for {self.property.name}>'
-    
+
     def get_service_display(self):
         """Return a user-friendly display name for the calendar service"""
         service_map = dict(self.SERVICE_CHOICES)
@@ -717,7 +717,7 @@ class PropertyCalendar(db.Model):
         if not self.last_synced:
             return False
         return (datetime.utcnow() - self.last_synced) < timedelta(hours=24)
-    
+
     def get_source_color(self):
         """Return the appropriate color for this calendar source"""
         if self.service == 'airbnb':
@@ -730,11 +730,11 @@ class PropertyCalendar(db.Model):
             return '#8E8E93'  # Blocked gray
         else:
             return '#767676'  # Default gray
-    
+
     def get_source_class(self):
         """Return the CSS class for this calendar source"""
         return f"{self.service}-event"
-    
+
     def get_source_icon(self):
         """Return the appropriate icon class for this calendar source"""
         if self.service == 'airbnb':
@@ -753,13 +753,13 @@ class PropertyCalendar(db.Model):
 class Room(db.Model):
     """
     Room model representing rooms within a property.
-    
+
     Each room belongs to a single property and can have furniture items.
     The relationship with Property is defined through the property_id foreign key
     and accessed via the 'property' backref.
     """
     __tablename__ = 'room'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
@@ -768,31 +768,31 @@ class Room(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     square_feet = db.Column(db.Integer, nullable=True)
-    
+
     # Bedroom/room-specific fields
     bed_type = db.Column(db.String(50), nullable=True)
     has_tv = db.Column(db.Boolean, default=False)
     tv_details = db.Column(db.String(255), nullable=True)
     has_bathroom = db.Column(db.Boolean, default=False)
-    
+
     # Bathroom-specific fields
     has_shower = db.Column(db.Boolean, default=False)
     has_tub = db.Column(db.Boolean, default=False)
-    
+
     # Relationships
     room_furniture = db.relationship('RoomFurniture', backref='room')
-    
+
     @property
     def furniture(self):
         """Get all furniture items for the room."""
         return self.room_furniture
-    
+
     def __repr__(self):
         return f'<Room {self.name}>'
 
 class RoomFurniture(db.Model):
     __tablename__ = 'room_furniture'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
@@ -801,13 +801,13 @@ class RoomFurniture(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     def __repr__(self):
         return f'<RoomFurniture {self.name}>'
 
 class Task(db.Model):
     __tablename__ = 'task'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
@@ -820,35 +820,35 @@ class Task(db.Model):
     creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
     assign_to_next_cleaner = db.Column(db.Boolean, default=False)
-    
+
     # Add recurring task fields
     is_recurring = db.Column(db.Boolean, default=False)
     recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE)
     recurrence_interval = db.Column(db.Integer, default=1)
     recurrence_end_date = db.Column(db.DateTime, nullable=True)
-    
+
     # Additional fields used in forms and routes
     notes = db.Column(db.Text, nullable=True)
     linked_to_checkout = db.Column(db.Boolean, default=False)
     calendar_id = db.Column(db.Integer, db.ForeignKey('property_calendar.id', name='fk_task_calendar'), nullable=True)
-    
+
     # Tags for categorizing tasks (e.g., repair_request, workorder, etc.)
     tags = db.Column(db.String(255), nullable=True)
-    
+
     # Fields for repair requests
     location = db.Column(db.String(255), nullable=True)  # Location within property
     severity = db.Column(db.String(50), nullable=True)  # Severity level for repair requests
-    
+
     # Relationships - use task_creator backref instead of creator
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic')
     task_properties = db.relationship('TaskProperty', backref='task', cascade="all, delete-orphan")
     creator = db.relationship('User', foreign_keys=[creator_id], backref='created_tasks_direct', overlaps="created_tasks,task_creator")
-    
+
     @property
     def properties(self):
         """Get all properties that this task is associated with."""
         return [tp.property for tp in self.task_properties]
-    
+
     def add_property(self, property_id):
         """Add a property to this task via TaskProperty"""
         # Check if the relationship already exists
@@ -857,24 +857,24 @@ class Task(db.Model):
             self.task_properties.append(task_property)
             return task_property
         return None
-    
+
     def __repr__(self):
         return f'<Task {self.title}>'
-        
+
     def mark_completed(self, user_id):
         """Mark a task as completed by the specified user"""
         self.status = TaskStatus.COMPLETED
         self.completed_at = datetime.utcnow()
-        
+
         # Add completion auditing or history if needed here
         return True
-        
+
     def is_overdue(self):
         """Check if task is overdue"""
         if not self.due_date:
             return False
         return self.due_date < datetime.utcnow() and self.status != TaskStatus.COMPLETED
-        
+
     def get_status_display(self):
         """Return a display-friendly status name"""
         if isinstance(self.status, str):
@@ -883,7 +883,7 @@ class Task(db.Model):
         else:
             # Handle case where status is stored as an enum
             return self.status.name.replace('_', ' ').title()
-        
+
     def get_priority_display(self):
         """Return a display-friendly priority name"""
         if isinstance(self.priority, str):
@@ -892,11 +892,11 @@ class Task(db.Model):
         else:
             # Handle case where priority is stored as an enum
             return self.priority.name.replace('_', ' ').title()
-            
+
     def is_repair_request(self):
         """Check if this task is a repair request"""
         return self.tags and 'repair_request' in self.tags.split(',')
-        
+
     def get_severity_display(self):
         """Return a display-friendly severity name"""
         if not self.severity:
@@ -905,23 +905,23 @@ class Task(db.Model):
 
 class TaskAssignment(db.Model):
     __tablename__ = 'task_assignment'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    
+
     # Assignment can be to a user OR to an external person (not in the system)
     external_name = db.Column(db.String(100), nullable=True)
     external_phone = db.Column(db.String(20), nullable=True)
     external_email = db.Column(db.String(120), nullable=True)
-    
+
     # Service type for service staff assignments
     service_type = db.Column(db.Enum(ServiceType), nullable=True)
-    
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     def __repr__(self):
         if self.user_id:
             service_info = f" ({self.service_type.value})" if self.service_type else ""
@@ -937,53 +937,53 @@ class TaskAssignment(db.Model):
 
 class TaskProperty(db.Model):
     __tablename__ = 'task_property'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     sequence_number = db.Column(db.Integer, default=0)  # For ordering tasks within a property
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationship
     property = db.relationship('Property', backref='task_properties')
-    
+
     def __repr__(self):
         return f'<TaskProperty task_id={self.task_id} property_id={self.property_id}>'
 
 class CleaningSession(db.Model):
     __tablename__ = 'cleaning_session'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     cleaner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
-    
+
     start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     end_time = db.Column(db.DateTime, nullable=True)
     duration_minutes = db.Column(db.Integer, nullable=True)
-    
+
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships with clear distinct names
     associated_property = db.relationship('Property', foreign_keys=[property_id], backref='cleaning_sessions')
     associated_task = db.relationship('Task', foreign_keys=[task_id], backref='cleaning_sessions')
-    
+
     def __repr__(self):
         if hasattr(self, 'assigned_cleaner') and self.assigned_cleaner:
             cleaner_name = self.assigned_cleaner.get_full_name()
         else:
             cleaner_name = f"User #{self.cleaner_id}"
-            
+
         if hasattr(self, 'associated_property') and self.associated_property:
             property_name = self.associated_property.name
         else:
             property_name = f"Property #{self.property_id}"
-            
+
         return f'<CleaningSession {self.id} by {cleaner_name} at {property_name}>'
-    
+
     def complete(self):
         """Complete the cleaning session and calculate duration"""
         self.end_time = datetime.utcnow()
@@ -992,23 +992,23 @@ class CleaningSession(db.Model):
             delta = self.end_time - self.start_time
             self.duration_minutes = int(delta.total_seconds() / 60)
         return self.duration_minutes
-    
+
     def get_duration_display(self):
         """Return a human-readable duration"""
         if not self.duration_minutes:
             return "Unknown"
-        
+
         hours, minutes = divmod(self.duration_minutes, 60)
         if hours > 0:
             return f"{hours} hour{'s' if hours != 1 else ''} {minutes} minute{'s' if minutes != 1 else ''}"
         else:
             return f"{minutes} minute{'s' if minutes != 1 else ''}"
-    
+
     @classmethod
     def get_active_session(cls, cleaner_id):
         """Get the active cleaning session for a cleaner if one exists"""
         return cls.query.filter_by(cleaner_id=cleaner_id, end_time=None).first()
-    
+
     @property
     def has_start_video(self):
         """Check if this session has a start video"""
@@ -1017,7 +1017,7 @@ class CleaningSession(db.Model):
             media_type=MediaType.VIDEO,
             is_start_video=True
         ).first() is not None
-    
+
     @property
     def has_end_video(self):
         """Check if this session has an end video"""
@@ -1034,10 +1034,10 @@ class CleaningFeedback(db.Model):
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationship
     cleaning_session = db.relationship('CleaningSession', backref=db.backref('feedback', uselist=False))
-    
+
     def __repr__(self):
         return f'<CleaningFeedback {self.id} for session {self.cleaning_session_id} - Rating: {self.rating}>'
 
@@ -1047,24 +1047,24 @@ class CleaningMedia(db.Model):
     media_type = db.Column(db.Enum(MediaType), nullable=False)
     file_path = db.Column(db.String(500), nullable=False)
     storage_backend = db.Column(db.Enum(StorageBackend), default=StorageBackend.LOCAL, nullable=False)
-    
+
     # For videos, track if it's a start or end video
     is_start_video = db.Column(db.Boolean, nullable=True)
-    
+
     # Metadata
     original_filename = db.Column(db.String(255), nullable=True)
     file_size = db.Column(db.Integer, nullable=True)  # Size in bytes
     mime_type = db.Column(db.String(100), nullable=True)
-    
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationship
     cleaning_session = db.relationship('CleaningSession', backref='media')
-    
+
     def __repr__(self):
         return f'<CleaningMedia {self.id} ({self.media_type.value}) for session {self.cleaning_session_id}>'
-    
+
     def get_url(self):
         """Return the URL to access this media file based on storage backend"""
         if self.storage_backend == StorageBackend.LOCAL:
@@ -1090,21 +1090,21 @@ class IssueReport(db.Model):
     description = db.Column(db.Text, nullable=False)
     location = db.Column(db.String(255), nullable=False)  # Location within the property
     additional_notes = db.Column(db.Text, nullable=True)
-    
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     cleaning_session = db.relationship('CleaningSession', backref='issues')
     media = db.relationship('CleaningMedia', secondary='issue_media', backref='issues')
-    
+
     def __repr__(self):
         return f'<IssueReport {self.id} for session {self.cleaning_session_id}>'
 
 class RepairRequest(db.Model):
     __tablename__ = 'repair_request'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
@@ -1114,18 +1114,18 @@ class RepairRequest(db.Model):
     priority = db.Column(db.Enum('low', 'medium', 'high', 'urgent', name='repair_priority'), default='medium')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Additional fields needed for repair requests
     location = db.Column(db.String(255), nullable=True)
     severity = db.Column(db.Enum(RepairRequestSeverity), default=RepairRequestSeverity.MEDIUM)
     additional_notes = db.Column(db.Text, nullable=True)
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
-    
+
     # Relationships
     reporter = db.relationship('User', foreign_keys=[reporter_id], backref='reported_repairs')
     associated_property = db.relationship('Property', foreign_keys=[property_id], backref='repair_requests')
     associated_task = db.relationship('Task', foreign_keys=[task_id], backref='repair_request', uselist=False)
-    
+
     def __repr__(self):
         return f'<RepairRequest {self.id}>'
 
@@ -1134,18 +1134,18 @@ class RepairRequestMedia(db.Model):
     repair_request_id = db.Column(db.Integer, db.ForeignKey('repair_request.id'), nullable=False)
     file_path = db.Column(db.String(500), nullable=False)
     storage_backend = db.Column(db.Enum(StorageBackend), default=StorageBackend.LOCAL, nullable=False)
-    
+
     # Metadata
     original_filename = db.Column(db.String(255), nullable=True)
     file_size = db.Column(db.Integer, nullable=True)  # Size in bytes
     mime_type = db.Column(db.String(100), nullable=True)
-    
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     def __repr__(self):
         return f'<RepairRequestMedia {self.id} for request {self.repair_request_id}>'
-    
+
     def get_url(self):
         """Return the URL to access this media file based on storage backend"""
         if self.storage_backend == StorageBackend.LOCAL:
@@ -1158,7 +1158,7 @@ class RepairRequestMedia(db.Model):
 
 class InventoryItem(db.Model):
     __tablename__ = 'inventory_item'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     catalog_item_id = db.Column(db.Integer, db.ForeignKey('inventory_catalog_item.id'), nullable=False)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
@@ -1167,20 +1167,20 @@ class InventoryItem(db.Model):
     reorder_threshold = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     catalog_item = db.relationship('InventoryCatalogItem', backref='inventory_instances')
     item_transactions = db.relationship('InventoryTransaction', backref='item')
-    
+
     def __repr__(self):
         return f'<InventoryItem {self.catalog_item.name if self.catalog_item else "Unknown"}>'
-    
+
     def is_low_stock(self):
         """Check if this item is below the reorder threshold"""
         if self.reorder_threshold is None:
             return False
         return self.current_quantity <= self.reorder_threshold
-    
+
     def update_quantity(self, quantity, transaction_type):
         """Update the item quantity based on the transaction type"""
         if transaction_type == TransactionType.RESTOCK:
@@ -1194,16 +1194,16 @@ class InventoryItem(db.Model):
         elif transaction_type == TransactionType.ADJUSTMENT:
             # For adjustments, the quantity is the new total
             self.current_quantity = quantity
-        
+
         # Ensure quantity doesn't go below zero
         if self.current_quantity < 0:
             self.current_quantity = 0
-        
+
         self.updated_at = datetime.utcnow()
 
 class InventoryTransaction(db.Model):
     __tablename__ = 'inventory_transaction'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
@@ -1216,15 +1216,15 @@ class InventoryTransaction(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     user = db.relationship('User', foreign_keys=[user_id], backref='inventory_transactions')
     source_property = db.relationship('Property', foreign_keys=[source_property_id], backref='outgoing_inventory')
     destination_property = db.relationship('Property', foreign_keys=[destination_property_id], backref='incoming_inventory')
-    
+
     def __repr__(self):
         return f'<InventoryTransaction {self.transaction_type.value} {self.quantity}>'
-        
+
     def get_transaction_type_display(self):
         """Get a human-readable representation of the transaction type"""
         if self.transaction_type == TransactionType.RESTOCK:
@@ -1241,7 +1241,7 @@ class InventoryTransaction(db.Model):
 
 class Notification(db.Model):
     __tablename__ = 'notification'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     notification_type = db.Column(db.Enum(NotificationType), nullable=False)
     recipient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -1249,10 +1249,10 @@ class Notification(db.Model):
     read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     recipient = db.relationship('User', foreign_keys=[recipient_id], backref='notifications')
-    
+
     def __repr__(self):
         return f'<Notification {self.message}>'
 
@@ -1270,7 +1270,7 @@ class Guest(db.Model):
 
 class GuestReview(db.Model):
     __tablename__ = 'guest_review'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     booking_id = db.Column(db.String(100), nullable=True)  # External booking ID (Airbnb, etc.)
@@ -1282,18 +1282,18 @@ class GuestReview(db.Model):
     check_out_date = db.Column(db.Date, nullable=False)  # Added check_out_date
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     property_rel = db.relationship('Property', backref='guest_reviews')
     creator = db.relationship('User', foreign_keys=[creator_id], backref='submitted_reviews')
-    
+
     def __repr__(self):
         return f'<GuestReview {self.guest_name} - {self.rating}>'
-        
+
     def get_rating_display(self):
         """Get a human-readable representation of the rating"""
         return self.rating.upper()
-            
+
     @property
     def is_negative(self):
         """Check if this is a negative review"""
@@ -1301,25 +1301,25 @@ class GuestReview(db.Model):
 
 class SiteSettings(db.Model):
     __tablename__ = 'site_settings'
-    
+
     key = db.Column(db.String(64), primary_key=True)
     value = db.Column(db.Text, nullable=True)
     description = db.Column(db.String(255), nullable=True)
     visible = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     @classmethod
     def get_setting(cls, key, default=None):
         """Get a setting value by its key"""
         setting = db.session.get(cls, key)
         return setting.value if setting else default
-    
+
     @classmethod
     def set_setting(cls, key, value, description=None, visible=True):
         """Create or update a setting"""
         setting = db.session.get(cls, key)
-        
+
         if setting:
             setting.value = value
             setting.updated_at = datetime.utcnow()
@@ -1329,15 +1329,15 @@ class SiteSettings(db.Model):
         else:
             setting = cls(key=key, value=value, description=description, visible=visible)
             db.session.add(setting)
-        
+
         db.session.commit()
         return setting
-    
+
     @classmethod
     def get_openai_api_key(cls):
         """Get the OpenAI API key from settings"""
         return cls.get_setting('openai_api_key')
-    
+
     @classmethod
     def is_guest_reviews_enabled(cls):
         """Check if guest reviews feature is enabled"""
@@ -1347,24 +1347,24 @@ class SiteSettings(db.Model):
 def create_admin_user_from_env():
     """Create an admin user from environment variables if one doesn't exist"""
     from flask import current_app
-    
+
     # Check if we have admin credentials in environment
     admin_email = current_app.config.get('ADMIN_EMAIL')
     admin_username = current_app.config.get('ADMIN_USERNAME')
     admin_password = current_app.config.get('ADMIN_PASSWORD')
-    
+
     # If no admin credentials are provided, skip
     if not admin_email or not admin_password:
         current_app.logger.info("Admin credentials not fully specified in environment, skipping admin creation")
         return
-    
+
     # Check if admin user already exists
     query = User.query.filter(User.email == admin_email)
     if admin_username:
         query = query.union(User.query.filter(User.username == admin_username))
-    
+
     existing_admin = query.first()
-    
+
     if existing_admin:
         current_app.logger.info(f"Admin user already exists: {existing_admin.email}")
         # Update admin role if needed
@@ -1373,7 +1373,7 @@ def create_admin_user_from_env():
             db.session.commit()
             current_app.logger.info(f"Updated user {existing_admin.email} to admin role")
         return
-    
+
     # Create new admin user
     admin_user = User(
         email=admin_email,
@@ -1382,13 +1382,13 @@ def create_admin_user_from_env():
         role=UserRoles.ADMIN.value,
         is_admin=True
     )
-    
+
     # Set username if provided
     if admin_username:
         admin_user.username = admin_username
-        
+
     admin_user.set_password(admin_password)
-    
+
     db.session.add(admin_user)
     db.session.commit()
     current_app.logger.info(f"Created admin user: {admin_email}")
@@ -1398,7 +1398,7 @@ def migrate_site_settings():
     # Initialize guest reviews setting (enabled by default)
     if not db.session.get(SiteSettings, 'guest_reviews_enabled'):
         SiteSettings.set_setting('guest_reviews_enabled', 'true', 'Enable guest reviews feature', True)
-    
+
     # Set placeholder for OpenAI API key
     if not db.session.get(SiteSettings, 'openai_api_key'):
         SiteSettings.set_setting('openai_api_key', '', 'OpenAI API Key for AI functionality', False)
@@ -1412,13 +1412,13 @@ def load_user(id):
         sql = text(f"SELECT * FROM {table_name} WHERE id = :id")
         result = db.session.execute(sql, {'id': id})
         user_data = result.fetchone()
-        
+
         if user_data:
             user = User()
             for key, value in user_data._mapping.items():
                 setattr(user, key, value)
             return user
-        
+
         # Fallback to ORM query
         return User.query.get(int(id))
     except Exception as e:
@@ -1432,7 +1432,7 @@ def init_app(app):
         try:
             # No need to dynamically set the table name anymore
             app.logger.info("User model using static table name 'users'")
-            
+
             # Verify the User model is properly configured
             from sqlalchemy import inspect
             inspector = inspect(db.engine)
@@ -1440,13 +1440,13 @@ def init_app(app):
                 app.logger.info("Users table exists in the database")
             else:
                 app.logger.warning("Users table does not exist in the database - it will be created if migrations are run")
-                
+
         except Exception as e:
             app.logger.error(f"Error initializing model: {e}", exc_info=True)
 
 class TaskTemplate(db.Model):
     __tablename__ = 'task_template'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
@@ -1460,9 +1460,9 @@ class TaskTemplate(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    
+
     # Relationships - use template_creator backref instead of creator
     # creator relationship is now handled by the backref from User.created_templates
-    
+
     def __repr__(self):
         return f'<TaskTemplate {self.title}>'

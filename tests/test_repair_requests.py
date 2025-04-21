@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 from app import create_app, db
-from app.models import (User, UserRoles, Task, TaskStatus, TaskPriority, 
+from app.models import (User, UserRoles, Task, TaskStatus, TaskPriority,
                        Property, RepairRequestSeverity)
 from config import TestConfig
 import os
@@ -14,7 +14,7 @@ class TestRepairRequests(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-        
+
         # Create test users
         self.owner = User(
             first_name='Test',
@@ -22,17 +22,17 @@ class TestRepairRequests(unittest.TestCase):
             email='owner@example.com',
             role=UserRoles.PROPERTY_OWNER.value
         )
-        
+
         self.tenant = User(
             first_name='Test',
             last_name='Tenant',
             email='tenant@example.com',
             role=UserRoles.TENANT.value
         )
-        
+
         db.session.add_all([self.owner, self.tenant])
         db.session.commit()
-        
+
         # Create test property
         self.property = Property(
             name='Test Property',
@@ -45,14 +45,14 @@ class TestRepairRequests(unittest.TestCase):
             country='Test Country',
             owner_id=self.owner.id
         )
-        
+
         db.session.add(self.property)
         db.session.commit()
-        
+
         # Create uploads directory for testing
         self.upload_dir = os.path.join(self.app.root_path, 'static', 'uploads', 'repair_requests')
         os.makedirs(self.upload_dir, exist_ok=True)
-        
+
     def tearDown(self):
         db.session.remove()
         db.drop_all()
@@ -60,7 +60,7 @@ class TestRepairRequests(unittest.TestCase):
         # Clean up test upload directory
         if os.path.exists(self.upload_dir):
             shutil.rmtree(self.upload_dir)
-    
+
     def test_create_repair_request(self):
         """Test creating a repair request task"""
         repair_request = Task(
@@ -75,17 +75,17 @@ class TestRepairRequests(unittest.TestCase):
             notes='Glass needs to be replaced',
             photo_paths=['test_photo1.jpg', 'test_photo2.jpg']
         )
-        
+
         db.session.add(repair_request)
         db.session.commit()
-        
+
         # Verify the repair request was created correctly
         retrieved_request = Task.query.get(repair_request.id)
         self.assertEqual(retrieved_request.title, 'Broken Window')
         self.assertEqual(retrieved_request.severity, RepairRequestSeverity.URGENT.value)
         self.assertEqual(len(retrieved_request.photo_paths), 2)
         self.assertEqual(retrieved_request.location, 'Living Room')
-    
+
     def test_repair_request_status_updates(self):
         """Test updating repair request status"""
         repair_request = Task(
@@ -97,21 +97,21 @@ class TestRepairRequests(unittest.TestCase):
             creator_id=self.tenant.id,
             property_id=self.property.id
         )
-        
+
         db.session.add(repair_request)
         db.session.commit()
-        
+
         # Update status to in progress
         repair_request.status = TaskStatus.IN_PROGRESS
         db.session.commit()
         self.assertEqual(repair_request.status, TaskStatus.IN_PROGRESS)
-        
+
         # Mark as completed
         repair_request.mark_completed(self.owner.id)
         db.session.commit()
         self.assertEqual(repair_request.status, TaskStatus.COMPLETED)
         self.assertIsNotNone(repair_request.completed_at)
-    
+
     def test_repair_request_with_photos(self):
         """Test repair request with photo uploads"""
         # Create test photo files
@@ -119,7 +119,7 @@ class TestRepairRequests(unittest.TestCase):
         for photo in test_photos:
             with open(os.path.join(self.upload_dir, photo), 'w') as f:
                 f.write('test photo content')
-        
+
         repair_request = Task(
             title='Damaged Wall',
             description='Wall damage in bedroom',
@@ -130,17 +130,17 @@ class TestRepairRequests(unittest.TestCase):
             property_id=self.property.id,
             photo_paths=test_photos
         )
-        
+
         db.session.add(repair_request)
         db.session.commit()
-        
+
         # Verify photos are associated with the request
         retrieved_request = Task.query.get(repair_request.id)
         self.assertEqual(len(retrieved_request.photo_paths), 2)
         for photo in test_photos:
             self.assertIn(photo, retrieved_request.photo_paths)
             self.assertTrue(os.path.exists(os.path.join(self.upload_dir, photo)))
-    
+
     def test_repair_request_validation(self):
         """Test repair request validation"""
         # Test invalid severity
@@ -154,7 +154,7 @@ class TestRepairRequests(unittest.TestCase):
                 creator_id=self.tenant.id,
                 property_id=self.property.id
             )
-        
+
         # Test missing required fields
         with self.assertRaises(ValueError):
             Task(
@@ -168,4 +168,4 @@ class TestRepairRequests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()

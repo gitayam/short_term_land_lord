@@ -13,4 +13,4 @@ def login(client, email, password):
 
 def logout(client):
     """Helper function to log out a user for testing"""
-    return client.get('/auth/logout', follow_redirects=True) 
+    return client.get('/auth/logout', follow_redirects=True)

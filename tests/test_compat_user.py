@@ -16,18 +16,18 @@ from app.models import User
 def test_user_compatibility():
     """Test the user model compatibility"""
     print("Testing user model compatibility...")
-    
+
     # Create app context
     app = create_app()
-    
+
     with app.app_context():
         # Test database dialect detection
         dialect = db.engine.dialect.name
         print(f"Detected database dialect: {dialect}")
-        
+
         # Test table name
         print(f"\nUser model table name: {User.__tablename__}")
-        
+
         # Test table existence
         print("\nTesting table existence...")
         try:
@@ -38,7 +38,7 @@ def test_user_compatibility():
                 print(f"Table '{User.__tablename__}' does not exist")
         except Exception as e:
             print(f"Error checking table existence: {e}")
-        
+
         # Test column existence
         print("\nTesting column existence...")
         try:
@@ -50,7 +50,7 @@ def test_user_compatibility():
                 print(f"No columns found in table '{User.__tablename__}'")
         except Exception as e:
             print(f"Error checking columns: {e}")
-        
+
         # Test user creation
         print("\nTesting user creation...")
         try:
@@ -62,7 +62,7 @@ def test_user_compatibility():
             db.session.add(test_user)
             db.session.commit()
             print("Successfully created test user")
-            
+
             # Clean up
             db.session.delete(test_user)
             db.session.commit()
@@ -70,8 +70,8 @@ def test_user_compatibility():
         except Exception as e:
             print(f"Error in user creation test: {e}")
             db.session.rollback()
-        
+
         print("\nUser compatibility test complete!")
 
 if __name__ == "__main__":
-    test_user_compatibility() 
+    test_user_compatibility()

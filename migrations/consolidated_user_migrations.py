@@ -30,11 +30,11 @@ from app.models import User, UserRoles
 def ensure_users_table():
     """Ensure the users table exists and has the correct structure"""
     app = create_app()
-    
+
     with app.app_context():
         from sqlalchemy import inspect
         inspector = inspect(db.engine)
-        
+
         if 'users' not in inspector.get_table_names():
             print("Creating users table...")
             with db.engine.connect() as conn:
@@ -60,20 +60,20 @@ def ensure_users_table():
                         attributes TEXT
                     )
                     """))
-                    
+
                     # Create indexes
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_email ON users (email)"))
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_username ON users (username)"))
-            
+
             print("Users table created successfully!")
             return True
         else:
             print("Users table already exists, checking for missing columns...")
-            
+
             # Get existing columns
             columns = {col['name']: col for col in inspector.get_columns('users')}
             changes_made = False
-            
+
             # List of columns to ensure exist, with their SQL types
             required_columns = {
                 'username': 'VARCHAR(64)',
@@ -86,7 +86,7 @@ def ensure_users_table():
                 'signal_identity': 'VARCHAR(36)',
                 'attributes': 'TEXT'
             }
-            
+
             # Add each missing column
             for column_name, column_type in required_columns.items():
                 if column_name not in columns:
@@ -96,7 +96,7 @@ def ensure_users_table():
                             conn.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}"))
                     print(f"Added {column_name} column")
                     changes_made = True
-            
+
             if changes_made:
                 print("User table updated with missing columns")
                 return True
@@ -107,24 +107,24 @@ def ensure_users_table():
 def fix_user_model():
     """Ensure the User model uses the correct table name"""
     print("Fixing User model table name...")
-    
-    # Import the User model 
+
+    # Import the User model
     from app.models import User
-    
+
     # Check the current table name
     current_table = User.__tablename__
     print(f"Current User model table name: {current_table}")
-    
+
     app = create_app()
     with app.app_context():
         dialect = db.engine.dialect.name
-        
+
         if dialect == 'postgresql':
             # For PostgreSQL, set table name to 'users'
             if current_table != 'users':
                 print(f"Setting User model __tablename__ to 'users'")
                 User.__tablename__ = 'users'
-                
+
                 # Clear SQLAlchemy's model registry cache
                 db.Model.metadata.clear()
         else:
@@ -133,14 +133,14 @@ def fix_user_model():
                 print(f"Setting User model __tablename__ to 'user'")
                 User.__tablename__ = 'user'
                 db.Model.metadata.clear()
-        
+
         print("Model fix completed.")
         return True
 
 def create_admin():
     """Create/update admin user using environment variables"""
     app = create_app()
-    
+
     with app.app_context():
         # Get admin credentials from environment or use defaults
         admin_email = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
@@ -148,13 +148,13 @@ def create_admin():
         admin_first_name = os.environ.get('ADMIN_FIRST_NAME', 'Admin')
         admin_last_name = os.environ.get('ADMIN_LAST_NAME', 'User')
         admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
-        
+
         print(f"Attempting to create/update admin user: {admin_email}")
         print(f"Using environment values from: {env_path}")
-        
+
         # Check if admin already exists
         admin = User.query.filter_by(email=admin_email).first()
-        
+
         if not admin:
             # Create new admin user
             admin = User(
@@ -180,30 +180,30 @@ def create_admin():
             admin.set_password(admin_password)
             db.session.commit()
             print(f'Admin user {admin_email} updated successfully')
-        
+
         return True
 
 def run_consolidated_migrations():
     """Run all user-related migrations in the correct order"""
     try:
         print("Starting consolidated user migrations...")
-        
+
         # 1. Ensure users table exists with all required columns
         ensure_users_table()
-        
+
         # 2. Fix the User model to use the correct table name
         fix_user_model()
-        
+
         # 3. Create/update admin user
         create_admin()
-        
+
         print("All user-related migrations completed successfully!")
         return True
-        
+
     except Exception as e:
         print(f"Error in consolidated user migrations: {str(e)}")
         return False
 
 if __name__ == '__main__':
     success = run_consolidated_migrations()
-    sys.exit(0 if success else 1) 
+    sys.exit(0 if success else 1)

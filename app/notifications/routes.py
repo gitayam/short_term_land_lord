@@ -11,14 +11,14 @@ def index():
     notifications = Notification.query.filter_by(
         user_id=current_user.id
     ).order_by(Notification.sent_at.desc()).all()
-    
+
     # Count unread notifications
     unread_count = Notification.query.filter_by(
         user_id=current_user.id,
         is_read=False
     ).count()
-    
-    return render_template('notifications/index.html', 
+
+    return render_template('notifications/index.html',
                           title='Notifications',
                           notifications=notifications,
                           unread_count=unread_count)
@@ -28,18 +28,18 @@ def index():
 def mark_read(id):
     """Mark a notification as read"""
     notification = Notification.query.get_or_404(id)
-    
+
     # Check if notification belongs to current user
     if notification.user_id != current_user.id:
         flash('You do not have permission to access this notification.', 'danger')
         return redirect(url_for('notifications.index'))
-    
+
     notification.mark_as_read()
     db.session.commit()
-    
+
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': True})
-    
+
     flash('Notification marked as read.', 'success')
     return redirect(url_for('notifications.index'))
 
@@ -51,14 +51,14 @@ def mark_all_read():
         user_id=current_user.id,
         is_read=False
     ).all()
-    
+
     for notification in notifications:
         notification.mark_as_read()
-    
+
     db.session.commit()
-    
+
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'success': True})
-    
+
     flash('All notifications marked as read.', 'success')
     return redirect(url_for('notifications.index'))

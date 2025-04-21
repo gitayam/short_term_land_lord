@@ -24,7 +24,7 @@ def dashboard():
         properties = Property.query.all()
     else:
         properties = []
-    
+
     return render_template('main/dashboard.html', title='Dashboard', properties=properties)
 
 @bp.route('/combined-calendar')
@@ -40,51 +40,51 @@ def combined_calendar():
             properties = Property.query.order_by(Property.name).all()
         else:
             properties = []
-        
+
         if not properties:
             flash('No properties found.', 'warning')
             return render_template('main/combined_calendar.html', title='Combined Calendar', properties=[], resources=[], events=[])
-        
+
         # Prepare resources list for FullCalendar
         resources = [{'id': str(prop.id), 'title': prop.name} for prop in properties]
-        
+
         # Get all calendars for all properties
         all_calendars = []
         for property in properties:
             calendars = PropertyCalendar.query.filter_by(property_id=property.id).all()
             for calendar in calendars:
                 all_calendars.append((property, calendar))
-        
+
         # If no calendars found, still show the page but with message
         if not all_calendars:
             flash('No calendars have been added to any properties. Add a calendar to see bookings.', 'info')
             return render_template('main/combined_calendar.html', title='Combined Calendar', properties=properties, resources=resources, events=[])
-        
+
         # Prepare events data for the calendar
         events = []
         success = False
-        
+
         for property, calendar in all_calendars:
             try:
                 # Log the attempt to fetch
                 current_app.logger.info(f"Attempting to fetch calendar {calendar.id}: {calendar.name} - URL: {calendar.ical_url}")
-                
+
                 # Fetch the iCal data with timeout to prevent hanging and custom headers
                 headers = {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
                     'Accept': 'text/calendar,application/ics,*/*'
                 }
-                
-                response = requests.get(calendar.ical_url, 
-                                    headers=headers, 
+
+                response = requests.get(calendar.ical_url,
+                                    headers=headers,
                                     timeout=15,
                                     verify=True)
-                
+
                 if response.status_code == 200:
                     # Parse the iCal data
                     try:
                         cal = Calendar.from_ical(response.text)
-                        
+
                         # Extract events
                         for component in cal.walk():
                             if component.name == "VEVENT":
@@ -93,7 +93,7 @@ def combined_calendar():
                                     summary = ''
                                     start_date = None
                                     end_date = None
-                                    
+
                                     # Try to get summary safely
                                     if hasattr(component, 'get') and callable(component.get):
                                         summary_value = component.get('summary')
@@ -103,7 +103,7 @@ def combined_calendar():
                                             summary = 'Booking'
                                     else:
                                         summary = 'Booking'
-                                    
+
                                     # Try to get start date safely
                                     dtstart = component.get('dtstart')
                                     if dtstart and hasattr(dtstart, 'dt'):
@@ -111,7 +111,7 @@ def combined_calendar():
                                     else:
                                         # Skip this event if no start date
                                         continue
-                                    
+
                                     # Try to get end date safely
                                     dtend = component.get('dtend')
                                     if dtend and hasattr(dtend, 'dt'):
@@ -122,17 +122,17 @@ def combined_calendar():
                                             end_date = start_date + timedelta(days=1)
                                         else:
                                             end_date = start_date + timedelta(days=1)
-                                    
+
                                     # Ensure dates are in the correct format for FullCalendar
                                     if isinstance(start_date, datetime):
                                         start_date = start_date.date()
                                     if isinstance(end_date, datetime):
                                         end_date = end_date.date()
-                                    
+
                                     # Make sure both dates are valid
                                     if not (start_date and end_date):
                                         continue
-                                    
+
                                     # Extract guest name from summary if possible
                                     guest_name = None
                                     if ":" in summary:
@@ -141,7 +141,7 @@ def combined_calendar():
                                     elif "-" in summary:
                                         parts = summary.split("-", 1)
                                         guest_name = parts[0].strip()
-                                    
+
                                     # Extract any price information if available
                                     amount = None
                                     description = component.get('description')
@@ -152,13 +152,13 @@ def combined_calendar():
                                         price_match = re.search(r'\$(\d+(\.\d+)?)', description)
                                         if price_match:
                                             amount = price_match.group(1)
-                                    
+
                                     # Determine source URL if available
                                     source_url = None
                                     url = component.get('url')
                                     if url:
                                         source_url = str(url)
-                                    
+
                                     # Add event to the list with proper date formatting
                                     event = {
                                         'title': summary,
@@ -185,12 +185,12 @@ def combined_calendar():
                                     # Just skip this event if there's a problem with it
                                     current_app.logger.error(f"Error parsing event in calendar {calendar.id}: {str(e)}")
                                     continue
-                        
+
                         # Update last_synced and status
                         calendar.last_synced = datetime.utcnow()
                         calendar.sync_status = 'Success'
                         calendar.sync_error = None
-                        
+
                     except Exception as e:
                         # Problem parsing the iCal data
                         calendar.sync_status = 'Failed'
@@ -206,17 +206,17 @@ def combined_calendar():
                 calendar.sync_status = 'Failed'
                 calendar.sync_error = str(e)[:255]
                 current_app.logger.error(f"Error syncing calendar {calendar.id}: {str(e)}")
-        
+
         # If we couldn't fetch any valid events, inform the user
         if not success and all_calendars:
             flash('Could not fetch calendar data from any of the configured sources. Please check your calendar URLs and try again.', 'warning')
-        
+
         return render_template('main/combined_calendar.html',
                             title='Combined Calendar',
                             properties=properties,
                             resources=resources,
                             events=events)
-                            
+
     except Exception as e:
         current_app.logger.error(f"Error in combined_calendar view: {str(e)}")
         flash('An error occurred while loading the calendar. Please try again later.', 'error')

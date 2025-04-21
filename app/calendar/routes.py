@@ -19,23 +19,23 @@ bp = Blueprint('calendar', __name__)
 def property_calendar(property_id):
     """View calendar for a specific property"""
     property = Property.query.get_or_404(property_id)
-    
+
     # Check if user has access to this property
     if not property.is_visible_to(current_user):
         flash('You do not have permission to view this calendar.', 'danger')
         return redirect(url_for('property.index'))
-    
+
     # Get tasks for this property
     # Use aliases to avoid duplicate table name errors
     task_property_alias = aliased(TaskProperty)
-    
+
     # Build the base query with proper aliasing
     query = Task.query.join(
         task_property_alias, Task.id == task_property_alias.task_id
     ).filter(
         task_property_alias.property_id == property_id
     )
-    
+
     # If the user is service staff, only show tasks assigned to them
     if current_user.is_service_staff():
         task_assignment_alias = aliased(TaskAssignment)
@@ -44,18 +44,18 @@ def property_calendar(property_id):
         ).filter(
             task_assignment_alias.user_id == current_user.id
         )
-    
+
     # Date filters if provided
     start_date = request.args.get('start')
     end_date = request.args.get('end')
-    
+
     if start_date:
         try:
             start_date = datetime.strptime(start_date, '%Y-%m-%d')
             query = query.filter(Task.due_date >= start_date)
         except ValueError:
             pass
-            
+
     if end_date:
         try:
             end_date = datetime.strptime(end_date, '%Y-%m-%d')
@@ -63,10 +63,10 @@ def property_calendar(property_id):
             query = query.filter(Task.due_date <= end_date)
         except ValueError:
             pass
-    
+
     # Get final task list
     tasks = query.order_by(Task.due_date.asc()).all()
-    
+
     return render_template('calendar/property.html',
                           title=f'Calendar - {property.name}',
                           property=property,
@@ -77,21 +77,21 @@ def property_calendar(property_id):
 def property_tasks_api(property_id):
     """API endpoint for tasks as calendar events"""
     property = Property.query.get_or_404(property_id)
-    
+
     # Check if user has access to this property
     if not property.is_visible_to(current_user):
         return jsonify({'error': 'Permission denied'}), 403
-    
+
     # Use aliases to avoid duplicate table name errors
     task_property_alias = aliased(TaskProperty)
-    
+
     # Build the base query with proper aliasing
     query = Task.query.join(
         task_property_alias, Task.id == task_property_alias.task_id
     ).filter(
         task_property_alias.property_id == property_id
     )
-    
+
     # If the user is service staff, only show tasks assigned to them
     if current_user.is_service_staff():
         task_assignment_alias = aliased(TaskAssignment)
@@ -100,28 +100,28 @@ def property_tasks_api(property_id):
         ).filter(
             task_assignment_alias.user_id == current_user.id
         )
-    
+
     # Date filters
     start = request.args.get('start')
     end = request.args.get('end')
-    
+
     if start:
         try:
             start_date = datetime.fromisoformat(start.replace('Z', '+00:00'))
             query = query.filter(Task.due_date >= start_date)
         except (ValueError, TypeError):
             pass
-            
+
     if end:
         try:
             end_date = datetime.fromisoformat(end.replace('Z', '+00:00'))
             query = query.filter(Task.due_date <= end_date)
         except (ValueError, TypeError):
             pass
-    
+
     # Get tasks
     tasks = query.all()
-    
+
     # Format for fullcalendar
     events = []
     for task in tasks:
@@ -133,7 +133,7 @@ def property_tasks_api(property_id):
                     assigned_to = assignment.user.get_full_name()
                 elif assignment.external_name:
                     assigned_to = f"{assignment.external_name} (external)"
-            
+
             # Create event
             event = {
                 'id': task.id,
@@ -151,14 +151,14 @@ def property_tasks_api(property_id):
                 }
             }
             events.append(event)
-    
+
     return jsonify(events)
 
 def get_task_color(task):
     """Return a color based on task priority and status"""
     if task.status == TaskStatus.COMPLETED:
         return '#28a745'  # Green for completed
-    
+
     # Colors based on priority
     priority_colors = {
         'LOW': '#17a2b8',      # Info/Blue
@@ -166,14 +166,14 @@ def get_task_color(task):
         'HIGH': '#fd7e14',     # Orange
         'URGENT': '#dc3545'    # Danger/Red
     }
-    
+
     return priority_colors.get(task.priority.value, '#6c757d')
 
 @bp.route('/availability', methods=['GET'])
 @login_required
 def availability_calendar():
     """View availability calendar for all accessible properties"""
-    
+
     # Get all properties the user has access to
     if current_user.is_admin or current_user.has_admin_role():
         properties = Property.query.all()
@@ -183,51 +183,51 @@ def availability_calendar():
         # For staff, find properties they have tasks assigned to
         task_assignment_alias = aliased(TaskAssignment)
         task_property_alias = aliased(TaskProperty)
-        
+
         property_ids = db.session.query(task_property_alias.property_id)\
             .join(Task, Task.id == task_property_alias.task_id)\
             .join(task_assignment_alias, Task.id == task_assignment_alias.task_id)\
             .filter(task_assignment_alias.user_id == current_user.id)\
             .distinct().all()
-        
+
         property_ids = [p[0] for p in property_ids]
         properties = Property.query.filter(Property.id.in_(property_ids)).all()
-    
+
     # Get booking data for each property
     bookings_by_property = {}
     start_dates = []
     end_dates = []
-    
+
     # Option to show mock data for testing
     use_mock_data = request.args.get('mock', 'false').lower() == 'true'
-    
+
     for prop in properties:
         bookings = []
-        
+
         # For testing: if mock parameter is set and no real calendars, generate mock data
         if use_mock_data and (not prop.calendars or not any(cal.ical_url for cal in prop.calendars)):
             # Generate some mock bookings for the next 2 months
             today = datetime.now().date()
-            
+
             # Random bookings in next 60 days
             for _ in range(3):  # 3 mock bookings per property
                 # Random start date 0-45 days from now
                 start_offset = random.randint(0, 45)
                 # Random duration 2-7 days
                 duration = random.randint(2, 7)
-                
+
                 mock_start = today + timedelta(days=start_offset)
                 mock_end = mock_start + timedelta(days=duration)
-                
+
                 bookings.append({
                     'summary': 'Mock Booking',
                     'start': mock_start,
                     'end': mock_end
                 })
-                
+
                 start_dates.append(mock_start)
                 end_dates.append(mock_end)
-        
+
         # Process each calendar for the property
         for calendar in prop.calendars:
             if calendar.ical_url:
@@ -237,44 +237,44 @@ def availability_calendar():
                     if response.status_code == 200:
                         cal_content = response.text
                         cal = icalendar.Calendar.from_ical(cal_content)
-                        
+
                         # Get a date range for the next 3 months
                         start_date = datetime.now().date()
                         end_date = start_date + timedelta(days=90)
-                        
+
                         # Get the events, handling recurring events
                         events = recurring_ical_events.of(cal).between(start_date, end_date)
-                        
+
                         for event in events:
                             summary = str(event.get('summary', 'Booking'))
                             dtstart = event.get('dtstart').dt
                             dtend = event.get('dtend').dt
-                            
+
                             # Convert datetime to date if necessary
                             if isinstance(dtstart, datetime):
                                 dtstart = dtstart.date()
                             if isinstance(dtend, datetime):
                                 dtend = dtend.date()
-                            
+
                             bookings.append({
                                 'summary': summary,
                                 'start': dtstart,
                                 'end': dtend
                             })
-                            
+
                             # Track the earliest and latest dates
                             start_dates.append(dtstart)
                             end_dates.append(dtend)
-                            
+
                 except Exception as e:
                     flash(f"Error processing calendar for {prop.name}: {str(e)}", "warning")
-        
+
         # Store bookings with string key for property ID to avoid key access issues in template
         bookings_by_property[str(prop.id)] = {
             'name': prop.name,
             'bookings': bookings
         }
-    
+
     # Determine the date range to display
     if start_dates and end_dates:
         start_date = min(start_dates)
@@ -283,14 +283,14 @@ def availability_calendar():
         # Default to current month plus next month if no bookings
         start_date = date.today().replace(day=1)
         end_date = (start_date + timedelta(days=60)).replace(day=1) - timedelta(days=1)
-    
+
     # Generate a list of dates for the calendar
     calendar_dates = []
     current_date = start_date
     while current_date <= end_date:
         calendar_dates.append(current_date)
         current_date += timedelta(days=1)
-    
+
     return render_template('calendar/availability.html',
                           title='Property Availability Calendar',
                           properties=properties,
@@ -298,4 +298,4 @@ def availability_calendar():
                           calendar_dates=calendar_dates,
                           start_date=start_date,
                           end_date=end_date,
-                          use_mock_data=use_mock_data) 
+                          use_mock_data=use_mock_data)

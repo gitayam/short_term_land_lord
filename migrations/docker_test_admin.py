@@ -8,9 +8,9 @@ with app.app_context():
     if admin:
         print(f'Admin has admin role: {admin.has_admin_role()}')
         print(f'Admin email: {admin.email}')
-    
+
     prop = Property.query.first()
     print(f'Property exists: {prop is not None}')
     if prop:
         print(f'Property name: {prop.name}')
-        print(f'Property owner: {prop.owner_id}') 
+        print(f'Property owner: {prop.owner_id}')

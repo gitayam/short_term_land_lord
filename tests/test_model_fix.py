@@ -16,18 +16,18 @@ from app.models import User
 def test_user_model():
     """Test the User model functionality"""
     print("Starting User model test...")
-    
+
     # Create app context
     app = create_app()
-    
+
     with app.app_context():
         # Test database dialect detection
         dialect = db.engine.dialect.name
         print(f"Detected database dialect: {dialect}")
-        
+
         # Test table name
         print(f"\nUser model table name: {User.__tablename__}")
-        
+
         # Test direct table access
         print("\nTesting direct table access...")
         try:
@@ -35,7 +35,7 @@ def test_user_model():
             result = db.session.execute(text(f"SELECT COUNT(*) FROM {User.__tablename__}"))
             count = result.scalar()
             print(f"Found {count} users in table")
-            
+
             # List users
             result = db.session.execute(text(f"SELECT id, email FROM {User.__tablename__} LIMIT 5"))
             users = result.fetchall()
@@ -47,7 +47,7 @@ def test_user_model():
                 print("No users found in table")
         except Exception as e:
             print(f"Error accessing table directly: {e}")
-        
+
         # Test ORM access
         print("\nTesting ORM access...")
         try:
@@ -59,7 +59,7 @@ def test_user_model():
                     print(f"- ID: {user.id}, Email: {user.email}")
         except Exception as e:
             print(f"Error accessing via ORM: {e}")
-        
+
         # Test user loading
         print("\nTesting user loading...")
         try:
@@ -71,8 +71,8 @@ def test_user_model():
                 print("\nNo user found with ID 1")
         except Exception as e:
             print(f"Error loading user: {e}")
-        
+
         print("\nUser model test complete!")
 
 if __name__ == "__main__":
-    test_user_model() 
+    test_user_model()

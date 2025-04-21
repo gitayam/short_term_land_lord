@@ -1,6 +1,6 @@
 import pytest
 from app import create_app, db
-from app.models import (User, UserRoles, Task, TaskAssignment, TaskStatus, 
+from app.models import (User, UserRoles, Task, TaskAssignment, TaskStatus,
                       TaskPriority, TaskProperty, Property, RecurrencePattern,
                       ServiceType)
 from flask import url_for
@@ -12,10 +12,10 @@ from config import TestConfig
 def app():
     """Create and configure a Flask app for testing."""
     app = create_app(TestConfig)  # Use TestConfig for testing
-    
+
     # Disable CSRF protection for testing
     app.config['WTF_CSRF_ENABLED'] = False
-    
+
     # Create context
     with app.app_context():
         db.create_all()
@@ -45,7 +45,7 @@ def users(app, _db):
         role=UserRoles.PROPERTY_OWNER.value
     )
     owner.set_password('password')
-    
+
     staff = User(
         first_name='Test',
         last_name='Staff',
@@ -53,7 +53,7 @@ def users(app, _db):
         role=UserRoles.SERVICE_STAFF.value
     )
     staff.set_password('password')
-    
+
     manager = User(
         first_name='Test',
         last_name='Manager',
@@ -61,7 +61,7 @@ def users(app, _db):
         role=UserRoles.PROPERTY_MANAGER.value
     )
     manager.set_password('password')
-    
+
     admin = User(
         first_name='Test',
         last_name='Admin',
@@ -69,14 +69,14 @@ def users(app, _db):
         role=UserRoles.ADMIN.value
     )
     admin.set_password('password')
-    
+
     _db.session.add_all([owner, staff, manager, admin])
     _db.session.commit()
-    
+
     return {
-        'owner': owner, 
-        'staff': staff, 
-        'manager': manager, 
+        'owner': owner,
+        'staff': staff,
+        'manager': manager,
         'admin': admin
     }
 
@@ -95,10 +95,10 @@ def property_fixture(app, _db, users):
         address='123 Test St, Test City, Test State 12345, Test Country',
         owner_id=users['owner'].id
     )
-    
+
     _db.session.add(property)
     _db.session.commit()
-    
+
     return property
 
 
@@ -116,22 +116,22 @@ def task_fixture(app, _db, users, property_fixture):
     )
     _db.session.add(task)
     _db.session.commit()
-    
+
     task_property = TaskProperty(
         task_id=task.id,
         property_id=property_fixture.id
     )
     _db.session.add(task_property)
-    
+
     assignment = TaskAssignment(
         task=task,
         user_id=users['staff'].id,
         service_type=ServiceType.CLEANING
     )
     _db.session.add(assignment)
-    
+
     _db.session.commit()
-    
+
     return task
 
 
@@ -142,7 +142,7 @@ def authenticated_client(client, users):
         'email': users['owner'].email,
         'password': 'password'
     }, follow_redirects=True)
-    
+
     return client
 
 
@@ -153,5 +153,5 @@ def staff_authenticated_client(client, users):
         'email': users['staff'].email,
         'password': 'password'
     }, follow_redirects=True)
-    
-    return client 
+
+    return client

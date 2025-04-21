@@ -21,7 +21,7 @@ class RegistrationForm(FlaskForm):
         ('service_staff', 'Service Staff'),
         ('property_manager', 'Property Manager')
     ], validators=[DataRequired()])
-    message = TextAreaField('Why do you want to join?', 
+    message = TextAreaField('Why do you want to join?',
                          validators=[Length(max=500)],
                          description="Tell us a bit about yourself and why you want to join the platform")
     submit = SubmitField('Request Registration')
@@ -30,7 +30,7 @@ class PropertyRegistrationForm(FlaskForm):
     """Form for adding property details during registration"""
     property_name = StringField('Property Name', validators=[DataRequired()])
     property_address = StringField('Property Address', validators=[DataRequired()])
-    property_description = StringField('Property Description', widget=TextAreaField(), 
+    property_description = StringField('Property Description', widget=TextAreaField(),
                                       validators=[Length(max=1000)])
     submit = SubmitField('Continue with Registration')
 
@@ -52,4 +52,4 @@ class InviteServiceStaffForm(FlaskForm):
     first_name = StringField('First Name', validators=[DataRequired()])
     last_name = StringField('Last Name', validators=[DataRequired()])
     message = TextAreaField('Invitation Message', validators=[Optional(), Length(max=500)])
-    submit = SubmitField('Send Invitation') 
+    submit = SubmitField('Send Invitation')

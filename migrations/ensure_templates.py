@@ -21,7 +21,7 @@ templates = {
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('auth.register') }}">
                         {{ form.hidden_tag() }}
-                        
+
                         <div class="mb-3">
                             {{ form.first_name.label(class="form-label") }}
                             {{ form.first_name(class="form-control") }}
@@ -29,7 +29,7 @@ templates = {
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mb-3">
                             {{ form.last_name.label(class="form-label") }}
                             {{ form.last_name(class="form-control") }}
@@ -37,7 +37,7 @@ templates = {
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mb-3">
                             {{ form.email.label(class="form-label") }}
                             {{ form.email(class="form-control") }}
@@ -45,7 +45,7 @@ templates = {
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mb-3">
                             {{ form.username.label(class="form-label") }}
                             {{ form.username(class="form-control") }}
@@ -53,7 +53,7 @@ templates = {
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mb-3">
                             {{ form.password.label(class="form-label") }}
                             {{ form.password(class="form-control") }}
@@ -61,7 +61,7 @@ templates = {
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mb-3">
                             {{ form.password2.label(class="form-label") }}
                             {{ form.password2(class="form-control") }}
@@ -69,7 +69,7 @@ templates = {
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mb-3">
                             {{ form.role.label(class="form-label") }}
                             {{ form.role(class="form-select") }}
@@ -77,7 +77,7 @@ templates = {
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="d-grid">
                             {{ form.submit(class="btn btn-primary") }}
                         </div>
@@ -113,10 +113,10 @@ templates = {
                     </div>
                     {% endif %}
                     {% endwith %}
-                    
+
                     <form method="POST" action="{{ url_for('auth.login') }}">
                         {{ form.hidden_tag() }}
-                        
+
                         <div class="mb-3">
                             {{ form.email.label(class="form-label") }}
                             {{ form.email(class="form-control") }}
@@ -124,7 +124,7 @@ templates = {
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mb-3">
                             {{ form.password.label(class="form-label") }}
                             {{ form.password(class="form-control") }}
@@ -132,16 +132,16 @@ templates = {
                             <div class="text-danger">{{ error }}</div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mb-3 form-check">
                             {{ form.remember_me(class="form-check-input") }}
                             {{ form.remember_me.label(class="form-check-label") }}
                         </div>
-                        
+
                         <div class="d-grid">
                             {{ form.submit(class="btn btn-primary") }}
                         </div>
-                        
+
                         <div class="text-center mt-3">
                             <a href="{{ url_for('auth.reset_password_request') }}">Forgot your password?</a>
                         </div>
@@ -160,13 +160,13 @@ templates = {
 def ensure_templates():
     """Ensure all necessary template directories and files exist"""
     print("Checking for missing template files...")
-    
+
     # Ensure directories exist
     for dir_path in template_dirs:
         if not os.path.exists(dir_path):
             print(f"Creating directory: {dir_path}")
             os.makedirs(dir_path, exist_ok=True)
-    
+
     # Ensure template files exist
     for target_file, content in templates.items():
         if not os.path.exists(target_file):
@@ -178,4 +178,4 @@ def ensure_templates():
             print(f"Template file already exists: {target_file}")
 
 if __name__ == "__main__":
-    ensure_templates() 
+    ensure_templates()

@@ -137,7 +137,7 @@ class RepairRequestForm(FlaskForm):
         DataRequired(),
         Length(min=5, max=1000, message='Description must be between 5 and 1000 characters')
     ])
-    property = QuerySelectField('Property', 
+    property = QuerySelectField('Property',
         validators=[DataRequired()],
         get_label='name',
         allow_blank=True,
@@ -148,17 +148,17 @@ class RepairRequestForm(FlaskForm):
         Length(max=255, message='Location must not exceed 255 characters')
     ])
     priority = SelectField('Priority', choices=[
-        (priority.name, priority.name.title()) 
+        (priority.name, priority.name.title())
         for priority in TaskPriority
     ], validators=[DataRequired()])
-    
+
     due_date = DateField('Due Date', validators=[Optional()])
-    
+
     additional_notes = TextAreaField('Additional Notes', validators=[
         Optional(),
         Length(max=2000, message='Additional notes must not exceed 2000 characters')
     ])
-    
+
     photos = MultipleFileField('Photos', validators=[
         Optional(),
         FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')
@@ -228,4 +228,4 @@ class TaskDescriptionForm(FlaskForm):
     description = TextAreaField('Description', validators=[
         DataRequired(),
         Length(min=MIN_LENGTH, max=MAX_LENGTH)
-    ]) 
+    ])

@@ -9,11 +9,11 @@ class EditProfileForm(FlaskForm):
     last_name = StringField('Last Name', validators=[DataRequired(), Length(min=2, max=64)])
     email = StringField('Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Save Changes')
-    
+
     def __init__(self, original_email, *args, **kwargs):
         super(EditProfileForm, self).__init__(*args, **kwargs)
         self.original_email = original_email
-    
+
     def validate_email(self, email):
         if email.data != self.original_email:
             user = User.query.filter_by(email=email.data).first()
@@ -23,15 +23,15 @@ class EditProfileForm(FlaskForm):
 class ChangePasswordForm(FlaskForm):
     current_password = PasswordField('Current Password', validators=[DataRequired()])
     new_password = PasswordField('New Password', validators=[
-        DataRequired(), 
+        DataRequired(),
         Length(min=8, message='Password must be at least 8 characters long')
     ])
     confirm_password = PasswordField('Confirm New Password', validators=[
-        DataRequired(), 
+        DataRequired(),
         EqualTo('new_password', message='Passwords must match')
     ])
     submit = SubmitField('Change Password')
-    
+
     def validate_current_password(self, current_password):
         if not current_user.check_password(current_password.data):
             raise ValidationError('Current password is incorrect.')

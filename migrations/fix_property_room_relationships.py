@@ -36,12 +36,12 @@ def fix_property_room_relationships():
     """Fix the relationship between Property and Room models"""
     try:
         from app import create_app, db
-        
+
         app = create_app()
         with app.app_context():
             # Import the models
             from app.models import Property, Room
-            
+
             # Check if we need to update any data
             try:
                 # Get the first room to check if property backref actually works
@@ -50,7 +50,7 @@ def fix_property_room_relationships():
                     logger.warning("Found Room that's missing property backref")
                     # This means there's an issue with the relationship in the database
                     # We'll update it using direct SQL
-                    
+
                     # First, let's get all rooms and their property_id values
                     rooms = Room.query.all()
                     for r in rooms:
@@ -58,7 +58,7 @@ def fix_property_room_relationships():
                             logger.info(f"Updating room {r.id} to correct backref property")
                             # This is a direct assignment that will generate a SQL update
                             r.property_id = r.property_id  # This will trigger the relationship reload
-                    
+
                     # Commit the changes
                     db.session.commit()
                     logger.info("Room-Property relationships updated successfully")
@@ -67,7 +67,7 @@ def fix_property_room_relationships():
             except Exception as e:
                 logger.error(f"Error checking room relationships: {e}")
                 # Continue as this is just a check, not critical
-            
+
             # Now check if Property model is using both relationships
             # (This will be fixed directly in code, but we should log it)
             prop = Property.query.first()
@@ -79,7 +79,7 @@ def fix_property_room_relationships():
                     logger.info("Property model is using correct 'rooms' relationship")
                 else:
                     logger.warning("Property model doesn't have 'rooms' relationship")
-            
+
             return True
     except Exception as e:
         logger.error(f"Error fixing Property-Room relationships: {e}")
@@ -93,4 +93,4 @@ if __name__ == "__main__":
         sys.exit(0)
     else:
         logger.error("Failed to fix Property-Room relationships")
-        sys.exit(1) 
+        sys.exit(1)

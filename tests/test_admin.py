@@ -12,4 +12,4 @@ with app.app_context():
         print(f'Admin email: {admin_role.email}')
     if is_admin_flag:
         print(f'Admin flag user admin check: {is_admin_flag.has_admin_role()}')
-        print(f'Admin flag email: {is_admin_flag.email}') 
+        print(f'Admin flag email: {is_admin_flag.email}')
