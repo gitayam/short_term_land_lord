@@ -4,7 +4,7 @@ A comprehensive property management system designed specifically for short-term 
 
 ## Features
 
-- **Calendar Management**: Import calendar events from Airbnb, VRBO, and other booking platforms
+- **Calendar Management**: Import and sync calendar events from Airbnb, VRBO, and other booking platforms
 - **Property Management**: Track property details, amenities, and access information
 - **Task Management**: Assign and track cleaning and maintenance tasks
 - **User Role System**: Different interfaces and permissions for property owners, cleaners, and maintenance staff
@@ -13,15 +13,16 @@ A comprehensive property management system designed specifically for short-term 
 - **Maintenance Requests**: Report and track maintenance issues
 - **Guest Access Portal**: Provide information to guests with customizable access
 
-## Installation
+## Development Setup
 
 ### Prerequisites
 
 - Python 3.9+
 - PostgreSQL
 - Git
+- Docker and Docker Compose (recommended)
 
-### Local Installation
+### Docker Setup (Recommended)
 
 1. Clone the repository:
    ```bash
@@ -29,92 +30,98 @@ A comprehensive property management system designed specifically for short-term 
    cd short_term_land_lord
    ```
 
-2. Create a virtual environment and activate it:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Create a `.env` file from the example:
+2. Copy the example environment file:
    ```bash
    cp .env.example .env
    ```
 
-5. Configure your environment variables in `.env`:
+3. Configure your environment variables in `.env`:
    ```
    FLASK_APP=app.py
    FLASK_ENV=development
-   DATABASE_URL=postgresql://username:password@localhost/stll_db
+   DATABASE_URL=postgresql://postgres:postgres@db:5432/stll_db
    SECRET_KEY=your_secret_key
    ```
 
-6. Initialize the database:
+4. Build and start the containers:
    ```bash
-   flask db init
-   flask db migrate -m "Initial migration"
+   docker-compose up -d --build
+   ```
+
+5. Access the application at http://localhost:5001
+
+### Local Installation (Alternative)
+
+1. Clone the repository and create a virtual environment:
+   ```bash
+   git clone https://github.com/gitayam/short_term_land_lord.git
+   cd short_term_land_lord
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Configure your environment (see Docker setup step 2-3)
+
+4. Initialize the database:
+   ```bash
    flask db upgrade
    ```
 
-7. Run the application:
+5. Run the application:
    ```bash
    flask run
    ```
 
-8. Access the application at http://localhost:5000
-
-## Docker Setup
-
-Using Docker is the recommended way to run the application as it ensures consistency across environments.
-
-### Prerequisites
-
-- Docker
-- Docker Compose
-
-### Getting Started
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/gitayam/short_term_land_lord.git
-   cd short_term_land_lord
-   ```
-
-2. Set up environment variables in `.env` (see `.env` file for required variables)
-3. Start the application:
-
-```bash
-docker-compose up -d
-```
-
-4. Access the application at http://localhost:5001
+## Development Workflow
 
 ### Database Management
 
-The application uses PostgreSQL for the database. If you need to reset the database:
+The application uses PostgreSQL and follows these practices:
+
+- Development environment uses Docker volumes for persistence
+- Database can be reset using: `docker-compose down --volumes && docker-compose up -d`
+- Migrations are stored in the `migrations/` directory
+- New migrations can be created with: `flask db migrate -m "Description"`
+- Apply migrations with: `flask db upgrade`
+
+### Running Tests
 
 ```bash
-./reset_db.sh
+# Ensure your virtual environment is activated
+python3 -m pytest tests/
 ```
 
 ### Project Structure
 
-- `app/` - The Flask application
-  - `models.py` - Database models
-  - `models_modules/` - Additional model modules for specific features
-  - `templates/` - HTML templates
-  - `static/` - Static files (CSS, JavaScript)
-  - Other modules for specific features (auth, property, invoicing, etc.)
+```
+.
+├── app/                    # Main application package
+│   ├── models/            # Database models
+│   ├── templates/         # Jinja2 templates
+│   ├── static/           # Static assets
+│   └── views/            # Route handlers
+├── migrations/            # Database migrations
+├── tests/                # Test suite
+├── docs/                 # Documentation
+├── docker-compose.yml    # Docker services configuration
+├── Dockerfile           # Application container definition
+└── requirements.txt     # Python dependencies
+```
 
-### Common Issues
+## Calendar Integration
 
-#### Database Table Names
+The system supports calendar integration with various booking platforms. For detailed setup instructions, see [README_CALENDARS.md](README_CALENDARS.md).
 
-The application consistently uses 'users' as the table name for the User model across all environments.
+Key features include:
+- Multi-platform calendar sync (Airbnb, VRBO, Booking.com)
+- Automated synchronization
+- Visual booking management
+- Platform-specific color coding
 
 ## User Guides
 

@@ -319,7 +319,7 @@ def reset_password(token):
 @bp.route('/invite_service_staff', methods=['GET', 'POST'])
 @login_required
 def invite_service_staff():
-    if not current_user.is_admin():
+    if not current_user.is_admin:
         flash('You do not have permission to access this page.', 'danger')
         return redirect(url_for('main.index'))
     
