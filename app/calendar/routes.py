@@ -175,9 +175,9 @@ def availability_calendar():
     """View availability calendar for all accessible properties"""
     
     # Get all properties the user has access to
-    if current_user.is_admin or current_user.has_admin_role():
+    if current_user.is_admin or current_user.has_admin_role:
         properties = Property.query.all()
-    elif current_user.is_property_owner():
+    elif current_user.is_property_owner:
         properties = Property.query.filter_by(owner_id=current_user.id).all()
     else:
         # For staff, find properties they have tasks assigned to

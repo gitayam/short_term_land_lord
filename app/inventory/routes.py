@@ -19,18 +19,20 @@ def can_manage_inventory(property_id):
         bool: True if user can manage, False otherwise
     """
     # Admin users can manage inventory for any property
-    if current_user.has_admin_role():
+    if current_user.has_admin_role:
         return True
         
-    # Property owners can manage their own properties
     property = Property.query.get(property_id)
-    if property and property.owner_id == current_user.id:
+    if not property:
+        return False
+        
+    # Property owners can manage their own properties
+    if property.owner_id == current_user.id:
         return True
     
-    # Property managers may also have permission
-    if current_user.is_property_manager():
-        # Logic for property managers could be added here
-        return True
+    # Property managers can manage properties they are assigned to
+    if current_user.is_property_manager:
+        return property.is_managed_by(current_user)
         
     return False
 
@@ -89,14 +91,14 @@ def index(property_id):
                           inventory_items=inventory_items,
                           filter_form=filter_form,
                           can_manage=can_manage,
-                          is_property_owner=current_user.is_property_owner())
+                          is_property_owner=current_user.is_property_owner)
 
 @bp.route('/catalog')
 @login_required
 def catalog_index():
     """Display the global inventory catalog"""
     # Check if user is authorized (admin or property owner)
-    if not (current_user.is_property_owner() or current_user.has_admin_role()):
+    if not (current_user.is_property_owner or current_user.has_admin_role):
         flash('Access denied. This page is only available to property owners and administrators.', 'danger')
         return redirect(url_for('main.index'))
     
@@ -131,7 +133,7 @@ def catalog_index():
 def add_catalog_item():
     """Add a new item to the global catalog"""
     # Check if user is authorized (admin or property owner)
-    if not (current_user.is_property_owner() or current_user.has_admin_role()):
+    if not (current_user.is_property_owner or current_user.has_admin_role):
         flash('Access denied. This page is only available to property owners and administrators.', 'danger')
         return redirect(url_for('main.index'))
     
@@ -173,7 +175,7 @@ def add_catalog_item():
 def edit_catalog_item(item_id):
     """Edit an existing catalog item"""
     # Check if user is authorized (admin or property owner)
-    if not (current_user.is_property_owner() or current_user.has_admin_role()):
+    if not (current_user.is_property_owner or current_user.has_admin_role):
         flash('Access denied. This page is only available to property owners and administrators.', 'danger')
         return redirect(url_for('main.index'))
     
@@ -210,7 +212,7 @@ def edit_catalog_item(item_id):
 def delete_catalog_item(item_id):
     """Delete a catalog item"""
     # Check if user is authorized (admin or property owner)
-    if not (current_user.is_property_owner() or current_user.has_admin_role()):
+    if not (current_user.is_property_owner or current_user.has_admin_role):
         flash('Access denied. This page is only available to property owners and administrators.', 'danger')
         return redirect(url_for('main.index'))
     
@@ -283,7 +285,7 @@ def add_item(property_id):
                           title='Add Inventory Item',
                           form=form,
                           property=property,
-                          is_property_owner=current_user.is_property_owner())
+                          is_property_owner=current_user.is_property_owner)
 
 @bp.route('/property/<int:property_id>/inventory/<int:item_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -338,7 +340,7 @@ def edit_item(property_id, item_id):
                           form=form,
                           property=property,
                           item=item,
-                          is_property_owner=current_user.is_property_owner())
+                          is_property_owner=current_user.is_property_owner)
 
 @bp.route('/property/<int:property_id>/inventory/<int:item_id>/delete', methods=['POST'])
 @login_required
@@ -446,7 +448,7 @@ def transfer_item(property_id, item_id):
     form.item_id.data = item_id
     
     # Get properties that the user can transfer to
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         # Property owners can transfer to their own properties
         available_properties = Property.query.filter_by(owner_id=current_user.id).filter(Property.id != property_id).all()
     else:

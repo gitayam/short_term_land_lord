@@ -1642,6 +1642,7 @@ class GuideBook(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     is_public = db.Column(db.Boolean, default=False)
+    access_token = db.Column(db.String(64), unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -1660,6 +1661,19 @@ class GuideBook(db.Model):
     @property
     def recommendations_count(self):
         return len(self.recommendations)
+
+    def generate_access_token(self):
+        """Generate a unique token for public access."""
+        if not self.access_token and self.is_public:
+            self.access_token = secrets.token_urlsafe(32)
+            db.session.commit()
+        return self.access_token
+
+    def ensure_access_token(self):
+        """Ensure the guide book has an access token if it's public."""
+        if self.is_public and not self.access_token:
+            return self.generate_access_token()
+        return self.access_token
 
 # Association table for guide books and recommendations
 guide_book_recommendations = db.Table('guide_book_recommendations',

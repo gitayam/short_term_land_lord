@@ -21,8 +21,8 @@ def maintenance_staff_required(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        if not (current_user.is_maintenance() or current_user.is_property_manager() or 
-                current_user.is_property_owner() or current_user.is_admin):
+        if not (current_user.is_maintenance or current_user.is_property_manager or 
+                current_user.is_property_owner or current_user.is_admin):
             flash('Access denied. You must be maintenance staff or higher to view this page.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
@@ -37,7 +37,7 @@ def prices():
     if current_user.is_admin:
         # Admins see all prices
         prices = TaskPrice.query.order_by(TaskPrice.service_type, TaskPrice.property_id.nullsfirst()).all()
-    elif current_user.is_property_owner() or current_user.is_property_manager():
+    elif current_user.is_property_owner or current_user.is_property_manager:
         # Property owners see prices for their properties and global prices
         owned_property_ids = [p.id for p in current_user.properties]
         prices = TaskPrice.query.filter(
@@ -186,7 +186,7 @@ def invoices():
     query = Invoice.query
     
     # Property owners see invoices for their properties
-    if current_user.is_property_owner() or current_user.is_property_manager():
+    if current_user.is_property_owner or current_user.is_property_manager:
         owned_property_ids = [p.id for p in current_user.properties]
         query = query.filter(Invoice.property_id.in_(owned_property_ids))
     
@@ -964,7 +964,7 @@ def financial_reports():
         form.service_provider.query = User.query.filter(
             User.role.in_([UserRoles.MAINTENANCE, UserRoles.CLEANER])
         )
-    elif current_user.is_property_owner():
+    elif current_user.is_property_owner:
         # Property owners see only their properties
         form.property.query = Property.query.filter_by(owner_id=current_user.id)
         # Property owners can see all service providers who worked on their properties
@@ -979,7 +979,7 @@ def financial_reports():
             User.role.in_([UserRoles.MAINTENANCE, UserRoles.CLEANER])
         ).distinct()
         form.service_provider.query = service_providers
-    elif current_user.is_property_manager():
+    elif current_user.is_property_manager:
         # Property managers see properties they manage
         managed_properties = Property.query.join(
             TaskAssignment, TaskAssignment.property_id == Property.id
@@ -1039,11 +1039,11 @@ def financial_reports():
         if current_user.is_admin:
             # Admins can see all invoices
             pass
-        elif current_user.is_property_owner():
+        elif current_user.is_property_owner:
             # Property owners see invoices for their properties
             owned_property_ids = [p.id for p in current_user.properties]
             query = query.filter(Invoice.property_id.in_(owned_property_ids))
-        elif current_user.is_property_manager():
+        elif current_user.is_property_manager:
             # Property managers see invoices for properties they manage
             managed_property_ids = [p.id for p in form.property.query.all()]
             query = query.filter(Invoice.property_id.in_(managed_property_ids))
@@ -1061,8 +1061,8 @@ def financial_reports():
         
         # Apply service provider filter if specified (for admins, property owners, managers)
         if form.service_provider.data and (current_user.is_admin or 
-                                          current_user.is_property_owner() or 
-                                          current_user.is_property_manager()):
+                                          current_user.is_property_owner or 
+                                          current_user.is_property_manager):
             query = query.join(
                 InvoiceItem, InvoiceItem.invoice_id == Invoice.id
             ).join(

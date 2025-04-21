@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, SelectField, FileField, BooleanField, SelectMultipleField
+from wtforms import StringField, TextAreaField, SelectField, FileField, BooleanField, SelectMultipleField, HiddenField
 from wtforms.validators import DataRequired, Length, URL, Optional
 from app.models import RecommendationCategory
 
@@ -31,4 +31,5 @@ class RecommendationBlockForm(FlaskForm):
 class GuideBookForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('Description', validators=[Optional(), Length(max=500)])
-    is_public = BooleanField('Make Public', default=True) 
+    is_public = BooleanField('Make Public', default=True)
+    property_id = HiddenField('Property ID', validators=[DataRequired()]) 

@@ -164,7 +164,7 @@ def can_view_guest_reviews(property):
         return True
     
     # Property managers can view reviews for all properties
-    if current_user.is_property_manager():
+    if current_user.is_property_manager:
         return True
     
     # Admins can view all reviews
@@ -180,7 +180,7 @@ def can_manage_guest_reviews(property):
         return True
     
     # Property managers can manage reviews for all properties
-    if current_user.is_property_manager():
+    if current_user.is_property_manager:
         return True
     
     # Admins can manage all reviews
@@ -200,7 +200,7 @@ def can_edit_guest_review(review):
         return True
     
     # Property managers can edit all reviews
-    if current_user.is_property_manager():
+    if current_user.is_property_manager:
         return True
     
     # Admins can edit all reviews

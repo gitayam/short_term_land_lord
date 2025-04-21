@@ -10,7 +10,7 @@ with app.app_context():
     print('Admin by flag exists:', admin_by_flag is not None)
     
     if admin_by_role:
-        print(f'Admin by role: {admin_by_role.email}, has_admin_role: {admin_by_role.has_admin_role()}, is_admin property: {admin_by_role.is_admin}')
+        print(f'Admin by role: {admin_by_role.email}, has_admin_role: {admin_by_role.has_admin_role}, is_admin property: {admin_by_role.is_admin}')
     
     if admin_by_flag:
-        print(f'Admin by flag: {admin_by_flag.email}, has_admin_role: {admin_by_flag.has_admin_role()}, is_admin property: {admin_by_flag.is_admin}') 
+        print(f'Admin by flag: {admin_by_flag.email}, has_admin_role: {admin_by_flag.has_admin_role}, is_admin property: {admin_by_flag.is_admin}') 

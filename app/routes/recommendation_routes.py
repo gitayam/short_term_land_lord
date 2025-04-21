@@ -3,7 +3,8 @@ from flask_login import login_required, current_user
 import os
 from app import db
 from app.models import RecommendationBlock, Property, MediaType, RecommendationVote, GuideBook
-from app.forms.recommendation_forms import RecommendationBlockForm, GuideBookForm
+from app.forms.recommendation_forms import RecommendationBlockForm
+from app.forms.guide_book_forms import GuideBookForm
 from app.utils.storage import allowed_file, save_file_to_storage
 from sqlalchemy import func
 
@@ -68,29 +69,45 @@ def list_guide_books(property_id):
 def create_guide_book(property_id):
     """Create a new guide book."""
     property = Property.query.get_or_404(property_id)
-    if not can_manage_recommendations(property):
+    
+    # Check if user has permission to create guide books
+    if not current_user.is_admin and not current_user.is_property_owner and not current_user.is_property_manager:
+        flash('You do not have permission to create guide books.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # For property managers, check if they manage this specific property
+    if current_user.is_property_manager and not property.is_managed_by(current_user):
         flash('You do not have permission to create guide books for this property.', 'error')
         return redirect(url_for('main.index'))
     
     form = GuideBookForm()
-    if form.validate_on_submit():
-        guide_book = GuideBook(
-            property_id=property_id,
-            name=form.name.data,
-            description=form.description.data,
-            is_public=form.is_public.data
-        )
-        if guide_book.is_public:
-            guide_book.generate_access_token()
-        
-        db.session.add(guide_book)
-        db.session.commit()
-        flash('Guide book created successfully!', 'success')
-        return redirect(url_for('recommendations.list_guide_books', property_id=property_id))
     
-    return render_template('recommendations/create_guide_book.html',
+    if request.method == 'GET':
+        form.property_id.data = property_id
+    
+    if form.validate_on_submit():
+        try:
+            guide_book = GuideBook(
+                property_id=property_id,
+                name=form.name.data,
+                description=form.description.data,
+                is_public=form.is_public.data
+            )
+            
+            db.session.add(guide_book)
+            db.session.commit()
+            
+            flash('Guide book created successfully!', 'success')
+            return redirect(url_for('recommendations.list_guide_books', property_id=property_id))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while creating the guide book. Please try again.', 'error')
+            current_app.logger.error(f'Error creating guide book: {str(e)}')
+    
+    return render_template('recommendations/guide_book_form.html',
                          form=form,
-                         property=property)
+                         property=property,
+                         title='Create New Guide Book')
 
 @bp.route('/guide-books/<int:id>')
 def view_guide_book(id):
@@ -116,30 +133,73 @@ def view_guide_book(id):
                          categorized_recommendations=categorized_recommendations,
                          guest_token=request.headers.get('X-Guest-Token') or request.cookies.get('guest_token'))
 
+@bp.route('/guide-books/<token>/public')
+def public_guide_book(token):
+    """Public access to a guide book via token."""
+    guide_book = GuideBook.query.filter_by(access_token=token, is_public=True).first_or_404()
+    property = guide_book.associated_property
+    
+    # Group recommendations by category
+    categorized_recommendations = {}
+    for rec in guide_book.recommendations:
+        category = rec.get_category_display()
+        if category not in categorized_recommendations:
+            categorized_recommendations[category] = []
+        categorized_recommendations[category].append(rec)
+    
+    return render_template('recommendations/guide_book.html',
+                         guide_book=guide_book,
+                         property=property,
+                         categorized_recommendations=categorized_recommendations,
+                         is_public_view=True)
+
 @bp.route('/guide-books/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_guide_book(id):
     """Edit a guide book."""
     guide_book = GuideBook.query.get_or_404(id)
-    if not can_manage_recommendations(guide_book.associated_property):
-        flash('You do not have permission to edit this guide book.', 'error')
+    property = guide_book.associated_property
+    
+    # Check if user has permission to edit guide books
+    if not current_user.is_admin and not current_user.is_property_owner and not current_user.is_property_manager:
+        flash('You do not have permission to edit guide books.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # For property managers, check if they manage this specific property
+    if current_user.is_property_manager and not property.is_managed_by(current_user):
+        flash('You do not have permission to edit guide books for this property.', 'error')
         return redirect(url_for('main.index'))
     
     form = GuideBookForm(obj=guide_book)
-    if form.validate_on_submit():
-        guide_book.name = form.name.data
-        guide_book.description = form.description.data
-        guide_book.is_public = form.is_public.data
-        if guide_book.is_public:
-            guide_book.generate_access_token()
-        
-        db.session.commit()
-        flash('Guide book updated successfully!', 'success')
-        return redirect(url_for('recommendations.view_guide_book', id=id))
+    form.property_id.data = property.id
+    # Store guide_book_id for validation
+    form.guide_book_id = guide_book.id
     
-    return render_template('recommendations/edit_guide_book.html',
+    if form.validate_on_submit():
+        try:
+            guide_book.name = form.name.data
+            guide_book.description = form.description.data
+            guide_book.is_public = form.is_public.data
+            
+            # Generate or clear access token based on public status
+            if guide_book.is_public:
+                guide_book.ensure_access_token()
+            elif not guide_book.is_public and guide_book.access_token:
+                guide_book.access_token = None
+            
+            db.session.commit()
+            flash('Guide book updated successfully!', 'success')
+            return redirect(url_for('recommendations.view_guide_book', id=id))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating the guide book. Please try again.', 'error')
+            current_app.logger.error(f'Error updating guide book: {str(e)}')
+    
+    return render_template('recommendations/guide_book_form.html',
                          form=form,
-                         guide_book=guide_book)
+                         guide_book=guide_book,
+                         property=property,
+                         title='Edit Guide Book')
 
 def _get_guide_book_choices(property_id):
     """Get guide book choices for the form select field."""

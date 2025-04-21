@@ -23,7 +23,7 @@ with app.app_context():
         print(f"  Username: {user.username}")
         print(f"  Role: {user.role}")
         print(f"  is_admin flag: {user.__dict__.get('is_admin', False)}")
-        print(f"  has_admin_role(): {user.has_admin_role()}")
+        print(f"  has_admin_role: {user.has_admin_role}")
         print(f"  is_admin property: {user.is_admin}")
         
         # Ensure both the role and is_admin flag are set correctly

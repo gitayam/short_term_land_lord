@@ -48,10 +48,10 @@ def view(id):
     can_view = False
     
     # Property owners can view their own properties
-    if current_user.is_property_owner() and property.owner_id == current_user.id:
+    if current_user.is_property_owner and property.owner_id == current_user.id:
         can_view = True
     # Admins can view all properties
-    elif current_user.has_admin_role():
+    elif current_user.has_admin_role:
         can_view = True
     # Service staff can view properties they have tasks for
     elif current_user.is_service_staff():

@@ -56,7 +56,7 @@ def workforce_management_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login'))
-        if not (current_user.is_property_owner() or current_user.is_property_manager or current_user.is_admin):
+        if not (current_user.is_property_owner or current_user.is_property_manager or current_user.is_admin):
             flash('You do not have permission to access the workforce management section.', 'danger')
             return redirect(url_for('main.index'))
         return f(*args, **kwargs)
@@ -68,7 +68,7 @@ def inventory_management_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login', next=request.url))
-        if not (current_user.is_property_owner() or current_user.is_property_manager or current_user.is_admin):
+        if not (current_user.is_property_owner or current_user.is_property_manager or current_user.is_admin):
             flash('You do not have access to inventory management.', 'danger')
             return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)

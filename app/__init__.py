@@ -87,6 +87,12 @@ def create_app(config_class=Config):
     from app.routes.property_routes import bp as property_routes_bp
     app.register_blueprint(property_routes_bp)
     
+    from app.errors import bp as errors_bp
+    app.register_blueprint(errors_bp)
+
+    from app.context_processors import admin_properties
+    app.context_processor(admin_properties)
+    
     # Fix PostgreSQL transactions if needed
     with app.app_context():
         try:

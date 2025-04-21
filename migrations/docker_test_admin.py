@@ -6,7 +6,7 @@ with app.app_context():
     admin = User.query.filter_by(role='admin').first()
     print(f'Admin exists: {admin is not None}')
     if admin:
-        print(f'Admin has admin role: {admin.has_admin_role()}')
+        print(f'Admin has admin role: {admin.has_admin_role}')
         print(f'Admin email: {admin.email}')
     
     prop = Property.query.first()

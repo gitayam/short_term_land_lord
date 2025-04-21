@@ -11,7 +11,7 @@
             <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Property
             </a>
-            {% if is_property_owner %}
+            {% if can_manage %}
             <a href="{{ url_for('inventory.add_item', property_id=property.id) }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add From Catalog
             </a>
@@ -60,7 +60,7 @@
     <div class="card">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Inventory Items</h5>
-            {% if is_property_owner %}
+            {% if can_manage %}
             <a href="{{ url_for('inventory.catalog_index') }}" class="btn btn-outline-primary btn-sm">
                 <i class="fas fa-book"></i> Global Catalog
             </a>
@@ -116,7 +116,7 @@
                                         </a></li>
                                         {% endif %}
                                         
-                                        {% if is_property_owner %}
+                                        {% if can_manage %}
                                         <li><a class="dropdown-item" href="{{ url_for('inventory.edit_item', property_id=property.id, item_id=item.id) }}">
                                             <i class="fas fa-edit"></i> Edit Item
                                         </a></li>
@@ -148,7 +148,7 @@
             {% else %}
             <div class="text-center p-4">
                 <p class="mb-0">No inventory items found.</p>
-                {% if is_property_owner %}
+                {% if can_manage %}
                 <a href="{{ url_for('inventory.add_item', property_id=property.id) }}" class="btn btn-primary mt-2">
                     <i class="fas fa-plus"></i> Add First Item
                 </a>

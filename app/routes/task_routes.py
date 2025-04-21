@@ -50,7 +50,7 @@ def repair_requests():
             query = query.order_by(Task.priority.desc())
         
         # Get properties for filter based on user role
-        if current_user.has_admin_role():
+        if current_user.has_admin_role:
             properties = Property.query.all()
         else:
             properties = Property.query.filter(Property.is_visible_to(current_user)).all()
@@ -92,7 +92,7 @@ def create_repair_request():
         form = RepairRequestForm()
         
         # Set up the property query for the form
-        if current_user.has_admin_role():
+        if current_user.has_admin_role:
             properties = Property.query.all()
         else:
             properties = Property.query.filter(Property.is_visible_to(current_user)).all()

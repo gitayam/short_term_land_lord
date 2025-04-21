@@ -95,7 +95,7 @@ def create():
     form = TaskForm()
     
     # Initialize properties field with a query_factory
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
     elif current_user.is_admin or current_user.is_property_manager:
         form.properties.query_factory = lambda: Property.query.all()
@@ -104,7 +104,7 @@ def create():
     
     # Set up calendar choices
     calendar_choices = []
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         for property in current_user.properties:
             for calendar in property.calendars:
                 calendar_choices.append((calendar.id, f"{property.name} - {calendar.name}"))
@@ -680,10 +680,10 @@ def view_for_property(property_id):
     can_view = False
     
     # Admin users can view all property tasks
-    if current_user.has_admin_role():
+    if current_user.has_admin_role:
         can_view = True
     # Property owners can view tasks for their properties
-    elif current_user.is_property_owner() and property.owner_id == current_user.id:
+    elif current_user.is_property_owner and property.owner_id == current_user.id:
         can_view = True
     # Service staff can view tasks for properties they have tasks for
     elif current_user.is_service_staff():
@@ -887,7 +887,7 @@ def session_media(session_id):
     # Check if user has permission to view this session
     if not (current_user.id == session.cleaner_id or 
             current_user.id == session.property.owner_id or
-            current_user.is_property_owner() and session.property.owner_id == current_user.id):
+            current_user.is_property_owner and session.property.owner_id == current_user.id):
         flash('You do not have permission to view this media.', 'danger')
         return redirect(url_for('tasks.index'))
     
@@ -916,7 +916,7 @@ def cleaning_report(session_id):
     # Check if user has permission to view this report
     if not (current_user.id == session.cleaner_id or 
             current_user.id == session.associated_property.owner_id or
-            current_user.is_property_owner() and session.associated_property.owner_id == current_user.id):
+            current_user.is_property_owner and session.associated_property.owner_id == current_user.id):
         flash('You do not have permission to view this report.', 'danger')
         return redirect(url_for('tasks.index'))
     
@@ -981,9 +981,9 @@ def repair_requests():
     
     # Get all properties for the filter dropdown
     properties = []
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         properties = current_user.owned_properties
-    elif current_user.has_admin_role() or current_user.is_property_manager():
+    elif current_user.has_admin_role or current_user.is_property_manager:
         properties = Property.query.all()
     
     # Execute query
@@ -1128,7 +1128,7 @@ def can_view_task(task, user):
 def can_edit_task(task, user):
     """Check if a user can edit a task"""
     # Admin users can edit any task
-    if user.has_admin_role():
+    if user.has_admin_role:
         return True
         
     # Only the creator or property owner can edit
@@ -1159,7 +1159,7 @@ def can_edit_task(task, user):
 def can_delete_task(task, user):
     """Check if a user can delete a task"""
     # Admin users can delete any task
-    if user.has_admin_role():
+    if user.has_admin_role:
         return True
         
     # Only the creator can delete
@@ -1169,7 +1169,7 @@ def can_delete_task(task, user):
 def can_complete_task(task, user):
     """Check if a user can mark a task as completed"""
     # Admin users can complete any task
-    if user.has_admin_role():
+    if user.has_admin_role:
         return True
         
     # Creator can complete
@@ -1187,7 +1187,7 @@ def can_complete_task(task, user):
 def can_view_repair_request(repair_request, user):
     """Check if a user can view a repair request"""
     # Admin users can view any repair request
-    if user.has_admin_role():
+    if user.has_admin_role:
         return True
         
     # Reporter can always view
@@ -1204,7 +1204,7 @@ def can_view_repair_request(repair_request, user):
 def can_manage_repair_request(repair_request, user):
     """Check if a user can manage (approve/reject/convert) a repair request"""
     # Admin users can manage any repair request
-    if user.has_admin_role():
+    if user.has_admin_role:
         return True
         
     # Only property owner can manage
@@ -1218,8 +1218,8 @@ def reorder_tasks(property_id):
     property = Property.query.get_or_404(property_id)
     
     # Permission check - only property owners, managers and admins can reorder tasks
-    if not (current_user.is_property_owner() and property.owner_id == current_user.id) and \
-       not current_user.is_property_manager() and not current_user.has_admin_role():
+    if not (current_user.is_property_owner and property.owner_id == current_user.id) and \
+       not current_user.is_property_manager and not current_user.has_admin_role:
         flash('You do not have permission to reorder tasks for this property.', 'danger')
         return redirect(url_for('tasks.view_for_property', property_id=property_id))
     
@@ -1287,7 +1287,7 @@ def create_template():
             title=form.title.data,
             description=form.description.data,
             category=form.category.data,
-            is_global=form.is_global.data if current_user.has_admin_role() else False,
+            is_global=form.is_global.data if current_user.has_admin_role else False,
             sequence_number=max_seq + 1,
             creator_id=current_user.id
         )
@@ -1310,7 +1310,7 @@ def edit_template(id):
     template = TaskTemplate.query.get_or_404(id)
     
     # Check if user can edit this template
-    if template.creator_id != current_user.id and not current_user.has_admin_role():
+    if template.creator_id != current_user.id and not current_user.has_admin_role:
         flash('You do not have permission to edit this template.', 'danger')
         return redirect(url_for('tasks.templates'))
     
@@ -1322,7 +1322,7 @@ def edit_template(id):
         template.category = form.category.data
         
         # Only admins can change global status
-        if current_user.has_admin_role():
+        if current_user.has_admin_role:
             template.is_global = form.is_global.data
         
         db.session.commit()
@@ -1342,7 +1342,7 @@ def delete_template(id):
     template = TaskTemplate.query.get_or_404(id)
     
     # Check if user can delete this template
-    if template.creator_id != current_user.id and not current_user.has_admin_role():
+    if template.creator_id != current_user.id and not current_user.has_admin_role:
         flash('You do not have permission to delete this template.', 'danger')
         return redirect(url_for('tasks.templates'))
     
@@ -1363,7 +1363,7 @@ def reorder_templates():
         template = TaskTemplate.query.get(template_id)
         
         # Only update templates the user owns
-        if template and (template.creator_id == current_user.id or current_user.has_admin_role()):
+        if template and (template.creator_id == current_user.id or current_user.has_admin_role):
             template.sequence_number = i
     
     db.session.commit()
@@ -1381,16 +1381,16 @@ def apply_template(template_id):
     form = TaskForm()
     
     # Initialize properties field with a query_factory
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
-    elif current_user.has_admin_role() or current_user.is_property_manager():
+    elif current_user.has_admin_role or current_user.is_property_manager:
         form.properties.query_factory = lambda: Property.query.all()
     else:
         form.properties.query_factory = lambda: []
     
     # Set up calendar choices
     calendar_choices = []
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         for property in current_user.properties:
             for calendar in property.calendars:
                 calendar_choices.append((calendar.id, f"{property.name} - {calendar.name}"))
@@ -1461,9 +1461,9 @@ def create_task_for_property(property_id):
     form = TaskForm()
     
     # Initialize properties field with a query_factory
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         form.properties.query_factory = lambda: Property.query.filter_by(owner_id=current_user.id).all()
-    elif current_user.has_admin_role() or current_user.is_property_manager():
+    elif current_user.has_admin_role or current_user.is_property_manager:
         form.properties.query_factory = lambda: Property.query.all()
     else:
         form.properties.query_factory = lambda: []
@@ -1570,9 +1570,9 @@ def workorders():
     
     # Get all properties for the filter dropdown
     properties = []
-    if current_user.is_property_owner():
+    if current_user.is_property_owner:
         properties = current_user.owned_properties
-    elif current_user.has_admin_role() or current_user.is_property_manager():
+    elif current_user.has_admin_role or current_user.is_property_manager:
         properties = Property.query.all()
     
     # Execute query
