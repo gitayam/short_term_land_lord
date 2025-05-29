@@ -7,12 +7,10 @@ import requests
 from twilio.rest import Client
 import logging
 
-logger = logging.getLogger(__name__)
-
 def send_task_assignment_notification(task, user):
     """Send notification when a task is assigned to a user"""
     if not user or not task:
-        logger.error("Cannot send notification: missing user or task")
+        current_app.logger.error("Cannot send notification: missing user or task")
         return False
     
     # Get property information for the task
@@ -62,7 +60,7 @@ def send_task_assignment_notification(task, user):
 def send_task_reminder_notification(task, user):
     """Send reminder notification for upcoming tasks"""
     if not user or not task:
-        logger.error("Cannot send reminder: missing user or task")
+        current_app.logger.error("Cannot send reminder: missing user or task")
         return False
     
     # Get property information for the task
@@ -112,7 +110,7 @@ def send_task_reminder_notification(task, user):
 def send_calendar_update_notification(task, user):
     """Send notification when a calendar event affecting a task is updated"""
     if not user or not task:
-        logger.error("Cannot send calendar update: missing user or task")
+        current_app.logger.error("Cannot send calendar update: missing user or task")
         return False
     
     # Get property information for the task
@@ -162,7 +160,7 @@ def send_calendar_update_notification(task, user):
 def send_repair_request_notification(repair_request, property_owner):
     """Send notification when a repair request is submitted"""
     if not property_owner or not repair_request:
-        logger.error("Cannot send repair request notification: missing property owner or repair request")
+        current_app.logger.error("Cannot send repair request notification: missing property owner or repair request")
         return False
     
     # Create notification content
@@ -232,7 +230,7 @@ def send_email_notification(user, subject, text_body, html_body):
         )
         return True
     except Exception as e:
-        logger.error(f"Failed to send email notification: {str(e)}")
+        current_app.logger.error(f"Failed to send email notification: {str(e)}")
         return False
 
 def send_sms_notification(phone_number, message):
@@ -253,13 +251,13 @@ def send_sms_notification(phone_number, message):
         
         return True
     except Exception as e:
-        logger.error(f"Failed to send SMS notification: {str(e)}")
+        current_app.logger.error(f"Failed to send SMS notification: {str(e)}")
         return False
 
 def send_inventory_low_notification(item, property, user):
     """Send notification when an inventory item falls below its reorder threshold"""
     if not user or not item or not property:
-        logger.error("Cannot send inventory notification: missing user, item, or property")
+        current_app.logger.error("Cannot send inventory notification: missing user, item, or property")
         return False
     
     # Create notification content

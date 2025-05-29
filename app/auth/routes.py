@@ -1,10 +1,10 @@
-from flask import render_template, redirect, url_for, flash, request, session
+from flask import render_template, redirect, url_for, flash, request, session, current_app
 from flask_login import login_user, logout_user, current_user, login_required
 from datetime import datetime
 from app import db
 from app.auth import bp
 from app.auth.forms import LoginForm, RegistrationForm, RequestPasswordResetForm, ResetPasswordForm, SSOLoginForm, PropertyRegistrationForm, InviteServiceStaffForm
-from app.models import User, PasswordReset, UserRoles, RegistrationRequest, ApprovalStatus
+from app.models import User, PasswordReset, UserRoles, RegistrationRequest, ApprovalStatus, Role, ServiceType
 from app.auth.email import send_password_reset_email, send_service_staff_invitation
 import secrets
 
@@ -12,8 +12,6 @@ import secrets
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
-    
-    from flask import current_app
     
     # Determine which authentication methods are enabled
     use_sso = current_app.config.get('AUTH_USE_SSO', True)
@@ -334,23 +332,86 @@ def invite_service_staff():
             first_name=form.first_name.data,
             last_name=form.last_name.data,
             phone=form.phone.data,
-            password=password,
-            confirmed=False
+            role=UserRoles.SERVICE_STAFF.value
         )
+        user.set_password(password)
         
-        # Assign service staff role
-        service_staff_role = Role.query.filter_by(name='Service Staff').first()
-        if service_staff_role:
-            user.role = service_staff_role
+        # Assign service type if specified
+        user.service_type = form.service_type.data
         
         db.session.add(user)
         db.session.commit()
         
-        # Send invitation email with temporary password
-        token = user.generate_confirmation_token()
-        send_service_staff_invitation(user, token, password)
+        # Get service type display name
+        service_type_display = dict((t.value, t.name) for t in ServiceType).get(form.service_type.data, form.service_type.data)
         
-        flash('An invitation has been sent to {}.'.format(user.email), 'success')
+        # Send invitation via selected channels
+        delivery_status = {'email': False, 'sms': False}
+        error_messages = []
+        
+        # Send email if requested
+        if form.send_email.data:
+            try:
+                # Send invitation email with temporary password
+                token = user.generate_confirmation_token()
+                send_service_staff_invitation(user, token, password, form.message.data)
+                delivery_status['email'] = True
+            except Exception as e:
+                error_messages.append(f'Email delivery failed: {str(e)}')
+                current_app.logger.error(f"Email delivery failed: {str(e)}")
+        
+        # Send SMS if requested
+        if form.send_sms.data and form.phone.data:
+            try:
+                from app.utils.sms import send_sms
+                # Get the country code prefix
+                country_code = next((code[1].split(' ')[0] for code in COUNTRY_CODES if code[0] == form.country_code.data), '+1')
+                # Format the phone number with country code
+                phone_number = form.phone.data.strip()
+                # Remove any non-digit characters except +
+                phone_number = ''.join(c for c in phone_number if c.isdigit() or c == '+')
+                # Remove any existing country code from the phone number
+                if phone_number.startswith('+'):
+                    phone_number = phone_number[1:]
+                # Ensure proper E.164 format
+                full_phone = f"{country_code}{phone_number}"
+                
+                message = (
+                    f"Hi {user.first_name}, you've been invited to join Short Term Landlord as a {service_type_display} staff member. "
+                    f"Please check your email ({user.email}) for your login credentials and registration link. "
+                    f"Contact support@shorttermlandlord.com if you have any questions."
+                )
+                
+                # Log the SMS attempt
+                current_app.logger.info(f"Attempting to send SMS to {full_phone}")
+                success, error = send_sms(full_phone, message)
+                
+                if success:
+                    delivery_status['sms'] = True
+                    current_app.logger.info(f"SMS sent successfully to {full_phone}")
+                else:
+                    error_messages.append(f'SMS delivery failed: {error}')
+                    current_app.logger.error(f"SMS delivery failed: {error}")
+            except Exception as e:
+                error_msg = f'SMS delivery failed: {str(e)}'
+                error_messages.append(error_msg)
+                current_app.logger.error(error_msg)
+        
+        # Prepare flash message based on delivery status
+        if delivery_status['email'] or delivery_status['sms']:
+            status_msg = []
+            if delivery_status['email']:
+                status_msg.append('email')
+            if delivery_status['sms']:
+                status_msg.append('SMS')
+            flash(f'Invitation sent to {user.get_full_name()} via {", ".join(status_msg)}.', 'success')
+        else:
+            flash('Failed to send invitation. Please try again.', 'danger')
+        
+        if error_messages:
+            for error in error_messages:
+                flash(error, 'warning')
+        
         return redirect(url_for('auth.invite_service_staff'))
     
-    return render_template('auth/invite_service_staff.html', form=form)
+    return render_template('auth/invite_service_staff.html', title='Invite Service Staff', form=form)

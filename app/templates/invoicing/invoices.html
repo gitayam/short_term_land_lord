@@ -17,6 +17,17 @@
         </div>
     </div>
 
+    <!-- Quick Search and Export -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <input type="text" id="invoiceSearch" class="form-control" placeholder="Quick search by invoice # or property...">
+        </div>
+        <div class="col-md-6 text-right">
+            <button class="btn btn-outline-secondary mr-2" id="exportCSV"><i class="fas fa-file-csv"></i> Export CSV</button>
+            <button class="btn btn-outline-secondary" id="exportPDF"><i class="fas fa-file-pdf"></i> Export PDF</button>
+        </div>
+    </div>
+
     <div class="card mb-4">
         <div class="card-header">
             <h5>Filter Invoices</h5>
@@ -70,11 +81,36 @@
         </div>
     </div>
 
+    <!-- My Invoices Filter for Staff -->
+    {% if not (current_user.is_admin or current_user.is_property_owner or current_user.is_property_manager) %}
+    <div class="mb-3">
+        <form method="get" action="{{ url_for('invoicing.invoices') }}" class="form-inline">
+            <input type="hidden" name="my_invoices" value="{{ 'n' if my_invoices_only else 'y' }}">
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+                {% if my_invoices_only %}Show All Invoices{% else %}Show My Invoices Only{% endif %}
+            </button>
+            {% if my_invoices_only %}
+            <span class="ml-2 text-info">Showing only invoices you contributed to.</span>
+            {% endif %}
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Status Color Legend -->
+    <div class="mb-3">
+        <span class="badge badge-secondary" data-toggle="tooltip" title="Draft">Draft</span>
+        <span class="badge badge-primary" data-toggle="tooltip" title="Sent">Sent</span>
+        <span class="badge badge-success" data-toggle="tooltip" title="Paid">Paid</span>
+        <span class="badge badge-danger" data-toggle="tooltip" title="Overdue">Overdue</span>
+        <span class="badge badge-dark" data-toggle="tooltip" title="Cancelled">Cancelled</span>
+        <span class="ml-2 text-muted">Status Color Legend</span>
+    </div>
+
     <div class="card">
         <div class="card-body">
             {% if invoices %}
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped" id="invoiceTable">
                     <thead>
                         <tr>
                             <th>Invoice #</th>
@@ -100,15 +136,15 @@
                             </td>
                             <td>
                                 {% if invoice.status.value == 'draft' %}
-                                <span class="badge badge-secondary">Draft</span>
+                                <span class="badge badge-secondary" data-toggle="tooltip" title="Draft">Draft</span>
                                 {% elif invoice.status.value == 'sent' %}
-                                <span class="badge badge-primary">Sent</span>
+                                <span class="badge badge-primary" data-toggle="tooltip" title="Sent">Sent</span>
                                 {% elif invoice.status.value == 'paid' %}
-                                <span class="badge badge-success">Paid</span>
+                                <span class="badge badge-success" data-toggle="tooltip" title="Paid">Paid</span>
                                 {% elif invoice.status.value == 'overdue' %}
-                                <span class="badge badge-danger">Overdue</span>
+                                <span class="badge badge-danger" data-toggle="tooltip" title="Overdue">Overdue</span>
                                 {% elif invoice.status.value == 'cancelled' %}
-                                <span class="badge badge-dark">Cancelled</span>
+                                <span class="badge badge-dark" data-toggle="tooltip" title="Cancelled">Cancelled</span>
                                 {% endif %}
                             </td>
                             <td>${{ "%.2f"|format(invoice.total) }}</td>
@@ -136,6 +172,10 @@
                     </tbody>
                 </table>
             </div>
+            <!-- Pagination Controls -->
+            <nav aria-label="Invoice pagination">
+                <ul class="pagination justify-content-center mt-3" id="invoicePagination"></ul>
+            </nav>
             {% else %}
             <div class="alert alert-info">
                 No invoices found. Use the "Create New Invoice" button to create your first invoice.
@@ -144,4 +184,66 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Enable tooltips
+$(function () {
+  $('[data-toggle="tooltip"]').tooltip();
+});
+// Quick search filter
+$('#invoiceSearch').on('keyup', function() {
+    var value = $(this).val().toLowerCase();
+    $("#invoiceTable tbody tr").filter(function() {
+        $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+    });
+});
+// Export CSV
+$('#exportCSV').on('click', function() {
+    // Simple CSV export for visible rows
+    var csv = [];
+    $('#invoiceTable tr:has(td)').each(function() {
+        var row = [];
+        $(this).find('td').each(function() {
+            row.push($(this).text().trim());
+        });
+        csv.push(row.join(","));
+    });
+    var csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+    var downloadLink = document.createElement("a");
+    downloadLink.download = "invoices.csv";
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+    downloadLink.style.display = "none";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+});
+// Export PDF (simple print dialog for now)
+$('#exportPDF').on('click', function() {
+    window.print();
+});
+// Pagination (client-side for now)
+$(document).ready(function() {
+    var rowsPerPage = 10;
+    var rows = $('#invoiceTable tbody tr');
+    var rowsCount = rows.length;
+    var pageCount = Math.ceil(rowsCount / rowsPerPage);
+    var numbers = $('#invoicePagination');
+    for (var i = 0; i < pageCount; i++) {
+        numbers.append('<li class="page-item"><a href="#" class="page-link">'+ (i+1) +'</a></li>');
+    }
+    $('#invoiceTable tbody tr').hide();
+    $('#invoiceTable tbody tr').slice(0, rowsPerPage).show();
+    $('#invoicePagination li:first').addClass('active');
+    $('#invoicePagination li').click(function(e){
+        e.preventDefault();
+        $('#invoicePagination li').removeClass('active');
+        $(this).addClass('active');
+        var currPage = $(this).index();
+        var startItem = currPage * rowsPerPage;
+        var endItem = startItem + rowsPerPage;
+        $('#invoiceTable tbody tr').hide().slice(startItem, endItem).show();
+    });
+});
+</script>
 {% endblock %}

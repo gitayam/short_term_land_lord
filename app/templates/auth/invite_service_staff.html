@@ -3,42 +3,85 @@
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
+        <div class="col-md-8">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header bg-primary text-white">
                     <h3 class="text-center">Invite Service Staff</h3>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('auth.invite_service_staff') }}">
                         {{ form.hidden_tag() }}
-                        <div class="mb-3">
-                            {{ form.first_name.label(class="form-label") }}
-                            {{ form.first_name(class="form-control") }}
-                            {% for error in form.first_name.errors %}
-                            <span class="text-danger">{{ error }}</span>
-                            {% endfor %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form.first_name.label(class="form-label") }}
+                                {{ form.first_name(class="form-control") }}
+                                {% for error in form.first_name.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.last_name.label(class="form-label") }}
+                                {{ form.last_name(class="form-control") }}
+                                {% for error in form.last_name.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            {{ form.last_name.label(class="form-label") }}
-                            {{ form.last_name(class="form-control") }}
-                            {% for error in form.last_name.errors %}
-                            <span class="text-danger">{{ error }}</span>
-                            {% endfor %}
-                        </div>
+                        
                         <div class="mb-3">
                             {{ form.email.label(class="form-label") }}
-                            {{ form.email(class="form-control") }}
+                            {{ form.email(class="form-control", type="email") }}
                             {% for error in form.email.errors %}
                             <span class="text-danger">{{ error }}</span>
                             {% endfor %}
+                            <div class="form-text">The invitation will be sent to this email address.</div>
                         </div>
+                        
                         <div class="mb-3">
-                            {{ form.phone.label(class="form-label") }}
-                            {{ form.phone(class="form-control") }}
-                            {% for error in form.phone.errors %}
+                            <label for="phone">Phone Number</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    {{ form.country_code(class="form-select") }}
+                                </div>
+                                {{ form.phone(class="form-control", placeholder="Enter phone number") }}
+                            </div>
+                            {% if form.phone.errors %}
+                                {% for error in form.phone.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.service_type.label(class="form-label") }}
+                            {{ form.service_type(class="form-select") }}
+                            {% for error in form.service_type.errors %}
                             <span class="text-danger">{{ error }}</span>
                             {% endfor %}
                         </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.send_email(class="form-check-input") }}
+                                {{ form.send_email.label(class="form-check-label") }}
+                            </div>
+                            <div class="form-check">
+                                {{ form.send_sms(class="form-check-input") }}
+                                {{ form.send_sms.label(class="form-check-label") }}
+                                <div class="form-text">Sending via SMS requires a valid phone number.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.message.label(class="form-label") }}
+                            {{ form.message(class="form-control", rows=3) }}
+                            {% for error in form.message.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                            <div class="form-text">Optional message to include in the invitation.</div>
+                        </div>
+                        
                         <div class="d-grid">
                             {{ form.submit(class="btn btn-primary") }}
                         </div>

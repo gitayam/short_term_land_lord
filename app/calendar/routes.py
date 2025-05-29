@@ -36,14 +36,24 @@ def property_calendar(property_id):
         task_property_alias.property_id == property_id
     )
     
-    # If the user is service staff, only show tasks assigned to them
-    if current_user.is_service_staff():
+    # Apply different access rules based on user role
+    if current_user.is_admin:
+        # Admins can see all calendars
+        pass
+    elif current_user.is_property_owner:
+        # Property owners can only see their own properties' calendars
+        filter_conditions = [Property.owner_id == current_user.id]
+    elif current_user.is_service_staff:
+        # Service staff can see calendars for properties they have tasks for
         task_assignment_alias = aliased(TaskAssignment)
         query = query.join(
             task_assignment_alias, Task.id == task_assignment_alias.task_id
         ).filter(
             task_assignment_alias.user_id == current_user.id
         )
+    else:
+        # For other users, filter out tasks
+        filter_conditions = [Task.id == None]
     
     # Date filters if provided
     start_date = request.args.get('start')
@@ -92,14 +102,24 @@ def property_tasks_api(property_id):
         task_property_alias.property_id == property_id
     )
     
-    # If the user is service staff, only show tasks assigned to them
-    if current_user.is_service_staff():
+    # Apply different access rules based on user role
+    if current_user.is_admin:
+        # Admins can see all calendars
+        pass
+    elif current_user.is_property_owner:
+        # Property owners can only see their own properties' calendars
+        filter_conditions = [Property.owner_id == current_user.id]
+    elif current_user.is_service_staff:
+        # Service staff can see calendars for properties they have tasks for
         task_assignment_alias = aliased(TaskAssignment)
         query = query.join(
             task_assignment_alias, Task.id == task_assignment_alias.task_id
         ).filter(
             task_assignment_alias.user_id == current_user.id
         )
+    else:
+        # For other users, filter out tasks
+        filter_conditions = [Task.id == None]
     
     # Date filters
     start = request.args.get('start')

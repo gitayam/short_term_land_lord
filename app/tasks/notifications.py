@@ -9,15 +9,13 @@ from app.notifications.service import (
 from datetime import datetime, timedelta
 import logging
 
-logger = logging.getLogger(__name__)
-
 def schedule_task_reminders():
     """Schedule reminders for upcoming tasks"""
     try:
         check_upcoming_tasks()
         return True
     except Exception as e:
-        logger.error(f"Error scheduling task reminders: {str(e)}")
+        current_app.logger.error(f"Error scheduling task reminders: {str(e)}")
         return False
 
 def notify_calendar_changes(task_ids):
@@ -38,7 +36,7 @@ def notify_calendar_changes(task_ids):
         
         return True
     except Exception as e:
-        logger.error(f"Error sending calendar change notifications: {str(e)}")
+        current_app.logger.error(f"Error sending calendar change notifications: {str(e)}")
         return False
 
 def notify_task_assignment(task_id, user_id):
@@ -51,7 +49,7 @@ def notify_task_assignment(task_id, user_id):
             return send_task_assignment_notification(task, user)
         return False
     except Exception as e:
-        logger.error(f"Error sending task assignment notification: {str(e)}")
+        current_app.logger.error(f"Error sending task assignment notification: {str(e)}")
         return False
 
 def notify_task_due_soon(task_id):
@@ -71,5 +69,5 @@ def notify_task_due_soon(task_id):
         
         return True
     except Exception as e:
-        logger.error(f"Error sending task reminder notification: {str(e)}")
+        current_app.logger.error(f"Error sending task reminder notification: {str(e)}")
         return False

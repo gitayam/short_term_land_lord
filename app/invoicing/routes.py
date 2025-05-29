@@ -177,18 +177,25 @@ def invoices():
     # Initialize filter form
     form = InvoiceFilterForm()
     
+    # Determine accessible invoices based on role
+    query = Invoice.query
+    my_invoices_only = request.args.get('my_invoices') == 'y'
+    
     if current_user.is_admin:
         form.property.query = Property.query
-    else:
+    elif current_user.is_property_owner or current_user.is_property_manager:
         form.property.query = Property.query.filter_by(owner_id=current_user.id)
-    
-    # Base query
-    query = Invoice.query
-    
-    # Property owners see invoices for their properties
-    if current_user.is_property_owner or current_user.is_property_manager:
         owned_property_ids = [p.id for p in current_user.properties]
         query = query.filter(Invoice.property_id.in_(owned_property_ids))
+    else:
+        # Maintenance staff/cleaners: show only invoices for properties where they have worked
+        # Optionally, allow 'My Invoices' filter
+        from app.models import TaskAssignment, CleaningSession
+        task_property_ids = [ta.task.property_id for ta in TaskAssignment.query.filter_by(user_id=current_user.id).all() if ta.task and ta.task.property_id]
+        cleaning_property_ids = [cs.property_id for cs in CleaningSession.query.filter_by(cleaner_id=current_user.id).all()]
+        accessible_property_ids = set(task_property_ids + cleaning_property_ids)
+        query = query.filter(Invoice.property_id.in_(accessible_property_ids))
+        form.property.query = Property.query.filter(Property.id.in_(accessible_property_ids))
     
     # Apply filters if form is submitted
     if request.args:
@@ -196,35 +203,25 @@ def invoices():
         property_id = request.args.get('property')
         if property_id and property_id.isdigit():
             query = query.filter(Invoice.property_id == int(property_id))
-        
         # Filter by status
         status = request.args.get('status')
         if status:
             query = query.filter(Invoice.status == InvoiceStatus(status))
-        
         # Filter by date range
         date_from = request.args.get('date_from')
         if date_from:
             try:
                 from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
-                query = query.filter(or_(
-                    Invoice.date_from >= from_date,
-                    Invoice.date_to >= from_date
-                ))
+                query = query.filter(or_(Invoice.date_from >= from_date, Invoice.date_to >= from_date))
             except ValueError:
                 pass
-        
         date_to = request.args.get('date_to')
         if date_to:
             try:
                 to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
-                query = query.filter(or_(
-                    Invoice.date_from <= to_date,
-                    Invoice.date_to <= to_date
-                ))
+                query = query.filter(or_(Invoice.date_from <= to_date, Invoice.date_to <= to_date))
             except ValueError:
                 pass
-        
         # Filter by paid status
         is_paid = request.args.get('is_paid')
         if is_paid == 'y':
@@ -233,10 +230,27 @@ def invoices():
     # Order by created date (newest first)
     invoices = query.order_by(Invoice.created_at.desc()).all()
     
+    # For staff, filter to only 'my invoices' if requested
+    if not (current_user.is_admin or current_user.is_property_owner or current_user.is_property_manager):
+        if my_invoices_only:
+            # Only show invoices where user has at least one item (task/cleaning session)
+            filtered_invoices = []
+            for invoice in invoices:
+                relevant = False
+                for item in invoice.items:
+                    if (item.task and any(ta.user_id == current_user.id for ta in item.task.assignments)) or \
+                       (item.cleaning_session and item.cleaning_session.cleaner_id == current_user.id):
+                        relevant = True
+                        break
+                if relevant:
+                    filtered_invoices.append(invoice)
+            invoices = filtered_invoices
+    
     return render_template('invoicing/invoices.html', 
                           title='Invoices', 
                           invoices=invoices,
-                          form=form)
+                          form=form,
+                          my_invoices_only=my_invoices_only)
 
 @bp.route('/invoices/create', methods=['GET', 'POST'])
 @invoice_access_required
@@ -281,15 +295,12 @@ def create_invoice():
 def view_invoice(id):
     """View a single invoice"""
     invoice = Invoice.query.get_or_404(id)
-    
-    # Check if user has permission to view this invoice
-    if not current_user.is_admin and invoice.property.owner_id != current_user.id:
-        flash('You do not have permission to view this invoice.', 'danger')
-        return redirect(url_for('invoicing.invoices'))
-    
-    # Get all items for this invoice
+    # Check if user has permission to view this invoice (handled by decorator)
     items = invoice.items.all()
-    
+    # For staff, show only relevant items
+    if not (current_user.is_admin or current_user.is_property_owner or current_user.is_property_manager):
+        items = [item for item in items if (item.task and any(ta.user_id == current_user.id for ta in item.task.assignments)) or \
+                                         (item.cleaning_session and item.cleaning_session.cleaner_id == current_user.id)]
     return render_template('invoicing/invoice_view.html', 
                           title=f'Invoice: {invoice.invoice_number}', 
                           invoice=invoice,
