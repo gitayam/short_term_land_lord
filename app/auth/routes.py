@@ -4,8 +4,9 @@ from datetime import datetime
 from app import db
 from app.auth import bp
 from app.auth.forms import LoginForm, RegistrationForm, RequestPasswordResetForm, ResetPasswordForm, SSOLoginForm, PropertyRegistrationForm, InviteServiceStaffForm
-from app.models import User, PasswordReset, UserRoles, RegistrationRequest, ApprovalStatus, Role, ServiceType
+from app.models import User, PasswordReset, UserRoles, RegistrationRequest, ApprovalStatus, ServiceType
 from app.auth.email import send_password_reset_email, send_service_staff_invitation
+from app.workforce.forms import COUNTRY_CODES  # Fixed import path
 import secrets
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -26,16 +27,8 @@ def login():
         try:
             current_app.logger.info(f"Login form submitted for email: {local_form.email.data}")
             
-            # Print the SQL query equivalent for debugging
-            from sqlalchemy import text
-            sql = text("SELECT * FROM users WHERE email = :email")
-            result = db.session.execute(sql, {'email': local_form.email.data})
-            user_data = result.fetchone()
-            
-            if user_data:
-                current_app.logger.info(f"User found in database: {user_data.email}")
-            else:
-                current_app.logger.warning(f"User not found in database: {local_form.email.data}")
+            # Look up user using the ORM
+            current_app.logger.info(f"Looking up user: {local_form.email.data}")
             
             user = User.query.filter_by(email=local_form.email.data).first()
             
@@ -49,7 +42,7 @@ def login():
                                       use_local=use_local,
                                       use_sso=use_sso)
             
-            current_app.logger.info(f"Checking password for user: {user.email}, hash: {user.password_hash}")
+            current_app.logger.info(f"Verifying credentials for user: {user.email}")
             if not user.check_password(local_form.password.data):
                 current_app.logger.warning(f"Failed login attempt for user: {user.email}")
                 flash('Invalid email or password', 'danger')
@@ -105,8 +98,8 @@ def register():
     # Start with a clean session by rolling back any existing transactions
     try:
         db.session.rollback()
-    except:
-        pass
+    except Exception as e:
+        current_app.logger.error(f"Error rolling back session: {str(e)}")
     
     form = RegistrationForm()
     property_form = None
@@ -212,15 +205,26 @@ def register():
             # If this is a property owner, go to step 2
             if form.role.data == UserRoles.PROPERTY_OWNER.value:
                 # Store data in session for the next step
-                user = User(
-                    username=username,
-                    first_name=form.first_name.data,
-                    last_name=form.last_name.data,
-                    email=form.email.data,
-                    phone=form.phone.data if hasattr(form, 'phone') else None,
-                    role=form.role.data
-                )
-                user.set_password(form.password.data)
+                try:
+                    # Create registration request
+                    registration = RegistrationRequest(
+                        first_name=form.first_name.data,
+                        last_name=form.last_name.data,
+                        email=form.email.data,
+                        password_hash=User.generate_password_hash(form.password.data),
+                        role=form.role.data,
+                        phone=form.phone.data if hasattr(form, 'phone') else None,
+                        status=ApprovalStatus.PENDING,
+                        created_at=datetime.utcnow()
+                    )
+                    
+                    db.session.add(registration)
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    current_app.logger.error(f"Error creating registration request: {str(e)}")
+                    flash('An error occurred during registration. Please try again.', 'danger')
+                    return render_template('auth/register.html', title='Register', form=form)
                 
                 # Store in session
                 session['registration_data'] = {
@@ -230,13 +234,34 @@ def register():
                     'email': form.email.data,
                     'phone': form.phone.data if hasattr(form, 'phone') else None,
                     'role': form.role.data,
-                    'password_hash': user.password_hash,
+                    'password': form.password.data,
                     'message': form.message.data
                 }
                 
                 return redirect(url_for('auth.register', role='property_owner', step='property'))
             else:
                 # For other roles, create registration request directly
+                try:
+                    # Create registration request
+                    registration = RegistrationRequest(
+                        first_name=form.first_name.data,
+                        last_name=form.last_name.data,
+                        email=form.email.data,
+                        password_hash=User.generate_password_hash(form.password.data),
+                        role=form.role.data,
+                        phone=form.phone.data if hasattr(form, 'phone') else None,
+                        status=ApprovalStatus.PENDING,
+                        created_at=datetime.utcnow(),
+                        message=form.message.data
+                    )
+                    
+                    db.session.add(registration)
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    current_app.logger.error(f"Error creating registration request: {str(e)}")
+                    flash('An error occurred during registration. Please try again.', 'danger')
+                    return render_template('auth/register.html', title='Register', form=form)
                 user = User(
                     username=username,
                     first_name=form.first_name.data,
@@ -326,21 +351,27 @@ def invite_service_staff():
         # Generate a random password for the new user
         password = User.generate_random_password()
         
-        # Create the new user
-        user = User(
-            email=form.email.data,
-            first_name=form.first_name.data,
-            last_name=form.last_name.data,
-            phone=form.phone.data,
-            role=UserRoles.SERVICE_STAFF.value
-        )
-        user.set_password(password)
-        
-        # Assign service type if specified
-        user.service_type = form.service_type.data
-        
-        db.session.add(user)
-        db.session.commit()
+        try:
+            # Create the new user
+            user = User(
+                email=form.email.data,
+                first_name=form.first_name.data,
+                last_name=form.last_name.data,
+                phone=form.phone.data,
+                role=UserRoles.SERVICE_STAFF.value
+            )
+            user.set_password(password)
+            
+            # Assign service type if specified
+            user.service_type = form.service_type.data
+            
+            db.session.add(user)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error creating service staff user: {str(e)}")
+            flash('An error occurred while creating the user. Please try again.', 'danger')
+            return render_template('auth/invite_service_staff.html', title='Invite Service Staff', form=form)
         
         # Get service type display name
         service_type_display = dict((t.value, t.name) for t in ServiceType).get(form.service_type.data, form.service_type.data)
