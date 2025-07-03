@@ -10,7 +10,8 @@ This document captures key lessons learned during the development and debugging 
 5. [Error Handling and Debugging Strategies](#error-handling-and-debugging-strategies)
 6. [Code Organization and Structure](#code-organization-and-structure)
 7. [SSL/TLS and Network Issues](#ssltls-and-network-issues)
-8. [Standard Operating Procedures](#standard-operating-procedures)
+8. [Flask Web Application Issues](#flask-web-application-issues)
+9. [Standard Operating Procedures](#standard-operating-procedures)
 
 ---
 
@@ -297,6 +298,82 @@ if Config.MATRIX_DISABLE_SSL_VERIFICATION:
 3. **Use connection pooling** to reduce connection overhead
 4. **Log network errors** with sufficient detail for debugging
 5. **Test with different network conditions** (slow, unreliable connections)
+
+---
+
+## Flask Web Application Issues
+
+### ❌ What Didn't Work
+
+**Problem**: Configuration factory pattern not handling multiple input types
+```python
+# ❌ create_app() only handled class inputs
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    app.config.from_object(config_class)  # Fails with string inputs
+```
+
+**Problem**: Model-Form-Test mismatches causing test failures
+- Tests expected fields that didn't exist in models
+- Forms missing fields that tests expected
+- Model relationships broken or commented out
+
+**Problem**: Missing user properties causing AttributeError
+```python
+# ❌ Code tried to access non-existent property
+if not current_user.is_admin and property not in current_user.visible_properties:
+    # AttributeError: 'User' object has no attribute 'visible_properties'
+```
+
+### ✅ What Worked
+
+**Solution**: Flexible configuration handling
+```python
+# ✅ Handle both string and class inputs
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    
+    if isinstance(config_class, str):
+        if config_class == 'testing':
+            from config import TestConfig
+            app.config.from_object(TestConfig)
+        else:
+            app.config.from_object(config_class)
+    else:
+        app.config.from_object(config_class)
+```
+
+**Solution**: Systematic model-form-test alignment
+1. **Add missing model fields** with proper database columns
+2. **Add missing form fields** with appropriate validators
+3. **Update route handlers** to process all form fields
+4. **Fix broken relationships** with proper property lookups
+
+**Solution**: Add missing user properties with role-based logic
+```python
+@property
+def visible_properties(self):
+    """Get properties that this user can see/manage"""
+    if self.has_admin_role:
+        return Property.query.all()
+    elif self.is_property_owner:
+        return self.properties.all()
+    else:
+        return []
+```
+
+### 🔧 Standard Operating Procedure
+
+1. **Always test configuration factory** with different input types (string, class, dict)
+2. **Maintain model-form-test alignment** - when adding tests, ensure corresponding model fields and form fields exist
+3. **Use property decorators** for computed user attributes instead of direct database queries
+4. **Add compatibility routes** when changing URL patterns to maintain backward compatibility
+5. **Test with both development and production configurations** to catch environment-specific issues
+6. **Use systematic debugging approach**:
+   - Check model fields first
+   - Verify form fields match
+   - Ensure route handlers process all fields
+   - Test with actual data
 
 ---
 
