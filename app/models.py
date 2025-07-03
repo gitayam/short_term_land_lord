@@ -167,6 +167,7 @@ class NotificationType(enum.Enum):
     TASK_COMPLETED = "task_completed"
     INVENTORY_LOW = "inventory_low"
     REPAIR_REQUEST = "repair_request"
+    INVITATION = "invitation"
 
 class NotificationChannel(enum.Enum):
     EMAIL = "email"
@@ -498,6 +499,21 @@ class User(UserMixin, db.Model):
     def is_active(self):
         """Override UserMixin's is_active to check suspension status"""
         return not self.is_suspended
+    
+    @property
+    def visible_properties(self):
+        """Get properties that this user can see/manage"""
+        if self.has_admin_role:
+            return Property.query.all()
+        elif self.is_property_owner:
+            return self.properties.all()
+        elif self.is_property_manager:
+            # Property managers can see properties they're assigned to
+            # This would need to be implemented based on your business logic
+            return Property.query.all()  # For now, return all properties
+        else:
+            # Service staff and other roles
+            return []
 
 class Property(db.Model):
     """
@@ -939,6 +955,9 @@ class Task(db.Model):
     location = db.Column(db.String(255), nullable=True)  # Location within property
     severity = db.Column(db.String(50), nullable=True)  # Severity level for repair requests
     
+    # Photo paths for tasks (stored as JSON string)
+    photo_paths = db.Column(db.Text, nullable=True)  # JSON array of photo paths
+    
     # Relationships - use task_creator backref instead of creator
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic')
     task_properties = db.relationship('TaskProperty', backref='task', cascade="all, delete-orphan")
@@ -1005,6 +1024,26 @@ class Task(db.Model):
         if not self.severity:
             return None
         return self.severity.replace('_', ' ').title()
+    
+    @property
+    def photo_paths_list(self):
+        """Get photo paths as a list"""
+        if not self.photo_paths:
+            return []
+        try:
+            import json
+            return json.loads(self.photo_paths)
+        except (json.JSONDecodeError, TypeError):
+            return []
+    
+    @photo_paths_list.setter
+    def photo_paths_list(self, paths):
+        """Set photo paths from a list"""
+        if paths:
+            import json
+            self.photo_paths = json.dumps(paths)
+        else:
+            self.photo_paths = None
 
 class TaskAssignment(db.Model):
     __tablename__ = 'task_assignment'
@@ -1622,6 +1661,7 @@ class RecommendationBlock(db.Model):
     wifi_name = db.Column(db.String(255), nullable=True)  # WiFi network name (SSID)
     wifi_password = db.Column(db.String(255), nullable=True)  # WiFi password if available
     parking_details = db.Column(db.Text, nullable=True)  # Parking information
+    hours = db.Column(db.String(255), nullable=True)  # Operating hours
     in_guide_book = db.Column(db.Boolean, default=False)  # Whether this recommendation is in the guide book
     photo_path = db.Column(db.String(500), nullable=True)
     staff_pick = db.Column(db.Boolean, default=False)  # Whether this is marked as a staff pick
