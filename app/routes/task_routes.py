@@ -7,8 +7,9 @@ from app.forms.task_forms import RepairRequestForm
 from app.models import Task, Property, TaskStatus, TaskPriority, RepairRequestSeverity, TaskProperty, TaskMedia, MediaType
 from app.extensions import db
 import uuid
-from app.utils.storage import allowed_file, save_file_to_storage
-from app.utils.notifications import send_task_assignment_notification
+from app.tasks.media import allowed_file
+from app.utils.storage import save_file_to_storage
+from app.notifications.service import send_task_assignment_notification
 from app.decorators import property_access_required
 from sqlalchemy import desc
 import logging
@@ -74,37 +75,47 @@ def create_repair_request():
     """Create a new repair request"""
     try:
         property_id = request.args.get('property_id', type=int)
+        current_app.logger.debug(f"[DEBUG] property_id from request: {property_id}")
+        print("REPAIR REQUEST ROUTE HIT", flush=True)
         
         # Validate property exists and access
         if not property_id:
             flash('Property ID is required to create a repair request.', 'warning')
+            current_app.logger.warning('[DEBUG] No property_id provided')
             return redirect(url_for('tasks.repair_requests'))
             
         property = Property.query.get(property_id)
         if not property:
             flash('Property not found.', 'error')
+            current_app.logger.warning(f'[DEBUG] Property not found for id {property_id}')
             return redirect(url_for('tasks.repair_requests'))
             
         if not property.is_visible_to(current_user):
             flash('You do not have permission to create repair requests for this property.', 'warning')
+            current_app.logger.warning(f'[DEBUG] User {current_user.id} does not have access to property {property_id}')
             return redirect(url_for('tasks.repair_requests'))
         
         form = RepairRequestForm()
-        
-        # Set up the property query for the form
+        # Set up the property query for the form on every request
         if current_user.has_admin_role:
             properties = Property.query.all()
         else:
             properties = Property.query.filter(Property.is_visible_to(current_user)).all()
-        
         if not properties:
             flash('No properties available for repair requests.', 'warning')
+            current_app.logger.warning('[DEBUG] No properties available for user')
             return redirect(url_for('tasks.repair_requests'))
-        
         form.property.query = Property.query.filter(Property.id.in_([p.id for p in properties]))
-        form.property.data = property
+        if request.method == 'GET':
+            form.property.data = property
+        current_app.logger.debug(f"[DEBUG] Form data on GET/POST: {form.data}")
+        print(f"[DEBUG] Form validation: {form.validate()}", flush=True)
+        print(f"[DEBUG] Form errors: {form.errors}", flush=True)
+        print(f"[DEBUG] Request method: {request.method}", flush=True)
         
         if form.validate_on_submit():
+            print("FORM VALIDATED", flush=True)
+            current_app.logger.info(f"[DEBUG] Form validated successfully: {form.data}")
             try:
                 # Create the task
                 task = Task(
@@ -189,13 +200,15 @@ def create_repair_request():
         
         # If form validation failed, check for specific errors
         if form.errors:
-            current_app.logger.warning(f"Form validation errors: {form.errors}")
-            
+            print("FORM ERRORS:", form.errors, flush=True)
+            current_app.logger.warning(f"[DEBUG] Form validation errors: {form.errors}")
+            flash(f"Form validation errors: {form.errors}", 'danger')
+        
         return render_template('tasks/create_repair_request.html',
                              title='Create Repair Request',
                              form=form,
                              property=property)
-                             
+                                 
     except Exception as e:
         current_app.logger.error(f"Unexpected error in create_repair_request: {str(e)}", exc_info=True)
         flash('An unexpected error occurred. Please try again.', 'error')

@@ -6,6 +6,7 @@ from app.models import (User, UserRoles, Task, TaskStatus, TaskPriority,
                        Property, RepairRequestSeverity)
 from config import TestConfig
 import os
+from bs4 import BeautifulSoup
 
 
 class TestRepairRequestRoutes(unittest.TestCase):
@@ -29,14 +30,14 @@ class TestRepairRequestRoutes(unittest.TestCase):
             first_name='Test',
             last_name='Tenant',
             email='tenant@example.com',
-            role=UserRoles.TENANT.value
+            role=UserRoles.PROPERTY_OWNER.value  # Make tenant a property owner for testing
         )
         self.tenant.set_password('test_password')
         
         db.session.add_all([self.owner, self.tenant])
         db.session.commit()
         
-        # Create test property
+        # Create test property owned by tenant for access testing
         self.property = Property(
             name='Test Property',
             description='A test property',
@@ -46,7 +47,7 @@ class TestRepairRequestRoutes(unittest.TestCase):
             state='Test State',
             zip_code='12345',
             country='Test Country',
-            owner_id=self.owner.id
+            owner_id=self.tenant.id  # Make tenant the owner for testing access
         )
         
         db.session.add(self.property)
@@ -73,7 +74,7 @@ class TestRepairRequestRoutes(unittest.TestCase):
         self.login('tenant@example.com', 'test_password')
         
         # Access repair request form
-        response = self.client.get('/tasks/repair-request')
+        response = self.client.get(f'/tasks/repair_requests/create?property_id={self.property.id}')
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Submit Repair Request', response.data)
     
@@ -89,15 +90,15 @@ class TestRepairRequestRoutes(unittest.TestCase):
         data = {
             'title': 'Test Repair Request',
             'description': 'This is a test repair request',
-            'property_id': self.property.id,
+            'property': self.property.id,
             'location': 'Living Room',
-            'priority': TaskPriority.HIGH.value,
-            'severity': RepairRequestSeverity.URGENT.value,
+            'priority': 'HIGH',
+            'severity': 'urgent_severity',
             'photos': [photo],
-            'notes': 'Please fix ASAP'
+            'additional_notes': 'Please fix ASAP'
         }
         
-        response = self.client.post('/tasks/repair-request', 
+        response = self.client.post(f'/tasks/repair_requests/create?property_id={self.property.id}', 
                                   data=data,
                                   content_type='multipart/form-data',
                                   follow_redirects=True)
@@ -111,7 +112,7 @@ class TestRepairRequestRoutes(unittest.TestCase):
         self.assertEqual(task.location, 'Living Room')
         self.assertEqual(task.priority, TaskPriority.HIGH)
         self.assertEqual(task.severity, RepairRequestSeverity.URGENT.value)
-        self.assertEqual(len(task.photo_paths), 1)
+        self.assertEqual(len(task.photo_paths_list), 1)
     
     def test_repair_request_validation_errors(self):
         """Test repair request form validation"""
@@ -124,7 +125,7 @@ class TestRepairRequestRoutes(unittest.TestCase):
             'location': 'Kitchen'
         }
         
-        response = self.client.post('/tasks/repair-request',
+        response = self.client.post(f'/tasks/repair_requests/create?property_id={self.property.id}',
                                   data=data,
                                   follow_redirects=True)
         
@@ -146,14 +147,14 @@ class TestRepairRequestRoutes(unittest.TestCase):
         data = {
             'title': 'Test Photo Validation',
             'description': 'Testing photo upload validation',
-            'property_id': self.property.id,
+            'property': self.property.id,
             'location': 'Bathroom',
-            'priority': TaskPriority.MEDIUM.value,
-            'severity': RepairRequestSeverity.MEDIUM.value,
+            'priority': 'MEDIUM',
+            'severity': 'medium_severity',
             'photos': [large_photo]
         }
         
-        response = self.client.post('/tasks/repair-request',
+        response = self.client.post(f'/tasks/repair_requests/create?property_id={self.property.id}',
                                   data=data,
                                   content_type='multipart/form-data',
                                   follow_redirects=True)
@@ -170,13 +171,13 @@ class TestRepairRequestRoutes(unittest.TestCase):
         data = {
             'title': 'Urgent Repair Needed',
             'description': 'Testing notifications',
-            'property_id': self.property.id,
+            'property': self.property.id,
             'location': 'Kitchen',
-            'priority': TaskPriority.HIGH.value,
-            'severity': RepairRequestSeverity.URGENT.value
+            'priority': 'HIGH',
+            'severity': 'urgent_severity'
         }
         
-        self.client.post('/tasks/repair-request',
+        self.client.post(f'/tasks/repair_requests/create?property_id={self.property.id}',
                         data=data,
                         follow_redirects=True)
         
@@ -187,6 +188,71 @@ class TestRepairRequestRoutes(unittest.TestCase):
         response = self.client.get('/notifications')
         self.assertIn(b'New repair request', response.data)
         self.assertIn(b'Urgent Repair Needed', response.data)
+
+    def test_repair_request_create_route_success(self):
+        """Test submitting a repair request via /tasks/repair_requests/create"""
+        self.login('tenant@example.com', 'test_password')
+        property_id = self.property.id
+        # Get the form to get CSRF token
+        response = self.client.get(f'/tasks/repair_requests/create?property_id={property_id}')
+        self.assertEqual(response.status_code, 200)
+        # Parse CSRF token if present
+        soup = BeautifulSoup(response.data, 'html.parser')
+        csrf_token = soup.find('input', {'name': 'csrf_token'})
+        csrf_token_value = csrf_token['value'] if csrf_token else ''
+        data = {
+            'csrf_token': csrf_token_value,
+            'title': 'Test Repair Request',
+            'description': 'This is a test repair request',
+            'property': property_id,
+            'location': 'Living Room',
+            'priority': 'HIGH',
+            'severity': 'urgent',
+            'due_date': '',
+            'additional_notes': 'Please fix ASAP',
+        }
+        response = self.client.post(f'/tasks/repair_requests/create?property_id={property_id}',
+                                    data=data,
+                                    follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Repair request created successfully', response.data)
+        task = Task.query.filter_by(title='Test Repair Request').first()
+        self.assertIsNotNone(task)
+        self.assertEqual(task.description, 'This is a test repair request')
+        self.assertEqual(task.location, 'Living Room')
+        self.assertEqual(task.priority.name, 'HIGH')
+
+    def test_repair_request_create_route_validation_error(self):
+        """Test submitting a repair request with missing required fields"""
+        self.login('tenant@example.com', 'test_password')
+        property_id = self.property.id
+        response = self.client.get(f'/tasks/repair_requests/create?property_id={property_id}')
+        soup = BeautifulSoup(response.data, 'html.parser')
+        csrf_token = soup.find('input', {'name': 'csrf_token'})
+        csrf_token_value = csrf_token['value'] if csrf_token else ''
+        data = {
+            'csrf_token': csrf_token_value,
+            'description': 'Missing title',
+            'property': property_id,
+            'location': '',
+            'priority': '',
+            'severity': '',
+        }
+        response = self.client.post(f'/tasks/repair_requests/create?property_id={property_id}',
+                                    data=data,
+                                    follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Form validation errors', response.data)
+        task = Task.query.filter_by(description='Missing title').first()
+        self.assertIsNone(task)
+
+    def test_repair_request_create_route_missing_property_id(self):
+        """Test submitting a repair request with missing property_id in query string"""
+        self.login('tenant@example.com', 'test_password')
+        response = self.client.get('/tasks/repair_requests/create')
+        self.assertEqual(response.status_code, 302)  # Should redirect
+        response = self.client.post('/tasks/repair_requests/create', data={}, follow_redirects=True)
+        self.assertIn(b'Property ID is required to create a repair request', response.data)
 
 
 if __name__ == '__main__':

@@ -1,17 +1,23 @@
 from twilio.rest import Client
-from flask import current_app
 from app.models import Notification, NotificationChannel, NotificationType
 from app import db
 import logging
 
 def send_sms(to_number, message, create_notification=False):
     """Send an SMS message using Twilio"""
+    from flask import current_app
+    
     # Set up a fallback logger in case current_app.logger is not available
     logger = getattr(current_app, 'logger', None) if current_app else None
     if logger is None:
         logger = logging.getLogger(__name__)
     
     try:
+        # Check if we have a Flask app context
+        if not current_app:
+            logger.warning("No Flask application context available - SMS disabled")
+            return False, "SMS disabled: No Flask application context"
+            
         # Check if SMS is enabled
         if not current_app.config.get('NOTIFICATION_SMS_ENABLED', True):
             logger.warning("SMS notifications are disabled")
@@ -23,7 +29,7 @@ def send_sms(to_number, message, create_notification=False):
         twilio_phone_number = current_app.config.get('TWILIO_PHONE_NUMBER')
         
         if not all([twilio_account_sid, twilio_auth_token, twilio_phone_number]):
-            logger.error("Twilio credentials are not properly configured")
+            logger.warning("Twilio credentials are not configured - SMS will be disabled")
             missing_creds = []
             if not twilio_account_sid:
                 missing_creds.append("TWILIO_ACCOUNT_SID")
@@ -31,7 +37,7 @@ def send_sms(to_number, message, create_notification=False):
                 missing_creds.append("TWILIO_AUTH_TOKEN")
             if not twilio_phone_number:
                 missing_creds.append("TWILIO_PHONE_NUMBER")
-            return False, f"Missing Twilio credentials: {', '.join(missing_creds)}"
+            return False, f"SMS disabled: Missing Twilio credentials ({', '.join(missing_creds)})"
             
         # Initialize Twilio client with error handling
         try:

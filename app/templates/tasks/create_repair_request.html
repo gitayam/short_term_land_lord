@@ -56,6 +56,14 @@
                         </div>
 
                         <div class="mb-3">
+                            {{ form.severity.label(class="form-label") }}
+                            {{ form.severity(class="form-select" + (" is-invalid" if form.severity.errors else "")) }}
+                            {% for error in form.severity.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
                             {{ form.due_date.label(class="form-label") }}
                             {{ form.due_date(class="form-control" + (" is-invalid" if form.due_date.errors else ""), type="date") }}
                             {% for error in form.due_date.errors %}

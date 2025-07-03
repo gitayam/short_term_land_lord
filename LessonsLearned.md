@@ -467,4 +467,28 @@ def visible_properties(self):
 10. **Configuration** should be externalized and validated at startup
 11. **Database schema synchronization** is critical - model changes must be reflected in the database schema
 
-This document should be updated as new lessons are learned during continued development of the project. 
+This document should be updated as new lessons are learned during continued development of the project.
+
+## Lessons Learned: Endpoint Consistency After Refactor
+
+- When moving or refactoring features between blueprints (e.g., from 'auth' to 'workforce'), always update all template references to use the new endpoint name.
+- Routinely audit templates for broken or missing endpoint references, especially after major refactors.
+- Example: The 'invite_service_staff' endpoint was referenced in templates as 'auth.invite_service_staff', but the actual route is now 'workforce.invite_worker'. This caused repeated BuildError exceptions until all templates were updated.
+
+## Lessons Learned: SMS Configuration and Error Handling
+
+- Always check for required environment variables before attempting to use external services like Twilio SMS.
+- When SMS credentials are missing, treat it as a graceful degradation rather than a critical error.
+- The error "'NoneType' object has no attribute 'config'" occurs when Flask's current_app is None, typically when calling functions outside of a Flask application context.
+- Always add proper error handling for external service dependencies to prevent application crashes.
+- Example: SMS functionality should gracefully disable when TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_PHONE_NUMBER are not configured.
+
+## Lessons Learned: PostgreSQL Enum Case Sensitivity and Duplicates
+
+- PostgreSQL enums are case-sensitive and can accumulate duplicate values with different casing over time.
+- When you see `LookupError: 'value' is not among the defined enum values`, check for case mismatches between your Python enum definition and the database enum.
+- Common issue: Database has both `'GENERAL_MAINTENANCE'` (uppercase) and `'general_maintenance'` (lowercase) in the same enum.
+- **Always ensure enum values in Python match exactly** (case-sensitive) with the database enum values.
+- **Solution**: Recreate the enum type with only the correct values, or use consistent casing throughout your application.
+- **Prevention**: Use lowercase enum values consistently in both Python and database to avoid case-related issues.
+- Example: The `servicetype` enum had duplicate values causing SQLAlchemy to fail when reading records with `'general_maintenance'` because it conflicted with `'GENERAL_MAINTENANCE'`. 
