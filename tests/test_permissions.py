@@ -200,26 +200,26 @@ class TestPermissionSystem(unittest.TestCase):
     def test_user_role_checks(self):
         """Test user role verification methods."""
         # Owner role verification
-        self.assertTrue(self.owner.is_property_owner())
-        self.assertFalse(self.owner.is_service_staff())
+        self.assertTrue(self.owner.is_property_owner)
+        self.assertFalse(self.owner.is_service_staff)
         self.assertFalse(self.owner.is_property_manager)
         self.assertFalse(self.owner.has_admin_role)
         
         # Manager role verification
-        self.assertFalse(self.manager.is_property_owner())
-        self.assertFalse(self.manager.is_service_staff())
+        self.assertFalse(self.manager.is_property_owner)
+        self.assertFalse(self.manager.is_service_staff)
         self.assertTrue(self.manager.is_property_manager)
         self.assertFalse(self.manager.has_admin_role)
         
         # Staff role verification
-        self.assertFalse(self.staff.is_property_owner())
-        self.assertTrue(self.staff.is_service_staff())
+        self.assertFalse(self.staff.is_property_owner)
+        self.assertTrue(self.staff.is_service_staff)
         self.assertFalse(self.staff.is_property_manager)
         self.assertFalse(self.staff.has_admin_role)
         
         # Admin role verification
-        self.assertFalse(self.admin.is_property_owner())
-        self.assertFalse(self.admin.is_service_staff())
+        self.assertFalse(self.admin.is_property_owner)
+        self.assertFalse(self.admin.is_service_staff)
         self.assertFalse(self.admin.is_property_manager)
         self.assertTrue(self.admin.has_admin_role)
     
