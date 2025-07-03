@@ -4,7 +4,6 @@ from app.models import Notification, NotificationType, NotificationChannel, User
 from app.common.email import send_email
 from datetime import datetime, timedelta
 import requests
-from twilio.rest import Client
 import logging
 
 def send_task_assignment_notification(task, user):
@@ -236,20 +235,16 @@ def send_email_notification(user, subject, text_body, html_body):
 def send_sms_notification(phone_number, message):
     """Send an SMS notification using Twilio"""
     try:
-        # Initialize Twilio client
-        client = Client(
-            current_app.config.get('TWILIO_ACCOUNT_SID'),
-            current_app.config.get('TWILIO_AUTH_TOKEN')
-        )
+        from app.utils.sms import send_sms
+        success, error = send_sms(phone_number, message)
         
-        # Send SMS
-        client.messages.create(
-            body=message,
-            from_=current_app.config.get('TWILIO_PHONE_NUMBER'),
-            to=phone_number
-        )
-        
-        return True
+        if success:
+            current_app.logger.info(f"SMS notification sent successfully to {phone_number}")
+            return True
+        else:
+            current_app.logger.error(f"Failed to send SMS notification to {phone_number}: {error}")
+            return False
+            
     except Exception as e:
         current_app.logger.error(f"Failed to send SMS notification: {str(e)}")
         return False
