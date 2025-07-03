@@ -12,7 +12,7 @@ import requests
 from io import StringIO
 import random
 
-bp = Blueprint('calendar', __name__)
+bp = Blueprint('calendar', __name__, url_prefix='/calendar')
 
 @bp.route('/property/<int:property_id>', methods=['GET'])
 @login_required
