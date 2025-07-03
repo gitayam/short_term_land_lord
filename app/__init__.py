@@ -20,7 +20,17 @@ csrf = CSRFProtect()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
-    app.config.from_object(config_class)
+    
+    # Handle both string and class inputs for config_class
+    if isinstance(config_class, str):
+        if config_class == 'testing':
+            from config import TestConfig
+            app.config.from_object(TestConfig)
+        else:
+            # Try to import the config class by name
+            app.config.from_object(config_class)
+    else:
+        app.config.from_object(config_class)
     
     # Initialize extensions with app
     db.init_app(app)
