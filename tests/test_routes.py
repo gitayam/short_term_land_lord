@@ -1,13 +1,15 @@
+import os
 import unittest
 from datetime import datetime, timedelta
-from app import create_app, db
-from app.models import (User, UserRoles, Task, TaskAssignment, TaskStatus, 
-                       TaskPriority, TaskProperty, Property, RecurrencePattern,
-                       ServiceType, RepairRequest, Room, RoomFurniture)
+
+# Set test environment variables
+os.environ['FLASK_ENV'] = 'testing'
+os.environ['TESTING'] = 'True'
+
 from flask import url_for
-import json
+from app import create_app, db
+from app.models import User, UserRoles, Property, RegistrationRequest, Task, TaskStatus, TaskPriority, TaskProperty
 from config import TestConfig
-from werkzeug.security import generate_password_hash
 
 
 class TestTaskRoutes(unittest.TestCase):
@@ -313,5 +315,214 @@ class TestPropertyRoutes(unittest.TestCase):
         self.assertEqual(chair.description, 'Reading chair')
 
 
+class TestRegistrationRoutes(unittest.TestCase):
+    def setUp(self):
+        # Configure the app for testing with test database
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        
+        # Initialize the database
+        with self.app.app_context():
+            db.create_all()
+        
+        self.client = self.app.test_client(use_cookies=True)
+        
+    def tearDown(self):
+        # Clean up the database
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+        self.app_context.pop()
+    
+    def test_guest_registration(self):
+        """Test guest registration process"""
+        # Test GET request to registration page
+        with self.app.test_request_context():
+            response = self.client.get(url_for('auth.register'))
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Register', response.data)
+            
+            # Test POST request with valid registration data for a property owner
+            registration_data = {
+                'username': 'testuser',
+                'email': 'test@example.com',
+                'first_name': 'Test',
+                'last_name': 'User',
+                'password': 'testpassword123',
+                'password2': 'testpassword123',
+                'role': 'property_owner',
+                'phone': '1234567890',
+                'message': 'Test registration',
+                'submit': 'Register'
+            }
+            
+            # Print debug info
+            print("\n=== Registration Test Debug Info ===")
+            print(f"Sending initial POST to: {url_for('auth.register')}")
+            print(f"Data: {registration_data}")
+            
+            # Use the test client with application context
+            with self.app.test_client() as client:
+                # Clear any existing flash messages
+                with client.session_transaction() as sess:
+                    sess.pop('_flashes', None)
+                
+                # Make the initial POST request (should redirect to property registration)
+                response = client.post(
+                    url_for('auth.register'),
+                    data=registration_data,
+                    follow_redirects=True
+                )
+                
+                # Check if we were redirected to the property registration page
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b'Register Property', response.data)
+                
+                # Prepare property registration data
+                property_data = {
+                    'property_name': 'Test Property',
+                    'property_address': '123 Test St, Test City, TS 12345',
+                    'property_description': 'A test property for unit testing',
+                    'submit': 'Continue with Registration'
+                }
+                
+                # Print form validation info
+                from app.auth.forms import PropertyRegistrationForm
+                property_form = PropertyRegistrationForm(data=property_data)
+                print("\n=== Property Form Validation ===")
+                print(f"Property form valid: {property_form.validate()}")
+                if not property_form.validate():
+                    print("Property form errors:", property_form.errors)
+                
+                # Make the property registration POST request
+                print("\n=== Property Registration Step ===")
+                print(f"Sending POST to: {url_for('auth.register', role='property_owner', step='property')}")
+                print(f"Data: {property_data}")
+                
+                # Get the current session data before the request
+                with client.session_transaction() as sess:
+                    print("\n=== Session Before Property Registration ===")
+                    print(f"Session keys: {list(sess.keys())}")
+                    if 'registration_data' in sess:
+                        print(f"Registration data in session: {sess['registration_data']}")
+                
+                response = client.post(
+                    url_for('auth.register', role='property_owner', step='property'),
+                    data=property_data,
+                    follow_redirects=True
+                )
+                
+                # Get flash messages from the session
+                with client.session_transaction() as sess:
+                    flashes = sess.get('_flashes', [])
+                    print("\n=== Flash Messages ===")
+                    for flash in flashes:
+                        print(f"{flash[0]}: {flash[1]}")
+                
+                # Print response info
+                print(f"\nResponse status code: {response.status_code}")
+                print("Response data (first 500 chars):")
+                response_text = response.data.decode('utf-8', 'ignore')
+                print(response_text[:500] + ('...' if len(response_text) > 500 else ''))
+                
+                # Check if we were redirected to login
+                self.assertEqual(response.status_code, 200)  # Should be on login page
+                self.assertIn(b'Sign In', response.data)
+                
+                # Check if the success message is in the response or in flash messages
+                success_message = 'Your registration request has been submitted! An administrator will review your request soon.'
+                response_text = response.data.decode('utf-8', 'ignore')
+                
+                # Check both the response and flash messages for the success message
+                message_found = (
+                    success_message in response_text or 
+                    any(success_message in msg for cat, msg in flashes if cat == 'success')
+                )
+                
+                self.assertTrue(
+                    message_found,
+                    f"Success message not found in response or flash messages. Response: {response_text[:200]}..."
+                )
+                
+                # Check for success message in the response
+                self.assertIn(
+                    b'Your registration request has been submitted', 
+                    response.data,
+                    "Success message not found in response"
+                )
+                
+                # Verify the registration request was created in the database
+                with self.app.app_context():
+                    from app.models import RegistrationRequest, ApprovalStatus
+                    registration = RegistrationRequest.query.filter_by(email='test@example.com').first()
+                    self.assertIsNotNone(registration, "Registration request not found in database")
+                    self.assertEqual(registration.status, ApprovalStatus.PENDING, f"Registration status is not PENDING, got {registration.status}")
+
+    def test_property_owner_registration(self):
+        """Test property owner registration with property details"""
+        with self.app.test_request_context():
+            # First, submit the initial registration form
+            response = self.client.post(url_for('auth.register'), data={
+                'username': 'propertyowner',
+                'email': 'owner@example.com',
+                'first_name': 'Property',
+                'last_name': 'Owner',
+                'password': 'ownerpass123',
+                'password2': 'ownerpass123',
+                'role': 'property_owner',
+                'phone': '1234567890',
+                'message': 'Test property registration',
+                'submit': 'Register'
+            }, follow_redirects=True)
+            
+            # Should be redirected to property registration page
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Register Property', response.data)
+            
+            # Now submit the property details
+            response = self.client.post(
+                url_for('auth.register', role='property_owner', step='property'),
+                data={
+                    'property_name': 'Test Property',
+                    'property_address': '123 Test St, Test City, TS 12345',
+                    'property_description': 'A test property for unit testing',
+                    'submit': 'Continue with Registration'
+                },
+                follow_redirects=True
+            )
+            
+            # Should be redirected to login page with success message
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Sign In', response.data)
+            
+            # Check for success message in the response
+            self.assertIn(
+                b'Your registration request has been submitted',
+                response.data,
+                "Success message not found in response"
+            )
+            
+            # Verify the registration request was created with property details
+            with self.app.app_context():
+                from app.models import RegistrationRequest, Property, ApprovalStatus
+                
+                # Check registration request
+                request = RegistrationRequest.query.filter_by(email='owner@example.com').first()
+                self.assertIsNotNone(request, "Registration request should exist")
+                self.assertEqual(
+                    request.status, 
+                    ApprovalStatus.PENDING, 
+                    f"Status should be PENDING, got {request.status}"
+                )
+                
+                # Check property was created with the correct details
+                prop = Property.query.filter_by(name='Test Property').first()
+                self.assertIsNotNone(prop, "Property should be created")
+                self.assertEqual(prop.address, '123 Test St, Test City, TS 12345')
+                self.assertEqual(prop.description, 'A test property for unit testing')
+                self.assertEqual(prop.status, 'inactive', "New properties should be created as 'inactive'")
+
+
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()
