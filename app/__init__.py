@@ -1,4 +1,5 @@
-from flask import Flask
+from flask import Flask, jsonify
+from .utils.route_debug import list_routes
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
@@ -46,7 +47,10 @@ def create_app(config_class=Config):
     
     # Register blueprints
     from app.auth import bp as auth_bp
+    from app.calendar import bp as calendar_bp
+    
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(calendar_bp, url_prefix='/calendar')
     
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
@@ -72,9 +76,6 @@ def create_app(config_class=Config):
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
     
-    from app.calendar import bp as calendar_bp
-    app.register_blueprint(calendar_bp, url_prefix='/calendar')
-    
     from app.workforce import bp as workforce_bp
     app.register_blueprint(workforce_bp, url_prefix='/workforce')
 
@@ -89,6 +90,11 @@ def create_app(config_class=Config):
     
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
+
+    # Debug route to list all registered routes
+    @app.route('/debug/routes')
+    def debug_routes():
+        return list_routes()
 
     from app.context_processors import admin_properties
     app.context_processor(admin_properties)
