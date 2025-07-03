@@ -137,7 +137,7 @@ def create():
             # Handle recurrence if enabled
             if form.is_recurring.data:
                 task.is_recurring = True
-                task.recurrence_pattern = form.recurrence_pattern.data
+                task.recurrence_pattern = form.recurrence_pattern.data.lower() if form.recurrence_pattern.data else "none"
                 task.recurrence_interval = form.recurrence_interval.data
                 task.recurrence_end_date = form.recurrence_end_date.data
             
@@ -1040,7 +1040,8 @@ def create_repair_request():
                 due_date=form.due_date.data,
                 notes=form.additional_notes.data,
                 creator_id=current_user.id,
-                tags='repair_request'
+                tags='repair_request',
+                recurrence_pattern='none'
             )
             
             # Add task property
@@ -1420,7 +1421,7 @@ def apply_template(template_id):
         # Handle recurrence if enabled
         if form.is_recurring.data:
             task.is_recurring = True
-            task.recurrence_pattern = form.recurrence_pattern.data
+            task.recurrence_pattern = form.recurrence_pattern.data.lower() if form.recurrence_pattern.data else "none"
             task.recurrence_interval = form.recurrence_interval.data
             task.recurrence_end_date = form.recurrence_end_date.data
         
@@ -1508,7 +1509,7 @@ def create_task_for_property(property_id):
         # Handle recurrence if enabled
         if form.is_recurring.data:
             task.is_recurring = True
-            task.recurrence_pattern = form.recurrence_pattern.data
+            task.recurrence_pattern = form.recurrence_pattern.data.lower() if form.recurrence_pattern.data else "none"
             task.recurrence_interval = form.recurrence_interval.data
             task.recurrence_end_date = form.recurrence_end_date.data
         
