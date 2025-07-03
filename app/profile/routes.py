@@ -7,6 +7,12 @@ from werkzeug.security import check_password_hash
 from datetime import datetime
 import json
 from app.profile.forms import PersonalInfoForm, ChangePasswordForm, PreferencesForm
+import os
+import pickle
+from google_auth_oauthlib.flow import Flow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 @bp.route('/profile')
 @login_required
@@ -152,24 +158,193 @@ def toggle_2fa():
         current_app.logger.error(f"Error updating 2FA settings: {e}")
         return jsonify({'error': 'Failed to update 2FA settings'}), 500
 
-@bp.route('/profile/connect-service', methods=['POST'])
+@bp.route('/connect-service', methods=['POST'])
 @login_required
 def connect_service():
     """Connect external service"""
-    service = request.json.get('service')
+    # Handle both form data and JSON data
+    if request.is_json:
+        service = request.json.get('service')
+    else:
+        service = request.form.get('service')
+    
+    if not service:
+        flash('No service specified', 'error')
+        return redirect(url_for('profile.profile'))
     
     try:
         if service == 'google_calendar':
-            # Handle Google Calendar connection
-            pass
-        elif service == 'twilio':
+            # Check if user is already connected
+            if current_user.google_calendar_connected:
+                # Disconnect Google Calendar
+                current_user.google_calendar_connected = False
+                current_user.google_calendar_token = None
+                db.session.commit()
+                flash('Google Calendar disconnected successfully', 'success')
+            else:
+                # Start Google Calendar OAuth flow
+                return redirect(url_for('profile.google_auth'))
+                
+        elif service == 'phone':
             # Handle Twilio verification
-            pass
+            flash('Phone verification is not yet implemented', 'info')
+            
         elif service == 'slack':
             # Handle Slack workspace connection
-            pass
+            flash('Slack integration is not yet implemented', 'info')
+        else:
+            flash(f'Unknown service: {service}', 'error')
             
-        return jsonify({'success': True, 'message': f'{service} connected successfully'})
+        return redirect(url_for('profile.profile'))
+        
     except Exception as e:
         current_app.logger.error(f"Error connecting service {service}: {e}")
-        return jsonify({'error': f'Failed to connect {service}'}), 500
+        flash(f'Failed to connect {service}: {str(e)}', 'error')
+        return redirect(url_for('profile.profile'))
+
+@bp.route('/google-auth')
+@login_required
+def google_auth():
+    """Initiate Google OAuth flow for Calendar integration"""
+    try:
+        # Check if Google OAuth is configured
+        if not current_app.config.get('GOOGLE_CLIENT_ID') or not current_app.config.get('GOOGLE_CLIENT_SECRET'):
+            flash('Google Calendar integration is not configured. Please contact your administrator.', 'error')
+            return redirect(url_for('profile.profile'))
+        
+        # Create OAuth flow
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": current_app.config['GOOGLE_CLIENT_ID'],
+                    "client_secret": current_app.config['GOOGLE_CLIENT_SECRET'],
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [current_app.config.get('GOOGLE_REDIRECT_URI', 'http://localhost:5000/profile/google-callback')]
+                }
+            },
+            scopes=current_app.config.get('GOOGLE_AUTH_SCOPES', [
+                'https://www.googleapis.com/auth/calendar.readonly',
+                'https://www.googleapis.com/auth/calendar.events.readonly'
+            ])
+        )
+        
+        # Set the redirect URI
+        flow.redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI', 'http://localhost:5000/profile/google-callback')
+        
+        # Generate authorization URL
+        authorization_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true'
+        )
+        
+        # Store state in session for security
+        from flask import session
+        session['google_oauth_state'] = state
+        
+        return redirect(authorization_url)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error initiating Google OAuth: {e}")
+        flash('Failed to initiate Google Calendar connection. Please try again.', 'error')
+        return redirect(url_for('profile.profile'))
+
+@bp.route('/google-callback')
+@login_required
+def google_callback():
+    """Handle Google OAuth callback"""
+    try:
+        # Get the authorization code from the request
+        code = request.args.get('code')
+        state = request.args.get('state')
+        
+        # Verify state parameter
+        from flask import session
+        if state != session.get('google_oauth_state'):
+            flash('Invalid OAuth state parameter. Please try again.', 'error')
+            return redirect(url_for('profile.profile'))
+        
+        # Clear the state from session
+        session.pop('google_oauth_state', None)
+        
+        if not code:
+            flash('Authorization code not received from Google.', 'error')
+            return redirect(url_for('profile.profile'))
+        
+        # Create OAuth flow
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": current_app.config['GOOGLE_CLIENT_ID'],
+                    "client_secret": current_app.config['GOOGLE_CLIENT_SECRET'],
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [current_app.config.get('GOOGLE_REDIRECT_URI', 'http://localhost:5000/profile/google-callback')]
+                }
+            },
+            scopes=current_app.config.get('GOOGLE_AUTH_SCOPES', [
+                'https://www.googleapis.com/auth/calendar.readonly',
+                'https://www.googleapis.com/auth/calendar.events.readonly'
+            ])
+        )
+        
+        # Set the redirect URI
+        flow.redirect_uri = current_app.config.get('GOOGLE_REDIRECT_URI', 'http://localhost:5000/profile/google-callback')
+        
+        # Exchange authorization code for tokens
+        flow.fetch_token(code=code)
+        
+        # Get credentials
+        credentials = flow.credentials
+        
+        # Test the connection by trying to access the user's calendar
+        try:
+            service = build('calendar', 'v3', credentials=credentials)
+            calendar_list = service.calendarList().list().execute()
+            
+            # Store the credentials (you might want to encrypt this in production)
+            current_user.google_calendar_token = credentials.to_json()
+            current_user.google_calendar_connected = True
+            db.session.commit()
+            
+            flash('Google Calendar connected successfully!', 'success')
+            
+        except HttpError as e:
+            current_app.logger.error(f"Google Calendar API error: {e}")
+            flash('Failed to access Google Calendar. Please check your permissions.', 'error')
+            
+    except Exception as e:
+        current_app.logger.error(f"Error in Google OAuth callback: {e}")
+        flash('Failed to complete Google Calendar connection. Please try again.', 'error')
+    
+    return redirect(url_for('profile.profile'))
+
+@bp.route('/google-calendars')
+@login_required
+def google_calendars():
+    """List user's Google Calendars"""
+    if not current_user.google_calendar_connected or not current_user.google_calendar_token:
+        flash('Google Calendar is not connected.', 'error')
+        return redirect(url_for('profile.profile'))
+    
+    try:
+        from google.oauth2.credentials import Credentials
+        
+        # Load credentials from stored token
+        credentials = Credentials.from_authorized_user_info(
+            json.loads(current_user.google_calendar_token)
+        )
+        
+        # Build the service
+        service = build('calendar', 'v3', credentials=credentials)
+        
+        # Get calendar list
+        calendar_list = service.calendarList().list().execute()
+        calendars = calendar_list.get('items', [])
+        
+        return render_template('profile/google_calendars.html', calendars=calendars)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching Google calendars: {e}")
+        flash('Failed to fetch Google calendars. Please try reconnecting.', 'error')
+        return redirect(url_for('profile.profile'))

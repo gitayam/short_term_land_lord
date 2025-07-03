@@ -179,7 +179,16 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6>Google Calendar</h6>
-                            <p class="text-muted mb-0">{{ 'Connected' if current_user.google_calendar_connected else 'Not Connected' }}</p>
+                            <p class="text-muted mb-0">
+                                {% if current_user.google_calendar_connected %}
+                                    <span class="text-success">✓ Connected</span>
+                                    {% if current_user.google_calendar_token %}
+                                    <br><small><a href="{{ url_for('profile.google_calendars') }}">View Calendars</a></small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">Not Connected</span>
+                                {% endif %}
+                            </p>
                         </div>
                         <form action="{{ url_for('profile.connect_service') }}" method="POST" class="d-inline">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
