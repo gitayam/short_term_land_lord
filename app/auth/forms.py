@@ -30,7 +30,7 @@ class PropertyRegistrationForm(FlaskForm):
     """Form for adding property details during registration"""
     property_name = StringField('Property Name', validators=[DataRequired()])
     property_address = StringField('Property Address', validators=[DataRequired()])
-    property_description = StringField('Property Description', widget=TextAreaField(), 
+    property_description = TextAreaField('Property Description', 
                                       validators=[Length(max=1000)])
     submit = SubmitField('Continue with Registration')
 
