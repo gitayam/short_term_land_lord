@@ -1136,7 +1136,7 @@ def can_edit_task(task, user):
         return True
     
     # Property owners can edit tasks for their properties
-    if user.is_property_owner():
+    if user.is_property_owner:
         # Get all properties owned by the user
         owned_property_ids = [p.id for p in user.properties]
         
@@ -1149,9 +1149,8 @@ def can_edit_task(task, user):
             if isinstance(task_property, int):
                 if task_property in owned_property_ids:
                     return True
-            elif hasattr(task_property, 'id'):
-                if task_property.id in owned_property_ids:
-                    return True
+            elif task_property.id in owned_property_ids:
+                return True
     
     return False
 
