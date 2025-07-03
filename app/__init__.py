@@ -106,8 +106,9 @@ def create_app(config_class=Config):
     def debug_routes():
         return list_routes()
 
-    from app.context_processors import admin_properties
+    from app.context_processors import admin_properties, user_theme
     app.context_processor(admin_properties)
+    app.context_processor(user_theme)
     
     # Fix PostgreSQL transactions if needed
     with app.app_context():

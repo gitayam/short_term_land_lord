@@ -102,7 +102,11 @@ def update_preferences():
         try:
             db.session.commit()
             flash('Preferences updated successfully!', 'success')
-            return jsonify({'status': 'success', 'message': 'Preferences updated successfully!'})
+            return jsonify({
+                'status': 'success', 
+                'message': 'Preferences updated successfully!',
+                'theme': current_user.theme_preference
+            })
         except Exception as e:
             db.session.rollback()
             flash('Error updating preferences. Please try again.', 'error')

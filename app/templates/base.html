@@ -7,10 +7,36 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+    /* Ensure dark mode works properly */
+    [data-bs-theme="dark"] {
+        color-scheme: dark;
+    }
+    
+    [data-bs-theme="light"] {
+        color-scheme: light;
+    }
+    
+    /* Force dark mode styles when system preference is dark */
+    @media (prefers-color-scheme: dark) {
+        [data-bs-theme="system"] {
+            color-scheme: dark;
+        }
+    }
+    
+    /* Force light mode styles when system preference is light */
+    @media (prefers-color-scheme: light) {
+        [data-bs-theme="system"] {
+            color-scheme: light;
+        }
+    }
+    </style>
+    
     {% block styles %}{% endblock %}
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<body data-bs-theme="{{ user_theme }}">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('main.index') }}">Property Management</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -129,6 +155,22 @@
 
     <script src="https://code.jquery.com/jquery-3.6.4.min.js" integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+    // Apply theme on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentTheme = '{{ user_theme }}';
+        if (currentTheme === 'system') {
+            // Check system preference
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.setAttribute('data-bs-theme', 'dark');
+            } else {
+                document.body.setAttribute('data-bs-theme', 'light');
+            }
+        }
+    });
+    </script>
+    
     {% block scripts %}{% endblock %}
 </body>
 </html>
