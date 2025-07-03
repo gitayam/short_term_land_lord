@@ -1,10 +1,30 @@
 import secrets
-from flask import Blueprint, jsonify, request, make_response, render_template
-from flask_login import current_user
+from flask import Blueprint, jsonify, request, make_response, render_template, current_app, flash, redirect, url_for
+from flask_login import current_user, login_required
 from app import db
 from app.models import Property, RecommendationBlock
+from app.utils.zillow_scraper import fetch_zillow_details
+import logging
+import flask
+
+# Set log level to DEBUG for troubleshooting
+flask.current_app = None  # Avoids issues if not in app context
+logging.basicConfig(level=logging.DEBUG)
 
 bp = Blueprint('property_routes', __name__)
+
+@bp.route('/property/<int:property_id>/view', methods=['GET'])
+@login_required
+def view_property(property_id):
+    """View property details."""
+    property = Property.query.get_or_404(property_id)
+    
+    # Check if user has permission to view this property
+    if not current_user.is_admin and property.owner_id != current_user.id:
+        flash('You do not have permission to view this property.', 'danger')
+        return redirect(url_for('main.index'))
+    
+    return render_template('property/view.html', property=property)
 
 @bp.route('/property/<token>/guide', methods=['GET'])
 def public_guide_book(token):
@@ -58,7 +78,7 @@ def toggle_staff_pick(recommendation_id):
     recommendation = RecommendationBlock.query.get_or_404(recommendation_id)
     
     # Verify the user owns this property or is an admin
-    if not current_user.has_admin_role and recommendation.associated_property.owner_id != current_user.id:
+    if not current_user.has_admin_role and recommendation.property.owner_id != current_user.id:
         return jsonify({'error': 'Unauthorized'}), 403
     
     recommendation.staff_pick = not recommendation.staff_pick
@@ -66,4 +86,22 @@ def toggle_staff_pick(recommendation_id):
     
     return jsonify({
         'staff_pick': recommendation.staff_pick
-    }) 
+    })
+
+@bp.route('/api/fetch_zillow', methods=['POST'])
+def fetch_zillow():
+    data = request.get_json()
+    current_app.logger.warning('DEBUG: /api/fetch_zillow request.get_json() = %s', data)
+    current_app.logger.error('DEBUG: /api/fetch_zillow request.get_json() = %s', data)
+    query = data.get('query', '').strip() if data else ''
+    current_app.logger.warning('DEBUG: /api/fetch_zillow query = %s', query)
+    current_app.logger.error('DEBUG: /api/fetch_zillow query = %s', query)
+    if not query:
+        return jsonify({'error': 'No address or URL provided.'}), 400
+    try:
+        details = fetch_zillow_details(query)
+        if not details:
+            return jsonify({'error': 'No data found for the given input.'}), 404
+        return jsonify(details)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500 

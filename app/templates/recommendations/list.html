@@ -73,7 +73,7 @@
                 {% endif %}
 
                 {% if recommendation.photo_path %}
-                <img src="{{ recommendation.get_photo_url() }}" class="card-img-top" alt="{{ recommendation.title }}" style="height: 200px; object-fit: cover;">
+                <img src="{{ recommendation.photo_url }}" class="card-img-top" alt="{{ recommendation.title }}" style="height: 200px; object-fit: cover;">
                 {% endif %}
 
                 <div class="card-body">

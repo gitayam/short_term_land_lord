@@ -126,8 +126,8 @@ def create():
                 title=form.title.data,
                 description=form.description.data,
                 due_date=form.due_date.data,
-                status=form.status.data,
-                priority=form.priority.data,
+                status=TaskStatus(form.status.data),
+                priority=TaskPriority(form.priority.data.lower()) if isinstance(form.priority.data, str) else form.priority.data,
                 notes=form.notes.data,
                 creator_id=current_user.id,
                 property_id=None,  # Explicitly set to None
@@ -137,7 +137,7 @@ def create():
             # Handle recurrence if enabled
             if form.is_recurring.data:
                 task.is_recurring = True
-                task.recurrence_pattern = form.recurrence_pattern.data
+                task.recurrence_pattern = form.recurrence_pattern.data.lower() if form.recurrence_pattern.data else "none"
                 task.recurrence_interval = form.recurrence_interval.data
                 task.recurrence_end_date = form.recurrence_end_date.data
             
@@ -245,7 +245,7 @@ def edit(id):
             task.description = form.description.data
             task.due_date = form.due_date.data
             task.status = TaskStatus(form.status.data)
-            task.priority = TaskPriority(form.priority.data)
+            task.priority = TaskPriority(form.priority.data.lower()) if isinstance(form.priority.data, str) else form.priority.data
             task.notes = form.notes.data
             task.is_recurring = form.is_recurring.data
             task.recurrence_pattern = RecurrencePattern(form.recurrence_pattern.data) if form.is_recurring.data else RecurrencePattern.NONE
@@ -686,7 +686,7 @@ def view_for_property(property_id):
     elif current_user.is_property_owner and property.owner_id == current_user.id:
         can_view = True
     # Service staff can view tasks for properties they have tasks for
-    elif current_user.is_service_staff():
+    elif current_user.is_service_staff:
         # Use aliases to avoid duplicate table errors
         from sqlalchemy.orm import aliased
         task_property_alias = aliased(TaskProperty)
@@ -718,7 +718,7 @@ def view_for_property(property_id):
     ).order_by(Task.due_date.asc(), Task.priority.desc()).all()
     
     # If service staff, filter to only show their assigned tasks
-    if current_user.is_service_staff():
+    if current_user.is_service_staff:
         service_staff_tasks = []
         for task in tasks:
             # Check if current user is assigned to this task
@@ -999,6 +999,12 @@ def repair_requests():
                           TaskPriority=TaskPriority)
 
 
+@bp.route('/repair-request', methods=['GET', 'POST'])
+@login_required
+def repair_request_form():
+    """Create a new repair request (alternative route for compatibility)."""
+    return create_repair_request()
+
 @bp.route('/repair_requests/create', methods=['GET', 'POST'])
 @login_required
 def create_repair_request():
@@ -1030,11 +1036,12 @@ def create_repair_request():
                 description=form.description.data,
                 location=form.location.data,
                 status=TaskStatus.PENDING,
-                priority=form.priority.data,
+                priority=TaskPriority(form.priority.data.lower()) if isinstance(form.priority.data, str) else form.priority.data,
                 due_date=form.due_date.data,
                 notes=form.additional_notes.data,
                 creator_id=current_user.id,
-                tags='repair_request'
+                tags='repair_request',
+                recurrence_pattern='none'
             )
             
             # Add task property
@@ -1136,7 +1143,7 @@ def can_edit_task(task, user):
         return True
     
     # Property owners can edit tasks for their properties
-    if user.is_property_owner():
+    if user.is_property_owner:
         # Get all properties owned by the user
         owned_property_ids = [p.id for p in user.properties]
         
@@ -1149,9 +1156,8 @@ def can_edit_task(task, user):
             if isinstance(task_property, int):
                 if task_property in owned_property_ids:
                     return True
-            elif hasattr(task_property, 'id'):
-                if task_property.id in owned_property_ids:
-                    return True
+            elif task_property.id in owned_property_ids:
+                return True
     
     return False
 
@@ -1407,7 +1413,7 @@ def apply_template(template_id):
             title=form.title.data,
             description=form.description.data,
             due_date=form.due_date.data,
-            priority=form.priority.data,
+            priority=TaskPriority(form.priority.data.lower()) if isinstance(form.priority.data, str) else form.priority.data,
             status=TaskStatus.PENDING,
             creator_id=current_user.id
         )
@@ -1415,7 +1421,7 @@ def apply_template(template_id):
         # Handle recurrence if enabled
         if form.is_recurring.data:
             task.is_recurring = True
-            task.recurrence_pattern = form.recurrence_pattern.data
+            task.recurrence_pattern = form.recurrence_pattern.data.lower() if form.recurrence_pattern.data else "none"
             task.recurrence_interval = form.recurrence_interval.data
             task.recurrence_end_date = form.recurrence_end_date.data
         
@@ -1492,8 +1498,8 @@ def create_task_for_property(property_id):
             title=form.title.data,
             description=form.description.data,
             due_date=form.due_date.data,
-            status=form.status.data,
-            priority=form.priority.data,
+            status=TaskStatus(form.status.data),
+            priority=TaskPriority(form.priority.data.lower()) if isinstance(form.priority.data, str) else form.priority.data,
             notes=form.notes.data,
             creator_id=current_user.id,
             assign_to_next_cleaner=form.assign_to_next_cleaner.data,
@@ -1503,7 +1509,7 @@ def create_task_for_property(property_id):
         # Handle recurrence if enabled
         if form.is_recurring.data:
             task.is_recurring = True
-            task.recurrence_pattern = form.recurrence_pattern.data
+            task.recurrence_pattern = form.recurrence_pattern.data.lower() if form.recurrence_pattern.data else "none"
             task.recurrence_interval = form.recurrence_interval.data
             task.recurrence_end_date = form.recurrence_end_date.data
         
@@ -1601,8 +1607,8 @@ def create_workorder():
         task = Task(
             title=form.title.data,
             description=form.description.data,
-            status=form.status.data,
-            priority=form.priority.data,
+            status=TaskStatus(form.status.data),
+            priority=TaskPriority(form.priority.data.lower()) if isinstance(form.priority.data, str) else form.priority.data,
             due_date=form.due_date.data,
             creator_id=current_user.id,
             notes=form.notes.data,

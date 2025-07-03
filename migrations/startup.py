@@ -276,6 +276,33 @@ def init_site_settings():
         db.session.add_all(settings)
         db.session.commit()
 
+def ensure_user_notification_preferences():
+    from app import db
+    from app.models import User
+    users = User.query.all()
+    updated = 0
+    for user in users:
+        changed = False
+        if user.email_notifications is None:
+            user.email_notifications = True
+            changed = True
+        if user.sms_notifications is None:
+            user.sms_notifications = True
+            changed = True
+        if user.in_app_notifications is None:
+            user.in_app_notifications = True
+            changed = True
+        if user.notification_frequency is None:
+            user.notification_frequency = 'immediate'
+            changed = True
+        if changed:
+            updated += 1
+    if updated > 0:
+        db.session.commit()
+        print(f"Updated notification preferences for {updated} users.")
+    else:
+        print("All users already have notification preferences set.")
+
 def main():
     """Main function that gets called when this script is run directly"""
     logger.info("Starting database initialization and fixes...")
@@ -475,6 +502,9 @@ def main():
                     logger.error(f"Error fixing site settings: {e}")
             except Exception as e:
                 logger.error(f"Error running additional database fixes: {e}")
+        
+        # Call this function during migration
+        ensure_user_notification_preferences()
         
         logger.info("All database fixes completed. System is ready.")
     except Exception as e:

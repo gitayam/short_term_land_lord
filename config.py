@@ -57,7 +57,19 @@ class Config:
     RCLONE_PATH = os.environ.get('RCLONE_PATH')
     
     # Media upload limits
-    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH') or 50 * 1024 * 1024)  # 50MB default
+    try:
+        # Try to get MAX_CONTENT_LENGTH from environment
+        max_content_env = os.environ.get('MAX_CONTENT_LENGTH')
+        if max_content_env:
+            # Strip any comments or extra text
+            max_content_env = max_content_env.split('#')[0].strip()
+            MAX_CONTENT_LENGTH = int(max_content_env)
+        else:
+            # Default: 50MB
+            MAX_CONTENT_LENGTH = 50 * 1024 * 1024
+    except (ValueError, TypeError):
+        # Fallback to default if conversion fails
+        MAX_CONTENT_LENGTH = 50 * 1024 * 1024
     ALLOWED_PHOTO_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
     ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'mov', 'avi', 'webm'}
     
@@ -66,11 +78,23 @@ class Config:
     REQUIRE_CLEANING_VIDEOS = False
 
 class TestConfig(Config):
+    """Test configuration"""
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
     NOTIFICATION_EMAIL_ENABLED = False
     NOTIFICATION_SMS_ENABLED = False
-    # Force the User model to use 'user' in tests
-    USER_TABLE_NAME = 'user'
-    SERVER_NAME = 'localhost:5000'  # Add SERVER_NAME for URL generation in tests
+    USER_TABLE_NAME = 'user'  # For testing with the legacy schema
+    
+    # Use a test server name for URL generation in tests
+    SERVER_NAME = 'localhost:5000'
+    
+    # File upload configuration for tests
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    
+    @classmethod
+    def init_app(cls, app):
+        # Make sure the test database is clean
+        with app.app_context():
+            db.create_all()

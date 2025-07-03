@@ -9,6 +9,16 @@
                     <h4 class="mb-0">Request to Join</h4>
                 </div>
                 <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
                     <p class="lead mb-4">Complete this form to request an account. Your request will be reviewed by an administrator.</p>
                     
                     {% if form.role.data == 'property_owner' %}

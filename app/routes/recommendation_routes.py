@@ -228,7 +228,8 @@ def create_recommendation(property_id):
             recommended_meal=form.recommended_meal.data,
             wifi_name=form.wifi_name.data,
             wifi_password=form.wifi_password.data,
-            parking_details=form.parking_details.data
+            parking_details=form.parking_details.data,
+            hours=form.hours.data
         )
         
         # Add to selected guide books
@@ -259,7 +260,8 @@ def create_recommendation(property_id):
 @login_required
 def edit_recommendation(id):
     recommendation = RecommendationBlock.query.get_or_404(id)
-    if not can_manage_recommendations(recommendation.associated_property):
+    property = Property.query.get_or_404(recommendation.property_id)
+    if not can_manage_recommendations(property):
         flash('You do not have permission to edit this recommendation.', 'error')
         return redirect(url_for('main.index'))
     
@@ -280,6 +282,7 @@ def edit_recommendation(id):
             recommendation.wifi_name = form.wifi_name.data
             recommendation.wifi_password = form.wifi_password.data
             recommendation.parking_details = form.parking_details.data
+            recommendation.hours = form.hours.data
             
             # Update guide books
             recommendation.guide_books = []
@@ -313,7 +316,8 @@ def edit_recommendation(id):
 @login_required
 def delete_recommendation(id):
     recommendation = RecommendationBlock.query.get_or_404(id)
-    if not can_manage_recommendations(recommendation.associated_property):
+    property = Property.query.get_or_404(recommendation.property_id)
+    if not can_manage_recommendations(property):
         flash('You do not have permission to delete this recommendation.', 'error')
         return redirect(url_for('main.index'))
     

@@ -48,9 +48,11 @@
                             {{ local_form.submit(class="btn btn-primary") }}
                         </div>
                         
+                        {% if config.get('ENABLE_PASSWORD_RESET', False) %}
                         <div class="text-center mt-3">
                             <a href="{{ url_for('auth.reset_password_request') }}">Forgot your password?</a>
                         </div>
+                        {% endif %}
                     </form>
                     {% endif %}
                     

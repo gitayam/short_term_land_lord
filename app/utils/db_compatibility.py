@@ -11,8 +11,16 @@ from flask import current_app
 from app import db
 
 def get_user_table_name():
-    """Return the user table name - always 'users' now"""
-    return 'users'
+    """Return the user table name based on database dialect"""
+    from app import db
+    dialect = db.engine.dialect.name
+    return 'users' if dialect == 'postgresql' else 'user'
+
+def get_user_fk_target():
+    """Return the foreign key target for User model based on database dialect"""
+    from app import db
+    dialect = db.engine.dialect.name
+    return 'users.id' if dialect == 'postgresql' else 'user.id'
 
 def search_users(search_term, limit=10):
     """
@@ -20,12 +28,16 @@ def search_users(search_term, limit=10):
     This function searches for users by name, email, or username.
     
     Args:
-        search_term: The search term to look for
+        search_term: The search term to look for. If empty or None, returns an empty list.
         limit: Maximum number of results to return
         
     Returns:
         List of user dictionaries
     """
+    # Return empty list for empty or None search terms
+    if not search_term:
+        return []
+        
     # Always use 'users' table 
     table_name = 'users'
     
@@ -77,12 +89,22 @@ def search_users(search_term, limit=10):
             
             users.append(user_dict)
         
-        # Debug log
-        current_app.logger.debug(f"Found {len(users)} users for search term: {search_term}")
-        
+        # Debug log - handle case where current_app might be None
+        try:
+            if current_app:
+                current_app.logger.debug(f"Found {len(users)} users for search term: {search_term}")
+        except:
+            # If we can't log, just continue
+            pass
+
         return users
     except Exception as e:
-        current_app.logger.error(f"Error searching users: {e}")
+        try:
+            if current_app:
+                current_app.logger.error(f"Error searching users: {e}")
+        except:
+            # If we can't log the error, just continue
+            pass
         return []
 
 def get_user_by_id(user_id):

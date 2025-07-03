@@ -248,8 +248,12 @@ def invite_worker():
                     delivery_status['sms'] = True
                     current_app.logger.info(f"SMS sent successfully to {full_phone}")
                 else:
-                    error_messages.append(f'SMS delivery failed: {error}')
-                    current_app.logger.error(f"SMS delivery failed: {error}")
+                    # Only show SMS errors as warnings, not critical errors
+                    if "SMS disabled" in error:
+                        current_app.logger.info(f"SMS not sent: {error}")
+                    else:
+                        error_messages.append(f'SMS delivery failed: {error}')
+                        current_app.logger.error(f"SMS delivery failed: {error}")
             except Exception as e:
                 error_msg = f'SMS delivery failed: {str(e)}'
                 error_messages.append(error_msg)

@@ -152,6 +152,11 @@ class RepairRequestForm(FlaskForm):
         for priority in TaskPriority
     ], validators=[DataRequired()])
     
+    severity = SelectField('Severity', choices=[
+        (severity.value, severity.name.replace('_', ' ').title())
+        for severity in RepairRequestSeverity
+    ], validators=[DataRequired()])
+    
     due_date = DateField('Due Date', validators=[Optional()])
     
     additional_notes = TextAreaField('Additional Notes', validators=[

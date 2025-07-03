@@ -6,7 +6,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app import db, login_manager
 from sqlalchemy import text
-from flask import url_for
+from flask import url_for, current_app
+import uuid
+import random
 
 # Add this function back - needed by invoicing module
 def get_user_fk_target():
@@ -165,6 +167,7 @@ class NotificationType(enum.Enum):
     TASK_COMPLETED = "task_completed"
     INVENTORY_LOW = "inventory_low"
     REPAIR_REQUEST = "repair_request"
+    INVITATION = "invitation"
 
 class NotificationChannel(enum.Enum):
     EMAIL = "email"
@@ -334,7 +337,6 @@ class User(UserMixin, db.Model):
     
     def check_password(self, password):
         # Add debug logging for password checks
-        from flask import current_app
         
         if self.password_hash is None:
             current_app.logger.warning(f"User {self.email} has no password hash set")
@@ -497,6 +499,21 @@ class User(UserMixin, db.Model):
     def is_active(self):
         """Override UserMixin's is_active to check suspension status"""
         return not self.is_suspended
+    
+    @property
+    def visible_properties(self):
+        """Get properties that this user can see/manage"""
+        if self.has_admin_role:
+            return Property.query.all()
+        elif self.is_property_owner:
+            return self.properties.all()
+        elif self.is_property_manager:
+            # Property managers can see properties they're assigned to
+            # This would need to be implemented based on your business logic
+            return Property.query.all()  # For now, return all properties
+        else:
+            # Service staff and other roles
+            return []
 
 class Property(db.Model):
     """
@@ -593,6 +610,9 @@ class Property(db.Model):
     # Guide book token
     guide_book_token = db.Column(db.String(64), unique=True)
     
+    # New: Color theme for property
+    color = db.Column(db.String(16), nullable=True, default=None)
+    
     # Relationships
     owner = db.relationship('User', foreign_keys=[owner_id], backref=db.backref('owned_properties', overlaps="owner_user,properties"), overlaps="owner_user,properties")
     property_tasks = db.relationship('Task', backref='property')
@@ -600,6 +620,7 @@ class Property(db.Model):
     images = db.relationship('PropertyImage', backref='property')
     rooms = db.relationship('Room', backref='property', lazy='dynamic')
     calendars = db.relationship('PropertyCalendar', backref='property')
+    bookings = db.relationship('Booking', backref='property', lazy=True, cascade='all, delete-orphan')
     
     @property
     def tasks(self):
@@ -709,6 +730,19 @@ class Property(db.Model):
         else:
             # Return a default image if no images exist
             return "/static/img/default-property.jpg"
+
+    def assign_random_color(self):
+        """Assign a random unused color from a palette if not set."""
+        if self.color:
+            return
+        palette = [
+            '#008489', '#FF5A5F', '#3D67FF', '#34C759', '#F7B32B',
+            '#8E8E93', '#767676', '#FF8C42', '#6A4C93', '#00B894',
+            '#00BFFF', '#FF6F61', '#FFB347', '#B2BABB', '#A569BD'
+        ]
+        used_colors = set([p.color for p in Property.query.filter(Property.color.isnot(None)).all()])
+        available = [c for c in palette if c not in used_colors]
+        self.color = random.choice(available) if available else random.choice(palette)
 
 class PropertyImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -905,7 +939,7 @@ class Task(db.Model):
     
     # Add recurring task fields
     is_recurring = db.Column(db.Boolean, default=False)
-    recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE)
+    recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE.value)
     recurrence_interval = db.Column(db.Integer, default=1)
     recurrence_end_date = db.Column(db.DateTime, nullable=True)
     
@@ -920,6 +954,9 @@ class Task(db.Model):
     # Fields for repair requests
     location = db.Column(db.String(255), nullable=True)  # Location within property
     severity = db.Column(db.String(50), nullable=True)  # Severity level for repair requests
+    
+    # Photo paths for tasks (stored as JSON string)
+    photo_paths = db.Column(db.Text, nullable=True)  # JSON array of photo paths
     
     # Relationships - use task_creator backref instead of creator
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic')
@@ -987,6 +1024,26 @@ class Task(db.Model):
         if not self.severity:
             return None
         return self.severity.replace('_', ' ').title()
+    
+    @property
+    def photo_paths_list(self):
+        """Get photo paths as a list"""
+        if not self.photo_paths:
+            return []
+        try:
+            import json
+            return json.loads(self.photo_paths)
+        except (json.JSONDecodeError, TypeError):
+            return []
+    
+    @photo_paths_list.setter
+    def photo_paths_list(self, paths):
+        """Set photo paths from a list"""
+        if paths:
+            import json
+            self.photo_paths = json.dumps(paths)
+        else:
+            self.photo_paths = None
 
 class TaskAssignment(db.Model):
     __tablename__ = 'task_assignment'
@@ -1061,12 +1118,8 @@ class CleaningSession(db.Model):
             cleaner_name = self.assigned_cleaner.get_full_name()
         else:
             cleaner_name = f"User #{self.cleaner_id}"
-            
-        if hasattr(self, 'associated_property') and self.associated_property:
-            property_name = self.associated_property.name
-        else:
-            property_name = f"Property #{self.property_id}"
-            
+        
+        property_name = f"Property #{self.property_id}"
         return f'<CleaningSession {self.id} by {cleaner_name} at {property_name}>'
     
     def complete(self):
@@ -1208,7 +1261,6 @@ class RepairRequest(db.Model):
     
     # Relationships
     reporter = db.relationship('User', foreign_keys=[reporter_id], backref='reported_repairs')
-    associated_property = db.relationship('Property', foreign_keys=[property_id], backref='repair_requests')
     associated_task = db.relationship('Task', foreign_keys=[task_id], backref='repair_request', uselist=False)
     
     def __repr__(self):
@@ -1508,7 +1560,6 @@ def load_user(id):
         # Fallback to ORM query
         return User.query.get(int(id))
     except Exception as e:
-        from flask import current_app
         current_app.logger.error(f"Error loading user: {e}")
         return None
 
@@ -1538,7 +1589,7 @@ class TaskTemplate(db.Model):
     description = db.Column(db.Text, nullable=True)
     priority = db.Column(db.Enum(TaskPriority), default=TaskPriority.MEDIUM)
     service_type = db.Column(db.Enum(ServiceType), default=ServiceType.CLEANING)
-    recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE)
+    recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE.value)
     recurrence_interval = db.Column(db.Integer, default=1)  # How many days/weeks/months between recurrences
     is_global = db.Column(db.Boolean, default=False)  # Whether this template is available to all users
     sequence_number = db.Column(db.Integer, default=0)  # For ordering templates
@@ -1610,6 +1661,7 @@ class RecommendationBlock(db.Model):
     wifi_name = db.Column(db.String(255), nullable=True)  # WiFi network name (SSID)
     wifi_password = db.Column(db.String(255), nullable=True)  # WiFi password if available
     parking_details = db.Column(db.Text, nullable=True)  # Parking information
+    hours = db.Column(db.String(255), nullable=True)  # Operating hours
     in_guide_book = db.Column(db.Boolean, default=False)  # Whether this recommendation is in the guide book
     photo_path = db.Column(db.String(500), nullable=True)
     staff_pick = db.Column(db.Boolean, default=False)  # Whether this is marked as a staff pick
@@ -1617,7 +1669,7 @@ class RecommendationBlock(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships - rename property to associated_property
-    associated_property = db.relationship('Property', backref='recommendations')
+    # associated_property = db.relationship('Property', backref='recommendations')
     
     def __repr__(self):
         return f'<RecommendationBlock {self.title} for Property {self.property_id}>'
@@ -1682,7 +1734,7 @@ class GuideBook(db.Model):
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     
     # Relationships
-    associated_property = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
+    # associated_property = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
     recommendations = db.relationship('RecommendationBlock', 
                                    secondary='guide_book_recommendations',
                                    backref=db.backref('guide_books', lazy=True))
@@ -1713,3 +1765,107 @@ guide_book_recommendations = db.Table('guide_book_recommendations',
     db.Column('recommendation_id', db.Integer, db.ForeignKey('recommendation_blocks.id'), primary_key=True),
     db.Column('created_at', db.DateTime, default=datetime.utcnow)
 )
+
+class Booking(db.Model):
+    """Model for property bookings/calendar events."""
+    __tablename__ = 'booking'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    calendar_id = db.Column(db.Integer, db.ForeignKey('property_calendar.id'), nullable=False)
+    external_id = db.Column(db.String(255))  # ID from external calendar if available
+    title = db.Column(db.String(255), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    guest_name = db.Column(db.String(255))
+    guest_phone = db.Column(db.String(50))
+    amount = db.Column(db.Numeric(10, 2))
+    status = db.Column(db.String(50), default='Confirmed')
+    source_url = db.Column(db.String(500))
+    notes = db.Column(db.Text)
+    room_name = db.Column(db.String(255))
+    is_entire_property = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_synced = db.Column(db.DateTime)
+    
+    # Relationships - REMOVE associated_property and property_bookings
+    # associated_property = db.relationship('Property', backref=db.backref('property_bookings', lazy=True))
+    calendar = db.relationship('PropertyCalendar', backref=db.backref('calendar_bookings', lazy=True))
+    tasks = db.relationship('BookingTask', backref='parent_booking', lazy=True, cascade='all, delete-orphan')
+
+    def to_dict(self):
+        """Convert booking to dictionary for calendar display."""
+        # Ensure start_date is not None
+        if self.start_date is None:
+            current_app.logger.warning(f"Booking {self.id} has no start_date, falling back to end_date")
+            # Fall back to end_date if start_date is missing
+            if self.end_date is None:
+                current_app.logger.error(f"Booking {self.id} has neither start_date nor end_date")
+                return None  # Skip this booking
+            self.start_date = self.end_date
+            
+        # Ensure end_date is not None
+        if self.end_date is None:
+            current_app.logger.warning(f"Booking {self.id} has no end_date, using start_date + 1 day")
+            self.end_date = self.start_date
+            
+        # Format as YYYY-MM-DD strings for FullCalendar
+        start_str = self.start_date.strftime('%Y-%m-%d')
+        # FullCalendar uses exclusive end dates, so add 1 day
+        end_str = (self.end_date + timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        event_dict = {
+            'id': self.id,
+            'title': self.title,
+            'start': start_str,
+            'end': end_str,
+            'allDay': True,  # Important for proper rendering
+            'resourceId': str(self.property_id),
+            'className': f'{self.calendar.service.lower()}-event',
+            'extendedProps': {
+                'property_name': self.property.name,
+                'property_id': self.property_id,
+                'service': self.calendar.get_service_display(),
+                'room': None if self.is_entire_property else self.room_name,
+                'guest_name': self.guest_name,
+                'amount': float(self.amount) if self.amount else None,
+                'source_url': self.source_url,
+                'status': self.status,
+                'notes': self.notes,
+                'phone': self.guest_phone
+            }
+        }
+        
+        return event_dict
+
+class BookingTask(db.Model):
+    """Model for tasks associated with bookings."""
+    __tablename__ = 'booking_task'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    booking_id = db.Column(db.Integer, db.ForeignKey('booking.id'), nullable=False)
+    assigned_to_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # Fix: Change 'user.id' to 'users.id'
+    task_type = db.Column(db.String(50), nullable=False)  # e.g., 'cleaning', 'maintenance', 'check-in'
+    status = db.Column(db.String(50), default='pending')  # pending, in_progress, completed, cancelled
+    due_date = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships - fix backref names
+    assigned_to = db.relationship('User', backref=db.backref('assigned_booking_tasks', lazy=True))
+
+    def to_dict(self):
+        """Convert task to dictionary for display."""
+        return {
+            'id': self.id,
+            'booking_id': self.booking_id,
+            'task_type': self.task_type,
+            'status': self.status,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'assigned_to': self.assigned_to.get_full_name() if self.assigned_to else None,
+            'notes': self.notes
+        }

@@ -116,32 +116,32 @@ class TestUserModel(unittest.TestCase):
     def test_user_roles(self):
         """Test role verification methods."""
         # Owner checks
-        self.assertTrue(self.owner.is_property_owner())
-        self.assertFalse(self.owner.is_service_staff())
+        self.assertTrue(self.owner.is_property_owner)
+        self.assertFalse(self.owner.is_service_staff)
         self.assertFalse(self.owner.is_property_manager)
         self.assertFalse(self.owner.is_admin)
         
         # Staff checks
-        self.assertFalse(self.staff.is_property_owner())
-        self.assertTrue(self.staff.is_service_staff())
+        self.assertFalse(self.staff.is_property_owner)
+        self.assertTrue(self.staff.is_service_staff)
         self.assertFalse(self.staff.is_property_manager)
         self.assertFalse(self.staff.is_admin)
         
         # Manager checks
-        self.assertFalse(self.manager.is_property_owner())
-        self.assertFalse(self.manager.is_service_staff())
+        self.assertFalse(self.manager.is_property_owner)
+        self.assertFalse(self.manager.is_service_staff)
         self.assertTrue(self.manager.is_property_manager)
         self.assertFalse(self.manager.is_admin)
         
         # Admin checks
-        self.assertFalse(self.admin.is_property_owner())
-        self.assertFalse(self.admin.is_service_staff())
+        self.assertFalse(self.admin.is_property_owner)
+        self.assertFalse(self.admin.is_service_staff)
         self.assertFalse(self.admin.is_property_manager)
         self.assertTrue(self.admin.is_admin)
     
     def test_legacy_methods(self):
         """Test legacy compatibility methods."""
-        self.assertTrue(self.staff.is_cleaner())
+        self.assertTrue(self.staff.is_cleaner)
         self.assertTrue(self.staff.is_maintenance)
     
     def test_can_complete_task(self):

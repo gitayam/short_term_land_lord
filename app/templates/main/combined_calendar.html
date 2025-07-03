@@ -2,8 +2,9 @@
 
 {% block styles %}
 {{ super() }}
-{# Use FullCalendar v6 which includes scheduler features #}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css">
+{# Use FullCalendar v5 with scheduler #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+
 <style>
     body {
         background-color: #f8f9fa; /* Light background */
@@ -18,11 +19,14 @@
         border-radius: 8px;
         padding: 20px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        width: 100vw;
+        max-width: 100vw;
+        min-width: 95vw;
     }
 
     /* FullCalendar Timeline Customizations */
     .fc {
-        max-width: 100%; /* Allow calendar to use full width */
+        max-width: 100vw;
     }
 
     /* Header Toolbar Styling */
@@ -61,28 +65,24 @@
     }
 
     /* Resource Area (Left Property List) Styling */
-    .fc .fc-resource-area-header { /* Target the 'Properties' header */
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-        font-weight: 600;
-        color: #495057;
-        padding: 0.75em 0.5em;
+    .fc .fc-resource-area-header, .fc .fc-resource-timeline-divider, .fc .fc-resource-area-cushion {
+        display: none !important;
     }
     
-    .fc .fc-resource-area-header .fc-scrollgrid-shrink-cushion {
-        font-size: 1em; /* Ensure header text size is appropriate */
-        line-height: 1.5;
+    .fc .fc-timeline-lane-frame {
+        border-left: none !important;
+        margin-left: 0 !important;
+        padding-left: 0 !important;
     }
 
-
-    .fc .fc-datagrid-cell-main { /* Resource Title (Property Name) */
-        font-weight: 500;
-        font-size: 0.9em;
-        color: #343a40;
+    .fc .fc-timeline-header-row-0 {
+        display: none !important;
     }
-    
-    .fc .fc-datagrid-cell { /* Resource Row */
-        border-bottom: 1px solid #eee; /* Lighter line between properties */
+
+    .fc .fc-col-header, .fc .fc-timeline-header {
+        display: table-header-group !important;
+        background: #f8f9fa;
+        z-index: 2;
     }
 
     /* Timeline Area Styling */
@@ -150,37 +150,128 @@
 
     /* Adjusting height - remove fixed height if content should dictate */
     #calendar {
-        min-height: 600px; /* Ensure a minimum height */
-        height: auto; /* Adjust height based on number of resources */
+        width: 98vw;
+        min-width: 95vw;
+        max-width: 100vw;
+        margin: 0 auto;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        height: 100%;
     }
     
-    /* Add simple top navigation like the image */
-    .top-nav {
-        background-color: #fff;
-        padding: 10px 20px;
-        border-bottom: 1px solid #dee2e6;
+    /* Timeline styles */
+    .fc-timeline-slot {
+        border: 1px solid #f0f0f0;
+    }
+    .fc-timeline-slot-minor {
+        border-style: dotted;
+    }
+    
+    /* Highlight for selected resource */
+    .fc-resource-cell.highlighted {
+        background-color: rgba(66, 139, 202, 0.15) !important;
+        font-weight: bold;
+    }
+    
+    /* Sidebar active state */
+    .property-list-item.active {
+        background-color: rgba(66, 139, 202, 0.15);
+        border-left: 3px solid #007bff;
+    }
+
+    /* Hide the sidebar property list for now */
+    .sidebar-property-list { display: none !important; }
+
+    .property-color-dot {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    .event-content {
         display: flex;
         align-items: center;
-        gap: 20px;
+        gap: 8px;
+        padding: 0 8px;
+        border-radius: 20px;
+        color: #fff;
+        min-width: 120px;
+        font-size: 1em;
+        font-weight: 500;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
     }
-    .top-nav-brand {
-        font-weight: bold;
-        color: #FF5A5F; /* Example Airbnb-like color */
-        font-size: 1.5em;
+    .event-title {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-    .top-nav-links a {
-        text-decoration: none;
-        color: #495057;
-        padding: 8px 12px;
-        border-radius: 4px;
+    .status-pill {
+        background: #fff;
+        color: #222;
+        border-radius: 10px;
+        padding: 1px 8px;
+        font-size: 0.8em;
+        font-weight: 600;
+        display: inline-block;
+        white-space: nowrap;
+        margin-left: 4px;
     }
-    .top-nav-links a.active {
-        font-weight: bold;
-        color: #000;
-        border-bottom: 2px solid #000;
+    .checkout-date {
+        font-size: 0.8em;
+        font-weight: 600;
+        background: #fff;
+        color: #222;
+        border-radius: 10px;
+        padding: 1px 8px;
+        margin-left: 4px;
     }
-    .top-nav-links a:hover {
-        background-color: #f8f9fa;
+    .fc-event-content, .event-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+    }
+    .fc-event-content .event-title, .event-content .event-title {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .fc-event-content .status-pill, .event-content .status-pill {
+        background: #fff;
+        color: #222;
+        border-radius: 10px;
+        padding: 1px 8px;
+        font-size: 0.8em;
+        font-weight: 600;
+        display: inline-block;
+        white-space: nowrap;
+        margin-left: 4px;
+    }
+    .fc-event-content .checkout-date, .event-content .checkout-date {
+        font-size: 0.8em;
+        font-weight: 600;
+        background: #fff;
+        color: #222;
+        border-radius: 10px;
+        padding: 1px 8px;
+        margin-left: 4px;
+    }
+    .fc-timeline-event, .fc-event {
+        border-radius: 20px !important;
+        font-size: 1em !important;
+        font-weight: 500;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        border: none !important;
+        display: flex;
+        align-items: center;
+        min-width: 120px;
+        position: relative;
+        background: var(--event-bg, #008489) !important;
+        color: #fff !important;
+        padding: 6px 16px !important;
+        gap: 8px;
     }
 </style>
 {% endblock %}
@@ -188,19 +279,39 @@
 {% block content %}
 {# Simple top navigation bar like the image #}
 <nav class="top-nav">
-    <div class="top-nav-brand">Abnb</div> {# Placeholder brand name #}
+    <div class="top-nav-brand">OpenBnB</div> {# Placeholder brand name #}
     <div class="top-nav-links">
         <a href="#">Today</a>
         <a href="#" class="active">Calendar</a>
-        <a href="#">Listings</a>
+        <a href="#">Tasks</a>
+        <a href="#">Work Orders</a>
         <a href="#">Messages</a>
         {# Add more links as needed #}
     </div>
 </nav>
 
-<div class="container-fluid"> {# Use container-fluid for better width utilization #}
+<div class="container-fluid">
     <div class="row">
-        <div class="col-12">
+        <!-- Sidebar: Property List -->
+        <div class="col-3 sidebar-property-list" style="background:#fff; border-right:1px solid #eee; min-height:700px; padding:0;">
+            <div class="p-3 border-bottom">
+                <input type="text" class="form-control" id="propertySearch" placeholder="Search listings...">
+            </div>
+            <div id="propertyList" class="list-group list-group-flush">
+                {% for resource in resources %}
+                <a href="#" class="list-group-item list-group-item-action d-flex align-items-center property-list-item" data-resource-id="{{ resource.id }}">
+                    <span class="property-color-dot" style="background: {{ resource.color }};"></span>
+                    <img src="{{ resource.image_url }}" alt="{{ resource.title }}" class="rounded me-2" style="width:40px; height:40px; object-fit:cover;">
+                    <div>
+                        <div class="fw-bold">{{ resource.title }}</div>
+                        <div class="text-muted small">{{ resource.city }}, {{ resource.state }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        <!-- Main Calendar Area -->
+        <div class="col-9">
             <div class="calendar-container">
                 <div id="calendar"></div>
             </div>
@@ -208,7 +319,7 @@
     </div>
 </div>
 
-<!-- Event Detail Modal (Optional - keep if needed, simplify if not) -->
+<!-- Event Details Modal -->
 <div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -217,14 +328,27 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p><strong>Property:</strong> <span id="modalPropertyName"></span></p>
-                <p><strong>Guest/Summary:</strong> <span id="modalTitle"></span></p>
-                <p><strong>Dates:</strong> <span id="modalDates"></span></p>
-                <p><strong>Source:</strong> <span id="modalSource"></span></p>
-                <!-- Add more details if needed -->
+                <div class="mb-3">
+                    <label class="fw-bold">Property:</label>
+                    <span id="property-name"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Guest:</label>
+                    <span id="guest-summary"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Dates:</label>
+                    <span id="date-range"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Source:</label>
+                    <span id="source"></span>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a id="assign-task-btn" href="#" class="btn btn-primary">Assign Task</a>
+                <a id="repair-request-btn" href="#" class="btn btn-warning">Repair Request</a>
             </div>
         </div>
     </div>
@@ -234,148 +358,158 @@
 
 {% block scripts %}
 {{ super() }}
-{# Include all required FullCalendar packages #}
-<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/index.global.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/resource-common@6.1.10/index.global.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.10/index.global.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.10/index.global.min.js'></script>
+{# Include FullCalendar v5 with scheduler #}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@5.11.3/main.min.js"></script>
 {# Include Bootstrap JS for modal #}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+var resources = {{ resources|tojson|safe }};
+var rawEvents = {{ events|tojson|safe }};
+
 document.addEventListener('DOMContentLoaded', function() {
+    var uniqueEvents = {};
+    var deduplicatedEvents = [];
+    rawEvents.forEach(function(event) {
+        if (!event || !event.start) return;
+        if (!event.resourceId && event.extendedProps && event.extendedProps.property_id) {
+            event.resourceId = String(event.extendedProps.property_id);
+        }
+        var uniqueId = event.external_id || event.id;
+        if (!uniqueEvents[uniqueId]) {
+            uniqueEvents[uniqueId] = event;
+            deduplicatedEvents.push(event);
+        }
+    });
+
     var calendarEl = document.getElementById('calendar');
-    
-    // Add debug logging for incoming data
-    console.log('Resources:', {{ resources|tojson|safe }});
-    console.log('Events:', {{ events|tojson|safe }});
-    
-    try {
-        var resources = {{ resources|tojson|safe }};
-        var events = {{ events|tojson|safe }};
-        
-        // --- Input Validation ---
-        if (!calendarEl) {
-            throw new Error("Calendar container element '#calendar' not found.");
-        }
-        if (!Array.isArray(resources)) {
-            console.warn("Resources data is not a valid array:", resources);
-            resources = [];
-        }
-        if (!Array.isArray(events)) {
-            console.warn("Events data is not a valid array:", events);
-            events = [];
-        }
-
-        // --- Calendar Initialization ---
-        var calendarOptions = {
-            schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
-            plugins: [
-                FullCalendar.resourceTimelinePlugin,
-                FullCalendar.interactionPlugin
-            ],
-            initialView: 'resourceTimelineMonth',
-            views: {
-                resourceTimelineMonth: {
-                    type: 'resourceTimeline',
-                    duration: { months: 1 }
-                },
-                resourceTimelineWeek: {
-                    type: 'resourceTimeline',
-                    duration: { weeks: 1 }
-                },
-                resourceTimelineDay: {
-                    type: 'resourceTimeline',
-                    duration: { days: 1 }
-                }
-            },
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'resourceTimelineMonth,resourceTimelineWeek,resourceTimelineDay'
-            },
-            editable: false,
-            selectable: true,
-            timeZone: 'local',
-            aspectRatio: 1.8,
-            height: 'auto',
-            resourceAreaWidth: '20%',
-            resourceAreaHeaderContent: 'Properties',
-            resources: resources,
-            events: events,
-            slotMinWidth: 50,
-            eventContent: function(arg) {
-                return { html: `<div class="fc-event-title">${arg.event.title}</div>` };
-            },
-            eventDidMount: function(info) {
-                if (info.event.extendedProps && info.event.extendedProps.guest_name && typeof bootstrap !== 'undefined') {
-                    try {
-                        var tooltipContent = `Guest: ${info.event.extendedProps.guest_name}<br>Source: ${info.event.extendedProps.service}`;
-                        if (info.el) {
-                            new bootstrap.Tooltip(info.el, {
-                                title: tooltipContent,
-                                html: true,
-                                placement: 'top',
-                                trigger: 'hover',
-                                container: 'body'
-                            });
-                        }
-                    } catch (e) {
-                        console.warn("Tooltip initialization error:", e);
-                    }
-                }
-            },
-            eventClick: function(info) {
-                try {
-                    var event = info.event;
-                    var props = event.extendedProps || {};
-                    
-                    var startDateStr = event.start ? event.start.toLocaleDateString() : 'N/A';
-                    var endDateStr = 'N/A';
-                    if (event.end) {
-                        var endDate = new Date(event.end);
-                        endDate.setDate(endDate.getDate() - 1);
-                        endDateStr = endDate.toLocaleDateString();
-                    }
-                    
-                    document.getElementById('modalPropertyName').textContent = props.property_name || 'N/A';
-                    document.getElementById('modalTitle').textContent = event.title || 'N/A';
-                    document.getElementById('modalDates').textContent = startDateStr + ' - ' + endDateStr;
-                    document.getElementById('modalSource').textContent = props.service || 'N/A';
-
-                    var eventModalElement = document.getElementById('eventModal');
-                    if (eventModalElement) {
-                        var eventModal = new bootstrap.Modal(eventModalElement);
-                        eventModal.show();
-                    } else {
-                        console.error("Event modal element not found");
-                    }
-                } catch (e) {
-                    console.error("Error showing event details:", e);
-                }
-                
-                info.jsEvent.preventDefault();
-            },
-            select: function(info) {
-                console.log('Selected ' + info.startStr + ' to ' + info.endStr + ' on resource ' + info.resource.id);
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
+        initialView: 'resourceTimelineMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth'
+        },
+        resources: resources,
+        events: deduplicatedEvents,
+        resourceAreaWidth: '20%',
+        height: 'auto',
+        navLinks: true,
+        selectable: true,
+        editable: false,
+        nowIndicator: true,
+        slotMinWidth: 60,
+        resourceLabelDidMount: function(info) {
+            try {
+                new bootstrap.Tooltip(info.el, {
+                    title: info.resource.title,
+                    placement: 'top'
+                });
+            } catch (e) {}
+        },
+        eventContent: function(arg) {
+            var content = document.createElement('div');
+            content.classList.add('event-content');
+            // Set background color from resource
+            var resource = resources.find(r => r.id == arg.event.getResources()[0]?.id || arg.event.extendedProps.property_id);
+            var bgColor = resource && resource.color ? resource.color : '#008489';
+            content.style.background = bgColor;
+            // Guest name + price
+            var titleEl = document.createElement('div');
+            titleEl.classList.add('event-title');
+            titleEl.innerHTML = arg.event.title + (arg.event.extendedProps.amount ? ' $' + arg.event.extendedProps.amount : '');
+            content.appendChild(titleEl);
+            // Status pill
+            if (arg.event.extendedProps.status) {
+                var statusEl = document.createElement('span');
+                statusEl.classList.add('status-pill');
+                statusEl.innerHTML = arg.event.extendedProps.status;
+                content.appendChild(statusEl);
             }
-        };
-
-        var calendar = new FullCalendar.Calendar(calendarEl, calendarOptions);
-        calendar.render();
-        console.log('Calendar successfully rendered');
-        
-    } catch (error) {
-        console.error("Error initializing FullCalendar:", error);
-        if (calendarEl) {
-            calendarEl.innerHTML = `
-                <div class="alert alert-danger">
-                    <h4>Calendar Loading Error</h4>
-                    <p>Could not load the calendar. Error details have been logged to the console.</p>
-                    <p><small>Error: ${error.message}</small></p>
-                </div>`;
+            // Checkout badge
+            if (arg.event.end) {
+                var checkoutEl = document.createElement('div');
+                checkoutEl.classList.add('checkout-date');
+                var checkoutDate = new Date(arg.event.end);
+                checkoutDate.setDate(checkoutDate.getDate() - 1);
+                checkoutEl.innerHTML = 'OUT: ' + checkoutDate.toLocaleDateString();
+                content.appendChild(checkoutEl);
+            }
+            return { domNodes: [content] };
+        },
+        eventDidMount: function(info) {
+            try {
+                new bootstrap.Tooltip(info.el, {
+                    title: function() {
+                        return `
+                            <div>
+                                <p><strong>${info.event.extendedProps.property_name || 'Property'}</strong></p>
+                                <p>${info.event.title}</p>
+                                <p>${new Date(info.event.start).toLocaleDateString()} - ${new Date(info.event.end).toLocaleDateString()}</p>
+                                <p>${info.event.extendedProps.service || 'Direct'}</p>
+                            </div>
+                        `;
+                    },
+                    html: true,
+                    placement: 'top'
+                });
+            } catch (e) {}
+        },
+        eventClick: function(info) {
+            showEventModal(info.event);
+        },
+        select: function(info) {
+            console.log('Selected:', info);
         }
+    });
+    calendar.render();
+
+    function showEventModal(event) {
+        try {
+            var modal = new bootstrap.Modal(document.getElementById('eventModal'));
+            document.getElementById('property-name').textContent = event.extendedProps.property_name || 'Unknown Property';
+            document.getElementById('guest-summary').textContent = event.title || 'No guest information';
+            var startDate = new Date(event.start).toLocaleDateString();
+            var endDate = startDate;
+            if (event.end) {
+                var end = new Date(event.end);
+                end.setDate(end.getDate() - 1);
+                endDate = end.toLocaleDateString();
+            }
+            document.getElementById('date-range').textContent = startDate + ' to ' + endDate;
+            document.getElementById('source').textContent = event.extendedProps.service || 'Direct Booking';
+            var bookingId = event.id;
+            var assignTaskBtn = document.getElementById('assign-task-btn');
+            if (assignTaskBtn) assignTaskBtn.href = '/task/create?booking_id=' + bookingId;
+            var repairRequestBtn = document.getElementById('repair-request-btn');
+            if (repairRequestBtn) repairRequestBtn.href = '/repairs/create?booking_id=' + bookingId;
+            modal.show();
+        } catch (e) {}
     }
+
+    // Sidebar search logic
+    document.getElementById('propertySearch').addEventListener('input', function() {
+        var val = this.value.toLowerCase();
+        document.querySelectorAll('.property-list-item').forEach(function(item) {
+            var name = item.querySelector('.fw-bold').textContent.toLowerCase();
+            item.style.display = name.includes(val) ? '' : 'none';
+        });
+    });
+
+    // Sidebar click logic
+    document.querySelectorAll('.property-list-item').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            var resourceId = this.getAttribute('data-resource-id');
+            document.querySelectorAll('.property-list-item').forEach(function(p) { p.classList.remove('active'); });
+            this.classList.add('active');
+            try {
+                calendar.scrollToResource(resourceId);
+            } catch (e) {}
+        });
+    });
 });
 </script>
 {% endblock %}

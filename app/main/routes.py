@@ -1,11 +1,12 @@
-from flask import render_template, current_app, flash, abort
+from flask import render_template, current_app, flash, abort, jsonify
 from flask_login import login_required, current_user
 from app.main import bp
-from app.models import Property, PropertyCalendar, UserRoles
+from app.models import Property, PropertyCalendar, UserRoles, Booking, BookingTask, db
 from datetime import datetime, timedelta
 import requests
 from icalendar import Calendar
 import json
+from sqlalchemy import or_
 
 @bp.route('/')
 @bp.route('/index')
@@ -49,8 +50,24 @@ def combined_calendar():
             flash('No properties found.', 'warning')
             return render_template('main/combined_calendar.html', title='Combined Calendar', properties=[], resources=[], events=[])
         
+        # Assign color if not set
+        for prop in properties:
+            if not prop.color:
+                prop.assign_random_color()
+                db.session.commit()
+        
         # Prepare resources list for FullCalendar
-        resources = [{'id': str(prop.id), 'title': prop.name} for prop in properties]
+        resources = [
+            {
+                'id': str(prop.id),
+                'title': prop.name,
+                'image_url': prop.get_primary_image_url() if hasattr(prop, 'get_primary_image_url') else '/static/img/default-property.jpg',
+                'city': prop.city,
+                'state': prop.state,
+                'color': prop.color or '#008489'
+            }
+            for prop in properties
+        ]
         
         # Get all calendars for all properties
         all_calendars = []
@@ -64,10 +81,7 @@ def combined_calendar():
             flash('No calendars have been added to any properties. Add a calendar to see bookings.', 'info')
             return render_template('main/combined_calendar.html', title='Combined Calendar', properties=properties, resources=resources, events=[])
         
-        # Prepare events data for the calendar
-        events = []
-        success = False
-        
+        # Sync calendars and store events in database
         for property, calendar in all_calendars:
             try:
                 # Log the attempt to fetch
@@ -89,55 +103,34 @@ def combined_calendar():
                     try:
                         cal = Calendar.from_ical(response.text)
                         
+                        # Track processed external IDs to handle deletions
+                        processed_external_ids = set()
+                        
                         # Extract events
                         for component in cal.walk():
                             if component.name == "VEVENT":
                                 try:
                                     # Get event details with extensive error checking
-                                    summary = ''
-                                    start_date = None
-                                    end_date = None
+                                    summary = str(component.get('summary', 'Booking'))
                                     
-                                    # Try to get summary safely
-                                    if hasattr(component, 'get') and callable(component.get):
-                                        summary_value = component.get('summary')
-                                        if summary_value:
-                                            summary = str(summary_value)
-                                        else:
-                                            summary = 'Booking'
-                                    else:
-                                        summary = 'Booking'
-                                    
-                                    # Try to get start date safely
+                                    # Get start date
                                     dtstart = component.get('dtstart')
-                                    if dtstart and hasattr(dtstart, 'dt'):
-                                        start_date = dtstart.dt
-                                    else:
-                                        # Skip this event if no start date
+                                    if not (dtstart and hasattr(dtstart, 'dt')):
                                         continue
+                                    start_date = dtstart.dt
+                                    if isinstance(start_date, datetime):
+                                        start_date = start_date.date()
                                     
-                                    # Try to get end date safely
+                                    # Get end date
                                     dtend = component.get('dtend')
                                     if dtend and hasattr(dtend, 'dt'):
                                         end_date = dtend.dt
+                                        if isinstance(end_date, datetime):
+                                            end_date = end_date.date()
                                     else:
-                                        # If no end date, use start date + 1 day
-                                        if isinstance(start_date, datetime):
-                                            end_date = start_date + timedelta(days=1)
-                                        else:
-                                            end_date = start_date + timedelta(days=1)
+                                        end_date = start_date + timedelta(days=1)
                                     
-                                    # Ensure dates are in the correct format for FullCalendar
-                                    if isinstance(start_date, datetime):
-                                        start_date = start_date.date()
-                                    if isinstance(end_date, datetime):
-                                        end_date = end_date.date()
-                                    
-                                    # Make sure both dates are valid
-                                    if not (start_date and end_date):
-                                        continue
-                                    
-                                    # Extract guest name from summary if possible
+                                    # Extract guest name from summary
                                     guest_name = None
                                     if ":" in summary:
                                         parts = summary.split(":", 1)
@@ -146,74 +139,87 @@ def combined_calendar():
                                         parts = summary.split("-", 1)
                                         guest_name = parts[0].strip()
                                     
-                                    # Extract any price information if available
+                                    # Extract price if available
                                     amount = None
-                                    description = component.get('description')
-                                    if description:
-                                        description = str(description)
-                                        # Look for price patterns like $XXX or XXX USD
-                                        import re
-                                        price_match = re.search(r'\$(\d+(\.\d+)?)', description)
-                                        if price_match:
-                                            amount = price_match.group(1)
+                                    description = str(component.get('description', ''))
+                                    import re
+                                    price_match = re.search(r'\$(\d+(\.\d+)?)', description)
+                                    if price_match:
+                                        amount = price_match.group(1)
                                     
-                                    # Determine source URL if available
-                                    source_url = None
-                                    url = component.get('url')
-                                    if url:
-                                        source_url = str(url)
+                                    # Get external ID (UID)
+                                    external_id = str(component.get('uid', ''))
+                                    processed_external_ids.add(external_id)
                                     
-                                    # Add event to the list with proper date formatting
-                                    event = {
-                                        'title': summary,
-                                        'start': start_date.isoformat(),
-                                        'end': (end_date + timedelta(days=1)).isoformat(),  # FullCalendar uses exclusive end dates
-                                        'resourceId': str(property.id),
-                                        'className': f'{calendar.service.lower()}-event',
-                                        'extendedProps': {
-                                            'property_name': property.name,
-                                            'property_id': property.id,
-                                            'service': calendar.get_service_display(),
-                                            'room': None if calendar.is_entire_property else calendar.room_name,
-                                            'guest_name': guest_name,
-                                            'amount': amount,
-                                            'source_url': source_url,
-                                            'status': 'Confirmed',
-                                            'notes': description if description else None,
-                                            'phone': None
-                                        }
-                                    }
-                                    events.append(event)
-                                    success = True
+                                    # Find existing booking or create new one
+                                    booking = Booking.query.filter_by(
+                                        calendar_id=calendar.id,
+                                        external_id=external_id
+                                    ).first()
+                                    
+                                    if not booking:
+                                        booking = Booking(
+                                            property_id=property.id,
+                                            calendar_id=calendar.id,
+                                            external_id=external_id
+                                        )
+                                        db.session.add(booking)
+                                    
+                                    # Update booking details
+                                    booking.title = summary
+                                    booking.start_date = start_date
+                                    booking.end_date = end_date
+                                    booking.guest_name = guest_name
+                                    booking.amount = amount
+                                    booking.source_url = str(component.get('url', '')) or None
+                                    booking.notes = description or None
+                                    booking.room_name = calendar.room_name
+                                    booking.is_entire_property = calendar.is_entire_property
+                                    booking.last_synced = datetime.utcnow()
+                                    
                                 except Exception as e:
-                                    # Just skip this event if there's a problem with it
-                                    current_app.logger.error(f"Error parsing event in calendar {calendar.id}: {str(e)}")
+                                    current_app.logger.error(f"Error processing event in calendar {calendar.id}: {str(e)}")
                                     continue
                         
-                        # Update last_synced and status
+                        # Remove events that no longer exist in the feed
+                        old_bookings = Booking.query.filter(
+                            Booking.calendar_id == calendar.id,
+                            Booking.external_id.notin_(processed_external_ids)
+                        ).all()
+                        for old_booking in old_bookings:
+                            db.session.delete(old_booking)
+                        
+                        # Update calendar sync status
                         calendar.last_synced = datetime.utcnow()
                         calendar.sync_status = 'Success'
                         calendar.sync_error = None
                         
+                        # Commit all changes
+                        db.session.commit()
+                        
                     except Exception as e:
-                        # Problem parsing the iCal data
                         calendar.sync_status = 'Failed'
                         calendar.sync_error = f"Error parsing iCal data: {str(e)[:255]}"
                         current_app.logger.error(f"Error parsing calendar {calendar.id}: {str(e)}")
+                        db.session.rollback()
                 else:
-                    # Update sync status
                     calendar.sync_status = 'Error'
                     calendar.sync_error = f"HTTP error: {response.status_code}"
                     current_app.logger.error(f"HTTP error {response.status_code} fetching calendar {calendar.id}")
             except Exception as e:
-                # Any other error
                 calendar.sync_status = 'Failed'
                 calendar.sync_error = str(e)[:255]
                 current_app.logger.error(f"Error syncing calendar {calendar.id}: {str(e)}")
+                db.session.rollback()
         
-        # If we couldn't fetch any valid events, inform the user
-        if not success and all_calendars:
-            flash('Could not fetch calendar data from any of the configured sources. Please check your calendar URLs and try again.', 'warning')
+        # Get all bookings for display
+        property_ids = [p.id for p in properties]
+        bookings = Booking.query.filter(
+            Booking.property_id.in_(property_ids),
+            Booking.end_date >= datetime.now().date()
+        ).all()
+        
+        events = [booking.to_dict() for booking in bookings]
         
         return render_template('main/combined_calendar.html',
                             title='Combined Calendar',
@@ -229,3 +235,38 @@ def combined_calendar():
                             properties=[],
                             resources=[],
                             events=[])
+
+@bp.route('/dashboard/events')
+@login_required
+def dashboard_events():
+    try:
+        # Get properties based on user role
+        if current_user.has_admin_role or current_user.is_property_manager:
+            properties = Property.query.all()
+        elif current_user.is_property_owner:
+            properties = Property.query.filter_by(owner_id=current_user.id).all()
+        elif current_user.is_service_staff:
+            # Get properties where user has tasks
+            task_properties = db.session.query(Property).join(Booking).join(BookingTask).filter(
+                BookingTask.assigned_to_id == current_user.id
+            ).distinct().all()
+            properties = [p for p in task_properties if p.is_visible_to(current_user)]
+        else:
+            properties = []
+
+        if not properties:
+            return jsonify([])
+
+        # Get all upcoming bookings for these properties
+        property_ids = [p.id for p in properties]
+        bookings = Booking.query.filter(
+            Booking.property_id.in_(property_ids),
+            Booking.end_date >= datetime.now().date()
+        ).all()
+
+        events = [booking.to_dict() for booking in bookings]
+        return jsonify(events)
+
+    except Exception as e:
+        current_app.logger.error(f"Error in dashboard_events: {str(e)}")
+        return jsonify([])

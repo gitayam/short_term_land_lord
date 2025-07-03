@@ -92,10 +92,10 @@ class TestUserModel(unittest.TestCase):
         )
         
         # Test role verification
-        self.assertTrue(owner.is_property_owner())
-        self.assertFalse(staff.is_property_owner())
-        self.assertFalse(manager.is_property_owner())
-        self.assertFalse(admin.is_property_owner())
+        self.assertTrue(owner.is_property_owner)
+        self.assertFalse(staff.is_property_owner)
+        self.assertFalse(manager.is_property_owner)
+        self.assertFalse(admin.is_property_owner)
         
         # Test admin flag
         self.assertFalse(owner.is_admin)

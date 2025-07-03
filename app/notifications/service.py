@@ -4,15 +4,12 @@ from app.models import Notification, NotificationType, NotificationChannel, User
 from app.common.email import send_email
 from datetime import datetime, timedelta
 import requests
-from twilio.rest import Client
 import logging
-
-logger = logging.getLogger(__name__)
 
 def send_task_assignment_notification(task, user):
     """Send notification when a task is assigned to a user"""
     if not user or not task:
-        logger.error("Cannot send notification: missing user or task")
+        current_app.logger.error("Cannot send notification: missing user or task")
         return False
     
     # Get property information for the task
@@ -38,8 +35,8 @@ def send_task_assignment_notification(task, user):
         message=message
     )
     
-    # Send email notification if enabled
-    if current_app.config.get('NOTIFICATION_EMAIL_ENABLED', True):
+    # Send email notification if user preference is enabled
+    if getattr(user, 'email_notifications', True) and current_app.config.get('NOTIFICATION_EMAIL_ENABLED', True):
         send_email_notification(
             user=user,
             subject=title,
@@ -50,8 +47,8 @@ def send_task_assignment_notification(task, user):
                                      properties=properties)
         )
     
-    # Send SMS notification if enabled and user has a phone number
-    if current_app.config.get('NOTIFICATION_SMS_ENABLED', True) and hasattr(user, 'phone'):
+    # Send SMS notification if user preference is enabled and user has a phone number
+    if getattr(user, 'sms_notifications', False) and current_app.config.get('NOTIFICATION_SMS_ENABLED', True) and getattr(user, 'phone', None):
         send_sms_notification(
             phone_number=user.phone,
             message=f"New task assigned: {task.title}. Due: {task.due_date.strftime('%Y-%m-%d') if task.due_date else 'No due date'}. Priority: {task.priority.value.capitalize()}."
@@ -62,7 +59,7 @@ def send_task_assignment_notification(task, user):
 def send_task_reminder_notification(task, user):
     """Send reminder notification for upcoming tasks"""
     if not user or not task:
-        logger.error("Cannot send reminder: missing user or task")
+        current_app.logger.error("Cannot send reminder: missing user or task")
         return False
     
     # Get property information for the task
@@ -112,7 +109,7 @@ def send_task_reminder_notification(task, user):
 def send_calendar_update_notification(task, user):
     """Send notification when a calendar event affecting a task is updated"""
     if not user or not task:
-        logger.error("Cannot send calendar update: missing user or task")
+        current_app.logger.error("Cannot send calendar update: missing user or task")
         return False
     
     # Get property information for the task
@@ -162,7 +159,7 @@ def send_calendar_update_notification(task, user):
 def send_repair_request_notification(repair_request, property_owner):
     """Send notification when a repair request is submitted"""
     if not property_owner or not repair_request:
-        logger.error("Cannot send repair request notification: missing property owner or repair request")
+        current_app.logger.error("Cannot send repair request notification: missing property owner or repair request")
         return False
     
     # Create notification content
@@ -232,34 +229,30 @@ def send_email_notification(user, subject, text_body, html_body):
         )
         return True
     except Exception as e:
-        logger.error(f"Failed to send email notification: {str(e)}")
+        current_app.logger.error(f"Failed to send email notification: {str(e)}")
         return False
 
 def send_sms_notification(phone_number, message):
     """Send an SMS notification using Twilio"""
     try:
-        # Initialize Twilio client
-        client = Client(
-            current_app.config.get('TWILIO_ACCOUNT_SID'),
-            current_app.config.get('TWILIO_AUTH_TOKEN')
-        )
+        from app.utils.sms import send_sms
+        success, error = send_sms(phone_number, message)
         
-        # Send SMS
-        client.messages.create(
-            body=message,
-            from_=current_app.config.get('TWILIO_PHONE_NUMBER'),
-            to=phone_number
-        )
-        
-        return True
+        if success:
+            current_app.logger.info(f"SMS notification sent successfully to {phone_number}")
+            return True
+        else:
+            current_app.logger.error(f"Failed to send SMS notification to {phone_number}: {error}")
+            return False
+            
     except Exception as e:
-        logger.error(f"Failed to send SMS notification: {str(e)}")
+        current_app.logger.error(f"Failed to send SMS notification: {str(e)}")
         return False
 
 def send_inventory_low_notification(item, property, user):
     """Send notification when an inventory item falls below its reorder threshold"""
     if not user or not item or not property:
-        logger.error("Cannot send inventory notification: missing user, item, or property")
+        current_app.logger.error("Cannot send inventory notification: missing user, item, or property")
         return False
     
     # Create notification content
