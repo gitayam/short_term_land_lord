@@ -78,16 +78,23 @@ class Config:
     REQUIRE_CLEANING_VIDEOS = False
 
 class TestConfig(Config):
+    """Test configuration"""
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
     NOTIFICATION_EMAIL_ENABLED = False
     NOTIFICATION_SMS_ENABLED = False
-    # Force the User model to use 'user' in tests
-    USER_TABLE_NAME = 'user'
-    SERVER_NAME = 'localhost:5000'  # Add SERVER_NAME for URL generation in tests
+    USER_TABLE_NAME = 'user'  # For testing with the legacy schema
+    
+    # Use a test server name for URL generation in tests
+    SERVER_NAME = 'localhost:5000'
+    
+    # File upload configuration for tests
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
     
     @classmethod
     def init_app(cls, app):
-        # No need to create database for SQLite in-memory
-        pass
+        # Make sure the test database is clean
+        with app.app_context():
+            db.create_all()
