@@ -90,7 +90,7 @@ class TestRecommendationRoutes(unittest.TestCase):
             'description': 'A great place to eat',
             'category': 'food',
             'map_link': 'https://maps.google.com/test',
-            'hours': '9am-5pm',
+            'best_time_to_go': '9am-5pm',
             'photo': photo
         }
         
