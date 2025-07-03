@@ -374,6 +374,10 @@ def visible_properties(self):
    - Verify form fields match
    - Ensure route handlers process all fields
    - Test with actual data
+7. **Database migration coordination** - when adding model fields, ensure database schema is updated:
+   - Use `flask db migrate` for proper migrations
+   - Or use direct SQL: `ALTER TABLE table_name ADD COLUMN IF NOT EXISTS column_name TYPE;`
+   - Always test database operations after schema changes
 
 ---
 
@@ -461,5 +465,6 @@ def visible_properties(self):
 8. **Testing** should cover both happy path and error conditions
 9. **Logging** is crucial for debugging complex async operations
 10. **Configuration** should be externalized and validated at startup
+11. **Database schema synchronization** is critical - model changes must be reflected in the database schema
 
 This document should be updated as new lessons are learned during continued development of the project. 
