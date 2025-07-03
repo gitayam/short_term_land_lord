@@ -107,7 +107,7 @@ class TestRecommendationRoutes(unittest.TestCase):
         self.assertEqual(recommendation.description, 'A great place to eat')
         self.assertEqual(recommendation.category, 'food')
         self.assertEqual(recommendation.map_link, 'https://maps.google.com/test')
-        self.assertEqual(recommendation.hours, '9am-5pm')
+        self.assertEqual(recommendation.best_time_to_go, '9am-5pm')
         self.assertIsNotNone(recommendation.photo_path)
     
     def test_edit_recommendation(self):
