@@ -999,6 +999,12 @@ def repair_requests():
                           TaskPriority=TaskPriority)
 
 
+@bp.route('/repair-request', methods=['GET', 'POST'])
+@login_required
+def repair_request_form():
+    """Create a new repair request (alternative route for compatibility)."""
+    return create_repair_request()
+
 @bp.route('/repair_requests/create', methods=['GET', 'POST'])
 @login_required
 def create_repair_request():
