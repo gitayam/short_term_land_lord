@@ -2,22 +2,19 @@ from twilio.rest import Client
 from app.models import Notification, NotificationChannel, NotificationType
 from app import db
 import logging
+from flask import current_app, has_app_context
 
 def send_sms(to_number, message, create_notification=False):
     """Send an SMS message using Twilio"""
-    from flask import current_app
+    if not has_app_context():
+        logging.warning("No Flask application context available - SMS disabled")
+        return False, "SMS disabled: No Flask application context"
     
-    # Set up a fallback logger in case current_app.logger is not available
     logger = getattr(current_app, 'logger', None) if current_app else None
     if logger is None:
         logger = logging.getLogger(__name__)
     
     try:
-        # Check if we have a Flask app context
-        if not current_app:
-            logger.warning("No Flask application context available - SMS disabled")
-            return False, "SMS disabled: No Flask application context"
-            
         # Check if SMS is enabled
         if not current_app.config.get('NOTIFICATION_SMS_ENABLED', True):
             logger.warning("SMS notifications are disabled")
