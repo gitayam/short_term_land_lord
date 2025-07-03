@@ -1,6 +1,6 @@
 import secrets
-from flask import Blueprint, jsonify, request, make_response, render_template, current_app
-from flask_login import current_user
+from flask import Blueprint, jsonify, request, make_response, render_template, current_app, flash, redirect, url_for
+from flask_login import current_user, login_required
 from app import db
 from app.models import Property, RecommendationBlock
 from app.utils.zillow_scraper import fetch_zillow_details
@@ -12,6 +12,19 @@ flask.current_app = None  # Avoids issues if not in app context
 logging.basicConfig(level=logging.DEBUG)
 
 bp = Blueprint('property_routes', __name__)
+
+@bp.route('/property/<int:property_id>/view', methods=['GET'])
+@login_required
+def view_property(property_id):
+    """View property details."""
+    property = Property.query.get_or_404(property_id)
+    
+    # Check if user has permission to view this property
+    if not current_user.is_admin and property.owner_id != current_user.id:
+        flash('You do not have permission to view this property.', 'danger')
+        return redirect(url_for('main.index'))
+    
+    return render_template('property/view.html', property=property)
 
 @bp.route('/property/<token>/guide', methods=['GET'])
 def public_guide_book(token):
