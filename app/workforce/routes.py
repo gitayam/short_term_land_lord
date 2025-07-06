@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from app import db
 from app.workforce import bp
 from app.workforce.forms import WorkerInvitationForm, WorkerPropertyAssignmentForm, WorkerFilterForm, COUNTRY_CODES
-from app.models import User, Property, Task, TaskAssignment, TaskProperty, UserRoles, ServiceType, TaskStatus, AdminAction
+from app.models import User, Property, Task, TaskAssignment, TaskProperty, UserRoles, ServiceType, TaskStatus, AdminAction, Notification
 from app.auth.decorators import admin_required, property_manager_required, workforce_management_required
 from app.auth.email import send_email, send_password_reset_email
 from app.notifications.service import create_notification, NotificationType, NotificationChannel

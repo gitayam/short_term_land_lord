@@ -10,7 +10,7 @@ from app.models import (Task, TaskAssignment, TaskProperty, Property, User,
                        PropertyCalendar, CleaningSession, CleaningMedia, MediaType,
                        IssueReport, StorageBackend, CleaningFeedback, InventoryTransaction, TransactionType,
                        RepairRequest, RepairRequestMedia, RepairRequestStatus, RepairRequestSeverity,
-                       TaskTemplate)
+                       TaskTemplate, TaskMedia)
 from app.tasks.media import save_file_to_storage, allowed_file
 from app.notifications.service import send_task_assignment_notification, send_repair_request_notification
 from datetime import datetime, timedelta
