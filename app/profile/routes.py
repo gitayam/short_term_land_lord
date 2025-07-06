@@ -142,7 +142,12 @@ def toggle_2fa():
     try:
         enabled = request.json.get('enabled', False)
         method = request.json.get('method', 'sms')
-        
+    except AttributeError as e:
+        current_app.logger.error(f"Failed to access request.json in toggle_2fa: {e}", exc_info=True)
+        flash("This feature isn't available right now. Please try again later.", "danger")
+        return redirect(url_for('profile.profile'))
+    
+    try:
         current_user.two_factor_enabled = enabled
         current_user.two_factor_method = method if enabled else None
         
@@ -156,20 +161,43 @@ def toggle_2fa():
 @login_required
 def connect_service():
     """Connect external service"""
-    service = request.json.get('service')
+    # Handle both form data and JSON data
+    try:
+        if request.is_json:
+            service = request.json.get('service')
+        else:
+            service = request.form.get('service')
+    except AttributeError as e:
+        current_app.logger.error(f"Failed to access request.json in connect_service: {e}", exc_info=True)
+        flash("This feature isn't available right now. Please try again later.", "danger")
+        return redirect(url_for('profile.profile'))
+    
+    if not service:
+        flash('No service specified', 'error')
+        return redirect(url_for('profile.profile'))
     
     try:
         if service == 'google_calendar':
-            # Handle Google Calendar connection
-            pass
-        elif service == 'twilio':
+            # Check if user is already connected
+            if current_user.google_calendar_connected:
+                # Disconnect Google Calendar
+                current_user.google_calendar_connected = False
+                current_user.google_calendar_token = None
+                db.session.commit()
+                flash('Google Calendar disconnected successfully', 'success')
+            else:
+                # Start Google Calendar OAuth flow
+                return redirect(url_for('profile.google_auth'))
+        elif service == 'phone':
             # Handle Twilio verification
-            pass
+            flash('Phone verification is not yet implemented', 'info')
         elif service == 'slack':
             # Handle Slack workspace connection
-            pass
-            
-        return jsonify({'success': True, 'message': f'{service} connected successfully'})
+            flash('Slack integration is not yet implemented', 'info')
+        else:
+            flash(f'Unknown service: {service}', 'error')
+        return redirect(url_for('profile.profile'))
     except Exception as e:
         current_app.logger.error(f"Error connecting service {service}: {e}")
-        return jsonify({'error': f'Failed to connect {service}'}), 500
+        flash(f'Failed to connect {service}: {str(e)}', 'error')
+        return redirect(url_for('profile.profile'))

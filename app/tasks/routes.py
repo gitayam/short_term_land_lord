@@ -1359,11 +1359,15 @@ def delete_template(id):
     return redirect(url_for('tasks.templates'))
 
 
-@bp.route('/templates/reorder', methods=['POST'])
+@bp.route('/template/reorder', methods=['POST'])
 @login_required
 def reorder_templates():
-    """Update the order of task templates"""
-    template_order = request.json.get('template_order', [])
+    try:
+        template_order = request.json.get('template_order', [])
+    except AttributeError as e:
+        current_app.logger.error(f"Failed to access request.json in reorder_templates: {e}", exc_info=True)
+        flash("This feature isn't available right now. Please try again later.", "danger")
+        return redirect(url_for('tasks.templates'))
     
     for i, template_id in enumerate(template_order):
         template = TaskTemplate.query.get(template_id)
