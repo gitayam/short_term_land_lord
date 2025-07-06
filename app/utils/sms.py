@@ -90,12 +90,24 @@ def send_sms(to_number, message, create_notification=False, thread_id=None):
         
         # Send the message with enhanced parameters
         try:
-            message_obj = client.messages.create(
-                body=message,
-                from_=twilio_phone_number,
-                to=formatted_number,
-                status_callback=f"{current_app.config.get('BASE_URL')}/messages/status-callback"
-            )
+            # Get base URL for status callback, with fallback
+            base_url = current_app.config.get('BASE_URL')
+            if not base_url:
+                logger.warning("BASE_URL not configured, using localhost fallback")
+                base_url = 'http://localhost:5001'
+            
+            # Only include status callback if we have a valid base URL
+            message_params = {
+                'body': message,
+                'from_': twilio_phone_number,
+                'to': formatted_number
+            }
+            
+            # Only add status callback if BASE_URL is properly configured
+            if base_url and base_url != 'http://localhost:5001':
+                message_params['status_callback'] = f"{base_url}/messages/status-callback"
+            
+            message_obj = client.messages.create(**message_params)
             
             # Log the Twilio response
             logger.info(f"Twilio response: {message_obj.sid} - Status: {message_obj.status}")

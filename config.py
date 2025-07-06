@@ -10,6 +10,9 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///app.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
+    # Base URL for webhooks and callbacks
+    BASE_URL = os.environ.get('BASE_URL') or 'http://localhost:5001'
+    
     # Email configuration for password reset
     MAIL_SERVER = os.environ.get('MAIL_SERVER')
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)
