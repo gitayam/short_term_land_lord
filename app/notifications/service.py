@@ -2,7 +2,7 @@ from flask import current_app, render_template
 from app import db
 from app.models import Notification, NotificationType, NotificationChannel, User, Task, Property, MessageThread, Message
 from app.common.email import send_email
-from app.utils.sms import send_sms, format_phone_number
+from app.utils.sms import send_sms, format_phone_number, send_multilingual_sms
 from datetime import datetime, timedelta
 import requests
 import logging
@@ -50,16 +50,11 @@ def send_task_assignment_notification(task, user):
     
     # Send SMS notification if user preference is enabled and user has a phone number
     if getattr(user, 'sms_notifications', False) and current_app.config.get('NOTIFICATION_SMS_ENABLED', True) and getattr(user, 'phone', None):
-        # Find or create message thread for SMS
-        thread = get_or_create_sms_thread(user.phone)
-        
-        sms_message = f"New task assigned: {task.title}. Due: {task.due_date.strftime('%Y-%m-%d') if task.due_date else 'No due date'}. Priority: {task.priority.value.capitalize()}."
-        
-        send_sms_notification(
-            phone_number=user.phone,
-            message=sms_message,
-            thread_id=thread.id if thread else None
-        )
+        context = {
+            'task_title': task.title,
+            'due_date': task.due_date.strftime('%Y-%m-%d') if task.due_date else 'No due date',
+        }
+        send_multilingual_sms(user, 'task_assignment', context)
     
     return True
 
@@ -161,15 +156,11 @@ def send_calendar_update_notification(task, user):
     
     # Send SMS notification if enabled and user has a phone number
     if current_app.config.get('NOTIFICATION_SMS_ENABLED', True) and hasattr(user, 'phone') and user.phone:
-        thread = get_or_create_sms_thread(user.phone)
-        
-        sms_message = f"Calendar update for task: {task.title}. Please check the app for details."
-        
-        send_sms_notification(
-            phone_number=user.phone,
-            message=sms_message,
-            thread_id=thread.id if thread else None
-        )
+        context = {
+            'event_title': task.title,
+            'event_date': task.due_date.strftime('%Y-%m-%d') if task.due_date else 'No date',
+        }
+        send_multilingual_sms(user, 'calendar_event', context)
     
     return True
 

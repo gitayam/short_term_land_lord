@@ -11,6 +11,32 @@ from flask import current_app, has_app_context, request
 import re
 from datetime import datetime
 
+LANGUAGE_TEMPLATES = {
+    'task_assignment': {
+        'en': 'New task assigned: {task_title}. Due: {due_date}.',
+        'es': 'Nueva tarea asignada: {task_title}. Fecha límite: {due_date}.',
+        'zh': '新任务分配: {task_title}。截止日期: {due_date}。',
+    },
+    'calendar_event': {
+        'en': 'New event: {event_title} on {event_date}.',
+        'es': 'Nuevo evento: {event_title} el {event_date}.',
+        'zh': '新日程: {event_title}，时间: {event_date}。',
+    },
+}
+
+def send_multilingual_sms(user, message_key, context):
+    """
+    Send an SMS to the user in their preferred language using a message template.
+    message_key: 'task_assignment' or 'calendar_event'
+    context: dict with template variables
+    """
+    if not user or not getattr(user, 'phone', None):
+        return False, 'No phone number'
+    language = getattr(user, 'language', 'en') or 'en'
+    template = LANGUAGE_TEMPLATES.get(message_key, {}).get(language, LANGUAGE_TEMPLATES[message_key]['en'])
+    message = template.format(**context)
+    return send_sms(user.phone, message)
+
 def send_sms(to_number, message, create_notification=False, thread_id=None):
     """Send an SMS message using Twilio with enhanced error handling"""
     if not has_app_context():
