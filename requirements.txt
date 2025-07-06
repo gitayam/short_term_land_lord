@@ -19,6 +19,7 @@ gunicorn>=20.1.0
 boto3>=1.18.0
 python-magic>=0.4.24
 twilio>=7.0.0
+phonenumbers>=8.12.0
 # For barcode scanning functionality, we use QuaggaJS (client-side JavaScript library)
 # No additional Python package required as it's loaded via CDN
 pandas>=1.3.0
