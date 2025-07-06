@@ -279,4 +279,40 @@ def api_mark_read(message_id):
         return jsonify({'success': True})
     except Exception as e:
         current_app.logger.error(f"Error marking message as read: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500 
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@bp.route('/new', methods=['GET', 'POST'])
+@login_required
+def new_message():
+    from app.models import User
+    from app.utils.sms import send_sms
+    # Only allow sending to workforce (service staff)
+    workforce = User.query.filter_by(role='service_staff').all()
+    if request.method == 'POST':
+        recipient_id = request.form.get('recipient_id')
+        content = request.form.get('content')
+        recipient = User.query.get_or_404(recipient_id)
+        if not content:
+            flash('Message cannot be empty', 'error')
+            return render_template('messages/new_message.html', workforce=workforce)
+        # Save as a direct message (in-app)
+        # For now, use MessageThread/Message with a special type or tag
+        from app.models import MessageThread, Message
+        # Find or create a thread
+        thread = MessageThread.query.filter_by(user_id=recipient.id, participant_phone=recipient.phone).first()
+        if not thread:
+            thread = MessageThread(user_id=recipient.id, participant_phone=recipient.phone, system_phone=current_app.config.get('TWILIO_PHONE_NUMBER', ''), status='active')
+            db.session.add(thread)
+            db.session.commit()
+        # Create the message
+        msg = Message(thread_id=thread.id, direction='outgoing', phone_number=recipient.phone, content=content, status='sent', read=False)
+        db.session.add(msg)
+        db.session.commit()
+        # Relay via SMS
+        success, error = send_sms(recipient.phone, content, thread_id=thread.id)
+        if success:
+            flash('Message sent and relayed via SMS', 'success')
+        else:
+            flash(f'Message saved, but SMS relay failed: {error}', 'warning')
+        return redirect(url_for('messages.view_message', msg_type='sms', msg_id=msg.id))
+    return render_template('messages/new_message.html', workforce=workforce) 
