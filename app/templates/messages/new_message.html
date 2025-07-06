@@ -13,20 +13,22 @@
                 </div>
                 <div class="card-body">
                     <form method="post">
+                        {{ form.hidden_tag() }}
                         <div class="mb-3">
-                            <label for="recipient_id" class="form-label">Select Workforce Member</label>
-                            <select class="form-select" id="recipient_id" name="recipient_id" required>
-                                <option value="" disabled selected>Select a recipient...</option>
-                                {% for member in workforce %}
-                                    <option value="{{ member.id }}">{{ member.get_full_name() }} ({{ member.phone }})</option>
-                                {% endfor %}
-                            </select>
+                            {{ form.recipient_id.label(class="form-label") }}
+                            {{ form.recipient_id(class="form-select") }}
+                            {% for error in form.recipient_id.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
                         </div>
                         <div class="mb-3">
-                            <label for="content" class="form-label">Message</label>
-                            <textarea class="form-control" id="content" name="content" rows="4" required></textarea>
+                            {{ form.content.label(class="form-label") }}
+                            {{ form.content(class="form-control", rows=4) }}
+                            {% for error in form.content.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
                         </div>
-                        <button type="submit" class="btn btn-primary">Send Message</button>
+                        {{ form.submit(class="btn btn-primary") }}
                     </form>
                 </div>
             </div>
