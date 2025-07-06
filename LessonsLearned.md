@@ -14,7 +14,7 @@ This document captures key lessons learned during the development and debugging 
 9. [Standard Operating Procedures](#standard-operating-procedures)
 
 ---
-You are a senior developer. Identify the best method to accomplish the task with modern and secure code. Don't ask if i want to fix it , of course we need to fix it. This project uses docker containers don't install packages locally. See the section about git stage and commit as well. 
+You are a senior developer. Identify the best method to accomplish the task with modern and secure code. Don't ask if i want to fix it - improve it - create it , of course we need to fix it. This project uses docker containers don't install packages locally. See the section about git stage and commit as well. 
 
 ## Git Workflow and Commit Practices
 
