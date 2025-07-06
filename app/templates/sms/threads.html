@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>SMS Conversations</h1>
+                <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            {% if threads %}
+                <div class="row">
+                    {% for thread in threads %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100 {% if thread.unread_count > 0 %}border-primary{% endif %}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title mb-0">
+                                            {{ thread.participant_phone }}
+                                            {% if thread.unread_count > 0 %}
+                                                <span class="badge bg-primary">{{ thread.unread_count }}</span>
+                                            {% endif %}
+                                        </h6>
+                                        <small class="text-muted">
+                                            {{ thread.updated_at.strftime('%m/%d %H:%M') }}
+                                        </small>
+                                    </div>
+                                    
+                                    {% if thread.last_message %}
+                                        <p class="card-text text-muted small">
+                                            {% if thread.last_message.direction == 'incoming' %}
+                                                <i class="fas fa-arrow-left text-success"></i>
+                                            {% else %}
+                                                <i class="fas fa-arrow-right text-primary"></i>
+                                            {% endif %}
+                                            {{ thread.last_message.content[:50] }}{% if thread.last_message.content|length > 50 %}...{% endif %}
+                                        </p>
+                                    {% else %}
+                                        <p class="card-text text-muted small">No messages yet</p>
+                                    {% endif %}
+                                    
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <a href="{{ url_for('sms.view_thread', thread_id=thread.id) }}" 
+                                           class="btn btn-sm btn-primary">
+                                            View Conversation
+                                        </a>
+                                        <span class="badge bg-secondary">{{ thread.status }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No SMS Conversations</h4>
+                    <p class="text-muted">You haven't had any SMS conversations yet.</p>
+                    <p class="text-muted">Messages will appear here when you receive or send SMS messages.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.badge {
+    font-size: 0.75em;
+}
+</style>
+{% endblock %} 

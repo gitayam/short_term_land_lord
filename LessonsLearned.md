@@ -14,6 +14,23 @@ This document captures key lessons learned during the development and debugging 
 9. [Standard Operating Procedures](#standard-operating-procedures)
 
 ---
+You are a senior developer. Identify the best method to accomplish the task with modern and secure code. Don't ask if i want to fix it , of course we need to fix it. This project uses docker containers don't install packages locally. See the section about git stage and commit as well. 
+
+## Git Workflow and Commit Practices
+
+### 1. **Auto Staging and Committing After Testing**
+- First run git status to see the items that are uncommited. 
+- Always stage and commit your changes after you have tested them locally, but do **not** push immediately. This allows for local version control and easy rollback if needed, while preventing unreviewed code from reaching shared branches.
+
+### 2. **Descriptive, Searchable Commit Messages**
+- Use brief but descriptive commit messages that summarize the change and its purpose. Good commit messages make it easier to search and understand the project history in the future.
+- Example: `fix: correct helmet item quantity in Ranger packing list migration`
+
+### 3. **Never Commit Sensitive Files**
+- Never commit your `.env` file or any other file containing secrets or environment-specific configuration. Use `.env-example` for structure and documentation, and add `.env` to `.gitignore` to prevent accidental commits.
+
+
+
 
 ## Python Import Issues
 

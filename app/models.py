@@ -1869,3 +1869,110 @@ class BookingTask(db.Model):
             'assigned_to': self.assigned_to.get_full_name() if self.assigned_to else None,
             'notes': self.notes
         }
+
+class MessageThread(db.Model):
+    """Model for SMS message threads between users and the system"""
+    __tablename__ = 'message_threads'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    participant_phone = db.Column(db.String(20), nullable=False)  # Phone number of the participant
+    system_phone = db.Column(db.String(20), nullable=False)  # System phone number (Twilio number)
+    status = db.Column(db.String(20), default='active')  # active, archived, blocked
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Optional link to a user account
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='message_threads')
+    messages = db.relationship('Message', backref='thread', lazy='dynamic', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<MessageThread {self.participant_phone} -> {self.system_phone}>'
+    
+    @property
+    def last_message(self):
+        """Get the most recent message in this thread"""
+        return self.messages.order_by(Message.created_at.desc()).first()
+    
+    @property
+    def unread_count(self):
+        """Get count of unread incoming messages"""
+        return self.messages.filter_by(
+            direction='incoming',
+            read=False
+        ).count()
+    
+    def mark_all_read(self):
+        """Mark all incoming messages as read"""
+        self.messages.filter_by(
+            direction='incoming',
+            read=False
+        ).update({'read': True})
+        db.session.commit()
+
+class Message(db.Model):
+    """Model for individual SMS messages"""
+    __tablename__ = 'messages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    thread_id = db.Column(db.Integer, db.ForeignKey('message_threads.id'), nullable=False)
+    direction = db.Column(db.String(20), nullable=False)  # incoming, outgoing
+    phone_number = db.Column(db.String(20), nullable=False)  # Phone number that sent/received
+    content = db.Column(db.Text, nullable=False)  # Message content
+    external_id = db.Column(db.String(100), nullable=True)  # Twilio message SID
+    status = db.Column(db.String(20), default='sent')  # sent, delivered, failed, etc.
+    read = db.Column(db.Boolean, default=False)  # For incoming messages
+    error_message = db.Column(db.Text, nullable=True)  # Error details if failed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<Message {self.direction} {self.phone_number}: {self.content[:50]}...>'
+    
+    @property
+    def is_incoming(self):
+        """Check if this is an incoming message"""
+        return self.direction == 'incoming'
+    
+    @property
+    def is_outgoing(self):
+        """Check if this is an outgoing message"""
+        return self.direction == 'outgoing'
+    
+    def mark_read(self):
+        """Mark this message as read"""
+        if self.is_incoming:
+            self.read = True
+            db.session.commit()
+
+class TaskMedia(db.Model):
+    __tablename__ = 'task_media'
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    media_type = db.Column(db.Enum(MediaType), nullable=False)
+    storage_backend = db.Column(db.Enum(StorageBackend), default=StorageBackend.LOCAL, nullable=False)
+    
+    # Metadata
+    original_filename = db.Column(db.String(255), nullable=True)
+    file_size = db.Column(db.Integer, nullable=True)
+    mime_type = db.Column(db.String(100), nullable=True)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<TaskMedia {self.id} ({self.media_type.value}) for task {self.task_id}>'
+    
+    def get_url(self):
+        if self.storage_backend == StorageBackend.LOCAL:
+            return self.file_path
+        elif self.storage_backend == StorageBackend.S3:
+            return self.file_path
+        elif self.storage_backend == StorageBackend.RCLONE:
+            return self.file_path
+        return self.file_path
+
+# Add relationship to Task
+Task.media = db.relationship('TaskMedia', backref='task', lazy='dynamic')

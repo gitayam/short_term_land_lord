@@ -74,6 +74,13 @@
                         <a class="nav-link" href="{{ url_for('workforce.index') }}">Workforce</a>
                     </li>
 
+                    <!-- SMS Navigation -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('sms.threads') }}">
+                            <i class="fas fa-comments"></i> SMS
+                        </a>
+                    </li>
+
                     {% if current_user.is_property_owner or current_user.has_admin_role or current_user.is_property_manager %}
                     <!-- Inventory Navigation -->
                     <li class="nav-item dropdown">
