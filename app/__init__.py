@@ -189,6 +189,18 @@ def create_app(config_class=Config):
         # Apply database compatibility fixes
         patch_user_model()
         patch_user_loader()
+        
+        # Validate Twilio configuration
+        try:
+            from app.utils.sms import validate_twilio_config
+            is_valid, message = validate_twilio_config()
+            if not is_valid:
+                app.logger.warning(f"Twilio configuration issue: {message}")
+                app.logger.warning("SMS functionality may not work properly")
+            else:
+                app.logger.info("Twilio configuration validated successfully")
+        except Exception as e:
+            app.logger.warning(f"Could not validate Twilio configuration: {str(e)}")
     
     return app
 

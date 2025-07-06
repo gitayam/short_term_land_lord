@@ -134,11 +134,24 @@ def send_sms(to_number, message, create_notification=False, thread_id=None):
             return True, None
             
         except Exception as twilio_error:
-            logger.error(f"Twilio API error: {str(twilio_error)}")
+            error_msg = str(twilio_error)
+            logger.error(f"Twilio API error: {error_msg}")
+            
+            # Provide specific guidance for common Twilio errors
+            if "not a Twilio phone number" in error_msg:
+                logger.error(f"Twilio phone number {twilio_phone_number} is not valid for this account")
+                logger.error("Please check your Twilio console and ensure:")
+                logger.error("1. The phone number exists in your Twilio account")
+                logger.error("2. The phone number is verified and approved for SMS")
+                logger.error("3. The phone number matches the country of your recipients")
+                error_msg = f"SMS failed: Invalid Twilio phone number {twilio_phone_number}. Please check your Twilio account configuration."
+            elif "country mismatch" in error_msg:
+                logger.error("Country mismatch between sender and recipient phone numbers")
+                error_msg = "SMS failed: Country mismatch between sender and recipient phone numbers."
             
             # Store failed message in database if thread_id provided
             if thread_id:
-                store_outgoing_message(thread_id, to_number, message, None, status='failed', error=str(twilio_error))
+                store_outgoing_message(thread_id, to_number, message, None, status='failed', error=error_msg)
             
             if create_notification:
                 # Log the notification with error
@@ -149,11 +162,11 @@ def send_sms(to_number, message, create_notification=False, thread_id=None):
                     title='Service Staff Invitation',
                     message=message,
                     status='failed',
-                    error_message=str(twilio_error)
+                    error_message=error_msg
                 )
                 db.session.add(notification)
                 db.session.commit()
-            return False, str(twilio_error)
+            return False, error_msg
         
     except Exception as e:
         # Log the error
@@ -195,6 +208,56 @@ def format_phone_number(phone, default_country='US'):
         return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
     except Exception:
         return None
+
+def validate_twilio_config():
+    """Validate Twilio configuration and provide helpful error messages"""
+    if not has_app_context():
+        return False, "No Flask application context"
+    
+    logger = getattr(current_app, 'logger', None) if current_app else None
+    if logger is None:
+        logger = logging.getLogger(__name__)
+    
+    # Check if SMS is enabled
+    if not current_app.config.get('NOTIFICATION_SMS_ENABLED', True):
+        return False, "SMS notifications are disabled"
+    
+    # Check Twilio credentials
+    twilio_account_sid = current_app.config.get('TWILIO_ACCOUNT_SID')
+    twilio_auth_token = current_app.config.get('TWILIO_AUTH_TOKEN')
+    twilio_phone_number = current_app.config.get('TWILIO_PHONE_NUMBER')
+    
+    if not all([twilio_account_sid, twilio_auth_token, twilio_phone_number]):
+        missing = []
+        if not twilio_account_sid:
+            missing.append("TWILIO_ACCOUNT_SID")
+        if not twilio_auth_token:
+            missing.append("TWILIO_AUTH_TOKEN")
+        if not twilio_phone_number:
+            missing.append("TWILIO_PHONE_NUMBER")
+        return False, f"Missing Twilio configuration: {', '.join(missing)}"
+    
+    # Validate phone number format
+    formatted_number = format_phone_number(twilio_phone_number)
+    if not formatted_number:
+        return False, f"Invalid Twilio phone number format: {twilio_phone_number}"
+    
+    # Try to initialize Twilio client
+    try:
+        client = Client(twilio_account_sid, twilio_auth_token)
+        # Try to fetch the phone number to validate it exists in the account
+        try:
+            incoming_phone_numbers = client.incoming_phone_numbers.list(phone_number=formatted_number)
+            if not incoming_phone_numbers:
+                return False, f"Phone number {formatted_number} not found in Twilio account. Please verify it exists and is approved for SMS."
+        except Exception as e:
+            logger.warning(f"Could not validate Twilio phone number: {e}")
+            # Continue anyway, as this might be a permissions issue
+        
+        return True, "Twilio configuration is valid"
+        
+    except Exception as e:
+        return False, f"Failed to initialize Twilio client: {str(e)}"
 
 def handle_incoming_sms():
     """Handle incoming SMS webhook from Twilio"""
