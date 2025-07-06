@@ -89,8 +89,8 @@ def create_app(config_class=Config):
     from app.workforce import bp as workforce_bp
     app.register_blueprint(workforce_bp, url_prefix='/workforce')
 
-    from app.sms import bp as sms_bp
-    app.register_blueprint(sms_bp, url_prefix='/sms')
+    from app.messages import bp as messages_bp
+    app.register_blueprint(messages_bp, url_prefix='/messages')
 
     from app.routes.health import bp as health_bp
     app.register_blueprint(health_bp)

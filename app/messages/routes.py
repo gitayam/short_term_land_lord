@@ -1,6 +1,6 @@
 from flask import render_template, request, jsonify, current_app, flash, redirect, url_for
 from flask_login import login_required, current_user
-from app.sms import bp
+from app.messages import bp
 from app.utils.sms import handle_incoming_sms, handle_status_callback, send_sms, format_phone_number
 from app.models import MessageThread, Message, User, Task, TaskAssignment, TaskStatus
 from app import db
@@ -49,13 +49,17 @@ def threads():
         # Combine and deduplicate
         all_threads = list({thread.id: thread for thread in threads + linked_threads}.values())
         
-        return render_template('sms/threads.html', 
-                             title='SMS Conversations',
-                             threads=all_threads)
+        return render_template('messages/threads.html', 
+                             title='Messages',
+                             threads=all_threads,
+                             user=current_user)
     except Exception as e:
-        current_app.logger.error(f"Error loading SMS threads: {str(e)}")
-        flash('Error loading SMS conversations', 'error')
-        return redirect(url_for('main.index'))
+        current_app.logger.error(f"Error loading messages threads: {str(e)}")
+        flash('Error loading messages', 'error')
+        return render_template('messages/threads.html',
+                              title='Messages',
+                              threads=[],
+                              user=current_user)
 
 @bp.route('/thread/<int:thread_id>')
 @login_required
@@ -68,7 +72,7 @@ def view_thread(thread_id):
         if (thread.participant_phone != current_user.phone and 
             thread.user_id != current_user.id):
             flash('You do not have access to this conversation', 'error')
-            return redirect(url_for('sms.threads'))
+            return redirect(url_for('messages.threads'))
         
         # Mark messages as read
         thread.mark_all_read()
@@ -76,14 +80,14 @@ def view_thread(thread_id):
         # Get messages ordered by creation time
         messages = thread.messages.order_by(Message.created_at.asc()).all()
         
-        return render_template('sms/view_thread.html',
-                             title=f'SMS Conversation with {thread.participant_phone}',
+        return render_template('messages/view_thread.html',
+                             title=f'Message Conversation with {thread.participant_phone}',
                              thread=thread,
                              messages=messages)
     except Exception as e:
-        current_app.logger.error(f"Error viewing SMS thread: {str(e)}")
+        current_app.logger.error(f"Error viewing message thread: {str(e)}")
         flash('Error loading conversation', 'error')
-        return redirect(url_for('sms.threads'))
+        return redirect(url_for('messages.threads'))
 
 @bp.route('/thread/<int:thread_id>/send', methods=['POST'])
 @login_required
@@ -118,13 +122,13 @@ def send_message(thread_id):
             return jsonify({'success': False, 'error': error}), 500
             
     except Exception as e:
-        current_app.logger.error(f"Error sending SMS message: {str(e)}")
+        current_app.logger.error(f"Error sending message: {str(e)}")
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
-@bp.route('/send-to-user/<int:user_id>', methods=['GET', 'POST'])
+@bp.route('/send_to_user/<int:user_id>', methods=['GET', 'POST'])
 @login_required
 def send_to_user(user_id):
-    """Send SMS to a specific user"""
+    """Send message to a specific user"""
     try:
         user = User.query.get_or_404(user_id)
         
@@ -136,7 +140,7 @@ def send_to_user(user_id):
             message_content = request.form.get('message', '').strip()
             if not message_content:
                 flash('Message cannot be empty', 'error')
-                return redirect(url_for('sms.send_to_user', user_id=user_id))
+                return redirect(url_for('messages.send_to_user', user_id=user_id))
             
             # Find or create thread
             thread = MessageThread.query.filter_by(
@@ -162,15 +166,15 @@ def send_to_user(user_id):
             
             if success:
                 flash('Message sent successfully', 'success')
-                return redirect(url_for('sms.view_thread', thread_id=thread.id))
+                return redirect(url_for('messages.view_thread', thread_id=thread.id))
             else:
                 flash(f'Failed to send message: {error}', 'error')
         
-        return render_template('sms/send_to_user.html',
-                             title=f'Send SMS to {user.get_full_name()}',
+        return render_template('messages/send_to_user.html',
+                             title=f'Send Message to {user.get_full_name()}',
                              user=user)
     except Exception as e:
-        current_app.logger.error(f"Error sending SMS to user: {str(e)}")
+        current_app.logger.error(f"Error sending message to user: {str(e)}")
         flash('Error sending message', 'error')
         return redirect(url_for('main.index'))
 
