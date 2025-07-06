@@ -10,6 +10,7 @@ import logging
 from flask import current_app, has_app_context, request
 import re
 from datetime import datetime
+import phonenumbers
 
 LANGUAGE_TEMPLATES = {
     'task_assignment': {
@@ -47,6 +48,12 @@ def send_sms(to_number, message, create_notification=False, thread_id=None):
     if logger is None:
         logger = logging.getLogger(__name__)
     
+    # Format phone number
+    formatted_number = format_phone_number(to_number)
+    if not formatted_number:
+        logger.error(f"Invalid phone number format: {to_number}")
+        return False, f"Invalid phone number format: {to_number}"
+    
     try:
         # Check if SMS is enabled
         if not current_app.config.get('NOTIFICATION_SMS_ENABLED', True):
@@ -69,11 +76,6 @@ def send_sms(to_number, message, create_notification=False, thread_id=None):
                 missing_creds.append("TWILIO_PHONE_NUMBER")
             return False, f"SMS disabled: Missing Twilio credentials ({', '.join(missing_creds)})"
         
-        # Validate phone number format (basic E.164 validation)
-        if not is_valid_phone_number(to_number):
-            logger.error(f"Invalid phone number format: {to_number}")
-            return False, f"Invalid phone number format: {to_number}"
-            
         # Initialize Twilio client with error handling
         try:
             client = Client(twilio_account_sid, twilio_auth_token)
@@ -83,25 +85,25 @@ def send_sms(to_number, message, create_notification=False, thread_id=None):
             return False, f"Twilio client initialization failed: {str(client_error)}"
         
         # Log the attempt with more details
-        logger.info(f"Attempting to send SMS to {to_number} from {twilio_phone_number}")
+        logger.info(f"Attempting to send SMS to {formatted_number} from {twilio_phone_number}")
         logger.debug(f"Message content: {message}")
         
         # Send the message with enhanced parameters
         try:
-            twilio_message = client.messages.create(
+            message_obj = client.messages.create(
                 body=message,
                 from_=twilio_phone_number,
-                to=to_number,
+                to=formatted_number,
                 # Add status callback for delivery tracking
                 status_callback=f"{current_app.config.get('BASE_URL', 'http://localhost:5000')}/sms/status-callback"
             )
             
             # Log the Twilio response
-            logger.info(f"Twilio response: {twilio_message.sid} - Status: {twilio_message.status}")
+            logger.info(f"Twilio response: {message_obj.sid} - Status: {message_obj.status}")
             
             # Store message in database if thread_id provided
             if thread_id:
-                store_outgoing_message(thread_id, to_number, message, twilio_message.sid)
+                store_outgoing_message(thread_id, to_number, message, message_obj.sid)
             
             if create_notification:
                 # Log the notification
@@ -112,12 +114,12 @@ def send_sms(to_number, message, create_notification=False, thread_id=None):
                     title='Service Staff Invitation',
                     message=message,
                     status='sent',
-                    external_id=twilio_message.sid
+                    external_id=message_obj.sid
                 )
                 db.session.add(notification)
                 db.session.commit()
             
-            logger.info(f"SMS sent successfully to {to_number}")
+            logger.info(f"SMS sent successfully to {formatted_number}")
             return True, None
             
         except Exception as twilio_error:
@@ -144,7 +146,7 @@ def send_sms(to_number, message, create_notification=False, thread_id=None):
         
     except Exception as e:
         # Log the error
-        logger.error(f"Failed to send SMS to {to_number}: {str(e)}")
+        logger.error(f"Failed to send SMS to {formatted_number}: {str(e)}")
         
         # Store failed message in database if thread_id provided
         if thread_id:
@@ -171,28 +173,17 @@ def is_valid_phone_number(phone_number):
     pattern = r'^\+[1-9]\d{1,14}$'
     return bool(re.match(pattern, phone_number))
 
-def format_phone_number(phone_number, country_code='+1'):
-    """Format phone number to E.164 standard"""
-    # Remove all non-digit characters except +
-    cleaned = re.sub(r'[^\d+]', '', phone_number)
-    
-    # If it already starts with +, return as is
-    if cleaned.startswith('+'):
-        return cleaned
-    
-    # If it starts with 1 and is 11 digits, add +
-    if cleaned.startswith('1') and len(cleaned) == 11:
-        return '+' + cleaned
-    
-    # If it's 10 digits, add country code
-    if len(cleaned) == 10:
-        return country_code + cleaned
-    
-    # If it's 11 digits and doesn't start with 1, add country code
-    if len(cleaned) == 11 and not cleaned.startswith('1'):
-        return country_code + cleaned
-    
-    return cleaned
+def format_phone_number(phone, default_country='US'):
+    """Format a phone number to E.164 for Twilio. Default to US if no country code."""
+    if not phone:
+        return None
+    try:
+        parsed = phonenumbers.parse(phone, default_country)
+        if not phonenumbers.is_valid_number(parsed):
+            return None
+        return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+    except Exception:
+        return None
 
 def handle_incoming_sms():
     """Handle incoming SMS webhook from Twilio"""
