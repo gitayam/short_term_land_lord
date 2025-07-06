@@ -94,8 +94,7 @@ def send_sms(to_number, message, create_notification=False, thread_id=None):
                 body=message,
                 from_=twilio_phone_number,
                 to=formatted_number,
-                # Add status callback for delivery tracking
-                status_callback=f"{current_app.config.get('BASE_URL', 'http://localhost:5000')}/sms/status-callback"
+                status_callback=f"{current_app.config.get('BASE_URL')}/messages/status-callback"
             )
             
             # Log the Twilio response
