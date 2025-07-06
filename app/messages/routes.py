@@ -6,6 +6,7 @@ from app.models import MessageThread, Message, User, Task, TaskAssignment, TaskS
 from app import db
 from datetime import datetime
 import logging
+from app.messages.service import get_unified_messages
 
 logger = logging.getLogger(__name__)
 
@@ -36,29 +37,17 @@ def status_callback():
 def threads():
     """Display all message threads for the current user"""
     try:
-        # Get threads where user's phone number is the participant
-        threads = MessageThread.query.filter_by(
-            participant_phone=current_user.phone
-        ).order_by(MessageThread.updated_at.desc()).all()
-        
-        # Also get threads where user is linked by user_id
-        linked_threads = MessageThread.query.filter_by(
-            user_id=current_user.id
-        ).order_by(MessageThread.updated_at.desc()).all()
-        
-        # Combine and deduplicate
-        all_threads = list({thread.id: thread for thread in threads + linked_threads}.values())
-        
-        return render_template('messages/threads.html', 
-                             title='Messages',
-                             threads=all_threads,
-                             user=current_user)
+        all_messages = get_unified_messages(current_user)
+        return render_template('messages/threads.html',
+                              title='Messages',
+                              messages=all_messages,
+                              user=current_user)
     except Exception as e:
         current_app.logger.error(f"Error loading messages threads: {str(e)}")
         flash('Error loading messages', 'error')
         return render_template('messages/threads.html',
                               title='Messages',
-                              threads=[],
+                              messages=[],
                               user=current_user)
 
 @bp.route('/thread/<int:thread_id>')
