@@ -2,7 +2,7 @@ from flask import render_template, request, jsonify, current_app, flash, redirec
 from flask_login import login_required, current_user
 from app.messages import bp
 from app.utils.sms import handle_incoming_sms, handle_status_callback, send_sms, format_phone_number
-from app.models import MessageThread, Message, User, Task, TaskAssignment, TaskStatus
+from app.models import MessageThread, Message, User, Task, TaskAssignment, TaskStatus, Notification
 from app import db
 from datetime import datetime
 import logging
@@ -49,6 +49,41 @@ def threads():
                               title='Messages',
                               messages=[],
                               user=current_user)
+
+@bp.route('/view/<msg_type>/<int:msg_id>', methods=['GET', 'POST'])
+@login_required
+def view_message(msg_type, msg_id):
+    """Display the detail view for a message (SMS thread, notification, etc.)"""
+    if msg_type == 'sms':
+        # Find the message and thread
+        msg = Message.query.get_or_404(msg_id)
+        thread = MessageThread.query.get_or_404(msg.thread_id)
+        # Only allow access if user is participant
+        if not (thread.user_id == current_user.id or thread.participant_phone == current_user.phone):
+            flash('You do not have access to this conversation', 'error')
+            return redirect(url_for('messages.threads'))
+        # Get all messages in thread
+        messages = thread.messages.order_by(Message.created_at.asc()).all()
+        # Handle reply
+        if request.method == 'POST':
+            content = request.form.get('reply')
+            if content:
+                success, error = send_sms(thread.participant_phone, content, thread_id=thread.id)
+                if success:
+                    flash('Reply sent successfully', 'success')
+                    return redirect(url_for('messages.view_message', msg_type='sms', msg_id=msg_id))
+                else:
+                    flash(f'Failed to send reply: {error}', 'error')
+        return render_template('messages/view_thread.html', thread=thread, messages=messages, msg_type='sms')
+    elif msg_type == 'notification':
+        notification = Notification.query.get_or_404(msg_id)
+        if notification.recipient_id != current_user.id:
+            flash('You do not have access to this notification', 'error')
+            return redirect(url_for('messages.threads'))
+        return render_template('messages/view_thread.html', notification=notification, msg_type='notification')
+    else:
+        flash('Unknown message type', 'error')
+        return redirect(url_for('messages.threads'))
 
 @bp.route('/thread/<int:thread_id>')
 @login_required

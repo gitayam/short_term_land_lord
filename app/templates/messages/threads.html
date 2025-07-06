@@ -14,7 +14,7 @@
             {% if messages and messages|length > 0 %}
                 <div class="list-group">
                     {% for msg in messages %}
-                        <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('messages.view_message', msg_type=msg.type, msg_id=msg.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center">
                                 {% if msg.type == 'sms' %}
                                     <i class="fas fa-sms fa-fw text-primary me-2"></i>

@@ -4,245 +4,42 @@
 <div class="container">
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1>SMS Conversation</h1>
-                    <p class="text-muted mb-0">with {{ thread.participant_phone }}</p>
-                </div>
-                <a href="{{ url_for('sms.threads') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Conversations
-                </a>
-            </div>
-
-            <!-- Messages Container -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Messages</h5>
-                </div>
-                <div class="card-body" id="messages-container" style="height: 400px; overflow-y: auto;">
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="message-bubble mb-3 {% if message.direction == 'incoming' %}incoming{% else %}outgoing{% endif %}">
-                                <div class="message-content">
-                                    <div class="message-text">{{ message.content|nl2br }}</div>
-                                    <div class="message-meta">
-                                        <small class="text-muted">
-                                            {{ message.created_at.strftime('%m/%d %H:%M') }}
-                                            {% if message.direction == 'incoming' %}
-                                                {% if message.read %}
-                                                    <i class="fas fa-check-double text-primary"></i>
-                                                {% else %}
-                                                    <i class="fas fa-check text-muted"></i>
-                                                {% endif %}
-                                            {% else %}
-                                                <span class="badge bg-{{ 'success' if message.status == 'delivered' else 'warning' if message.status == 'sent' else 'danger' }}">
-                                                    {{ message.status }}
-                                                </span>
-                                            {% endif %}
-                                        </small>
-                                    </div>
-                                </div>
+            <a href="{{ url_for('messages.threads') }}" class="btn btn-outline-secondary mb-3">
+                <i class="fas fa-arrow-left"></i> Back to Messages
+            </a>
+            {% if msg_type == 'sms' and thread and messages %}
+                <h2>SMS Conversation</h2>
+                <div class="card mb-4">
+                    <div class="card-header">With {{ thread.participant_phone }}</div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        {% for msg in messages %}
+                            <div class="mb-3">
+                                <div class="fw-bold">{{ msg.phone_number }} <span class="text-muted small">{{ msg.created_at.strftime('%b %d, %Y %I:%M %p') }}</span></div>
+                                <div>{{ msg.content }}</div>
                             </div>
                         {% endfor %}
-                    {% else %}
-                        <div class="text-center py-4">
-                            <i class="fas fa-comments fa-2x text-muted mb-2"></i>
-                            <p class="text-muted">No messages yet</p>
-                        </div>
-                    {% endif %}
+                    </div>
                 </div>
-            </div>
-
-            <!-- Send Message Form -->
-            <div class="card">
-                <div class="card-body">
-                    <form id="send-message-form" data-thread-id="{{ thread.id }}">
-                        <div class="row">
-                            <div class="col-md-10">
-                                <textarea class="form-control" id="message-input" name="message" 
-                                          rows="3" placeholder="Type your message here..." required></textarea>
-                            </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary w-100 h-100">
-                                    <i class="fas fa-paper-plane"></i> Send
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="reply" class="form-label">Reply</label>
+                        <textarea class="form-control" id="reply" name="reply" rows="2" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Reply</button>
+                </form>
+            {% elif msg_type == 'notification' and notification %}
+                <h2>Notification</h2>
+                <div class="card">
+                    <div class="card-header">From System</div>
+                    <div class="card-body">
+                        <div class="fw-bold mb-2">{{ notification.created_at.strftime('%b %d, %Y %I:%M %p') }}</div>
+                        <div>{{ notification.message }}</div>
+                    </div>
                 </div>
-            </div>
+            {% else %}
+                <div class="alert alert-warning">Message not found or unsupported type.</div>
+            {% endif %}
         </div>
     </div>
 </div>
-
-<style>
-.message-bubble {
-    display: flex;
-    margin-bottom: 1rem;
-}
-
-.message-bubble.incoming {
-    justify-content: flex-start;
-}
-
-.message-bubble.outgoing {
-    justify-content: flex-end;
-}
-
-.message-content {
-    max-width: 70%;
-    padding: 0.75rem 1rem;
-    border-radius: 1rem;
-    position: relative;
-}
-
-.incoming .message-content {
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
-}
-
-.outgoing .message-content {
-    background-color: #007bff;
-    color: white;
-}
-
-.message-text {
-    margin-bottom: 0.25rem;
-    word-wrap: break-word;
-}
-
-.message-meta {
-    text-align: right;
-}
-
-.incoming .message-meta {
-    text-align: left;
-}
-
-#messages-container {
-    scroll-behavior: smooth;
-}
-
-/* Auto-scroll to bottom */
-#messages-container::-webkit-scrollbar {
-    width: 6px;
-}
-
-#messages-container::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-#messages-container::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-}
-
-#messages-container::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const messagesContainer = document.getElementById('messages-container');
-    const sendForm = document.getElementById('send-message-form');
-    const messageInput = document.getElementById('message-input');
-    const threadId = sendForm.dataset.threadId;
-
-    // Scroll to bottom of messages
-    function scrollToBottom() {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    // Initial scroll to bottom
-    scrollToBottom();
-
-    // Handle form submission
-    sendForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const message = messageInput.value.trim();
-        if (!message) return;
-
-        // Disable form while sending
-        const submitBtn = sendForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-
-        // Send message via AJAX
-        fetch(`/sms/thread/${threadId}/send`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: `message=${encodeURIComponent(message)}`
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Add message to UI
-                addMessageToUI(message, 'outgoing', 'sent');
-                messageInput.value = '';
-                scrollToBottom();
-            } else {
-                alert('Error sending message: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error sending message. Please try again.');
-        })
-        .finally(() => {
-            // Re-enable form
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalText;
-        });
-    });
-
-    // Add message to UI
-    function addMessageToUI(content, direction, status) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message-bubble mb-3 ${direction}`;
-        
-        const now = new Date();
-        const timeString = now.toLocaleString('en-US', {
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-
-        let statusBadge = '';
-        if (direction === 'outgoing') {
-            statusBadge = `<span class="badge bg-${status === 'delivered' ? 'success' : 'warning'}">${status}</span>`;
-        }
-
-        messageDiv.innerHTML = `
-            <div class="message-content">
-                <div class="message-text">${content.replace(/\n/g, '<br>')}</div>
-                <div class="message-meta">
-                    <small class="text-muted">
-                        ${timeString}
-                        ${statusBadge}
-                    </small>
-                </div>
-            </div>
-        `;
-
-        messagesContainer.appendChild(messageDiv);
-    }
-
-    // Auto-resize textarea
-    messageInput.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-    });
-
-    // Focus on message input
-    messageInput.focus();
-});
-</script>
 {% endblock %} 
