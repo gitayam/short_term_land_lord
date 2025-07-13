@@ -31,6 +31,17 @@ class Config:
     TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
     TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
     
+    # Signal Bridge and Matrix configuration
+    SIGNAL_BRIDGE_ENABLED = os.environ.get('SIGNAL_BRIDGE_ENABLED', 'false').lower() == 'true'
+    SIGNAL_BRIDGE_ROOM_ID = os.environ.get('SIGNAL_BRIDGE_ROOM_ID')
+    MATRIX_BOT_USER_ID = os.environ.get('MATRIX_BOT_USER_ID')
+    MATRIX_API_BASE = os.environ.get('MATRIX_API_BASE', 'https://matrix.org')
+    MATRIX_ACCESS_TOKEN = os.environ.get('MATRIX_ACCESS_TOKEN')
+    MATRIX_HOMESERVER = os.environ.get('MATRIX_HOMESERVER', 'matrix.org')
+    
+    # Signal bridge webhook URL
+    SIGNAL_WEBHOOK_URL = os.environ.get('SIGNAL_WEBHOOK_URL') or f"{BASE_URL}/messages/signal-webhook"
+    
     # Admin user
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
     ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
