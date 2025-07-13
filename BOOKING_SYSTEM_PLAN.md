@@ -10,12 +10,13 @@ This plan outlines the implementation of a direct booking system with Stripe pay
 - [Phase 4: Booking Blueprint & Routes](#phase-4-booking-blueprint--routes)
 - [Phase 5: Frontend Templates](#phase-5-frontend-templates)
 - [Phase 6: Webhook Handling](#phase-6-webhook-handling)
-- [Phase 7: Integration with Existing Systems](#phase-7-integration-with-existing-systems)
-- [Phase 8: Admin Interface](#phase-8-admin-interface)
-- [Phase 9: Testing & Deployment](#phase-9-testing--deployment)
-- [Phase 10: Security & Authentication](#phase-10-security--authentication)
-- [Phase 11: Error Handling & Validation](#phase-11-error-handling--validation)
-- [Phase 12: Performance & Scalability](#phase-12-performance--scalability)
+- [Phase 7: Manual Payment Verification & Security](#phase-7-manual-payment-verification--security)
+- [Phase 8: Integration with Existing Systems](#phase-8-integration-with-existing-systems)
+- [Phase 9: Admin Interface](#phase-9-admin-interface)
+- [Phase 10: Testing & Deployment](#phase-10-testing--deployment)
+- [Phase 11: Security & Authentication](#phase-11-security--authentication)
+- [Phase 12: Error Handling & Validation](#phase-12-error-handling--validation)
+- [Phase 13: Performance & Scalability](#phase-13-performance--scalability)
 - [Phase 13: Logging & Monitoring](#phase-13-logging--monitoring)
 - [Phase 14: Analytics & Reporting](#phase-14-analytics--reporting)
 - [Phase 15: Communications & Notifications](#phase-15-communications--notifications)
@@ -55,6 +56,12 @@ BOOKING_ENABLED=true
 BOOKING_ADVANCE_DAYS=365
 DEFAULT_CURRENCY=USD
 BOOKING_FEE_PERCENTAGE=0.03
+
+# Manual payment settings
+MANUAL_PAYMENT_ENABLED=true
+MANUAL_PAYMENT_TIMEOUT_HOURS=24
+PAYMENT_VERIFICATION_REQUIRED=true
+FRAUD_DETECTION_ENABLED=true
 ```
 
 ---
@@ -81,6 +88,116 @@ BOOKING_FEE_PERCENTAGE=0.03
 - [ ] Implement checkout session handling
 - [ ] Add payment confirmation logic
 - [ ] Implement refund capabilities
+
+### 2.3 Alternative Payment Methods (Cash App & Zelle)
+- [ ] Add host payment method configuration
+- [ ] Create manual payment verification workflow
+- [ ] Implement payment confirmation system
+- [ ] Add dispute resolution process
+
+```python
+# app/models.py - Add to existing models
+class HostPaymentMethod(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    host_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    payment_type = db.Column(db.Enum('cashapp', 'zelle', 'venmo', name='payment_types'), nullable=False)
+    payment_handle = db.Column(db.String(100), nullable=False)  # @username or phone/email
+    display_name = db.Column(db.String(100))  # Display name for guests
+    is_active = db.Column(db.Boolean, default=True)
+    verification_code = db.Column(db.String(20))  # Code for payment verification
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class ManualPayment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    booking_id = db.Column(db.Integer, db.ForeignKey('booking.id'), nullable=False)
+    payment_method_id = db.Column(db.Integer, db.ForeignKey('host_payment_method.id'), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    guest_reference = db.Column(db.String(100))  # Reference/note from guest
+    host_confirmation_code = db.Column(db.String(20))  # Code guest should include
+    payment_screenshot = db.Column(db.String(255))  # Optional screenshot upload
+    status = db.Column(db.Enum('pending', 'confirmed', 'disputed', 'refunded', name='manual_payment_status'), default='pending')
+    guest_sent_at = db.Column(db.DateTime)  # When guest claims they sent payment
+    host_confirmed_at = db.Column(db.DateTime)  # When host confirms receipt
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+```
+
+### 2.4 Manual Payment Service
+- [ ] Create manual payment processing service
+- [ ] Implement verification code generation
+- [ ] Add payment notification system
+- [ ] Create dispute handling workflow
+
+```python
+# app/services/manual_payment_service.py
+import secrets
+import string
+from datetime import datetime, timedelta
+from app.models import ManualPayment, HostPaymentMethod, Booking
+from app.utils.notification_service import NotificationService
+
+class ManualPaymentService:
+    def __init__(self):
+        self.notification_service = NotificationService()
+    
+    def create_manual_payment(self, booking_id, payment_method_id, amount):
+        """Create a manual payment entry with verification code"""
+        confirmation_code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+        
+        manual_payment = ManualPayment(
+            booking_id=booking_id,
+            payment_method_id=payment_method_id,
+            amount=amount,
+            host_confirmation_code=confirmation_code,
+            status='pending'
+        )
+        
+        db.session.add(manual_payment)
+        db.session.commit()
+        
+        # Send instructions to guest
+        self._send_payment_instructions(manual_payment)
+        
+        return manual_payment, confirmation_code
+    
+    def verify_manual_payment(self, payment_id, host_id):
+        """Host confirms receipt of manual payment"""
+        payment = ManualPayment.query.get(payment_id)
+        if payment and payment.payment_method.host_id == host_id:
+            payment.status = 'confirmed'
+            payment.host_confirmed_at = datetime.utcnow()
+            
+            # Update booking status
+            booking = Booking.query.get(payment.booking_id)
+            booking.payment_status = 'paid'
+            
+            db.session.commit()
+            
+            # Send confirmation to guest
+            self._send_payment_confirmation(payment)
+            
+            return True
+        return False
+    
+    def _send_payment_instructions(self, payment):
+        """Send payment instructions to guest"""
+        booking = Booking.query.get(payment.booking_id)
+        payment_method = HostPaymentMethod.query.get(payment.payment_method_id)
+        
+        instructions = {
+            'cashapp': f"Send ${payment.amount} to {payment_method.payment_handle}",
+            'zelle': f"Send ${payment.amount} to {payment_method.payment_handle}",
+            'venmo': f"Send ${payment.amount} to {payment_method.payment_handle}"
+        }
+        
+        self.notification_service.send_manual_payment_instructions(
+            guest_email=booking.guest_email,
+            payment_method=payment_method.payment_type,
+            amount=payment.amount,
+            handle=payment_method.payment_handle,
+            confirmation_code=payment.host_confirmation_code,
+            instructions=instructions[payment_method.payment_type]
+        )
+```
 
 ---
 
@@ -148,6 +265,97 @@ from app.booking import routes, forms
 - [ ] `/booking/property/<id>/book` - Booking form
 - [ ] `/booking/payment/success/<booking_id>` - Payment success
 - [ ] `/booking/payment/cancel/<booking_id>` - Payment cancellation
+
+### 4.3 Manual Payment Routes
+- [ ] `/booking/payment/manual/<booking_id>` - Manual payment selection
+- [ ] `/booking/payment/manual/instructions/<payment_id>` - Payment instructions
+- [ ] `/booking/payment/manual/confirm/<payment_id>` - Guest confirms payment sent
+- [ ] `/booking/payment/manual/verify/<payment_id>` - Host verifies payment received
+- [ ] `/booking/payment/manual/dispute/<payment_id>` - Handle payment disputes
+
+```python
+# app/booking/routes.py - Manual payment routes
+@bp.route('/payment/manual/<int:booking_id>', methods=['GET', 'POST'])
+@login_required
+def manual_payment(booking_id):
+    """Allow guest to select manual payment method"""
+    booking = Booking.query.get_or_404(booking_id)
+    
+    # Get host's available payment methods
+    host_payment_methods = HostPaymentMethod.query.filter_by(
+        host_id=booking.property.owner_id, 
+        is_active=True
+    ).all()
+    
+    if request.method == 'POST':
+        payment_method_id = request.form.get('payment_method_id')
+        manual_payment_service = ManualPaymentService()
+        
+        payment, confirmation_code = manual_payment_service.create_manual_payment(
+            booking_id=booking_id,
+            payment_method_id=payment_method_id,
+            amount=booking.total_amount
+        )
+        
+        return redirect(url_for('booking.manual_payment_instructions', payment_id=payment.id))
+    
+    return render_template('booking/manual_payment_selection.html', 
+                         booking=booking, 
+                         payment_methods=host_payment_methods)
+
+@bp.route('/payment/manual/instructions/<int:payment_id>')
+@login_required
+def manual_payment_instructions(payment_id):
+    """Show payment instructions to guest"""
+    payment = ManualPayment.query.get_or_404(payment_id)
+    return render_template('booking/manual_payment_instructions.html', payment=payment)
+
+@bp.route('/payment/manual/confirm/<int:payment_id>', methods=['POST'])
+@login_required
+def confirm_manual_payment(payment_id):
+    """Guest confirms they sent the payment"""
+    payment = ManualPayment.query.get_or_404(payment_id)
+    
+    payment.guest_sent_at = datetime.utcnow()
+    payment.guest_reference = request.form.get('reference', '')
+    
+    # Handle optional screenshot upload
+    if 'screenshot' in request.files:
+        file = request.files['screenshot']
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'payments', filename)
+            file.save(file_path)
+            payment.payment_screenshot = filename
+    
+    db.session.commit()
+    
+    # Notify host
+    notification_service = NotificationService()
+    notification_service.notify_host_payment_sent(payment)
+    
+    flash('Payment confirmation sent to host. You will receive confirmation once verified.', 'success')
+    return redirect(url_for('booking.view_booking', booking_id=payment.booking_id))
+
+@bp.route('/payment/manual/verify/<int:payment_id>', methods=['POST'])
+@login_required
+def verify_manual_payment(payment_id):
+    """Host verifies they received the payment"""
+    payment = ManualPayment.query.get_or_404(payment_id)
+    
+    # Verify host ownership
+    if payment.payment_method.host_id != current_user.id:
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    manual_payment_service = ManualPaymentService()
+    if manual_payment_service.verify_manual_payment(payment_id, current_user.id):
+        flash('Payment verified successfully!', 'success')
+    else:
+        flash('Error verifying payment', 'error')
+    
+    return redirect(url_for('booking.host_bookings'))
+```
 - [ ] `/booking/calculate-price` - AJAX pricing endpoint
 
 ### 4.3 Helper Functions
@@ -179,11 +387,113 @@ from app.booking import routes, forms
 - [ ] Booking details display
 - [ ] Integration with existing template structure
 
-### 5.4 Frontend JavaScript
+### 5.4 Manual Payment Templates
+- [ ] `booking/manual_payment_selection.html` - Choose payment method
+- [ ] `booking/manual_payment_instructions.html` - Payment instructions
+- [ ] `booking/host_payment_management.html` - Host payment method setup
+- [ ] `booking/payment_verification.html` - Host payment verification interface
+
+```html
+<!-- app/templates/booking/manual_payment_selection.html -->
+<div class="payment-method-selection">
+    <h3>Choose Payment Method</h3>
+    <form method="POST">
+        <div class="payment-methods">
+            {% for method in payment_methods %}
+            <div class="payment-method-option">
+                <input type="radio" name="payment_method_id" value="{{ method.id }}" id="method_{{ method.id }}">
+                <label for="method_{{ method.id }}">
+                    <div class="method-info">
+                        <img src="/static/img/{{ method.payment_type }}_logo.png" alt="{{ method.payment_type|title }}">
+                        <div>
+                            <strong>{{ method.payment_type|title }}</strong>
+                            <p>{{ method.display_name or method.payment_handle }}</p>
+                        </div>
+                    </div>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="payment-info">
+            <h4>Important Information:</h4>
+            <ul>
+                <li>You will receive specific payment instructions after selecting a method</li>
+                <li>Include the provided confirmation code in your payment</li>
+                <li>Payment must be verified by the host to confirm your booking</li>
+                <li>Keep your payment receipt/screenshot for verification</li>
+            </ul>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Continue to Payment Instructions</button>
+    </form>
+</div>
+
+<!-- app/templates/booking/manual_payment_instructions.html -->
+<div class="payment-instructions">
+    <h3>Payment Instructions</h3>
+    
+    <div class="booking-summary">
+        <h4>Booking Details</h4>
+        <p>Property: {{ payment.booking.property.title }}</p>
+        <p>Dates: {{ payment.booking.check_in }} - {{ payment.booking.check_out }}</p>
+        <p>Total Amount: ${{ payment.amount }}</p>
+    </div>
+    
+    <div class="payment-details">
+        <h4>Payment Method: {{ payment.payment_method.payment_type|title }}</h4>
+        
+        <div class="payment-steps">
+            <div class="step">
+                <span class="step-number">1</span>
+                <div class="step-content">
+                    <h5>Send Payment</h5>
+                    <p>Send <strong>${{ payment.amount }}</strong> to:</p>
+                    <div class="payment-handle">{{ payment.payment_method.payment_handle }}</div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">2</span>
+                <div class="step-content">
+                    <h5>Include Confirmation Code</h5>
+                    <p>Include this code in your payment note/memo:</p>
+                    <div class="confirmation-code">{{ payment.host_confirmation_code }}</div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">3</span>
+                <div class="step-content">
+                    <h5>Confirm Payment Sent</h5>
+                    <p>After sending payment, confirm below:</p>
+                    <form method="POST" action="{{ url_for('booking.confirm_manual_payment', payment_id=payment.id) }}" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="reference">Payment Reference/Note (optional):</label>
+                            <input type="text" name="reference" id="reference" placeholder="Transaction ID, note, etc.">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="screenshot">Upload Payment Screenshot (optional):</label>
+                            <input type="file" name="screenshot" id="screenshot" accept="image/*">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success">Confirm Payment Sent</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+### 5.5 Frontend JavaScript
 - [ ] Dynamic pricing calculation
 - [ ] Date validation
 - [ ] Form enhancement
 - [ ] Stripe Elements integration (if needed)
+- [ ] Manual payment method selection logic
+- [ ] Payment confirmation handling
 
 ---
 
@@ -209,9 +519,82 @@ from app.booking import routes, forms
 
 ---
 
-## Phase 7: Integration with Existing Systems
+## Phase 7: Manual Payment Verification & Security
 
-### 7.1 Task Integration
+### 7.1 Payment Verification System
+- [ ] Implement host verification dashboard
+- [ ] Add payment timeout handling (auto-cancel after 24 hours)
+- [ ] Create dispute resolution workflow
+- [ ] Add fraud detection for suspicious payments
+
+```python
+# app/services/payment_verification_service.py
+from datetime import datetime, timedelta
+from app.models import ManualPayment, Booking
+from app.utils.notification_service import NotificationService
+
+class PaymentVerificationService:
+    def __init__(self):
+        self.notification_service = NotificationService()
+    
+    def check_payment_timeouts(self):
+        """Check for payments that have timed out"""
+        timeout_threshold = datetime.utcnow() - timedelta(hours=24)
+        
+        timed_out_payments = ManualPayment.query.filter(
+            ManualPayment.status == 'pending',
+            ManualPayment.created_at < timeout_threshold
+        ).all()
+        
+        for payment in timed_out_payments:
+            payment.status = 'timeout'
+            booking = Booking.query.get(payment.booking_id)
+            booking.status = 'cancelled'
+            booking.payment_status = 'failed'
+            
+            # Notify guest of timeout
+            self.notification_service.send_payment_timeout_notification(payment)
+        
+        db.session.commit()
+        return len(timed_out_payments)
+    
+    def flag_suspicious_payment(self, payment_id, reason):
+        """Flag a payment as suspicious for manual review"""
+        payment = ManualPayment.query.get(payment_id)
+        payment.status = 'flagged'
+        payment.flagged_reason = reason
+        
+        # Notify admin
+        self.notification_service.send_admin_fraud_alert(payment, reason)
+        
+        db.session.commit()
+    
+    def validate_payment_amount(self, payment):
+        """Validate payment amount matches booking total"""
+        booking = Booking.query.get(payment.booking_id)
+        if abs(float(payment.amount) - float(booking.total_amount)) > 0.01:
+            self.flag_suspicious_payment(payment.id, "Amount mismatch")
+            return False
+        return True
+```
+
+### 7.2 Security Features
+- [ ] Add payment amount validation
+- [ ] Implement rate limiting for payment attempts
+- [ ] Add IP tracking for fraud detection
+- [ ] Create admin fraud detection dashboard
+
+### 7.3 Automated Monitoring
+- [ ] Set up payment timeout job (runs every hour)
+- [ ] Create payment verification reminders
+- [ ] Add metrics tracking for payment success rates
+- [ ] Implement alert system for failed payments
+
+---
+
+## Phase 8: Integration with Existing Systems
+
+### 8.1 Task Integration
 - [ ] Schedule pre-arrival cleaning tasks
 - [ ] Schedule post-departure cleaning tasks
 - [ ] Integrate with existing TaskAssignment system
@@ -223,13 +606,13 @@ def schedule_cleaning_tasks(booking):
     # Integrate with existing task management system
 ```
 
-### 7.2 Calendar Integration
+### 8.2 Calendar Integration
 - [ ] Sync bookings to property calendars
 - [ ] Prevent double-booking conflicts
 - [ ] Update external calendar feeds
 - [ ] Integrate with existing calendar system
 
-### 7.3 Notification Integration
+### 8.3 Notification Integration
 - [ ] Booking confirmation emails
 - [ ] Staff notification for new bookings
 - [ ] Integration with existing email system
@@ -589,9 +972,11 @@ class NotificationService:
 
 **Must-Have Features:**
 - ✅ Basic booking flow with Stripe payment
+- ✅ Manual payment options (Cash App, Zelle, Venmo)
 - ✅ Property availability checking
 - ✅ Guest booking management
 - ✅ Payment processing and webhooks
+- ✅ Payment verification system
 - ✅ Essential security measures
 - ✅ Core error handling and validation
 
