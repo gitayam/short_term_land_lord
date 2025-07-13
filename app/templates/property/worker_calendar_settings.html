@@ -72,12 +72,14 @@
                             <!-- Actions -->
                             <div class="d-flex gap-2 flex-wrap">
                                 <form method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="action" value="regenerate_token">
                                     <button type="submit" class="btn btn-warning">
                                         <i class="fas fa-sync-alt me-1"></i>Regenerate URL
                                     </button>
                                 </form>
                                 <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to revoke worker calendar access? The current URL will stop working.')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <input type="hidden" name="action" value="revoke_token">
                                     <button type="submit" class="btn btn-danger">
                                         <i class="fas fa-times me-1"></i>Revoke Access
@@ -92,6 +94,7 @@
                             <p class="mb-3">Generate a secure link to allow cleaning staff to view the cleaning schedule.</p>
                             
                             <form method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="action" value="generate_token">
                                 <button type="submit" class="btn btn-success">
                                     <i class="fas fa-plus me-1"></i>Enable Worker Calendar Access
