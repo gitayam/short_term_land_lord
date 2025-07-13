@@ -1367,49 +1367,39 @@ def public_booking_calendar(token):
     # Find property by booking calendar token
     property = Property.query.filter_by(booking_calendar_token=token, booking_calendar_enabled=True).first_or_404()
     
-    # Get events from all property calendars for the next 6 months
+    # Get events from database for the next 6 months
+    from datetime import datetime, timedelta
+    from app.models import Booking
+    
+    today = datetime.now().date()
+    end_date = today + timedelta(days=180)  # 6 months from now
+    
+    # Get bookings from database
+    bookings = Booking.query.filter(
+        Booking.property_id == property.id,
+        Booking.start_date <= end_date,
+        Booking.end_date >= today
+    ).all()
+    
+    # Format events for template
     events = []
-    if property.calendars:
-        import requests
-        from icalendar import Calendar
-        from datetime import datetime, timedelta
+    for booking in bookings:
+        # Get check-in/check-out times
+        checkin_time = property.checkin_time or "3:00 PM"
+        checkout_time = property.checkout_time or "11:00 AM"
         
-        today = datetime.now().date()
-        end_date = today + timedelta(days=180)  # 6 months from now
-        
-        for calendar in property.calendars:
-            try:
-                response = requests.get(calendar.ical_url, timeout=10)
-                if response.status_code == 200:
-                    cal = Calendar.from_ical(response.text)
-                    
-                    for component in cal.walk():
-                        if component.name == "VEVENT":
-                            try:
-                                summary = str(component.get('summary', 'Booking'))
-                                start_date = component.get('dtstart').dt
-                                end_date_event = component.get('dtend').dt
-                                
-                                # Convert datetime to date if needed
-                                if isinstance(start_date, datetime):
-                                    start_date = start_date.date()
-                                if isinstance(end_date_event, datetime):
-                                    end_date_event = end_date_event.date()
-                                
-                                # Only include events within our date range
-                                if start_date <= end_date and end_date_event >= today:
-                                    event = {
-                                        'title': 'Booked',  # Don't show guest details
-                                        'start': start_date,
-                                        'end': end_date_event,
-                                        'service': calendar.get_service_display(),
-                                        'room': None if calendar.is_entire_property else calendar.room_name
-                                    }
-                                    events.append(event)
-                            except (KeyError, AttributeError, ValueError, TypeError):
-                                continue
-            except Exception:
-                continue
+        event = {
+            'title': 'Reserved',  # Don't show guest details
+            'start': booking.start_date,
+            'end': booking.end_date,
+            'service': booking.calendar.get_service_display() if booking.calendar else 'Direct',
+            'room': None if booking.is_entire_property else booking.room_name,
+            'checkin_time': checkin_time,
+            'checkout_time': checkout_time,
+            'checkin_date': booking.start_date.strftime('%A, %B %d, %Y'),
+            'checkout_date': booking.end_date.strftime('%A, %B %d, %Y')
+        }
+        events.append(event)
     
     return render_template('property/public_booking_calendar.html',
                           property=property,
