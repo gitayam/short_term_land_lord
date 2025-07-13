@@ -60,3 +60,13 @@ requests==2.32.3
 beautifulsoup4
 bleach>=6.0.0
 psutil>=5.9.0
+
+# Production readiness additions
+redis>=4.0.0
+Flask-Caching>=2.0.0
+Flask-Session>=0.4.0
+prometheus-client>=0.15.0
+statsd>=3.3.0
+sentry-sdk[flask]>=1.0.0
+marshmallow>=3.19.0
+Flask-Limiter>=2.6.0

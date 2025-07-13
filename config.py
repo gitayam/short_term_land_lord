@@ -10,6 +10,20 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///app.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
+    # Database connection pooling and performance
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': int(os.environ.get('DB_POOL_SIZE', 10)),
+        'max_overflow': int(os.environ.get('DB_MAX_OVERFLOW', 20)),
+        'pool_pre_ping': True,
+        'pool_recycle': int(os.environ.get('DB_POOL_RECYCLE', 3600)),
+        'pool_timeout': int(os.environ.get('DB_POOL_TIMEOUT', 30)),
+        'echo': os.environ.get('DB_ECHO', 'false').lower() == 'true'
+    }
+    
+    # Database query optimization
+    SQLALCHEMY_RECORD_QUERIES = os.environ.get('DB_RECORD_QUERIES', 'false').lower() == 'true'
+    DATABASE_QUERY_TIMEOUT = int(os.environ.get('DB_QUERY_TIMEOUT', 30))
+    
     # Base URL for webhooks and callbacks
     BASE_URL = os.environ.get('BASE_URL') or 'http://localhost:5001'
     
@@ -76,6 +90,22 @@ class Config:
     ALLOWED_PHOTO_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
     ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'mov', 'avi', 'webm'}
     
+    # Redis configuration
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+    CACHE_TYPE = os.environ.get('CACHE_TYPE', 'redis')
+    CACHE_REDIS_URL = REDIS_URL
+    CACHE_DEFAULT_TIMEOUT = int(os.environ.get('CACHE_DEFAULT_TIMEOUT', 300))
+    
+    # Session storage
+    SESSION_TYPE = os.environ.get('SESSION_TYPE', 'redis')
+    SESSION_REDIS_URL = REDIS_URL
+    SESSION_PERMANENT = False
+    SESSION_USE_SIGNER = True
+    SESSION_KEY_PREFIX = 'stll_session:'
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    
     # Additional configuration
     ADMINS = ['admin@shortermlandlord.com']
     REQUIRE_CLEANING_VIDEOS = False
@@ -101,3 +131,57 @@ class TestConfig(Config):
         # Make sure the test database is clean
         with app.app_context():
             db.create_all()
+
+class ProductionConfig(Config):
+    """Production configuration with enhanced performance and security"""
+    DEBUG = False
+    TESTING = False
+    
+    # Enhanced database configuration for production
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': int(os.environ.get('DB_POOL_SIZE', 20)),
+        'max_overflow': int(os.environ.get('DB_MAX_OVERFLOW', 30)),
+        'pool_pre_ping': True,
+        'pool_recycle': int(os.environ.get('DB_POOL_RECYCLE', 3600)),
+        'pool_timeout': int(os.environ.get('DB_POOL_TIMEOUT', 30)),
+        'echo': False
+    }
+    
+    # Security configuration
+    WTF_CSRF_TIME_LIMIT = 3600
+    PERMANENT_SESSION_LIFETIME = 1800  # 30 minutes
+    
+    # SSL configuration
+    SSL_REDIRECT = os.environ.get('SSL_REDIRECT', 'true').lower() == 'true'
+    SSL_CERT_PATH = os.environ.get('SSL_CERT_PATH')
+    SSL_KEY_PATH = os.environ.get('SSL_KEY_PATH')
+    
+    # Logging configuration
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    LOG_FILE = os.environ.get('LOG_FILE', '/app/logs/app.log')
+    
+    # External services
+    SENTRY_DSN = os.environ.get('SENTRY_DSN')
+    
+    # Rate limiting
+    RATELIMIT_STORAGE_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/1')
+    RATELIMIT_STRATEGY = 'fixed-window'
+    
+    # Monitoring
+    PROMETHEUS_METRICS = os.environ.get('PROMETHEUS_METRICS', 'true').lower() == 'true'
+    HEALTH_CHECK_ENABLED = os.environ.get('HEALTH_CHECK_ENABLED', 'true').lower() == 'true'
+
+class StagingConfig(ProductionConfig):
+    """Staging configuration"""
+    DEBUG = True
+    TESTING = False
+    LOG_LEVEL = 'DEBUG'
+
+# Configuration mapping
+config = {
+    'development': Config,
+    'testing': TestConfig,
+    'staging': StagingConfig,
+    'production': ProductionConfig,
+    'default': Config
+}
