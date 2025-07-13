@@ -11,6 +11,9 @@ from flask import current_app, has_app_context, request
 import re
 from datetime import datetime
 import phonenumbers
+from .security import rate_limit, log_security_event, verify_twilio_signature
+from .validation import validate_phone_number, sanitize_text_input
+from .error_handling import safe_execute
 
 LANGUAGE_TEMPLATES = {
     'task_assignment': {
@@ -38,8 +41,9 @@ def send_multilingual_sms(user, message_key, context):
     message = template.format(**context)
     return send_sms(user.phone, message)
 
+@rate_limit(limit=50, window=3600, per='ip')  # 50 SMS per hour per IP
 def send_sms(to_number, message, create_notification=False, thread_id=None):
-    """Send an SMS message using Twilio with enhanced error handling"""
+    """Send an SMS message using Twilio with enhanced error handling and rate limiting"""
     if not has_app_context():
         logging.warning("No Flask application context available - SMS disabled")
         return False, "SMS disabled: No Flask application context"
@@ -262,11 +266,22 @@ def validate_twilio_config():
 def handle_incoming_sms():
     """Handle incoming SMS webhook from Twilio"""
     try:
-        # Get webhook data from Twilio
-        from_number = request.form.get('From')
-        to_number = request.form.get('To')
-        message_body = request.form.get('Body', '').strip()
-        message_sid = request.form.get('MessageSid')
+        # Verify Twilio signature for security
+        if not current_app.debug:  # Skip verification in debug mode
+            signature = request.headers.get('X-Twilio-Signature', '')
+            auth_token = current_app.config.get('TWILIO_AUTH_TOKEN', '')
+            if not verify_twilio_signature(request.data, signature, auth_token, request.url):
+                log_security_event('twilio_signature_invalid', {
+                    'ip': request.remote_addr,
+                    'headers': dict(request.headers)
+                })
+                return '', 403
+        
+        # Get webhook data from Twilio with sanitization
+        from_number = sanitize_text_input(request.form.get('From', ''), 20)
+        to_number = sanitize_text_input(request.form.get('To', ''), 20)
+        message_body = sanitize_text_input(request.form.get('Body', ''), 1000).strip()
+        message_sid = sanitize_text_input(request.form.get('MessageSid', ''), 100)
         
         logger = current_app.logger
         logger.info(f"Received SMS from {from_number} to {to_number}: {message_body}")

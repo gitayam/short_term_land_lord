@@ -6,6 +6,7 @@ from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from config import Config
+from .utils.security import SecurityHeaders
 import os
 
 from app.user_model_fix import patch_user_model, patch_user_loader
@@ -201,6 +202,11 @@ def create_app(config_class=Config):
                 app.logger.info("Twilio configuration validated successfully")
         except Exception as e:
             app.logger.warning(f"Could not validate Twilio configuration: {str(e)}")
+    
+    # Add security headers to all responses
+    @app.after_request
+    def add_security_headers(response):
+        return SecurityHeaders.add_security_headers(response)
     
     return app
 
