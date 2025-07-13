@@ -6,7 +6,6 @@ from app.models import MessageThread, Message, User, Task, TaskAssignment, TaskS
 from app import db
 from datetime import datetime
 import logging
-import asyncio
 from app.messages.service import get_unified_messages
 from app.forms.message_forms import NewMessageForm
 
@@ -24,103 +23,6 @@ def webhook():
         # Return empty TwiML response to avoid Twilio errors
         from twilio.twiml.messaging_response import MessagingResponse
         return str(MessagingResponse())
-
-@bp.route('/signal-webhook', methods=['POST'])
-def signal_webhook():
-    """Handle Signal bridge events and identifier resolution results"""
-    try:
-        data = request.get_json()
-        
-        if not data:
-            current_app.logger.warning("Signal webhook received empty data")
-            return jsonify({'status': 'error', 'message': 'No data received'}), 400
-        
-        event_type = data.get('type', '')
-        current_app.logger.info(f"Signal webhook received event: {event_type}")
-        
-        # Handle identifier resolution
-        if event_type == 'identifier_resolved':
-            phone_number = data.get('phone_number')
-            signal_uuid = data.get('signal_uuid')
-            display_name = data.get('display_name', 'User')
-            
-            if not phone_number or not signal_uuid:
-                current_app.logger.error("Missing phone_number or signal_uuid in resolution")
-                return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
-            
-            # Handle the resolution asynchronously
-            try:
-                from app.utils.signal_bridge import handle_signal_resolution
-                # Run async function in event loop
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(
-                    handle_signal_resolution(phone_number, signal_uuid, display_name)
-                )
-                loop.close()
-                
-                current_app.logger.info(f"Successfully processed Signal resolution for {phone_number}")
-                return jsonify({'status': 'success', 'message': 'Resolution processed'})
-                
-            except Exception as e:
-                current_app.logger.error(f"Error processing Signal resolution: {str(e)}")
-                return jsonify({'status': 'error', 'message': str(e)}), 500
-        
-        # Handle other Signal bridge events
-        elif event_type == 'message_received':
-            # Handle incoming Signal messages
-            room_id = data.get('room_id')
-            sender = data.get('sender')
-            message_content = data.get('content')
-            
-            current_app.logger.info(f"Signal message from {sender} in {room_id}: {message_content[:50]}...")
-            # Process Signal message (similar to SMS processing)
-            
-        else:
-            current_app.logger.info(f"Unhandled Signal event type: {event_type}")
-        
-        return jsonify({'status': 'success', 'message': 'Event processed'})
-        
-    except Exception as e:
-        current_app.logger.error(f"Error in Signal webhook: {str(e)}")
-        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
-
-@bp.route('/signal-verify/<int:user_id>', methods=['POST'])
-@login_required
-def trigger_signal_verification(user_id):
-    """Manually trigger Signal verification for a user"""
-    try:
-        user = User.query.get_or_404(user_id)
-        
-        if not user.phone:
-            flash('User does not have a phone number', 'error')
-            return redirect(url_for('main.dashboard'))
-        
-        # Trigger Signal verification
-        try:
-            from app.utils.signal_bridge import verify_user_phone
-            
-            # Run async verification
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            success, message = loop.run_until_complete(verify_user_phone(user.phone))
-            loop.close()
-            
-            if success:
-                flash(f'Signal verification initiated for {user.get_full_name()}', 'success')
-            else:
-                flash(f'Signal verification failed: {message}', 'error')
-                
-        except Exception as e:
-            current_app.logger.error(f"Error triggering Signal verification: {str(e)}")
-            flash('Error initiating Signal verification', 'error')
-        
-        return redirect(url_for('main.dashboard'))
-        
-    except Exception as e:
-        current_app.logger.error(f"Error in signal verification trigger: {str(e)}")
-        flash('Error processing request', 'error')
-        return redirect(url_for('main.dashboard'))
 
 @bp.route('/status-callback', methods=['POST'])
 def status_callback():

@@ -20,6 +20,22 @@ boto3>=1.18.0
 python-magic>=0.4.24
 twilio>=7.0.0
 phonenumbers>=8.12.0
+
+# Production performance and caching
+redis>=4.0.0
+Flask-Caching>=2.0.0
+Flask-Session>=0.4.0
+
+# Production monitoring and observability
+sentry-sdk[flask]>=1.15.0
+prometheus-client>=0.15.0
+statsd>=3.3.0
+
+# Enhanced security and validation
+marshmallow>=3.19.0
+bleach>=6.0.0
+Flask-Limiter>=3.0.0
+
 # For barcode scanning functionality, we use QuaggaJS (client-side JavaScript library)
 # No additional Python package required as it's loaded via CDN
 pandas>=1.3.0
@@ -58,5 +74,4 @@ icalendar==6.1.3
 recurring-ical-events==3.6.1
 requests==2.32.3
 beautifulsoup4
-bleach>=6.0.0
 psutil>=5.9.0

@@ -10,6 +10,34 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///app.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
+    # Database connection pooling for production performance
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': int(os.environ.get('DB_POOL_SIZE', 10)),
+        'max_overflow': int(os.environ.get('DB_MAX_OVERFLOW', 20)),
+        'pool_pre_ping': True,
+        'pool_recycle': int(os.environ.get('DB_POOL_RECYCLE', 3600)),
+        'pool_timeout': int(os.environ.get('DB_POOL_TIMEOUT', 30)),
+        'echo': os.environ.get('DB_ECHO', 'false').lower() == 'true'
+    }
+    
+    # Redis configuration for caching and sessions
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+    CACHE_TYPE = os.environ.get('CACHE_TYPE', 'simple')  # 'redis' for production
+    CACHE_REDIS_URL = REDIS_URL
+    CACHE_DEFAULT_TIMEOUT = int(os.environ.get('CACHE_DEFAULT_TIMEOUT', 300))
+    
+    # Session configuration
+    SESSION_TYPE = os.environ.get('SESSION_TYPE', 'filesystem')  # 'redis' for production
+    SESSION_REDIS_URL = REDIS_URL
+    SESSION_PERMANENT = False
+    SESSION_USE_SIGNER = True
+    SESSION_KEY_PREFIX = os.environ.get('SESSION_KEY_PREFIX', 'stll_session:')
+    
+    # Performance settings
+    SQLALCHEMY_RECORD_QUERIES = os.environ.get('SQLALCHEMY_RECORD_QUERIES', 'false').lower() == 'true'
+    DATABASE_QUERY_TIMEOUT = int(os.environ.get('DATABASE_QUERY_TIMEOUT', 30))
+    SLOW_QUERY_THRESHOLD = float(os.environ.get('SLOW_QUERY_THRESHOLD', 0.5))
+    
     # Base URL for webhooks and callbacks
     BASE_URL = os.environ.get('BASE_URL') or 'http://localhost:5001'
     
@@ -31,17 +59,6 @@ class Config:
     TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
     TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
     
-    # Signal Bridge and Matrix configuration
-    SIGNAL_BRIDGE_ENABLED = os.environ.get('SIGNAL_BRIDGE_ENABLED', 'false').lower() == 'true'
-    SIGNAL_BRIDGE_ROOM_ID = os.environ.get('SIGNAL_BRIDGE_ROOM_ID')
-    MATRIX_BOT_USER_ID = os.environ.get('MATRIX_BOT_USER_ID')
-    MATRIX_API_BASE = os.environ.get('MATRIX_API_BASE', 'https://matrix.org')
-    MATRIX_ACCESS_TOKEN = os.environ.get('MATRIX_ACCESS_TOKEN')
-    MATRIX_HOMESERVER = os.environ.get('MATRIX_HOMESERVER', 'matrix.org')
-    
-    # Signal bridge webhook URL
-    SIGNAL_WEBHOOK_URL = os.environ.get('SIGNAL_WEBHOOK_URL') or f"{BASE_URL}/messages/signal-webhook"
-    
     # Admin user
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL')
     ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
@@ -52,6 +69,24 @@ class Config:
     # Authentication settings
     AUTH_USE_SSO = os.environ.get('AUTH_USE_SSO', 'true').lower() == 'true'
     AUTH_USE_LOCAL = os.environ.get('AUTH_USE_LOCAL', 'true').lower() == 'true'
+    
+    # Security settings
+    WTF_CSRF_TIME_LIMIT = int(os.environ.get('CSRF_TIME_LIMIT', 3600))
+    PERMANENT_SESSION_LIFETIME = int(os.environ.get('SESSION_LIFETIME', 1800))  # 30 minutes
+    
+    # Rate limiting
+    RATELIMIT_STORAGE_URL = REDIS_URL
+    RATELIMIT_STRATEGY = os.environ.get('RATELIMIT_STRATEGY', 'fixed-window')
+    RATELIMIT_ENABLED = os.environ.get('RATELIMIT_ENABLED', 'true').lower() == 'true'
+    
+    # Logging configuration
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    LOG_FORMAT = os.environ.get('LOG_FORMAT', 'structured')  # 'structured' or 'standard'
+    
+    # Monitoring and observability
+    SENTRY_DSN = os.environ.get('SENTRY_DSN')
+    PROMETHEUS_METRICS = os.environ.get('PROMETHEUS_METRICS', 'false').lower() == 'true'
+    HEALTH_CHECK_ENABLED = os.environ.get('HEALTH_CHECK_ENABLED', 'true').lower() == 'true'
     
     # Media storage configuration
     MEDIA_STORAGE_BACKEND = os.environ.get('MEDIA_STORAGE_BACKEND', 'local')  # local, s3, rclone
@@ -107,8 +142,85 @@ class TestConfig(Config):
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
     
+    # Disable caching and sessions for tests
+    CACHE_TYPE = 'simple'
+    SESSION_TYPE = 'filesystem'
+    
     @classmethod
     def init_app(cls, app):
         # Make sure the test database is clean
-        with app.app_context():
-            db.create_all()
+        pass
+
+
+class ProductionConfig(Config):
+    """Production configuration with optimized settings"""
+    DEBUG = False
+    TESTING = False
+    
+    # Enable Redis for production
+    CACHE_TYPE = 'redis'
+    SESSION_TYPE = 'redis'
+    
+    # Enhanced database pooling for production
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': int(os.environ.get('DB_POOL_SIZE', 20)),
+        'max_overflow': int(os.environ.get('DB_MAX_OVERFLOW', 30)),
+        'pool_pre_ping': True,
+        'pool_recycle': int(os.environ.get('DB_POOL_RECYCLE', 3600)),
+        'pool_timeout': int(os.environ.get('DB_POOL_TIMEOUT', 30)),
+        'echo': False  # Disable SQL echo in production
+    }
+    
+    # Production security settings
+    WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
+    PERMANENT_SESSION_LIFETIME = 1800  # 30 minutes
+    
+    # Enable all monitoring in production
+    SQLALCHEMY_RECORD_QUERIES = True
+    PROMETHEUS_METRICS = True
+    HEALTH_CHECK_ENABLED = True
+    
+    # Production logging
+    LOG_LEVEL = 'INFO'
+    LOG_FORMAT = 'structured'
+    
+    # SSL and security headers
+    SSL_REDIRECT = True
+    PREFERRED_URL_SCHEME = 'https'
+    
+    @classmethod
+    def init_app(cls, app):
+        Config.init_app(app)
+        
+        # Log to syslog in production
+        import logging
+        from logging.handlers import SysLogHandler
+        syslog_handler = SysLogHandler()
+        syslog_handler.setLevel(logging.WARNING)
+        app.logger.addHandler(syslog_handler)
+
+
+class StagingConfig(ProductionConfig):
+    """Staging configuration - like production but with debug info"""
+    DEBUG = True
+    LOG_LEVEL = 'DEBUG'
+    
+    # Smaller connection pools for staging
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 5,
+        'max_overflow': 10,
+        'pool_pre_ping': True,
+        'pool_recycle': 3600,
+        'pool_timeout': 30,
+        'echo': False
+    }
+
+
+# Configuration mapping
+config = {
+    'development': Config,
+    'testing': TestConfig,
+    'staging': StagingConfig,
+    'production': ProductionConfig,
+    'default': Config
+}

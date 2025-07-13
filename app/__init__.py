@@ -1,15 +1,20 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, g, request
 from .utils.route_debug import list_routes
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
+from flask_caching import Cache
+from flask_session import Session
 from config import Config
 from .utils.security import SecurityHeaders
 import os
+import time
+import uuid
 
 from app.user_model_fix import patch_user_model, patch_user_loader
+
 # Initialize extensions
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -18,6 +23,8 @@ login_manager.login_message = 'Please log in to access this page.'
 mail = Mail()
 migrate = Migrate()
 csrf = CSRFProtect()
+cache = Cache()
+session_store = Session()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -39,6 +46,21 @@ def create_app(config_class=Config):
     mail.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
+    cache.init_app(app)
+    session_store.init_app(app)
+    
+    # Initialize production monitoring if enabled
+    if app.config.get('SENTRY_DSN'):
+        setup_sentry(app)
+    
+    if app.config.get('PROMETHEUS_METRICS'):
+        setup_prometheus(app)
+    
+    # Setup performance monitoring
+    setup_performance_monitoring(app)
+    
+    # Setup request context
+    setup_request_context(app)
     
     # Initialize task permission functions for templates
     from app.tasks.routes import can_view_task, can_edit_task, can_delete_task, can_complete_task
@@ -112,6 +134,29 @@ def create_app(config_class=Config):
     @app.route('/debug/routes')
     def debug_routes():
         return list_routes()
+
+    # Health check endpoint
+    if app.config.get('HEALTH_CHECK_ENABLED'):
+        @app.route('/health')
+        def health_check():
+            from app.utils.health_checks import HealthChecker
+            health_checker = HealthChecker()
+            results = health_checker.run_all_checks()
+            
+            status_code = 200
+            if results['status'] == 'unhealthy':
+                status_code = 503
+            elif results['status'] == 'warning':
+                status_code = 200
+            
+            return jsonify(results), status_code
+
+    # Metrics endpoint for Prometheus
+    if app.config.get('PROMETHEUS_METRICS'):
+        @app.route('/metrics')
+        def metrics():
+            from prometheus_client import generate_latest
+            return generate_latest()
 
     from app.context_processors import admin_properties, user_theme
     app.context_processor(admin_properties)
@@ -213,4 +258,106 @@ def create_app(config_class=Config):
     
     return app
 
-from app import models
+
+def setup_sentry(app):
+    """Initialize Sentry for error tracking"""
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    
+    sentry_sdk.init(
+        dsn=app.config['SENTRY_DSN'],
+        integrations=[
+            FlaskIntegration(),
+            SqlalchemyIntegration()
+        ],
+        traces_sample_rate=0.1,  # 10% of transactions
+        environment=os.environ.get('FLASK_ENV', 'development')
+    )
+
+
+def setup_prometheus(app):
+    """Setup Prometheus metrics collection"""
+    from prometheus_client import Counter, Histogram, Gauge
+    
+    # Define metrics
+    REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
+    REQUEST_LATENCY = Histogram('http_request_duration_seconds', 'HTTP request latency')
+    ACTIVE_CONNECTIONS = Gauge('database_connections_active', 'Active database connections')
+    
+    @app.before_request
+    def before_request():
+        g.start_time = time.time()
+        g.request_id = str(uuid.uuid4())
+    
+    @app.after_request
+    def after_request(response):
+        if hasattr(g, 'start_time'):
+            request_latency = time.time() - g.start_time
+            REQUEST_LATENCY.observe(request_latency)
+            REQUEST_COUNT.labels(
+                method=request.method,
+                endpoint=request.endpoint or 'unknown',
+                status=response.status_code
+            ).inc()
+        return response
+
+
+def setup_performance_monitoring(app):
+    """Setup database query performance monitoring"""
+    if app.config.get('SQLALCHEMY_RECORD_QUERIES'):
+        from sqlalchemy import event
+        from sqlalchemy.engine import Engine
+        
+        @event.listens_for(Engine, "before_cursor_execute")
+        def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+            context._query_start_time = time.time()
+        
+        @event.listens_for(Engine, "after_cursor_execute")
+        def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+            total = time.time() - context._query_start_time
+            threshold = app.config.get('SLOW_QUERY_THRESHOLD', 0.5)
+            
+            if total > threshold:
+                app.logger.warning(
+                    f"Slow query detected: {total:.3f}s",
+                    extra={
+                        'query_time': total,
+                        'query': statement[:200] + '...' if len(statement) > 200 else statement,
+                        'request_id': getattr(g, 'request_id', None)
+                    }
+                )
+
+
+def setup_request_context(app):
+    """Setup request context and logging"""
+    @app.before_request
+    def before_request():
+        if not hasattr(g, 'request_id'):
+            g.request_id = str(uuid.uuid4())
+        
+        # Log request start
+        app.logger.info(
+            f"Request started: {request.method} {request.path}",
+            extra={
+                'request_id': g.request_id,
+                'method': request.method,
+                'path': request.path,
+                'remote_addr': request.remote_addr,
+                'user_agent': request.headers.get('User-Agent', '')
+            }
+        )
+    
+    @app.after_request
+    def after_request(response):
+        # Log request completion
+        if hasattr(g, 'request_id'):
+            app.logger.info(
+                f"Request completed: {response.status_code}",
+                extra={
+                    'request_id': g.request_id,
+                    'status_code': response.status_code,
+                    'content_length': response.content_length
+                }
+            )
+        return response
