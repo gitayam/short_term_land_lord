@@ -1656,6 +1656,20 @@ class RecommendationCategory(enum.Enum):
     GROCERY = "grocery"
     OTHER = "other"
 
+class GuidebookCategory(enum.Enum):
+    RESTAURANT = "restaurant"
+    CAFE = "cafe"
+    BAR = "bar"
+    ATTRACTION = "attraction"
+    SHOPPING = "shopping"
+    OUTDOOR = "outdoor"
+    TRANSPORTATION = "transportation"
+    SERVICES = "services"
+    EMERGENCY = "emergency"
+    GROCERY = "grocery"
+    ENTERTAINMENT = "entertainment"
+    OTHER = "other"
+
 class RecommendationVote(db.Model):
     """Model for storing recommendation votes from guests"""
     __tablename__ = 'recommendation_votes'
@@ -2001,3 +2015,173 @@ class TaskMedia(db.Model):
 
 # Add relationship to Task
 Task.media = db.relationship('TaskMedia', backref='task', lazy='dynamic')
+
+class GuidebookEntry(db.Model):
+    """Model for storing guidebook entries with local recommendations"""
+    __tablename__ = 'guidebook_entries'
+    __table_args__ = (
+        Index('idx_guidebook_property', 'property_id'),
+        Index('idx_guidebook_category', 'category'),
+        Index('idx_guidebook_active', 'is_active'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    category = db.Column(db.Enum(GuidebookCategory), nullable=False)
+    
+    # Location data
+    address = db.Column(db.String(500), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
+    
+    # Additional details
+    website_url = db.Column(db.String(500), nullable=True)
+    phone_number = db.Column(db.String(20), nullable=True)
+    price_range = db.Column(db.String(10), nullable=True)  # $, $$, $$$, $$$$
+    opening_hours = db.Column(db.Text, nullable=True)  # JSON string for structured hours
+    
+    # Host notes and recommendations
+    host_notes = db.Column(db.Text, nullable=True)
+    host_tip = db.Column(db.String(500), nullable=True)  # Short tip from host
+    recommended_for = db.Column(db.String(200), nullable=True)  # e.g., "families", "couples", "business travelers"
+    
+    # Media
+    image_url = db.Column(db.String(500), nullable=True)
+    image_path = db.Column(db.String(500), nullable=True)  # Local storage path
+    
+    # Status and ordering
+    is_active = db.Column(db.Boolean, default=True)
+    sort_order = db.Column(db.Integer, default=0)
+    is_featured = db.Column(db.Boolean, default=False)  # Highlight this entry
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationships
+    property = db.relationship('Property', backref='guidebook_entries')
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_guidebook_entries')
+    
+    def __repr__(self):
+        return f'<GuidebookEntry {self.title} for Property {self.property_id}>'
+    
+    def get_category_display(self) -> str:
+        """Get human-readable category name"""
+        category_names = {
+            GuidebookCategory.RESTAURANT: "Restaurant",
+            GuidebookCategory.CAFE: "Café",
+            GuidebookCategory.BAR: "Bar",
+            GuidebookCategory.ATTRACTION: "Attraction",
+            GuidebookCategory.SHOPPING: "Shopping",
+            GuidebookCategory.OUTDOOR: "Outdoor Activity",
+            GuidebookCategory.TRANSPORTATION: "Transportation",
+            GuidebookCategory.SERVICES: "Services",
+            GuidebookCategory.EMERGENCY: "Emergency",
+            GuidebookCategory.GROCERY: "Grocery",
+            GuidebookCategory.ENTERTAINMENT: "Entertainment",
+            GuidebookCategory.OTHER: "Other"
+        }
+        return category_names.get(self.category, self.category.value.title())
+    
+    def get_price_range_display(self) -> str:
+        """Get human-readable price range"""
+        if not self.price_range:
+            return ""
+        
+        price_map = {
+            "$": "Budget-friendly",
+            "$$": "Moderate",
+            "$$$": "Upscale",
+            "$$$$": "Fine dining/Luxury"
+        }
+        return price_map.get(self.price_range, self.price_range)
+    
+    def has_coordinates(self) -> bool:
+        """Check if entry has valid coordinates"""
+        return self.latitude is not None and self.longitude is not None
+    
+    def get_map_data(self) -> Optional[Dict[str, Any]]:
+        """Get data formatted for map display"""
+        if not self.has_coordinates():
+            return None
+        
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'category': self.category.value,
+            'category_display': self.get_category_display(),
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            'address': self.address,
+            'website_url': self.website_url,
+            'phone_number': self.phone_number,
+            'price_range': self.price_range,
+            'price_range_display': self.get_price_range_display(),
+            'host_tip': self.host_tip,
+            'recommended_for': self.recommended_for,
+            'image_url': self.image_url,
+            'is_featured': self.is_featured
+        }
+    
+    @property
+    def opening_hours_dict(self) -> Dict[str, str]:
+        """Parse opening hours from JSON string"""
+        if not self.opening_hours:
+            return {}
+        try:
+            import json
+            return json.loads(self.opening_hours)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    
+    @opening_hours_dict.setter
+    def opening_hours_dict(self, hours_dict: Dict[str, str]):
+        """Set opening hours as JSON string"""
+        if hours_dict:
+            import json
+            self.opening_hours = json.dumps(hours_dict)
+        else:
+            self.opening_hours = None
+    
+    def get_opening_hours_display(self) -> str:
+        """Get formatted opening hours for display"""
+        hours = self.opening_hours_dict
+        if not hours:
+            return "Hours not specified"
+        
+        # Format hours for display
+        formatted_hours = []
+        for day, times in hours.items():
+            if times and times.lower() != 'closed':
+                formatted_hours.append(f"{day}: {times}")
+            else:
+                formatted_hours.append(f"{day}: Closed")
+        
+        return "; ".join(formatted_hours)
+    
+    @classmethod
+    def get_by_property_and_category(cls, property_id: int, category: Optional[GuidebookCategory] = None):
+        """Get entries for a property, optionally filtered by category"""
+        query = cls.query.filter_by(property_id=property_id, is_active=True)
+        if category:
+            query = query.filter_by(category=category)
+        return query.order_by(cls.sort_order, cls.title).all()
+    
+    @classmethod
+    def get_featured_by_property(cls, property_id: int):
+        """Get featured entries for a property"""
+        return cls.query.filter_by(
+            property_id=property_id, 
+            is_active=True, 
+            is_featured=True
+        ).order_by(cls.sort_order, cls.title).all()
+    
+    @classmethod
+    def get_map_data_for_property(cls, property_id: int):
+        """Get all entries for a property formatted for map display"""
+        entries = cls.query.filter_by(property_id=property_id, is_active=True).all()
+        return [entry.get_map_data() for entry in entries if entry.has_coordinates()]
