@@ -93,6 +93,9 @@ def create_app(config_class=Config):
     from app.messages import bp as messages_bp
     app.register_blueprint(messages_bp, url_prefix='/messages')
 
+    from app.guidebook import bp as guidebook_bp
+    app.register_blueprint(guidebook_bp, url_prefix='/guidebook')
+
     from app.routes.health import bp as health_bp
     app.register_blueprint(health_bp)
     
