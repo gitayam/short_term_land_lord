@@ -2,10 +2,11 @@ from datetime import datetime, timedelta
 import enum
 import secrets
 import os
+from typing import Optional, List, Dict, Any
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app import db, login_manager
-from sqlalchemy import text
+from sqlalchemy import text, Index
 from flask import url_for, current_app
 import uuid
 import random
@@ -264,6 +265,13 @@ class User(UserMixin, db.Model):
     Table name is explicitly set to 'users' for consistency across all environments
     """
     __tablename__ = 'users'  # Always use 'users' as the table name
+    __table_args__ = (
+        Index('idx_user_email', 'email'),
+        Index('idx_user_phone', 'phone'),
+        Index('idx_user_role', 'role'),
+        Index('idx_user_active', 'is_active'),
+        Index('idx_user_created', 'created_at'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True, nullable=True)
@@ -332,12 +340,12 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f'<User {self.email}>'
     
-    def set_password(self, password):
+    def set_password(self, password: str) -> None:
+        """Set user password hash from plaintext password"""
         self.password_hash = generate_password_hash(password)
     
-    def check_password(self, password):
-        # Add debug logging for password checks
-        
+    def check_password(self, password: str) -> bool:
+        """Check if provided password matches stored hash"""
         if self.password_hash is None:
             current_app.logger.warning(f"User {self.email} has no password hash set")
             return False
@@ -349,7 +357,8 @@ class User(UserMixin, db.Model):
             current_app.logger.info(f"Password check successful for user {self.email}")
         return result
     
-    def get_full_name(self):
+    def get_full_name(self) -> str:
+        """Return user's full name (first + last)"""
         return f"{self.first_name} {self.last_name}".strip()
     
     @property
@@ -528,6 +537,13 @@ class Property(db.Model):
     - calendars: Calendars associated with this property
     """
     __tablename__ = 'property'
+    __table_args__ = (
+        Index('idx_property_owner', 'owner_id'),
+        Index('idx_property_status', 'status'),
+        Index('idx_property_type', 'property_type'),
+        Index('idx_property_created', 'created_at'),
+        Index('idx_property_city_state', 'city', 'state'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -923,6 +939,15 @@ class RoomFurniture(db.Model):
 
 class Task(db.Model):
     __tablename__ = 'task'
+    __table_args__ = (
+        Index('idx_task_status', 'status'),
+        Index('idx_task_priority', 'priority'),
+        Index('idx_task_due_date', 'due_date'),
+        Index('idx_task_creator', 'creator_id'),
+        Index('idx_task_property', 'property_id'),
+        Index('idx_task_created', 'created_at'),
+        Index('idx_task_status_due', 'status', 'due_date'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
