@@ -1359,3 +1359,101 @@ def worker_calendar_settings(id):
     return render_template('property/worker_calendar_settings.html',
                           property=property,
                           worker_calendar_url=worker_calendar_url)
+
+# Public Booking Calendar Routes
+@bp.route('/booking-calendar/<token>')
+def public_booking_calendar(token):
+    """Public booking calendar view for potential guests"""
+    # Find property by booking calendar token
+    property = Property.query.filter_by(booking_calendar_token=token, booking_calendar_enabled=True).first_or_404()
+    
+    # Get events from all property calendars for the next 6 months
+    events = []
+    if property.calendars:
+        import requests
+        from icalendar import Calendar
+        from datetime import datetime, timedelta
+        
+        today = datetime.now().date()
+        end_date = today + timedelta(days=180)  # 6 months from now
+        
+        for calendar in property.calendars:
+            try:
+                response = requests.get(calendar.ical_url, timeout=10)
+                if response.status_code == 200:
+                    cal = Calendar.from_ical(response.text)
+                    
+                    for component in cal.walk():
+                        if component.name == "VEVENT":
+                            try:
+                                summary = str(component.get('summary', 'Booking'))
+                                start_date = component.get('dtstart').dt
+                                end_date_event = component.get('dtend').dt
+                                
+                                # Convert datetime to date if needed
+                                if isinstance(start_date, datetime):
+                                    start_date = start_date.date()
+                                if isinstance(end_date_event, datetime):
+                                    end_date_event = end_date_event.date()
+                                
+                                # Only include events within our date range
+                                if start_date <= end_date and end_date_event >= today:
+                                    event = {
+                                        'title': 'Booked',  # Don't show guest details
+                                        'start': start_date,
+                                        'end': end_date_event,
+                                        'service': calendar.get_service_display(),
+                                        'room': None if calendar.is_entire_property else calendar.room_name
+                                    }
+                                    events.append(event)
+                            except (KeyError, AttributeError, ValueError, TypeError):
+                                continue
+            except Exception:
+                continue
+    
+    return render_template('property/public_booking_calendar.html',
+                          property=property,
+                          events=events,
+                          title=f'Availability - {property.name}',
+                          token=token)
+
+@bp.route('/<int:id>/booking-calendar-settings', methods=['GET', 'POST'])
+@login_required
+def booking_calendar_settings(id):
+    """Manage public booking calendar access settings"""
+    property = Property.query.get_or_404(id)
+    
+    # Check if user is authorized to edit this property
+    if property.owner_id != current_user.id and not current_user.has_admin_role:
+        abort(403)
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'enable':
+            property.booking_calendar_enabled = True
+            if not property.booking_calendar_token:
+                property.generate_booking_calendar_token()
+            db.session.commit()
+            flash('Public booking calendar enabled successfully!', 'success')
+        elif action == 'disable':
+            property.booking_calendar_enabled = False
+            db.session.commit()
+            flash('Public booking calendar disabled!', 'warning')
+        elif action == 'regenerate_token':
+            property.booking_calendar_token = secrets.token_urlsafe(32)
+            db.session.commit()
+            flash('Public booking calendar token regenerated successfully!', 'success')
+        
+        return redirect(url_for('property.booking_calendar_settings', id=id))
+    
+    # Generate booking calendar URL for display
+    booking_calendar_url = None
+    if property.booking_calendar_token and property.booking_calendar_enabled:
+        booking_calendar_url = url_for('property.public_booking_calendar', 
+                                     token=property.booking_calendar_token, 
+                                     _external=True)
+    
+    return render_template('property/booking_calendar_settings.html',
+                          property=property,
+                          booking_calendar_url=booking_calendar_url)

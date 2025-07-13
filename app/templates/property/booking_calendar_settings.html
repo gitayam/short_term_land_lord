@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('property.index') }}">Properties</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('property.view', id=property.id) }}">{{ property.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Public Booking Calendar</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Public Booking Calendar Settings
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        The public booking calendar allows potential guests to view your property's availability 
+                        without requiring them to log in. This can help increase bookings by making it easier 
+                        for guests to see when your property is available.
+                    </p>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Current Status</h5>
+                            {% if property.booking_calendar_enabled %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    Enabled
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger fs-6">
+                                    <i class="fas fa-times-circle me-1"></i>
+                                    Disabled
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Token Status</h5>
+                            {% if property.booking_calendar_token %}
+                                <span class="badge bg-info fs-6">
+                                    <i class="fas fa-key me-1"></i>
+                                    Token Generated
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning fs-6">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    No Token
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if booking_calendar_url %}
+                    <div class="alert alert-success" role="alert">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-link me-2"></i>
+                            Public Calendar URL
+                        </h6>
+                        <p class="mb-2">Share this URL with potential guests to let them view your property's availability:</p>
+                        <div class="input-group">
+                            <input type="text" class="form-control" value="{{ booking_calendar_url }}" id="booking-calendar-url" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyBookingCalendarUrl()">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            <i class="fas fa-info-circle me-1"></i>
+                            This URL is public and doesn't require authentication. Anyone with this link can view your property's availability.
+                        </small>
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5>Actions</h5>
+                            <div class="d-grid gap-2 d-md-flex">
+                                {% if not property.booking_calendar_enabled %}
+                                    <form method="POST" class="d-inline">
+                                        <input type="hidden" name="action" value="enable">
+                                        <button type="submit" class="btn btn-success me-md-2">
+                                            <i class="fas fa-toggle-on me-1"></i>
+                                            Enable Public Calendar
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form method="POST" class="d-inline">
+                                        <input type="hidden" name="action" value="disable">
+                                        <button type="submit" class="btn btn-danger me-md-2" 
+                                                onclick="return confirm('Are you sure you want to disable the public booking calendar?')">
+                                            <i class="fas fa-toggle-off me-1"></i>
+                                            Disable Public Calendar
+                                        </button>
+                                    </form>
+                                {% endif %}
+
+                                {% if property.booking_calendar_token %}
+                                    <form method="POST" class="d-inline">
+                                        <input type="hidden" name="action" value="regenerate_token">
+                                        <button type="submit" class="btn btn-warning me-md-2"
+                                                onclick="return confirm('Regenerating the token will invalidate the current URL. Are you sure?')">
+                                            <i class="fas fa-sync me-1"></i>
+                                            Regenerate Token
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        How It Works
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-3">
+                            <i class="fas fa-calendar-check text-primary me-2"></i>
+                            <strong>Real-time Availability:</strong> Shows current bookings from all your connected calendars
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-eye-slash text-primary me-2"></i>
+                            <strong>Privacy Protected:</strong> Guest details are hidden - only shows "Booked" status
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-mobile-alt text-primary me-2"></i>
+                            <strong>Mobile Friendly:</strong> Works perfectly on all devices
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-link text-primary me-2"></i>
+                            <strong>Easy Sharing:</strong> Share the URL anywhere - social media, emails, websites
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-phone text-primary me-2"></i>
+                            <strong>Contact Integration:</strong> Includes your contact information for booking inquiries
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Security & Privacy
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            No guest personal information is displayed
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Only shows availability status
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Token can be regenerated anytime
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Can be disabled instantly
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyBookingCalendarUrl() {
+    var urlInput = document.getElementById('booking-calendar-url');
+    urlInput.select();
+    urlInput.setSelectionRange(0, 99999); // For mobile devices
+    
+    try {
+        document.execCommand('copy');
+        
+        // Show success feedback
+        var button = event.target.closest('button');
+        var originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+        
+        setTimeout(function() {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy URL: ', err);
+        alert('Failed to copy URL. Please copy it manually.');
+    }
+}
+</script>
+{% endblock %} 

@@ -628,6 +628,10 @@ class Property(db.Model):
     # Worker calendar access token
     worker_calendar_token = db.Column(db.String(64), unique=True, nullable=True)
     
+    # Public booking calendar access token
+    booking_calendar_token = db.Column(db.String(64), unique=True, nullable=True)
+    booking_calendar_enabled = db.Column(db.Boolean, default=False)
+    
     # New: Color theme for property
     color = db.Column(db.String(16), nullable=True, default=None)
     
@@ -699,6 +703,13 @@ class Property(db.Model):
             self.worker_calendar_token = secrets.token_urlsafe(32)
             db.session.commit()
         return self.worker_calendar_token
+    
+    def generate_booking_calendar_token(self):
+        """Generate a unique token for public booking calendar access."""
+        if not self.booking_calendar_token:
+            self.booking_calendar_token = secrets.token_urlsafe(32)
+            db.session.commit()
+        return self.booking_calendar_token
     
     def is_visible_to(self, user):
         """Check if the property is visible to the given user"""
