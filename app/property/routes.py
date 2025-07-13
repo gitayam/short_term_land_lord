@@ -1119,3 +1119,62 @@ def redirect_to_calendar(id):
 def redirect_to_calendars(id):
     # Redirect to the correct calendars URL
     return redirect(url_for('property.manage_calendars', id=id))
+
+
+# Guest Guidebook Routes
+@bp.route('/guest/<int:property_id>/guidebook')
+def guest_guidebook(property_id):
+    """Public guest access to property guidebook"""
+    property = Property.query.get_or_404(property_id)
+    
+    # Check for guest access token
+    token = request.args.get('token')
+    if not token or token != property.guest_access_token:
+        if not property.guest_access_enabled:
+            abort(404)  # Hide existence of private properties
+        abort(403)
+    
+    # Get guidebook entries
+    from app.models import GuidebookEntry
+    entries = GuidebookEntry.get_by_property_and_category(property_id)
+    featured_entries = GuidebookEntry.get_featured_by_property(property_id)
+    
+    # Group entries by category
+    entries_by_category = {}
+    for entry in entries:
+        category_name = entry.get_category_display()
+        if category_name not in entries_by_category:
+            entries_by_category[category_name] = []
+        entries_by_category[category_name].append(entry)
+    
+    # Get map data for entries with coordinates
+    map_entries = GuidebookEntry.get_map_data_for_property(property_id)
+    
+    return render_template('property/guest_guidebook.html',
+                          property=property,
+                          entries_by_category=entries_by_category,
+                          featured_entries=featured_entries,
+                          map_entries=map_entries,
+                          token=token)
+
+
+@bp.route('/guest/<int:property_id>/guidebook/map')
+def guest_guidebook_map(property_id):
+    """Dedicated map view for guest guidebook"""
+    property = Property.query.get_or_404(property_id)
+    
+    # Check for guest access token
+    token = request.args.get('token')
+    if not token or token != property.guest_access_token:
+        if not property.guest_access_enabled:
+            abort(404)
+        abort(403)
+    
+    # Get map data
+    from app.models import GuidebookEntry
+    map_entries = GuidebookEntry.get_map_data_for_property(property_id)
+    
+    return render_template('property/guest_guidebook_map.html',
+                          property=property,
+                          map_entries=map_entries,
+                          token=token)
