@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combined Worker Calendar - {{ assignment.name }}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        .info-panel {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .info-panel h6 {
+            color: #856404;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-panel ul {
+            color: #856404;
+            margin-bottom: 0;
+        }
+        
+        .property-legend {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .property-legend h6 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            border: 1px solid #dee2e6;
+        }
+        
+        .calendar-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .week-header {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #dee2e6;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .day-header {
+            background: #6c757d;
+            color: white;
+            padding: 0.5rem;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .day-cell {
+            background: white;
+            min-height: 80px;
+            padding: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .day-cell.today {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+        
+        .day-number {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 0.25rem;
+        }
+        
+        .booking-event {
+            background: #dc3545;
+            color: white;
+            padding: 2px 4px;
+            margin: 1px 0;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            position: relative;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .checkout-marker {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ffc107;
+            color: #212529;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .calendar-grid {
+                font-size: 0.8rem;
+            }
+            
+            .day-cell {
+                min-height: 60px;
+                padding: 0.25rem;
+            }
+            
+            .booking-event {
+                font-size: 0.65rem;
+                padding: 1px 2px;
+            }
+            
+            .legend-item {
+                display: flex;
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .calendar-container {
+                padding: 0.5rem;
+            }
+            
+            .day-header {
+                padding: 0.25rem;
+                font-size: 0.8rem;
+            }
+            
+            .day-cell {
+                min-height: 50px;
+                padding: 0.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <h3><i class="fas fa-calendar-alt me-2"></i>{{ assignment.name }}</h3>
+            <p class="mb-0">Combined Worker Calendar - {{ assignment.properties|length }} Properties</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Important Information -->
+        <div class="info-panel">
+            <h6 class="mb-2">
+                <i class="fas fa-info-circle me-1"></i>
+                Important Information for Cleaning Staff
+            </h6>
+            <ul class="mb-0">
+                <li><strong>Yellow Circle:</strong> Indicates checkout day - start cleaning after checkout time</li>
+                <li><strong>Colored Blocks:</strong> Guest stay periods - property is occupied</li>
+                <li><strong>Property Colors:</strong> Each property has a unique color for easy identification</li>
+                <li><strong>Multiple Properties:</strong> This calendar shows bookings for {{ assignment.properties|length }} properties</li>
+            </ul>
+        </div>
+
+        <!-- Property Legend -->
+        <div class="property-legend">
+            <h6>
+                <i class="fas fa-palette me-1"></i>
+                Property Legend
+            </h6>
+            <div class="d-flex flex-wrap">
+                {% for property in properties %}
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: {{ property_colors[property.id] }};"></div>
+                    <span>
+                        <strong>{{ property.name }}</strong>
+                        {% if property.city and property.state %}
+                        <small class="text-muted">({{ property.city }}, {{ property.state }})</small>
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Calendar Weeks -->
+        {% for week in weeks %}
+        <div class="calendar-container">
+            <div class="week-header">
+                <i class="fas fa-calendar-week me-2"></i>
+                {{ week.label }}
+            </div>
+            
+            <!-- Day Headers -->
+            <div class="calendar-grid">
+                {% for day_name in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                <div class="day-header">{{ day_name[:3] }}</div>
+                {% endfor %}
+                
+                <!-- Calendar Days -->
+                {% set week_start = week.start %}
+                {% for day_offset in range(7) %}
+                    {% set current_day = week_start + timedelta(days=day_offset) %}
+                    {% set is_today = current_day == today %}
+                    {% set day_events = [] %}
+                    
+                    {# Find events for this day #}
+                    {% for event in events %}
+                        {% if event.start <= current_day <= event.end %}
+                            {% set _ = day_events.append(event) %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <div class="day-cell {% if is_today %}today{% endif %}">
+                        <div class="day-number">{{ current_day.day }}</div>
+                        
+                        {% for event in day_events %}
+                            <div class="booking-event" 
+                                 style="background-color: {{ event.property_color }};"
+                                 title="{{ event.property_name }} - {{ event.title }}&#10;Check-in: {{ event.checkin_time }}&#10;Check-out: {{ event.checkout_time }}&#10;Service: {{ event.service }}">
+                                {{ event.property_name[:10] }}{% if event.property_name|length > 10 %}...{% endif %}
+                                
+                                {# Add checkout marker if this is the checkout day #}
+                                {% if current_day == event.end %}
+                                    <div class="checkout-marker" title="Checkout Day - Clean After {{ event.checkout_time }}">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Footer Information -->
+        <div class="info-panel">
+            <h6 class="mb-2">
+                <i class="fas fa-clock me-1"></i>
+                Cleaning Schedule Guidelines
+            </h6>
+            <ul class="mb-0">
+                <li><strong>Checkout Days:</strong> Look for the yellow circle icon - start cleaning after the checkout time</li>
+                <li><strong>Check-in Days:</strong> Ensure cleaning is completed before the check-in time</li>
+                <li><strong>Back-to-Back Bookings:</strong> Priority cleaning needed on same-day checkout/check-in</li>
+                <li><strong>Questions?</strong> Contact property management for specific instructions</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

@@ -1825,6 +1825,38 @@ guide_book_recommendations = db.Table('guide_book_recommendations',
     db.Column('created_at', db.DateTime, default=datetime.utcnow)
 )
 
+class WorkerCalendarAssignment(db.Model):
+    """Model for combined worker calendar assignments."""
+    __tablename__ = 'worker_calendar_assignment'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # Name for this calendar assignment
+    token = db.Column(db.String(64), unique=True, nullable=False)  # Access token
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    creator = db.relationship('User', foreign_keys=[created_by])
+    properties = db.relationship('Property', secondary='worker_calendar_property', backref='worker_calendar_assignments')
+    
+    def __repr__(self):
+        return f'<WorkerCalendarAssignment {self.name}>'
+    
+    def generate_token(self):
+        """Generate a unique token for this calendar assignment"""
+        import secrets
+        self.token = secrets.token_urlsafe(32)
+        return self.token
+
+# Association table for worker calendar assignments and properties
+worker_calendar_property = db.Table('worker_calendar_property',
+    db.Column('assignment_id', db.Integer, db.ForeignKey('worker_calendar_assignment.id'), primary_key=True),
+    db.Column('property_id', db.Integer, db.ForeignKey('property.id'), primary_key=True),
+    db.Column('created_at', db.DateTime, default=datetime.utcnow)
+)
+
 class Booking(db.Model):
     """Model for property bookings/calendar events."""
     __tablename__ = 'booking'

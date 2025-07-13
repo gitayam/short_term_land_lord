@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-users-cog me-2"></i>Combined Worker Calendar Management</h2>
+                    <p class="text-muted">Create and manage combined worker calendars for multiple properties</p>
+                </div>
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Create New Assignment -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>
+                        Create New Combined Worker Calendar
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="create">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Calendar Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           placeholder="e.g., Downtown Properties - Team A" required>
+                                    <div class="form-text">Give this calendar a descriptive name</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Select Properties</label>
+                            <div class="row">
+                                {% for property in properties %}
+                                <div class="col-md-6 col-lg-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               id="property_{{ property.id }}" 
+                                               name="property_ids" 
+                                               value="{{ property.id }}">
+                                        <label class="form-check-label" for="property_{{ property.id }}">
+                                            <strong>{{ property.name }}</strong>
+                                            {% if property.city and property.state %}
+                                            <br><small class="text-muted">{{ property.city }}, {{ property.state }}</small>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text">Select the properties that should be included in this combined calendar</div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Create Combined Calendar
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Existing Assignments -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Existing Combined Worker Calendars
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if assignments %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Properties</th>
+                                        <th>Status</th>
+                                        <th>Calendar URL</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for assignment in assignments %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ assignment.name }}</strong>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                {% for property in assignment.properties %}
+                                                <span class="badge bg-secondary">{{ property.name }}</span>
+                                                {% endfor %}
+                                            </div>
+                                            <small class="text-muted">{{ assignment.properties|length }} properties</small>
+                                        </td>
+                                        <td>
+                                            {% if assignment.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if assignment.is_active %}
+                                                {% set calendar_url = url_for('property.combined_worker_calendar', token=assignment.token, _external=True) %}
+                                                <div class="input-group input-group-sm">
+                                                    <input type="text" class="form-control" 
+                                                           value="{{ calendar_url }}" 
+                                                           readonly
+                                                           id="url_{{ assignment.id }}">
+                                                    <button class="btn btn-outline-secondary" 
+                                                            type="button" 
+                                                            onclick="copyToClipboard('url_{{ assignment.id }}')">
+                                                        <i class="fas fa-copy"></i>
+                                                    </button>
+                                                    <a href="{{ calendar_url }}" 
+                                                       target="_blank" 
+                                                       class="btn btn-outline-primary">
+                                                        <i class="fas fa-external-link-alt"></i>
+                                                    </a>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">Calendar inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small>{{ assignment.created_at.strftime('%Y-%m-%d') }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <!-- Toggle Active/Inactive -->
+                                                <form method="POST" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="action" value="toggle_active">
+                                                    <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                                                    <button type="submit" class="btn btn-outline-{{ 'warning' if assignment.is_active else 'success' }}">
+                                                        <i class="fas fa-{{ 'pause' if assignment.is_active else 'play' }}"></i>
+                                                        {{ 'Deactivate' if assignment.is_active else 'Activate' }}
+                                                    </button>
+                                                </form>
+                                                
+                                                <!-- Delete -->
+                                                <form method="POST" class="d-inline" 
+                                                      onsubmit="return confirm('Are you sure you want to delete this combined calendar? This action cannot be undone.')">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                                                    <button type="submit" class="btn btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <h5>No Combined Worker Calendars</h5>
+                            <p class="text-muted">Create your first combined worker calendar to get started.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Information Panel -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        How Combined Worker Calendars Work
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-check text-success me-1"></i>Benefits:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-1"></i> Single calendar view for multiple properties</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Color-coded by property for easy identification</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Shows checkout times and cleaning schedules</li>
+                                <li><i class="fas fa-check text-success me-1"></i> No login required for workers</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Mobile-friendly interface</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-shield-alt text-primary me-1"></i>Security:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-1"></i> Secure tokens that cannot be guessed</li>
+                                <li><i class="fas fa-check text-success me-1"></i> No sensitive guest information displayed</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Can be activated/deactivated anytime</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Only shows essential cleaning information</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    element.setSelectionRange(0, 99999);
+    
+    navigator.clipboard.writeText(element.value).then(function() {
+        // Show success feedback
+        const button = element.nextElementSibling;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i>';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    }).catch(function(err) {
+        alert('Failed to copy to clipboard');
+    });
+}
+</script>
+{% endblock %} 

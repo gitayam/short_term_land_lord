@@ -1360,6 +1360,166 @@ def worker_calendar_settings(id):
                           property=property,
                           worker_calendar_url=worker_calendar_url)
 
+# Combined Worker Calendar Routes
+@bp.route('/combined-worker-calendar/<token>')
+def combined_worker_calendar(token):
+    """Combined worker calendar view showing multiple properties"""
+    from app.models import WorkerCalendarAssignment, Booking
+    
+    # Find assignment by token
+    assignment = WorkerCalendarAssignment.query.filter_by(token=token, is_active=True).first_or_404()
+    
+    # Get current week dates (Monday to Sunday)
+    from datetime import datetime, timedelta
+    today = datetime.now().date()
+    
+    # Get the start of the current week (Monday)
+    days_since_monday = today.weekday()
+    week_start = today - timedelta(days=days_since_monday)
+    
+    # Allow viewing 4 weeks: current week and next 3 weeks
+    weeks = []
+    for week_offset in range(4):
+        week_date = week_start + timedelta(weeks=week_offset)
+        week_end = week_date + timedelta(days=6)
+        weeks.append({
+            'start': week_date,
+            'end': week_end,
+            'label': f"{week_date.strftime('%b %d')} - {week_end.strftime('%b %d, %Y')}"
+        })
+    
+    # Get events from all assigned properties using database bookings
+    events = []
+    property_colors = {}
+    color_palette = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F']
+    
+    for i, property in enumerate(assignment.properties):
+        # Assign color to property
+        property_colors[property.id] = color_palette[i % len(color_palette)]
+        
+        # Get bookings for this property within the 4-week window
+        bookings = Booking.query.filter(
+            Booking.property_id == property.id,
+            Booking.start_date <= weeks[-1]['end'],
+            Booking.end_date >= weeks[0]['start']
+        ).all()
+        
+        for booking in bookings:
+            event = {
+                'title': f"{property.name} - Reserved",
+                'start': booking.start_date,
+                'end': booking.end_date,
+                'property_name': property.name,
+                'property_id': property.id,
+                'property_color': property_colors[property.id],
+                'service': booking.calendar.get_service_display() if booking.calendar else 'Direct',
+                'room': None if booking.is_entire_property else booking.room_name,
+                'checkin_time': property.checkin_time or "3:00 PM",
+                'checkout_time': property.checkout_time or "11:00 AM"
+            }
+            events.append(event)
+    
+    return render_template('property/combined_worker_calendar.html',
+                          assignment=assignment,
+                          properties=assignment.properties,
+                          property_colors=property_colors,
+                          weeks=weeks,
+                          events=events,
+                          today=today,
+                          timedelta=timedelta)
+
+@bp.route('/combined-worker-calendar-management', methods=['GET', 'POST'])
+@login_required
+def combined_worker_calendar_management():
+    """Manage combined worker calendar assignments"""
+    from app.models import WorkerCalendarAssignment
+    
+    # Check if user has permission (admin or property owner)
+    if not (current_user.has_admin_role or current_user.is_property_owner):
+        abort(403)
+    
+    # Get user's properties
+    if current_user.has_admin_role:
+        properties = Property.query.all()
+    else:
+        properties = Property.query.filter_by(owner_id=current_user.id).all()
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'create':
+            name = request.form.get('name')
+            selected_property_ids = request.form.getlist('property_ids')
+            
+            if not name or not selected_property_ids:
+                flash('Please provide a name and select at least one property.', 'error')
+                return redirect(url_for('property.combined_worker_calendar_management'))
+            
+            # Create new assignment
+            assignment = WorkerCalendarAssignment(
+                name=name,
+                created_by=current_user.id
+            )
+            assignment.generate_token()
+            
+            # Add selected properties
+            selected_properties = Property.query.filter(Property.id.in_(selected_property_ids)).all()
+            
+            # Verify user has access to all selected properties
+            if not current_user.has_admin_role:
+                for prop in selected_properties:
+                    if prop.owner_id != current_user.id:
+                        flash('You do not have permission to add that property.', 'error')
+                        return redirect(url_for('property.combined_worker_calendar_management'))
+            
+            assignment.properties = selected_properties
+            
+            db.session.add(assignment)
+            db.session.commit()
+            
+            flash(f'Combined worker calendar "{name}" created successfully!', 'success')
+            return redirect(url_for('property.combined_worker_calendar_management'))
+        
+        elif action == 'delete':
+            assignment_id = request.form.get('assignment_id')
+            assignment = WorkerCalendarAssignment.query.get_or_404(assignment_id)
+            
+            # Check permission
+            if not current_user.has_admin_role and assignment.created_by != current_user.id:
+                abort(403)
+            
+            db.session.delete(assignment)
+            db.session.commit()
+            
+            flash('Combined worker calendar deleted successfully!', 'success')
+            return redirect(url_for('property.combined_worker_calendar_management'))
+        
+        elif action == 'toggle_active':
+            assignment_id = request.form.get('assignment_id')
+            assignment = WorkerCalendarAssignment.query.get_or_404(assignment_id)
+            
+            # Check permission
+            if not current_user.has_admin_role and assignment.created_by != current_user.id:
+                abort(403)
+            
+            assignment.is_active = not assignment.is_active
+            db.session.commit()
+            
+            status = 'activated' if assignment.is_active else 'deactivated'
+            flash(f'Combined worker calendar {status} successfully!', 'success')
+            return redirect(url_for('property.combined_worker_calendar_management'))
+    
+    # Get existing assignments
+    if current_user.has_admin_role:
+        assignments = WorkerCalendarAssignment.query.all()
+    else:
+        assignments = WorkerCalendarAssignment.query.filter_by(created_by=current_user.id).all()
+    
+    return render_template('property/combined_worker_calendar_management.html',
+                          properties=properties,
+                          assignments=assignments,
+                          title='Combined Worker Calendar Management')
+
 # Public Booking Calendar Routes
 @bp.route('/booking-calendar/<token>')
 def public_booking_calendar(token):
