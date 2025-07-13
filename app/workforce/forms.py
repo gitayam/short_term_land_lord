@@ -66,12 +66,29 @@ class WorkerInvitationForm(FlaskForm):
 class WorkerPropertyAssignmentForm(FlaskForm):
     """Form for assigning workers to properties"""
     worker = QuerySelectField('Worker', query_factory=lambda: User.query.filter_by(role=UserRoles.SERVICE_STAFF.value),
-                            get_label='get_full_name', allow_blank=True, blank_text='Select a worker...')
+                            get_label='get_full_name', allow_blank=True, blank_text='Select a worker...',
+                            validators=[DataRequired(message='Please select a worker')])
     properties = QuerySelectMultipleField('Properties', query_factory=lambda: Property.query.all(),
-                                        get_label='name')
+                                        get_label='name', validators=[DataRequired(message='Please select at least one property')])
     service_type = SelectField('Service Type', choices=[(t.value, t.name) for t in ServiceType], 
                              validators=[DataRequired()], coerce=lambda x: ServiceType(x))
     submit = SubmitField('Assign Properties')
+    
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators=extra_validators):
+            return False
+        
+        # Ensure worker is selected
+        if not self.worker.data:
+            self.worker.errors.append('Please select a worker to assign properties to.')
+            return False
+        
+        # Ensure at least one property is selected
+        if not self.properties.data:
+            self.properties.errors.append('Please select at least one property to assign.')
+            return False
+        
+        return True
 
 
 class WorkerFilterForm(FlaskForm):

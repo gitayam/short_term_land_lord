@@ -7,7 +7,10 @@ from app.models import User, Property, Task, TaskAssignment, TaskProperty, UserR
 from app.auth.decorators import admin_required, property_manager_required, workforce_management_required
 from app.auth.email import send_email, send_password_reset_email
 from app.notifications.service import create_notification, NotificationType, NotificationChannel
+from app.utils.error_handling import handle_errors, ValidationError, BusinessLogicError
+from app.utils.validation import InputValidator
 from sqlalchemy import or_, and_
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 import secrets
 import string
@@ -316,6 +319,7 @@ def send_worker_invitation(user, password, service_type, custom_message=None):
 @bp.route('/assign', methods=['GET', 'POST'])
 @login_required
 @workforce_management_required
+@handle_errors
 def assign_properties():
     """Assign workers to properties"""
     form = WorkerPropertyAssignmentForm()
@@ -329,51 +333,84 @@ def assign_properties():
         properties = form.properties.data
         service_type = form.service_type.data
         
+        # Additional validation using our validation utilities
+        validator = InputValidator()
+        
         if not worker:
-            flash('Please select a worker to assign properties.', 'danger')
-            return redirect(url_for('workforce.assign_properties'))
+            validator.add_error('worker', 'Please select a worker to assign properties.')
         
         if not properties:
-            flash('Please select at least one property to assign.', 'danger')
-            return redirect(url_for('workforce.assign_properties'))
+            validator.add_error('properties', 'Please select at least one property to assign.')
         
-        # For each property, create a placeholder task to establish the worker-property relationship
-        for property in properties:
-            # Check if worker is already assigned to this property
-            if is_worker_assigned_to_property(worker.id, property.id):
-                continue
+        if not validator.is_valid():
+            for error in validator.get_errors():
+                flash(error['message'], 'danger')
+            return render_template('workforce/assign_properties.html',
+                                  title='Assign Properties to Worker',
+                                  form=form)
+        
+        try:
+            assigned_count = 0
+            
+            # For each property, create a placeholder task to establish the worker-property relationship
+            for property in properties:
+                # Check if worker is already assigned to this property
+                if is_worker_assigned_to_property(worker.id, property.id):
+                    current_app.logger.info(f"Worker {worker.id} already assigned to property {property.id}, skipping")
+                    continue
+                    
+                # Create a placeholder task for this property
+                task = Task(
+                    title=f"{service_type.name} Assignment for {property.name}",
+                    description=f"This task establishes {worker.get_full_name()} as a {service_type.name} for {property.name}.",
+                    status=TaskStatus.PENDING,
+                    creator_id=current_user.id
+                )
                 
-            # Create a placeholder task for this property
-            task = Task(
-                title=f"{service_type.name} Assignment for {property.name}",
-                description=f"This task establishes {worker.get_full_name()} as a {service_type.name} for {property.name}.",
-                status=TaskStatus.PENDING,
-                creator_id=current_user.id
-            )
+                # Add task to session first to get an ID
+                db.session.add(task)
+                db.session.flush()  # This will assign an ID to the task without committing
+                
+                # Validate that task has an ID
+                if not task.id:
+                    raise BusinessLogicError("Failed to create task - no ID assigned")
+                
+                # Now create the task_property with the task's ID
+                task_property = TaskProperty(
+                    task_id=task.id,
+                    property_id=property.id,
+                    sequence_number=0
+                )
+                db.session.add(task_property)
+                
+                # Assign worker to task
+                task_assignment = TaskAssignment(
+                    task_id=task.id,
+                    user_id=worker.id,
+                    service_type=service_type
+                )
+                db.session.add(task_assignment)
+                assigned_count += 1
             
-            # Add task to session first to get an ID
-            db.session.add(task)
-            db.session.flush()  # This will assign an ID to the task without committing
+            # Only commit if we have assignments to save
+            if assigned_count > 0:
+                db.session.commit()
+                flash(f'Successfully assigned {worker.get_full_name()} to {assigned_count} properties.', 'success')
+                current_app.logger.info(f"Assigned worker {worker.id} to {assigned_count} properties by user {current_user.id}")
+            else:
+                db.session.rollback()
+                flash(f'{worker.get_full_name()} is already assigned to all selected properties.', 'info')
             
-            # Now create the task_property with the task's ID
-            task_property = TaskProperty(
-                task_id=task.id,
-                property_id=property.id,
-                sequence_number=0
-            )
-            db.session.add(task_property)
+            return redirect(url_for('workforce.index'))
             
-            # Assign worker to task
-            task_assignment = TaskAssignment(
-                user_id=worker.id,
-                service_type=service_type
-            )
-            task.assignments.append(task_assignment)
-        
-        db.session.commit()
-        
-        flash(f'Successfully assigned {worker.get_full_name()} to {len(properties)} properties.', 'success')
-        return redirect(url_for('workforce.index'))
+        except IntegrityError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Database integrity error in assign_properties: {str(e)}")
+            flash('Failed to assign worker due to database constraint violation. Please try again.', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Unexpected error in assign_properties: {str(e)}")
+            flash('An unexpected error occurred while assigning worker to properties. Please try again.', 'danger')
     
     return render_template('workforce/assign_properties.html',
                           title='Assign Properties to Worker',
