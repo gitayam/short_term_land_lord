@@ -119,7 +119,7 @@ class TestRecommendationRoutes(unittest.TestCase):
             description='Original description',
             category='food',
             map_link='https://maps.google.com/original',
-            hours='9am-5pm'
+            best_time_to_go='9am-5pm'
         )
         db.session.add(recommendation)
         db.session.commit()
@@ -133,7 +133,7 @@ class TestRecommendationRoutes(unittest.TestCase):
             'description': 'Updated description',
             'category': 'shopping',
             'map_link': 'https://maps.google.com/updated',
-            'hours': '10am-6pm'
+            'best_time_to_go': '10am-6pm'
         }
         
         response = self.client.post(f'/recommendations/{recommendation.id}/edit',
@@ -148,7 +148,7 @@ class TestRecommendationRoutes(unittest.TestCase):
         self.assertEqual(updated.description, 'Updated description')
         self.assertEqual(updated.category, 'shopping')
         self.assertEqual(updated.map_link, 'https://maps.google.com/updated')
-        self.assertEqual(updated.hours, '10am-6pm')
+        self.assertEqual(updated.best_time_to_go, '10am-6pm')
     
     def test_delete_recommendation(self):
         """Test deleting a recommendation"""
@@ -159,7 +159,7 @@ class TestRecommendationRoutes(unittest.TestCase):
             description='Will be deleted',
             category='food',
             map_link='https://maps.google.com/delete',
-            hours='9am-5pm'
+            best_time_to_go='9am-5pm'
         )
         db.session.add(recommendation)
         db.session.commit()
@@ -186,7 +186,7 @@ class TestRecommendationRoutes(unittest.TestCase):
             description='Testing permissions',
             category='food',
             map_link='https://maps.google.com/test',
-            hours='9am-5pm'
+            best_time_to_go='9am-5pm'
         )
         db.session.add(recommendation)
         db.session.commit()

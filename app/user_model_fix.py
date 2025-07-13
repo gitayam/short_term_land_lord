@@ -13,12 +13,16 @@ from sqlalchemy import text
 import logging
 
 def get_user_table_name():
-    """Return the user table name - always 'users' now"""
-    return 'users'
+    """Return the user table name based on database dialect"""
+    from app import db
+    dialect = db.engine.dialect.name
+    return 'users' if dialect == 'postgresql' else 'user'
 
 def get_user_fk_target():
-    """Return the foreign key target for User model - always 'users.id' now"""
-    return 'users.id'
+    """Return the foreign key target for User model based on database dialect"""
+    from app import db
+    dialect = db.engine.dialect.name
+    return 'users.id' if dialect == 'postgresql' else 'user.id'
 
 def patch_user_model():
     """
@@ -29,8 +33,9 @@ def patch_user_model():
         from app import db
         from app.models import User
         
-        # Set the tablename to 'users'
-        User.__tablename__ = 'users'
+        # Set the tablename based on database dialect
+        dialect = db.engine.dialect.name
+        User.__tablename__ = 'users' if dialect == 'postgresql' else 'user'
         
         # Verify the table exists in the database
         from sqlalchemy import inspect
