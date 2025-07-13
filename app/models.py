@@ -269,7 +269,6 @@ class User(UserMixin, db.Model):
         Index('idx_user_email', 'email'),
         Index('idx_user_phone', 'phone'),
         Index('idx_user_role', 'role'),
-        Index('idx_user_active', 'is_active'),
         Index('idx_user_created', 'created_at'),
     )
     
@@ -626,6 +625,9 @@ class Property(db.Model):
     # Guide book token
     guide_book_token = db.Column(db.String(64), unique=True)
     
+    # Worker calendar access token
+    worker_calendar_token = db.Column(db.String(64), unique=True, nullable=True)
+    
     # New: Color theme for property
     color = db.Column(db.String(16), nullable=True, default=None)
     
@@ -690,6 +692,13 @@ class Property(db.Model):
             self.guide_book_token = secrets.token_urlsafe(32)
             db.session.commit()
         return self.guide_book_token
+    
+    def generate_worker_calendar_token(self):
+        """Generate a unique token for worker calendar access."""
+        if not self.worker_calendar_token:
+            self.worker_calendar_token = secrets.token_urlsafe(32)
+            db.session.commit()
+        return self.worker_calendar_token
     
     def is_visible_to(self, user):
         """Check if the property is visible to the given user"""
@@ -2022,7 +2031,6 @@ class GuidebookEntry(db.Model):
     __table_args__ = (
         Index('idx_guidebook_property', 'property_id'),
         Index('idx_guidebook_category', 'category'),
-        Index('idx_guidebook_active', 'is_active'),
     )
     
     id = db.Column(db.Integer, primary_key=True)
@@ -2062,7 +2070,7 @@ class GuidebookEntry(db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # Relationships
-    property = db.relationship('Property', backref='guidebook_entries')
+    property_ref = db.relationship('Property', backref='guidebook_entries')
     creator = db.relationship('User', foreign_keys=[created_by], backref='created_guidebook_entries')
     
     def __repr__(self):

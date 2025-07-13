@@ -169,7 +169,7 @@ def add_entry(property_id):
 def edit_entry(entry_id):
     """Edit an existing guidebook entry"""
     entry = GuidebookEntry.query.get_or_404(entry_id)
-    property = entry.property
+    property = entry.property_ref
     
     # Check permissions
     if not property.is_visible_to(current_user):
@@ -243,7 +243,7 @@ def edit_entry(entry_id):
 def delete_entry(entry_id):
     """Delete a guidebook entry"""
     entry = GuidebookEntry.query.get_or_404(entry_id)
-    property = entry.property
+    property = entry.property_ref
     
     # Check permissions
     if not property.is_visible_to(current_user):
@@ -299,7 +299,7 @@ def api_property_entries(property_id):
 def api_entry_details(entry_id):
     """API endpoint to get detailed information about a specific entry"""
     entry = GuidebookEntry.query.get_or_404(entry_id)
-    property = entry.property
+    property = entry.property_ref
     
     # Check permissions
     if not property.is_visible_to(current_user):

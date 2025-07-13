@@ -1136,25 +1136,46 @@ def guest_guidebook(property_id):
     
     # Get guidebook entries
     from app.models import GuidebookEntry
-    entries = GuidebookEntry.get_by_property_and_category(property_id)
-    featured_entries = GuidebookEntry.get_featured_by_property(property_id)
+    entries = GuidebookEntry.query.filter_by(property_id=property_id, is_active=True).order_by(GuidebookEntry.sort_order, GuidebookEntry.title).all()
     
     # Group entries by category
     entries_by_category = {}
     for entry in entries:
-        category_name = entry.get_category_display()
+        category_name = entry.category.value if hasattr(entry.category, 'value') else str(entry.category)
         if category_name not in entries_by_category:
             entries_by_category[category_name] = []
         entries_by_category[category_name].append(entry)
     
-    # Get map data for entries with coordinates
-    map_entries = GuidebookEntry.get_map_data_for_property(property_id)
+    # Calculate stats
+    total_entries = len(entries)
+    featured_count = len([e for e in entries if e.is_featured])
+    entries_with_coordinates = len([e for e in entries if e.has_coordinates()])
+    
+    # Category icon mapping function
+    def get_category_icon(category):
+        category_icons = {
+            'Restaurant': 'utensils',
+            'Café': 'coffee', 
+            'Bar': 'wine-glass-alt',
+            'Attraction': 'landmark',
+            'Shopping': 'shopping-bag',
+            'Outdoor Activity': 'mountain',
+            'Transportation': 'bus',
+            'Services': 'concierge-bell',
+            'Emergency': 'exclamation-triangle',
+            'Grocery': 'shopping-cart',
+            'Entertainment': 'theater-masks',
+            'Other': 'map-marker-alt'
+        }
+        return category_icons.get(category, 'map-marker-alt')
     
     return render_template('property/guest_guidebook.html',
                           property=property,
                           entries_by_category=entries_by_category,
-                          featured_entries=featured_entries,
-                          map_entries=map_entries,
+                          total_entries=total_entries,
+                          featured_count=featured_count,
+                          entries_with_coordinates=entries_with_coordinates,
+                          get_category_icon=get_category_icon,
                           token=token)
 
 
@@ -1170,11 +1191,171 @@ def guest_guidebook_map(property_id):
             abort(404)
         abort(403)
     
-    # Get map data
+    # Get entries with coordinates for map
     from app.models import GuidebookEntry
-    map_entries = GuidebookEntry.get_map_data_for_property(property_id)
+    import json
+    
+    entries = GuidebookEntry.query.filter_by(property_id=property_id, is_active=True).all()
+    entries_with_coords = [e for e in entries if e.has_coordinates()]
+    
+    # Prepare data for JavaScript
+    entries_json = []
+    for entry in entries_with_coords:
+        entry_data = {
+            'id': entry.id,
+            'title': entry.title,
+            'description': entry.description,
+            'category': entry.category.value if hasattr(entry.category, 'value') else str(entry.category),
+            'latitude': float(entry.latitude),
+            'longitude': float(entry.longitude),
+            'address': entry.address,
+            'phone_number': entry.phone_number,
+            'website_url': entry.website_url,
+            'host_tip': entry.host_tip,
+            'is_featured': entry.is_featured,
+            'image_url': entry.image_url,
+            'image_path': entry.image_path
+        }
+        entries_json.append(entry_data)
+    
+    # Get unique categories for filtering
+    categories = list(set([e.category.value if hasattr(e.category, 'value') else str(e.category) for e in entries]))
+    
+    # Category icon mapping function
+    def get_category_icon(category):
+        category_icons = {
+            'Restaurant': 'utensils',
+            'Café': 'coffee',
+            'Bar': 'wine-glass-alt', 
+            'Attraction': 'landmark',
+            'Shopping': 'shopping-bag',
+            'Outdoor Activity': 'mountain',
+            'Transportation': 'bus',
+            'Services': 'concierge-bell',
+            'Emergency': 'exclamation-triangle',
+            'Grocery': 'shopping-cart',
+            'Entertainment': 'theater-masks',
+            'Other': 'map-marker-alt'
+        }
+        return category_icons.get(category, 'map-marker-alt')
     
     return render_template('property/guest_guidebook_map.html',
                           property=property,
-                          map_entries=map_entries,
+                          entries_with_coords=entries_with_coords,
+                          entries_json=json.dumps(entries_json),
+                          entries_with_coordinates=len(entries_with_coords),
+                          categories=categories,
+                          get_category_icon=get_category_icon,
                           token=token)
+
+# Worker Calendar Routes
+@bp.route('/worker-calendar/<token>')
+def worker_calendar(token):
+    """Public calendar view for workers with minimal information"""
+    # Find property by worker calendar token
+    property = Property.query.filter_by(worker_calendar_token=token).first_or_404()
+    
+    # Get current week dates (Monday to Sunday)
+    from datetime import datetime, timedelta
+    today = datetime.now().date()
+    
+    # Get the start of the current week (Monday)
+    days_since_monday = today.weekday()
+    week_start = today - timedelta(days=days_since_monday)
+    
+    # Allow viewing 4 weeks: current week and next 3 weeks
+    weeks = []
+    for week_offset in range(4):
+        week_date = week_start + timedelta(weeks=week_offset)
+        week_end = week_date + timedelta(days=6)
+        weeks.append({
+            'start': week_date,
+            'end': week_end,
+            'label': f"{week_date.strftime('%b %d')} - {week_end.strftime('%b %d, %Y')}"
+        })
+    
+    # Get events from all property calendars
+    events = []
+    if property.calendars:
+        import requests
+        from icalendar import Calendar
+        
+        for calendar in property.calendars:
+            try:
+                response = requests.get(calendar.ical_url, timeout=10)
+                if response.status_code == 200:
+                    cal = Calendar.from_ical(response.text)
+                    
+                    for component in cal.walk():
+                        if component.name == "VEVENT":
+                            try:
+                                summary = str(component.get('summary', 'Booking'))
+                                start_date = component.get('dtstart').dt
+                                end_date = component.get('dtend').dt
+                                
+                                # Convert datetime to date if needed
+                                if isinstance(start_date, datetime):
+                                    start_date = start_date.date()
+                                if isinstance(end_date, datetime):
+                                    end_date = end_date.date()
+                                
+                                # Only include events within our 4-week window
+                                if start_date <= weeks[-1]['end'] and end_date >= weeks[0]['start']:
+                                    event = {
+                                        'summary': summary,
+                                        'start': start_date,
+                                        'end': end_date,
+                                        'service': calendar.get_service_display(),
+                                        'room': None if calendar.is_entire_property else calendar.room_name
+                                    }
+                                    events.append(event)
+                            except (KeyError, AttributeError, ValueError, TypeError):
+                                continue
+            except Exception:
+                continue
+    
+    return render_template('property/worker_calendar.html',
+                          property=property,
+                          weeks=weeks,
+                          events=events,
+                          today=today,
+                          timedelta=timedelta)
+
+@bp.route('/<int:id>/worker-calendar-settings', methods=['GET', 'POST'])
+@login_required
+def worker_calendar_settings(id):
+    """Manage worker calendar access settings"""
+    property = Property.query.get_or_404(id)
+    
+    # Check if user is authorized to edit this property
+    if property.owner_id != current_user.id and not current_user.has_admin_role:
+        abort(403)
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'generate_token':
+            property.generate_worker_calendar_token()
+            db.session.commit()
+            flash('Worker calendar token generated successfully!', 'success')
+        elif action == 'regenerate_token':
+            property.worker_calendar_token = secrets.token_urlsafe(32)
+            db.session.commit()
+            flash('Worker calendar token regenerated successfully!', 'success')
+        elif action == 'revoke_token':
+            property.worker_calendar_token = None
+            db.session.commit()
+            flash('Worker calendar access revoked!', 'warning')
+        
+        return redirect(url_for('property.worker_calendar_settings', id=id))
+    
+    # Generate worker calendar URL for display
+    worker_calendar_url = None
+    if property.worker_calendar_token:
+        worker_calendar_url = url_for('property.worker_calendar', 
+                                    token=property.worker_calendar_token, 
+                                    _external=True)
+    
+    return render_template('property/worker_calendar_settings.html',
+                          property=property,
+                          worker_calendar_url=worker_calendar_url)

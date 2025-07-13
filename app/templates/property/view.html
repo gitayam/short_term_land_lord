@@ -12,6 +12,7 @@
                     <a href="{{ url_for('property.manage_images', id=property.id) }}" class="btn btn-sm btn-outline-primary">Manage Images</a>
                     <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-sm btn-outline-info">View Calendar</a>
                     <a href="{{ url_for('property.manage_guest_access', id=property.id) }}" class="btn btn-sm btn-outline-success">Guest Access</a>
+                    <a href="{{ url_for('property.worker_calendar_settings', id=property.id) }}" class="btn btn-sm btn-outline-info">Worker Calendar</a>
                     <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-sm btn-outline-success">Manage Inventory</a>
                     <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-sm btn-outline-warning">View Tasks</a>
                     <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" class="btn btn-sm btn-outline-info">
