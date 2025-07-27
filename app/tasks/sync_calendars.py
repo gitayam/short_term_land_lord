@@ -12,7 +12,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from app import create_app, db
 from app.models import PropertyCalendar, Task
 from app.tasks.notifications import notify_calendar_changes
-from icalendar import Calendar
+try:
+    from icalendar import Calendar
+    ICALENDAR_AVAILABLE = True
+except ImportError:
+    Calendar = None
+    ICALENDAR_AVAILABLE = False
 from sqlalchemy.exc import SQLAlchemyError
 
 # Configure logging
@@ -54,6 +59,8 @@ def sync_calendars():
                     response = requests.get(calendar.ical_url, timeout=10)
                     if response.status_code == 200:
                         # Try to parse the iCal data to validate
+                        if not ICALENDAR_AVAILABLE or Calendar is None:
+                            raise ValueError("iCalendar library not available")
                         cal = Calendar.from_ical(response.text)
                         
                         # Set sync status

@@ -11,12 +11,20 @@ import uuid
 import requests
 try:
     from icalendar import Calendar
+    ICALENDAR_AVAILABLE = True
 except ImportError:
     Calendar = None
+    ICALENDAR_AVAILABLE = False
 from dateutil import rrule, parser
 import pytz
 from sqlalchemy.orm import aliased
 import secrets
+
+def safe_parse_ical(ical_content):
+    """Safely parse iCal content with proper error handling."""
+    if not ICALENDAR_AVAILABLE or Calendar is None:
+        raise ValueError("iCalendar library not available")
+    return Calendar.from_ical(ical_content)
 
 def property_owner_required(f):
     """Decorator to ensure only property owners, admins, and property managers can access a route"""
@@ -186,7 +194,7 @@ def create():
                 response = requests.get(property.ical_url)
                 if response.status_code == 200:
                     # Try to parse the iCal data to validate
-                    cal = Calendar.from_ical(response.text)
+                    cal = safe_parse_ical(response.text)
                     
                     # Set sync status
                     main_calendar.last_synced = datetime.utcnow()
@@ -491,7 +499,7 @@ def edit(id):
                 response = requests.get(property.ical_url)
                 if response.status_code == 200:
                     # Try to parse the iCal data to validate
-                    cal = Calendar.from_ical(response.text)
+                    cal = safe_parse_ical(response.text)
                     
                     # Set sync status
                     main_calendar.last_synced = datetime.utcnow()
@@ -951,7 +959,7 @@ def view_calendar(id):
                 
                 # Parse the iCal data
                 try:
-                    cal = Calendar.from_ical(response.text)
+                    cal = safe_parse_ical(response.text)
                     
                     # Log successful parsing
                     current_app.logger.info(f"Successfully parsed iCal data for calendar {calendar.id}")
@@ -1290,7 +1298,7 @@ def worker_calendar(token):
             try:
                 response = requests.get(calendar.ical_url, timeout=10)
                 if response.status_code == 200:
-                    cal = Calendar.from_ical(response.text)
+                    cal = safe_parse_ical(response.text)
                     
                     for component in cal.walk():
                         if component.name == "VEVENT":

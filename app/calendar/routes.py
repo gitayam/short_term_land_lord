@@ -14,6 +14,12 @@ except ImportError:
     icalendar = None
     recurring_ical_events = None
     ICALENDAR_AVAILABLE = False
+
+def safe_parse_ical_calendar(ical_content):
+    """Safely parse iCal content with proper error handling for calendar routes."""
+    if not ICALENDAR_AVAILABLE or icalendar is None:
+        raise ValueError("iCalendar library not available")
+    return icalendar.Calendar.from_ical(ical_content)
 import requests
 from io import StringIO
 import random
@@ -262,7 +268,7 @@ def availability_calendar():
                     response = requests.get(calendar.ical_url)
                     if response.status_code == 200:
                         cal_content = response.text
-                        cal = icalendar.Calendar.from_ical(cal_content)
+                        cal = safe_parse_ical_calendar(cal_content)
                         
                         # Get a date range for the next 3 months
                         start_date = datetime.now().date()
