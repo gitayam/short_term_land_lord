@@ -271,10 +271,12 @@ def create_sample_data():
                 first_name='Admin',
                 last_name='User'
             )
-            if hasattr(admin, 'set_password'):
-                admin.set_password(admin_password)
             db.session.add(admin)
             db.session.flush()
+        
+        # Always update admin password from Secret Manager (for both new and existing users)
+        if hasattr(admin, 'set_password'):
+            admin.set_password(admin_password)
         
         # Ensure admin has all required permissions (for both new and existing users)
         # Set admin role and flags
