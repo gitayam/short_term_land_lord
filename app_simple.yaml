@@ -1,0 +1,37 @@
+service: short-term-landlord
+runtime: python311
+
+env_variables:
+  FLASK_ENV: "appengine"
+  SECRET_KEY: "${SECRET_KEY}"  # Set via environment or gcloud config
+  DATABASE_URL: "sqlite:////tmp/landlord.db"
+  GOOGLE_CLOUD_PROJECT_ID: "speech-memorization"
+  
+  # Note: /tmp/landlord.db persists during instance lifetime but may be lost on restarts
+  
+  # Disable features that require external services for initial deployment
+  NOTIFICATION_EMAIL_ENABLED: "false"
+  NOTIFICATION_SMS_ENABLED: "false"
+  CACHE_TYPE: "simple"
+  SESSION_TYPE: "simple"
+  RATELIMIT_ENABLED: "false"
+  
+  # App Engine specific settings
+  HEALTH_CHECK_ENABLED: "true"
+  PROMETHEUS_METRICS: "false"
+  
+  # Admin user for demo - customize these in production
+  ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@landlord-app.com}"
+  ADMIN_USERNAME: "${ADMIN_USERNAME:-admin}"
+  ADMIN_PASSWORD: "${ADMIN_PASSWORD:-admin123}"
+
+entrypoint: gunicorn main:app --bind :$PORT
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 5
+
+handlers:
+- url: /.*
+  script: auto
+  secure: always
