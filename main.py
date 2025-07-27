@@ -9,7 +9,16 @@ from flask import Flask, render_template_string, redirect, url_for
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me-in-production')
+
+# Load secrets from Google Cloud Secret Manager
+try:
+    from app.utils.secrets import get_app_secrets
+    app_secrets = get_app_secrets()
+    app.config['SECRET_KEY'] = app_secrets['SECRET_KEY']
+    app.logger.info("✅ Secrets loaded from Google Cloud Secret Manager")
+except Exception as e:
+    app.logger.warning(f"⚠️ Could not load secrets from Secret Manager: {e}")
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me-in-production')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -247,16 +256,23 @@ def create_sample_data():
         from app import db
         
         # Create admin user if doesn't exist
-        admin = User.query.filter_by(email='admin@landlord.com').first()
+        # Get admin credentials from secrets or environment
+        from app.utils.secrets import get_app_secrets
+        secrets = get_app_secrets()
+        admin_email = secrets.get('ADMIN_EMAIL', 'admin@landlord.com')
+        admin_password = secrets.get('ADMIN_PASSWORD', 'admin123')
+        admin_username = secrets.get('ADMIN_USERNAME', 'admin')
+        
+        admin = User.query.filter_by(email=admin_email).first()
         if not admin:
             admin = User(
-                username='admin',
-                email='admin@landlord.com',
+                username=admin_username,
+                email=admin_email,
                 first_name='Admin',
                 last_name='User'
             )
             if hasattr(admin, 'set_password'):
-                admin.set_password('admin123')
+                admin.set_password(admin_password)
             db.session.add(admin)
             db.session.flush()
         
@@ -306,7 +322,7 @@ def create_sample_data():
         return f"""
         <h1>✅ Sample Data Created!</h1>
         <p>Created {created_count} new properties.</p>
-        <p>Admin user: admin@landlord.com (password: admin123)</p>
+        <p>Admin user: {admin_email} (password: managed via Secret Manager)</p>
         <p><a href="/property-access">View Property Management</a></p>
         <p><a href="/">Back to Home</a></p>
         """

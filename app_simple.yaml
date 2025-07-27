@@ -3,7 +3,6 @@ runtime: python311
 
 env_variables:
   FLASK_ENV: "appengine"
-  SECRET_KEY: "${SECRET_KEY}"  # Set via environment or gcloud config
   DATABASE_URL: "sqlite:////tmp/landlord.db"
   GOOGLE_CLOUD_PROJECT_ID: "speech-memorization"
   
@@ -20,10 +19,13 @@ env_variables:
   HEALTH_CHECK_ENABLED: "true"
   PROMETHEUS_METRICS: "false"
   
-  # Admin user for demo - customize these in production
-  ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@landlord-app.com}"
-  ADMIN_USERNAME: "${ADMIN_USERNAME:-admin}"
-  ADMIN_PASSWORD: "${ADMIN_PASSWORD:-admin123}"
+  # Admin username (non-sensitive)
+  ADMIN_USERNAME: "admin"
+  
+  # Secret Manager paths (application will fetch these)
+  SECRET_KEY_PATH: "projects/speech-memorization/secrets/SECRET_KEY/versions/latest"
+  ADMIN_EMAIL_PATH: "projects/speech-memorization/secrets/ADMIN_EMAIL/versions/latest"
+  ADMIN_PASSWORD_PATH: "projects/speech-memorization/secrets/ADMIN_PASSWORD/versions/latest"
 
 entrypoint: gunicorn main:app --bind :$PORT
 
