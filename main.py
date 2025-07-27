@@ -397,5 +397,7 @@ def health():
         'full_app_loaded': app_status['full_app_loaded']
     }
 
+# Debug route removed for production deployment
+
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
