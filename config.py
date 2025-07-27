@@ -216,11 +216,43 @@ class StagingConfig(ProductionConfig):
     }
 
 
+# AppEngine configuration that works with in-memory database
+class AppEngineConfig(Config):
+    """App Engine specific configuration"""
+    DEBUG = False
+    TESTING = False
+    
+    # Explicitly set secret key for session management
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'fallback-secret-key-for-appengine-' + 'ys-UAwX9cpR15q61xQMvDsv03KUvigYnLyv5rkOQZsg'
+    
+    # Use in-memory SQLite for App Engine
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'echo': False,
+        'pool_pre_ping': True
+    }
+    
+    # Disable features that require external services
+    NOTIFICATION_EMAIL_ENABLED = False
+    NOTIFICATION_SMS_ENABLED = False
+    CACHE_TYPE = 'simple'
+    SESSION_TYPE = 'simple'
+    RATELIMIT_ENABLED = False
+    
+    # App Engine specific settings
+    HEALTH_CHECK_ENABLED = True
+    PROMETHEUS_METRICS = False
+    
+    # Disable CSRF for now to simplify deployment
+    WTF_CSRF_ENABLED = False
+
 # Configuration mapping
 config = {
     'development': Config,
     'testing': TestConfig,
     'staging': StagingConfig,
     'production': ProductionConfig,
+    'appengine': AppEngineConfig,
     'default': Config
 }

@@ -111,7 +111,7 @@ class UserRegistrationSchema(BaseValidationSchema):
     first_name = fields.Str(required=True, validate=validate.Length(min=1, max=64))
     last_name = fields.Str(required=True, validate=validate.Length(min=1, max=64))
     phone = fields.Str(validate=validate_phone_number, allow_none=True)
-    role = fields.Str(validate=validate_user_role, missing='guest')
+    role = fields.Str(validate=validate_user_role, load_default='guest')
 
 
 class UserUpdateSchema(BaseValidationSchema):
@@ -129,7 +129,7 @@ class UserLoginSchema(BaseValidationSchema):
     """Validation schema for user login"""
     email = fields.Email(required=True, validate=validate.Length(max=120))
     password = fields.Str(required=True, validate=validate.Length(min=1, max=128))
-    remember_me = fields.Bool(missing=False)
+    remember_me = fields.Bool(load_default=False)
 
 
 # Property validation schemas
@@ -166,18 +166,18 @@ class TaskCreationSchema(BaseValidationSchema):
     """Validation schema for task creation"""
     title = fields.Str(required=True, validate=validate.Length(min=1, max=100))
     description = fields.Str(validate=validate.Length(max=2000), allow_none=True)
-    priority = fields.Str(validate=validate.OneOf(['low', 'medium', 'high', 'urgent']), missing='medium')
+    priority = fields.Str(validate=validate.OneOf(['low', 'medium', 'high', 'urgent']), load_default='medium')
     due_date = fields.DateTime(allow_none=True)
     property_id = fields.Int(required=True, validate=validate.Range(min=1))
-    assign_to_next_cleaner = fields.Bool(missing=False)
+    assign_to_next_cleaner = fields.Bool(load_default=False)
     
     # Recurring task fields
-    is_recurring = fields.Bool(missing=False)
+    is_recurring = fields.Bool(load_default=False)
     recurrence_pattern = fields.Str(
         validate=validate.OneOf(['daily', 'weekly', 'monthly', 'yearly']),
         allow_none=True
     )
-    recurrence_interval = fields.Int(validate=validate.Range(min=1, max=365), missing=1)
+    recurrence_interval = fields.Int(validate=validate.Range(min=1, max=365), load_default=1)
     recurrence_end_date = fields.DateTime(allow_none=True)
 
 
@@ -194,7 +194,7 @@ class MessageCreationSchema(BaseValidationSchema):
     recipient_id = fields.Int(required=True, validate=validate.Range(min=1))
     subject = fields.Str(validate=validate.Length(min=1, max=200), allow_none=True)
     content = fields.Str(required=True, validate=validate.Length(min=1, max=5000))
-    message_type = fields.Str(validate=validate.OneOf(['email', 'sms', 'system']), missing='system')
+    message_type = fields.Str(validate=validate.OneOf(['email', 'sms', 'system']), load_default='system')
 
 
 # File upload validation schemas
@@ -216,10 +216,10 @@ class FileUploadSchema(BaseValidationSchema):
 class SearchSchema(BaseValidationSchema):
     """Validation schema for search queries"""
     query = fields.Str(validate=validate.Length(min=1, max=200))
-    page = fields.Int(validate=validate.Range(min=1, max=1000), missing=1)
-    per_page = fields.Int(validate=validate.Range(min=1, max=100), missing=20)
+    page = fields.Int(validate=validate.Range(min=1, max=1000), load_default=1)
+    per_page = fields.Int(validate=validate.Range(min=1, max=100), load_default=20)
     sort_by = fields.Str(validate=validate.Length(max=50), allow_none=True)
-    sort_order = fields.Str(validate=validate.OneOf(['asc', 'desc']), missing='asc')
+    sort_order = fields.Str(validate=validate.OneOf(['asc', 'desc']), load_default='asc')
 
 
 class PropertyFilterSchema(BaseValidationSchema):

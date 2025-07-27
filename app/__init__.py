@@ -5,8 +5,20 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
-from flask_caching import Cache
-from flask_session import Session
+# Optional imports for production features
+try:
+    from flask_caching import Cache
+    CACHING_AVAILABLE = True
+except ImportError:
+    Cache = None
+    CACHING_AVAILABLE = False
+
+try:
+    from flask_session import Session
+    SESSION_AVAILABLE = True
+except ImportError:
+    Session = None
+    SESSION_AVAILABLE = False
 from config import Config
 from .utils.security import SecurityHeaders
 import os
@@ -23,8 +35,8 @@ login_manager.login_message = 'Please log in to access this page.'
 mail = Mail()
 migrate = Migrate()
 csrf = CSRFProtect()
-cache = Cache()
-session_store = Session()
+cache = Cache() if CACHING_AVAILABLE else None
+session_store = Session() if SESSION_AVAILABLE else None
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -46,8 +58,10 @@ def create_app(config_class=Config):
     mail.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
-    cache.init_app(app)
-    session_store.init_app(app)
+    if cache:
+        cache.init_app(app)
+    if session_store:
+        session_store.init_app(app)
     
     # Initialize production monitoring if enabled
     if app.config.get('SENTRY_DSN'):
@@ -63,13 +77,25 @@ def create_app(config_class=Config):
     setup_request_context(app)
     
     # Initialize task permission functions for templates
-    from app.tasks.routes import can_view_task, can_edit_task, can_delete_task, can_complete_task
-    app.jinja_env.globals.update(
-        can_view_task=can_view_task,
-        can_edit_task=can_edit_task,
-        can_delete_task=can_delete_task,
-        can_complete_task=can_complete_task
-    )
+    try:
+        from app.tasks.routes import can_view_task, can_edit_task, can_delete_task, can_complete_task
+        app.jinja_env.globals.update(
+            can_view_task=can_view_task,
+            can_edit_task=can_edit_task,
+            can_delete_task=can_delete_task,
+            can_complete_task=can_complete_task
+        )
+    except ImportError as e:
+        app.logger.warning(f"Could not import task permission functions: {e}")
+        # Provide fallback functions
+        def fallback_permission_func(*args, **kwargs):
+            return True
+        app.jinja_env.globals.update(
+            can_view_task=fallback_permission_func,
+            can_edit_task=fallback_permission_func,
+            can_delete_task=fallback_permission_func,
+            can_complete_task=fallback_permission_func
+        )
     
     # Register custom Jinja2 filters
     @app.template_filter('nl2br')
@@ -261,9 +287,13 @@ def create_app(config_class=Config):
 
 def setup_sentry(app):
     """Initialize Sentry for error tracking"""
-    import sentry_sdk
-    from sentry_sdk.integrations.flask import FlaskIntegration
-    from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+    except ImportError:
+        app.logger.warning("Sentry SDK not available - error tracking disabled")
+        return
     
     sentry_sdk.init(
         dsn=app.config['SENTRY_DSN'],
@@ -278,7 +308,11 @@ def setup_sentry(app):
 
 def setup_prometheus(app):
     """Setup Prometheus metrics collection"""
-    from prometheus_client import Counter, Histogram, Gauge
+    try:
+        from prometheus_client import Counter, Histogram, Gauge
+    except ImportError:
+        app.logger.warning("Prometheus client not available - metrics disabled")
+        return
     
     # Define metrics
     REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
