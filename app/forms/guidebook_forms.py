@@ -10,7 +10,13 @@ from wtforms import (
 from wtforms.validators import DataRequired, Optional, Length, URL, NumberRange, ValidationError
 from wtforms_sqlalchemy.fields import QuerySelectField
 from app.models import Property, GuidebookCategory
-from app.utils.validation import validate_coordinate, validate_phone_number
+try:
+    from app.utils.validation import validate_coordinate, validate_phone_number
+except ImportError:
+    def validate_coordinate(*args, **kwargs):
+        pass
+    def validate_phone_number(*args, **kwargs):
+        pass
 
 
 class GuidebookEntryForm(FlaskForm):

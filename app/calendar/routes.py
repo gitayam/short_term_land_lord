@@ -6,8 +6,14 @@ from app.calendar.forms import CalendarImportForm
 from sqlalchemy.orm import aliased
 from datetime import datetime, timedelta, date
 import json
-import icalendar
-import recurring_ical_events
+try:
+    import icalendar
+    import recurring_ical_events
+    ICALENDAR_AVAILABLE = True
+except ImportError:
+    icalendar = None
+    recurring_ical_events = None
+    ICALENDAR_AVAILABLE = False
 import requests
 from io import StringIO
 import random

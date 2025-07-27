@@ -9,7 +9,10 @@ from datetime import datetime, timedelta
 import os
 import uuid
 import requests
-from icalendar import Calendar
+try:
+    from icalendar import Calendar
+except ImportError:
+    Calendar = None
 from dateutil import rrule, parser
 import pytz
 from sqlalchemy.orm import aliased
@@ -1278,7 +1281,10 @@ def worker_calendar(token):
     events = []
     if property.calendars:
         import requests
-        from icalendar import Calendar
+        try:
+            from icalendar import Calendar
+        except ImportError:
+            Calendar = None
         
         for calendar in property.calendars:
             try:

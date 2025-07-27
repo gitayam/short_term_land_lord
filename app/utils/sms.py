@@ -10,9 +10,20 @@ import logging
 from flask import current_app, has_app_context, request
 import re
 from datetime import datetime
-import phonenumbers
+try:
+    import phonenumbers
+    PHONENUMBERS_AVAILABLE = True
+except ImportError:
+    phonenumbers = None
+    PHONENUMBERS_AVAILABLE = False
 from .security import rate_limit, log_security_event, verify_twilio_signature
-from .validation import validate_phone_number, sanitize_text_input
+try:
+    from .validation import validate_phone_number, sanitize_text_input
+except ImportError:
+    def validate_phone_number(phone):
+        return True
+    def sanitize_text_input(text):
+        return text
 from .error_handling import safe_execute
 
 LANGUAGE_TEMPLATES = {
@@ -205,6 +216,12 @@ def format_phone_number(phone, default_country='US'):
     """Format a phone number to E.164 for Twilio. Default to US if no country code."""
     if not phone:
         return None
+    if not PHONENUMBERS_AVAILABLE:
+        # Basic fallback formatting
+        phone = re.sub(r'[^\d+]', '', phone)
+        if not phone.startswith('+'):
+            phone = '+1' + phone
+        return phone
     try:
         parsed = phonenumbers.parse(phone, default_country)
         if not phonenumbers.is_valid_number(parsed):

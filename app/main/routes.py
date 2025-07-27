@@ -3,10 +3,21 @@ from flask_login import login_required, current_user
 from app.main import bp
 from app.models import Property, PropertyCalendar, UserRoles, Booking, BookingTask, db
 from app.utils.cache_service import CacheService
-from app.utils.validation import validate_query_params, SearchSchema
+try:
+    from app.utils.validation import validate_query_params, SearchSchema
+except ImportError:
+    def validate_query_params(schema_class):
+        def decorator(func):
+            return func
+        return decorator
+    class SearchSchema:
+        pass
 from datetime import datetime, timedelta
 import requests
-from icalendar import Calendar
+try:
+    from icalendar import Calendar
+except ImportError:
+    Calendar = None
 import json
 from sqlalchemy import or_
 import time

@@ -1,7 +1,12 @@
 import os
 import uuid
 import boto3
-import magic
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    magic = None
+    MAGIC_AVAILABLE = False
 import subprocess
 from flask import current_app
 from werkzeug.utils import secure_filename
@@ -14,6 +19,8 @@ def allowed_file(filename, allowed_extensions):
 
 def get_file_mime_type(file_storage):
     """Get the MIME type of a file using python-magic"""
+    if not MAGIC_AVAILABLE:
+        return 'application/octet-stream'  # Default fallback
     mime = magic.Magic(mime=True)
     return mime.from_buffer(file_storage.read(1024))
 
@@ -97,8 +104,11 @@ def save_file_locally(file_storage, session_id, media_type, filename, is_start_v
     
     # Get file size and MIME type
     file_size = os.path.getsize(file_path)
-    mime = magic.Magic(mime=True)
-    mime_type = mime.from_file(file_path)
+    if MAGIC_AVAILABLE:
+        mime = magic.Magic(mime=True)
+        mime_type = mime.from_file(file_path)
+    else:
+        mime_type = 'application/octet-stream'
     
     return (relative_path, StorageBackend.LOCAL, file_size, mime_type)
 
@@ -138,9 +148,12 @@ def save_file_to_s3(file_storage, session_id, media_type, filename, is_start_vid
     file_size = file_storage.tell()
     file_storage.seek(0)
     
-    mime = magic.Magic(mime=True)
-    mime_type = mime.from_buffer(file_storage.read(1024))
-    file_storage.seek(0)
+    if MAGIC_AVAILABLE:
+        mime = magic.Magic(mime=True)
+        mime_type = mime.from_buffer(file_storage.read(1024))
+        file_storage.seek(0)
+    else:
+        mime_type = 'application/octet-stream'
     
     # Return the S3 URL
     s3_url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{s3_key}"
@@ -183,8 +196,11 @@ def save_file_to_rclone(file_storage, session_id, media_type, filename, is_start
     file_size = file_storage.tell()
     file_storage.seek(0)
     
-    mime = magic.Magic(mime=True)
-    mime_type = mime.from_buffer(file_storage.read(1024))
+    if MAGIC_AVAILABLE:
+        mime = magic.Magic(mime=True)
+        mime_type = mime.from_buffer(file_storage.read(1024))
+    else:
+        mime_type = 'application/octet-stream'
     
     # Return the remote path
     return (f"rclone://{remote}:{remote_file_path}", StorageBackend.RCLONE, file_size, mime_type)

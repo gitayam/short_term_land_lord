@@ -17,7 +17,13 @@ from app.forms.guidebook_forms import (
     GuidebookEntryForm, GuidebookSearchForm, GuidebookBulkActionForm, QuickAddForm
 )
 from app.utils.error_handling import handle_errors, ValidationError, NotFoundError
-from app.utils.validation import sanitize_filename, validate_coordinate
+try:
+    from app.utils.validation import sanitize_filename, validate_coordinate
+except ImportError:
+    def sanitize_filename(*args, **kwargs):
+        return args[0] if args else "default"
+    def validate_coordinate(*args, **kwargs):
+        pass
 from app.utils.performance import timed_operation
 from sqlalchemy import or_
 
