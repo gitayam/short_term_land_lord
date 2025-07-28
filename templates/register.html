@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 2rem auto;">
+    <div class="card">
+        <h2 style="text-align: center; margin-bottom: 2rem; color: #1a202c;">Create Account</h2>
+        
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                {{ form.username.label }}
+                {{ form.username() }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.email.label }}
+                {{ form.email() }}
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    {{ form.first_name.label }}
+                    {{ form.first_name() }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ form.last_name.label }}
+                    {{ form.last_name() }}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                {{ form.password.label }}
+                {{ form.password() }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.password2.label }}
+                {{ form.password2() }}
+            </div>
+            
+            <div class="form-group">
+                {{ form.submit(class="btn", style="width: 100%;") }}
+            </div>
+        </form>
+        
+        <div style="text-align: center; margin-top: 1rem;">
+            <p>Already have an account? <a href="{{ url_for('login') }}" style="color: #667eea;">Sign in here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

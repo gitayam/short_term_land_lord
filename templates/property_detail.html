@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('properties') }}" style="color: #667eea; text-decoration: none;">← Back to Properties</a>
+    </div>
+
+    <div class="card">
+        <h1 style="color: #1a202c; margin-bottom: 1rem;">{{ property.name }}</h1>
+        <p style="color: #718096; margin-bottom: 2rem;">{{ property.address }}</p>
+        
+        {% if property.description %}
+        <div style="margin-bottom: 2rem;">
+            <h3 style="color: #4a5568; margin-bottom: 0.5rem;">Description</h3>
+            <p>{{ property.description }}</p>
+        </div>
+        {% endif %}
+        
+        <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
+            <div>
+                <strong>Type:</strong> {{ property.property_type|title }}
+            </div>
+            <div>
+                <strong>Bedrooms:</strong> {{ property.bedrooms }}
+            </div>
+            <div>
+                <strong>Bathrooms:</strong> {{ property.bathrooms }}
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
+            <div>
+                <strong>Check-in:</strong> {{ property.checkin_time }}
+            </div>
+            <div>
+                <strong>Check-out:</strong> {{ property.checkout_time }}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="color: #4a5568; margin-bottom: 1rem;">Access Links</h3>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <h4 style="color: #667eea; margin-bottom: 0.5rem;">Worker Calendar</h4>
+            <p style="font-size: 0.9rem; color: #718096; margin-bottom: 0.5rem;">Share this link with cleaning staff to view checkout schedules:</p>
+            <div style="background: #f7fafc; padding: 1rem; border-radius: 4px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.8rem; word-break: break-all;">
+                {{ request.host_url }}worker-calendar/{{ property.worker_calendar_token }}
+            </div>
+        </div>
+        
+        <div>
+            <h4 style="color: #667eea; margin-bottom: 0.5rem;">Guest Guidebook</h4>
+            <p style="font-size: 0.9rem; color: #718096; margin-bottom: 0.5rem;">Share this link with guests for local recommendations:</p>
+            <div style="background: #f7fafc; padding: 1rem; border-radius: 4px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 0.8rem; word-break: break-all;">
+                {{ request.host_url }}guest/{{ property.id }}/guidebook?token={{ property.guest_access_token }}
+            </div>
+        </div>
+    </div>
+
+    {% if bookings %}
+    <div class="card">
+        <h3 style="color: #4a5568; margin-bottom: 1rem;">Recent Bookings</h3>
+        {% for booking in bookings %}
+        <div style="border-bottom: 1px solid #e2e8f0; padding: 1rem 0;">
+            <div style="font-weight: bold; margin-bottom: 0.5rem;">{{ booking.guest_name }}</div>
+            <div style="color: #718096; font-size: 0.9rem;">
+                {{ booking.checkin_date.strftime('%m/%d/%Y') }} - {{ booking.checkout_date.strftime('%m/%d/%Y') }}
+                ({{ booking.number_of_guests }} guests)
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

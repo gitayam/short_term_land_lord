@@ -352,8 +352,6 @@ class User(UserMixin, db.Model):
         result = check_password_hash(self.password_hash, password)
         if not result:
             current_app.logger.warning(f"Password check failed for user {self.email}")
-        else:
-            current_app.logger.info(f"Password check successful for user {self.email}")
         return result
     
     def get_full_name(self) -> str:

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Calendar - {{ property.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; }
+        .header { background: linear-gradient(135deg, #38a169 0%, #2f855a 100%); color: white; padding: 1rem; text-align: center; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+        .property-info { background: white; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .calendar { background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .booking { background: #e6fffa; border: 1px solid #38a169; border-radius: 6px; padding: 1rem; margin-bottom: 0.5rem; }
+        .booking-header { font-weight: bold; color: #2f855a; margin-bottom: 0.5rem; }
+        .booking-details { font-size: 0.9rem; color: #2d3748; }
+        .checkout-time { background: #38a169; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold; }
+        .no-bookings { text-align: center; padding: 2rem; color: #718096; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧹 Worker Calendar</h1>
+        <p>{{ property.name }}</p>
+    </div>
+
+    <div class="container">
+        <div class="property-info">
+            <h3 style="color: #2f855a; margin-bottom: 0.5rem;">{{ property.name }}</h3>
+            <p style="margin-bottom: 1rem;">{{ property.address }}</p>
+            <div style="display: flex; gap: 1rem; font-size: 0.9rem;">
+                <span><strong>Check-in:</strong> {{ property.checkin_time }}</span>
+                <span><strong>Check-out:</strong> <span class="checkout-time">{{ property.checkout_time }}</span></span>
+            </div>
+        </div>
+
+        <div class="calendar">
+            <h3 style="margin-bottom: 1rem; color: #2d3748;">Upcoming Checkouts (Next 4 Weeks)</h3>
+            
+            {% if bookings %}
+                {% for booking in bookings %}
+                <div class="booking">
+                    <div class="booking-header">
+                        {{ booking.guest_name }} - Checkout {{ booking.checkout_date.strftime('%B %d, %Y') }}
+                    </div>
+                    <div class="booking-details">
+                        <div>📅 Stay: {{ booking.checkin_date.strftime('%m/%d') }} - {{ booking.checkout_date.strftime('%m/%d') }}</div>
+                        <div>👥 Guests: {{ booking.number_of_guests }}</div>
+                        <div>⏰ Checkout by: <span class="checkout-time">{{ property.checkout_time }}</span></div>
+                        {% if booking.checkout_date.strftime('%A') %}
+                        <div>📆 {{ booking.checkout_date.strftime('%A') }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-bookings">
+                    <h4>No upcoming checkouts</h4>
+                    <p>Check back later for cleaning schedules.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div style="margin-top: 1rem; text-align: center; font-size: 0.9rem; color: #718096;">
+            <p>This calendar updates automatically. Bookmark this page for easy access.</p>
+        </div>
+    </div>
+</body>
+</html>

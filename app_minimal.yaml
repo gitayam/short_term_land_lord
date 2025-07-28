@@ -1,0 +1,35 @@
+service: short-term-landlord
+runtime: python311
+
+env_variables:
+  SECRET_KEY: "ys-UAwX9cpR15q61xQMvDsv03KUvigYnLyv5rkOQZsg"
+  GOOGLE_CLOUD_PROJECT_ID: "speech-memorization"
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 5
+  target_cpu_utilization: 0.7
+
+resources:
+  cpu: 1
+  memory_gb: 1
+  disk_size_gb: 10
+
+handlers:
+# Health check endpoint
+- url: /health
+  script: auto
+  secure: always
+
+# Service info endpoint  
+- url: /service-info
+  script: auto
+  secure: always
+
+# All other URLs go to Flask
+- url: /.*
+  script: auto
+  secure: always
+
+# Use gunicorn as the WSGI server
+entrypoint: gunicorn main_minimal:app --bind :$PORT --workers 2 --timeout 120

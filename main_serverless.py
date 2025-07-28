@@ -7,64 +7,9 @@ import os
 import logging
 from flask import Flask, render_template_string, redirect, url_for
 
-def _ensure_admin_user_exists(app):
-    """Ensure admin user exists in database (called on every startup)"""
-    try:
-        from app.utils.secrets import get_app_secrets
-        from app.models import User, UserRoles
-        from app import db
-        
-        # Get admin credentials from secrets
-        secrets = get_app_secrets()
-        admin_email = secrets.get('ADMIN_EMAIL', 'admin@landlord.com')
-        admin_password = secrets.get('ADMIN_PASSWORD', 'admin123')
-        admin_username = secrets.get('ADMIN_USERNAME', 'admin')
-        
-        app.logger.info(f"🔧 Ensuring admin user exists: {admin_email}")
-        
-        # Check if admin user exists
-        admin = User.query.filter_by(email=admin_email).first()
-        if not admin:
-            app.logger.info(f"🆕 Creating new admin user: {admin_email}")
-            admin = User(
-                username=admin_username,
-                email=admin_email,
-                first_name='Admin',
-                last_name='User'
-            )
-            db.session.add(admin)
-            db.session.flush()
-        else:
-            app.logger.info(f"♻️  Admin user exists, updating password: {admin_email}")
-        
-        # Always update password and permissions
-        if hasattr(admin, 'set_password'):
-            admin.set_password(admin_password)
-            app.logger.info(f"🔑 Admin password updated")
-        
-        # Set admin role and permissions
-        admin.role = UserRoles.ADMIN.value
-        if hasattr(admin, 'is_admin'):
-            admin.is_admin = True
-        
-        db.session.commit()
-        app.logger.info(f"✅ Admin user ready: {admin_email}")
-        
-    except Exception as e:
-        app.logger.error(f"❌ Failed to ensure admin user: {str(e)}")
-
 # Initialize Flask app
 app = Flask(__name__)
-
-# Load secrets from Google Cloud Secret Manager
-try:
-    from app.utils.secrets import get_app_secrets
-    app_secrets = get_app_secrets()
-    app.config['SECRET_KEY'] = app_secrets['SECRET_KEY']
-    app.logger.info("✅ Secrets loaded from Google Cloud Secret Manager")
-except Exception as e:
-    app.logger.warning(f"⚠️ Could not load secrets from Secret Manager: {e}")
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me-in-production')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'serverless-landlord-key')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -95,23 +40,19 @@ try:
     
     # Configure for serverless deployment
     app.config.update({
-        'GOOGLE_CLOUD_PROJECT_ID': 'speech-memorization',
-        'SQLALCHEMY_DATABASE_URI': 'sqlite:////tmp/landlord.db',
+        'GOOGLE_CLOUD_PROJECT_ID': 'serverless-test-12345',
+        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
         'WTF_CSRF_ENABLED': False,
         'NOTIFICATION_EMAIL_ENABLED': False,
         'NOTIFICATION_SMS_ENABLED': False,
     })
     
-    # Initialize database and ensure admin user exists
+    # Initialize database
     with app.app_context():
         try:
             db.create_all()
             app.logger.info("✅ Database tables created")
             app_status['database_initialized'] = True
-            
-            # ALWAYS create admin user on startup (since /tmp database doesn't persist)
-            _ensure_admin_user_exists(app)
-            
         except Exception as db_error:
             app.logger.error(f"Database initialization error: {db_error}")
             app_status['error_message'] = str(db_error)
@@ -136,16 +77,7 @@ except Exception as e:
 # Root route that shows application status
 @app.route('/')
 def index():
-    """Main entry point - redirect to real dashboard if app loaded"""
-    # If full app loaded successfully, redirect to the actual dashboard
-    if app_status['full_app_loaded']:
-        try:
-            # Try to render the actual dashboard
-            return redirect('/dashboard')
-        except:
-            pass
-    
-    # Otherwise show deployment status
+    """Main entry point showing application status"""
     return render_template_string("""
     <!DOCTYPE html>
     <html>
@@ -168,7 +100,7 @@ def index():
         <div class="header">
             <h1>🏠 Short Term Landlord</h1>
             <p>Property Management System</p>
-            <p><strong>Project:</strong> speech-memorization</p>
+            <p><strong>Serverless Project:</strong> serverless-test-12345</p>
         </div>
         
         <div class="container">
@@ -297,26 +229,27 @@ def property_access():
 
 @app.route('/create-sample-data')
 def create_sample_data():
-    """Create sample properties for testing (admin user now created on startup)"""
+    """Create sample properties and users for testing"""
     if not app_status['models_available']:
         return redirect(url_for('index'))
     
     try:
         from app.models import Property, User
         from app import db
-        from app.utils.secrets import get_app_secrets
         
-        # Get admin user (should exist from startup)
-        secrets = get_app_secrets()
-        admin_email = secrets.get('ADMIN_EMAIL', 'admin@landlord.com')
-        admin = User.query.filter_by(email=admin_email).first()
-        
+        # Create admin user if doesn't exist
+        admin = User.query.filter_by(email='admin@landlord.com').first()
         if not admin:
-            return f"""
-            <h1>❌ Error: Admin user not found</h1>
-            <p>Admin user should be created on startup. Try restarting the application.</p>
-            <p><a href="/">Back to Home</a></p>
-            """
+            admin = User(
+                username='admin',
+                email='admin@landlord.com',
+                first_name='Admin',
+                last_name='User'
+            )
+            if hasattr(admin, 'set_password'):
+                admin.set_password('admin123')
+            db.session.add(admin)
+            db.session.flush()
         
         # Create sample properties
         sample_properties = [
@@ -355,7 +288,7 @@ def create_sample_data():
         return f"""
         <h1>✅ Sample Data Created!</h1>
         <p>Created {created_count} new properties.</p>
-        <p>Admin user: {admin_email} (password: managed via Secret Manager)</p>
+        <p>Admin user: admin@landlord.com (password: admin123)</p>
         <p><a href="/property-access">View Property Management</a></p>
         <p><a href="/">Back to Home</a></p>
         """
@@ -368,7 +301,7 @@ def system_info():
     """Show detailed system information"""
     try:
         info = {
-            'project': 'speech-memorization',
+            'project': 'serverless-test-12345',
             'app_name': app.name,
             'total_routes': len(app.url_map._rules),
             'blueprints': list(app.blueprints.keys()) if hasattr(app, 'blueprints') else [],
@@ -398,39 +331,15 @@ def system_info():
     except Exception as e:
         return f'<h1>System Info Error</h1><p>{str(e)}</p>'
 
-@app.route('/dashboard')
-def dashboard():
-    """Access the real dashboard if available"""
-    if app_status['full_app_loaded']:
-        try:
-            # Try to use the actual main dashboard
-            from app.main.routes import dashboard as real_dashboard
-            return real_dashboard()
-        except Exception as e:
-            # If that fails, try the main routes
-            try:
-                from app.main import bp as main_bp
-                # Register the blueprint if not already done
-                if 'main' not in app.blueprints:
-                    app.register_blueprint(main_bp, url_prefix='/')
-                # Redirect to the main dashboard
-                return redirect('/main/dashboard')
-            except Exception as e2:
-                return f'<h1>Dashboard Error</h1><p>Error loading real dashboard: {str(e)}</p><p>Fallback error: {str(e2)}</p><p><a href="/">Back to Status</a></p>'
-    else:
-        return redirect('/')
-
 @app.route('/health')
 def health():
     """Health check endpoint"""
     return {
         'status': 'healthy',
         'service': 'short-term-landlord',
-        'project': 'speech-memorization',
+        'project': 'serverless-test-12345',
         'full_app_loaded': app_status['full_app_loaded']
     }
-
-# Debug route removed for production deployment
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)

@@ -1,0 +1,49 @@
+service: short-term-landlord
+runtime: python311
+
+env_variables:
+  FLASK_ENV: production
+  SECRET_KEY: "ys-UAwX9cpR15q61xQMvDsv03KUvigYnLyv5rkOQZsg"
+  DATABASE_URL: "sqlite:///landlord.db"
+  GOOGLE_CLOUD_PROJECT_ID: "speech-memorization"
+  
+  # Email configuration (optional)
+  MAIL_SERVER: "smtp.sendgrid.net"
+  MAIL_PORT: "587"
+  MAIL_USERNAME: "apikey"
+  MAIL_PASSWORD: "your-sendgrid-api-key"
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 10
+  target_cpu_utilization: 0.7
+
+resources:
+  cpu: 1
+  memory_gb: 1
+  disk_size_gb: 10
+
+handlers:
+# Static files
+- url: /static
+  static_dir: static
+  secure: always
+  expiration: "7d"
+
+# Health check endpoint
+- url: /health
+  script: auto
+  secure: always
+
+# Service info endpoint  
+- url: /service-info
+  script: auto
+  secure: always
+
+# All other URLs go to Flask
+- url: /.*
+  script: auto
+  secure: always
+
+# Use gunicorn as the WSGI server
+entrypoint: gunicorn main_appengine:app --bind :$PORT --workers 2 --timeout 120
