@@ -395,8 +395,11 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-var resources = {{ resources|tojson|safe }};
-var rawEvents = {{ events|tojson|safe }};
+var resources = {{ resources|tojson|safe }} || [];
+var rawEvents = {{ events|tojson|safe }} || [];
+
+console.log('Resources loaded:', resources.length);
+console.log('Events loaded:', rawEvents.length);
 
 document.addEventListener('DOMContentLoaded', function() {
     var uniqueEvents = {};
@@ -414,6 +417,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     var calendarEl = document.getElementById('calendar');
+    console.log('Calendar element found:', !!calendarEl);
+    console.log('FullCalendar available:', typeof FullCalendar);
+    
+    if (!calendarEl) {
+        console.error('Calendar element not found');
+        return;
+    }
+    
+    if (typeof FullCalendar === 'undefined') {
+        console.error('FullCalendar library not loaded');
+        return;
+    }
+    
     var calendar = new FullCalendar.Calendar(calendarEl, {
         schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
         initialView: 'resourceTimelineMonth',
@@ -554,7 +570,15 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Selected:', info);
         }
     });
-    calendar.render();
+    
+    try {
+        calendar.render();
+        console.log('Calendar rendered successfully');
+    } catch (error) {
+        console.error('Error rendering calendar:', error);
+        // Show error message to user
+        document.getElementById('calendar').innerHTML = '<div class="alert alert-warning">Calendar could not be loaded. Please refresh the page.</div>';
+    }
 
     function showEventModal(event) {
         try {
