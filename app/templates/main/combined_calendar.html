@@ -2,8 +2,8 @@
 
 {% block styles %}
 {{ super() }}
-{# Use FullCalendar v5 with scheduler #}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+{# Use FullCalendar v6 with scheduler #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
 
 <style>
     body {
@@ -388,9 +388,10 @@
 
 {% block scripts %}
 {{ super() }}
-{# Include FullCalendar v5 with scheduler #}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@5.11.3/main.min.js"></script>
+{# Include FullCalendar v5 with scheduler - using more reliable CDN #}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource@6.1.10/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.10/index.global.min.js"></script>
 {# Include Bootstrap JS for modal #}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -430,50 +431,21 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        schedulerLicenseKey: 'GPL-My-Project-Is-Open-Source',
-        initialView: 'resourceTimelineMonth',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth'
-        },
-        resources: resources,
-        events: deduplicatedEvents,
-        resourceAreaWidth: '25%',
+    // Try resource timeline first, fallback to month view
+    var calendarConfig = {
         height: 'auto',
         navLinks: true,
         selectable: true,
         editable: false,
         nowIndicator: true,
-        slotMinWidth: 40,
-        slotLabelFormat: {
-            day: 'D',
-            weekday: 'short'
+        events: deduplicatedEvents,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listWeek'
         },
-        resourceAreaHeaderContent: 'Properties',
-        resourceLabelContent: function(arg) {
-            return {
-                html: `
-                    <div style="display: flex; align-items: center; padding: 8px;">
-                        <div style="width: 12px; height: 12px; border-radius: 50%; background: ${arg.resource.extendedProps.color || '#008489'}; margin-right: 8px;"></div>
-                        <div>
-                            <div style="font-weight: bold; font-size: 14px;">${arg.resource.title}</div>
-                            <div style="font-size: 12px; color: #666;">${arg.resource.extendedProps.city || ''}</div>
-                        </div>
-                    </div>
-                `
-            };
-        },
-        dayMaxEvents: false,
-        resourceLabelDidMount: function(info) {
-            try {
-                new bootstrap.Tooltip(info.el, {
-                    title: info.resource.title,
-                    placement: 'top'
-                });
-            } catch (e) {}
-        },
+        initialView: 'dayGridMonth',
+        eventDisplay: 'block',
         eventContent: function(arg) {
             var content = document.createElement('div');
             content.classList.add('event-content');
@@ -569,7 +541,21 @@ document.addEventListener('DOMContentLoaded', function() {
         select: function(info) {
             console.log('Selected:', info);
         }
-    });
+    };
+    
+    // Try to add resource timeline if available
+    if (typeof FullCalendar !== 'undefined' && FullCalendar.resourceTimelinePlugin) {
+        console.log('Resource timeline available, using advanced view');
+        calendarConfig.initialView = 'resourceTimelineMonth';
+        calendarConfig.schedulerLicenseKey = 'GPL-My-Project-Is-Open-Source';
+        calendarConfig.resources = resources;
+        calendarConfig.resourceAreaWidth = '25%';
+        calendarConfig.headerToolbar.right = 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth';
+    } else {
+        console.log('Resource timeline not available, using standard month view');
+    }
+    
+    var calendar = new FullCalendar.Calendar(calendarEl, calendarConfig);
     
     try {
         calendar.render();
