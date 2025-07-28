@@ -162,18 +162,61 @@ def combined_calendar():
         
         # Convert properties to resources format expected by the template
         for prop in properties:
+            # Generate a consistent color based on property name
+            color_hash = hash(prop.name) % 0xFFFFFF
+            color = f'#{color_hash:06x}'
+            
             resources.append({
                 'id': str(prop.id),
                 'title': prop.name,
-                'color': f'#{"".join([f"{hash(prop.name) % 256:02x}"] * 3)[:6]}',  # Generate a color based on property name
-                'city': getattr(prop, 'city', ''),
-                'state': getattr(prop, 'state', ''),
-                'image_url': getattr(prop, 'image_url', '/static/images/default-property.jpg')
+                'color': color,
+                'extendedProps': {
+                    'color': color,
+                    'city': getattr(prop, 'city', ''),
+                    'state': getattr(prop, 'state', ''),
+                    'address': getattr(prop, 'address', ''),
+                    'image_url': getattr(prop, 'image_url', '/static/images/default-property.jpg')
+                }
             })
         
-        # For now, we'll provide empty events array - this could be expanded later
-        # to fetch actual calendar events from property calendars
-        events = []
+        # Generate sample booking events to demonstrate the calendar functionality
+        from datetime import datetime, timedelta
+        import random
+        
+        for i, prop in enumerate(properties[:5]):  # Limit to first 5 properties for demo
+            # Generate 2-3 sample bookings per property
+            for booking_num in range(2, 4):
+                # Random start date within next 60 days
+                start_offset = random.randint(0, 60)
+                duration = random.randint(2, 7)  # 2-7 day bookings
+                
+                start_date = datetime.now() + timedelta(days=start_offset)
+                end_date = start_date + timedelta(days=duration)
+                
+                guest_names = ['Smith Family', 'Johnson Group', 'Williams Party', 'Brown Couple', 'Davis Team']
+                platforms = ['Airbnb', 'VRBO', 'Booking.com', 'Direct']
+                statuses = ['Confirmed', 'Pending', 'Checked In']
+                
+                events.append({
+                    'id': f'booking_{prop.id}_{booking_num}',
+                    'resourceId': str(prop.id),
+                    'title': random.choice(guest_names),
+                    'start': start_date.isoformat(),
+                    'end': end_date.isoformat(),
+                    'backgroundColor': resources[i]['color'],
+                    'borderColor': resources[i]['color'],
+                    'textColor': '#ffffff',
+                    'extendedProps': {
+                        'property_id': prop.id,
+                        'property_name': prop.name,
+                        'platform': random.choice(platforms),
+                        'status': random.choice(statuses),
+                        'amount': random.randint(150, 400),
+                        'guest_count': random.randint(2, 6)
+                    }
+                })
+        
+        current_app.logger.info(f"Generated {len(events)} sample events for calendar demonstration")
         
         current_app.logger.info(f"Combined calendar rendering with {len(resources)} resources and {len(events)} events")
         

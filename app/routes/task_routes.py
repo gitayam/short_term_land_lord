@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 from app.forms.task_forms import RepairRequestForm
-from app.models import Task, Property, TaskStatus, TaskPriority, RepairRequestSeverity, TaskProperty, TaskMedia, MediaType
+from app.models import Task, Property, TaskStatus, TaskPriority, RepairRequestSeverity, TaskProperty, TaskMedia, MediaType, RecurrencePattern
 from app.extensions import db
 import uuid
 from app.tasks.media import allowed_file
@@ -127,7 +127,8 @@ def create_repair_request():
                     due_date=form.due_date.data,
                     tags='repair_request',
                     creator_id=current_user.id,
-                    notes=form.additional_notes.data
+                    notes=form.additional_notes.data,
+                    recurrence_pattern=RecurrencePattern.NONE  # Explicitly set for repair requests
                 )
                 
                 # Add property to task

@@ -155,7 +155,37 @@
         max-width: 100vw;
         margin: 0 auto;
         box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-        height: 100%;
+        height: auto;
+        min-height: 600px;
+    }
+    
+    /* Make timeline rows taller to better display booking information */
+    .fc .fc-timeline-lane {
+        height: 60px !important;
+        min-height: 60px !important;
+    }
+    
+    .fc .fc-timeline-lane-frame {
+        height: 60px !important;
+        min-height: 60px !important;
+    }
+    
+    /* Resource (property) row styling */
+    .fc .fc-resource {
+        height: 60px !important;
+        min-height: 60px !important;
+        padding: 8px 12px !important;
+        border-bottom: 2px solid #e9ecef !important;
+    }
+    
+    /* Better event spacing within taller rows */
+    .fc-timeline-event {
+        margin-top: 4px !important;
+        margin-bottom: 4px !important;
+        height: 48px !important;
+        line-height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
     }
     
     /* Timeline styles */
@@ -394,13 +424,32 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         resources: resources,
         events: deduplicatedEvents,
-        resourceAreaWidth: '20%',
+        resourceAreaWidth: '25%',
         height: 'auto',
         navLinks: true,
         selectable: true,
         editable: false,
         nowIndicator: true,
-        slotMinWidth: 60,
+        slotMinWidth: 40,
+        slotLabelFormat: {
+            day: 'D',
+            weekday: 'short'
+        },
+        resourceAreaHeaderContent: 'Properties',
+        resourceLabelContent: function(arg) {
+            return {
+                html: `
+                    <div style="display: flex; align-items: center; padding: 8px;">
+                        <div style="width: 12px; height: 12px; border-radius: 50%; background: ${arg.resource.extendedProps.color || '#008489'}; margin-right: 8px;"></div>
+                        <div>
+                            <div style="font-weight: bold; font-size: 14px;">${arg.resource.title}</div>
+                            <div style="font-size: 12px; color: #666;">${arg.resource.extendedProps.city || ''}</div>
+                        </div>
+                    </div>
+                `
+            };
+        },
+        dayMaxEvents: false,
         resourceLabelDidMount: function(info) {
             try {
                 new bootstrap.Tooltip(info.el, {
@@ -412,31 +461,72 @@ document.addEventListener('DOMContentLoaded', function() {
         eventContent: function(arg) {
             var content = document.createElement('div');
             content.classList.add('event-content');
+            content.style.display = 'flex';
+            content.style.alignItems = 'center';
+            content.style.justifyContent = 'space-between';
+            content.style.padding = '4px 8px';
+            content.style.height = '100%';
+            content.style.overflow = 'hidden';
+            
             // Set background color from resource
             var resource = resources.find(r => r.id == arg.event.getResources()[0]?.id || arg.event.extendedProps.property_id);
             var bgColor = resource && resource.color ? resource.color : '#008489';
             content.style.background = bgColor;
-            // Guest name + price
+            content.style.borderRadius = '4px';
+            content.style.color = '#fff';
+            
+            // Left side: Guest name and platform
+            var leftDiv = document.createElement('div');
+            leftDiv.style.flex = '1';
+            leftDiv.style.minWidth = '0'; // Allow text truncation
+            
             var titleEl = document.createElement('div');
-            titleEl.classList.add('event-title');
-            titleEl.innerHTML = arg.event.title + (arg.event.extendedProps.amount ? ' $' + arg.event.extendedProps.amount : '');
-            content.appendChild(titleEl);
-            // Status pill
+            titleEl.style.fontWeight = 'bold';
+            titleEl.style.fontSize = '13px';
+            titleEl.style.whiteSpace = 'nowrap';
+            titleEl.style.overflow = 'hidden';
+            titleEl.style.textOverflow = 'ellipsis';
+            titleEl.innerHTML = arg.event.title;
+            leftDiv.appendChild(titleEl);
+            
+            if (arg.event.extendedProps.platform) {
+                var platformEl = document.createElement('div');
+                platformEl.style.fontSize = '11px';
+                platformEl.style.opacity = '0.9';
+                platformEl.innerHTML = arg.event.extendedProps.platform;
+                leftDiv.appendChild(platformEl);
+            }
+            
+            content.appendChild(leftDiv);
+            
+            // Right side: Status and amount
+            var rightDiv = document.createElement('div');
+            rightDiv.style.display = 'flex';
+            rightDiv.style.flexDirection = 'column';
+            rightDiv.style.alignItems = 'flex-end';
+            rightDiv.style.marginLeft = '8px';
+            
+            if (arg.event.extendedProps.amount) {
+                var amountEl = document.createElement('div');
+                amountEl.style.fontSize = '12px';
+                amountEl.style.fontWeight = 'bold';
+                amountEl.innerHTML = '$' + arg.event.extendedProps.amount;
+                rightDiv.appendChild(amountEl);
+            }
+            
             if (arg.event.extendedProps.status) {
-                var statusEl = document.createElement('span');
-                statusEl.classList.add('status-pill');
+                var statusEl = document.createElement('div');
+                statusEl.style.fontSize = '10px';
+                statusEl.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                statusEl.style.padding = '1px 4px';
+                statusEl.style.borderRadius = '8px';
+                statusEl.style.marginTop = '2px';
                 statusEl.innerHTML = arg.event.extendedProps.status;
-                content.appendChild(statusEl);
+                rightDiv.appendChild(statusEl);
             }
-            // Checkout badge
-            if (arg.event.end) {
-                var checkoutEl = document.createElement('div');
-                checkoutEl.classList.add('checkout-date');
-                var checkoutDate = new Date(arg.event.end);
-                checkoutDate.setDate(checkoutDate.getDate() - 1);
-                checkoutEl.innerHTML = 'OUT: ' + checkoutDate.toLocaleDateString();
-                content.appendChild(checkoutEl);
-            }
+            
+            content.appendChild(rightDiv);
+            
             return { domNodes: [content] };
         },
         eventDidMount: function(info) {
@@ -470,7 +560,17 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             var modal = new bootstrap.Modal(document.getElementById('eventModal'));
             document.getElementById('property-name').textContent = event.extendedProps.property_name || 'Unknown Property';
-            document.getElementById('guest-summary').textContent = event.title || 'No guest information';
+            
+            // Enhanced guest information
+            var guestInfo = event.title || 'No guest information';
+            if (event.extendedProps.guest_count) {
+                guestInfo += ` (${event.extendedProps.guest_count} guests)`;
+            }
+            if (event.extendedProps.amount) {
+                guestInfo += ` - $${event.extendedProps.amount}`;
+            }
+            document.getElementById('guest-summary').textContent = guestInfo;
+            
             var startDate = new Date(event.start).toLocaleDateString();
             var endDate = startDate;
             if (event.end) {
@@ -479,14 +579,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 endDate = end.toLocaleDateString();
             }
             document.getElementById('date-range').textContent = startDate + ' to ' + endDate;
-            document.getElementById('source').textContent = event.extendedProps.service || 'Direct Booking';
+            
+            // Show platform and status
+            var sourceText = event.extendedProps.platform || 'Direct Booking';
+            if (event.extendedProps.status) {
+                sourceText += ` (${event.extendedProps.status})`;
+            }
+            document.getElementById('source').textContent = sourceText;
+            
             var bookingId = event.id;
             var assignTaskBtn = document.getElementById('assign-task-btn');
-            if (assignTaskBtn) assignTaskBtn.href = '/task/create?booking_id=' + bookingId;
+            if (assignTaskBtn) assignTaskBtn.href = '/tasks/create?booking_id=' + bookingId;
             var repairRequestBtn = document.getElementById('repair-request-btn');
-            if (repairRequestBtn) repairRequestBtn.href = '/repairs/create?booking_id=' + bookingId;
+            if (repairRequestBtn) repairRequestBtn.href = '/tasks/repair_requests/create?property_id=' + event.extendedProps.property_id;
             modal.show();
-        } catch (e) {}
+        } catch (e) {
+            console.error('Error showing event modal:', e);
+        }
     }
 
     // Sidebar search logic

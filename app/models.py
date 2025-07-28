@@ -982,7 +982,7 @@ class Task(db.Model):
     
     # Add recurring task fields
     is_recurring = db.Column(db.Boolean, default=False)
-    recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE.value)
+    recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE)
     recurrence_interval = db.Column(db.Integer, default=1)
     recurrence_end_date = db.Column(db.DateTime, nullable=True)
     
@@ -1632,7 +1632,7 @@ class TaskTemplate(db.Model):
     description = db.Column(db.Text, nullable=True)
     priority = db.Column(db.Enum(TaskPriority), default=TaskPriority.MEDIUM)
     service_type = db.Column(db.Enum(ServiceType), default=ServiceType.CLEANING)
-    recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE.value)
+    recurrence_pattern = db.Column(db.Enum(RecurrencePattern), default=RecurrencePattern.NONE)
     recurrence_interval = db.Column(db.Integer, default=1)  # How many days/weeks/months between recurrences
     is_global = db.Column(db.Boolean, default=False)  # Whether this template is available to all users
     sequence_number = db.Column(db.Integer, default=0)  # For ordering templates
