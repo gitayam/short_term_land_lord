@@ -22,3 +22,4 @@ icalendar>=5.0.0
 recurring-ical-events>=2.1.0
 marshmallow>=3.19.0
 bleach>=6.0.0
+Flask-Caching>=2.0.0

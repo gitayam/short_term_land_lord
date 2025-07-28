@@ -37,7 +37,7 @@ def dashboard():
         # Use cached dashboard data for better performance
         dashboard_data = CacheService.get_user_dashboard_data(current_user.id)
         
-        if dashboard_data:
+        if dashboard_data and dashboard_data.get('user'):
             current_app.logger.info(
                 f"Dashboard loaded from cache for user {current_user.id}",
                 extra={'request_id': getattr(g, 'request_id', None)}
@@ -140,7 +140,11 @@ def combined_calendar():
         
         if not properties:
             flash('No properties found.', 'warning')
-            return render_template('main/combined_calendar.html', title='Combined Calendar', properties=[])
+            return render_template('main/combined_calendar.html', 
+                                 title='Combined Calendar', 
+                                 properties=[],
+                                 resources=[],
+                                 events=[])
         
         response_time = time.time() - start_time
         current_app.logger.info(
@@ -152,7 +156,32 @@ def combined_calendar():
             }
         )
         
-        return render_template('main/combined_calendar.html', title='Combined Calendar', properties=properties)
+        # Prepare resources and events data for the calendar template
+        resources = []
+        events = []
+        
+        # Convert properties to resources format expected by the template
+        for prop in properties:
+            resources.append({
+                'id': str(prop.id),
+                'title': prop.name,
+                'color': f'#{"".join([f"{hash(prop.name) % 256:02x}"] * 3)[:6]}',  # Generate a color based on property name
+                'city': getattr(prop, 'city', ''),
+                'state': getattr(prop, 'state', ''),
+                'image_url': getattr(prop, 'image_url', '/static/images/default-property.jpg')
+            })
+        
+        # For now, we'll provide empty events array - this could be expanded later
+        # to fetch actual calendar events from property calendars
+        events = []
+        
+        current_app.logger.info(f"Combined calendar rendering with {len(resources)} resources and {len(events)} events")
+        
+        return render_template('main/combined_calendar.html', 
+                             title='Combined Calendar', 
+                             properties=properties,
+                             resources=resources,
+                             events=events)
         
     except Exception as e:
         current_app.logger.error(
@@ -161,7 +190,11 @@ def combined_calendar():
             exc_info=True
         )
         flash('Error loading calendar. Please try again.', 'error')
-        return render_template('main/combined_calendar.html', title='Combined Calendar', properties=[])
+        return render_template('main/combined_calendar.html', 
+                             title='Combined Calendar', 
+                             properties=[],
+                             resources=[],
+                             events=[])
 
 @bp.route('/dashboard/events')
 @login_required

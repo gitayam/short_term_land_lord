@@ -3,7 +3,19 @@ Caching service for optimizing database queries and expensive operations
 """
 from functools import wraps
 from flask import current_app
-from app import cache
+try:
+    from app import cache
+    # Ensure cache is not None even if import succeeds
+    if cache is None:
+        import logging
+        logging.getLogger(__name__).warning("Cache object is None, caching disabled")
+    else:
+        import logging
+        logging.getLogger(__name__).info(f"Cache object loaded: {type(cache)}")
+except ImportError:
+    cache = None
+    import logging
+    logging.getLogger(__name__).warning("Could not import cache from app, caching disabled")
 from app.models import User, Property, Task
 from sqlalchemy.orm import joinedload, selectinload
 import json
@@ -21,22 +33,32 @@ def cached_query(timeout=300, key_prefix='query'):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
+            # If cache is not available, just execute the function
+            if cache is None:
+                current_app.logger.debug("Cache not available, executing function directly")
+                return f(*args, **kwargs)
+            
             # Generate cache key
             args_str = '_'.join(str(arg) for arg in args)
             kwargs_str = '_'.join(f"{k}:{v}" for k, v in sorted(kwargs.items()))
             cache_key = f"{key_prefix}_{f.__name__}_{args_str}_{kwargs_str}"
             
-            # Try to get from cache
-            result = cache.get(cache_key)
-            if result is not None:
-                current_app.logger.debug(f"Cache hit: {cache_key}")
+            try:
+                # Try to get from cache
+                result = cache.get(cache_key)
+                if result is not None:
+                    current_app.logger.debug(f"Cache hit: {cache_key}")
+                    return result
+                
+                # Execute function and cache result
+                current_app.logger.debug(f"Cache miss: {cache_key}")
+                result = f(*args, **kwargs)
+                cache.set(cache_key, result, timeout=timeout)
                 return result
-            
-            # Execute function and cache result
-            current_app.logger.debug(f"Cache miss: {cache_key}")
-            result = f(*args, **kwargs)
-            cache.set(cache_key, result, timeout=timeout)
-            return result
+            except Exception as cache_error:
+                current_app.logger.warning(f"Cache operation failed for {cache_key}: {cache_error}")
+                # Fallback to direct execution if cache fails
+                return f(*args, **kwargs)
         return decorated_function
     return decorator
 
@@ -203,33 +225,51 @@ class CacheService:
     @staticmethod
     def invalidate_user_cache(user_id):
         """Invalidate all cache entries for a specific user"""
+        if cache is None:
+            return
+            
         cache_patterns = [
             f"user_dashboard_get_user_dashboard_data_{user_id}",
             f"task_summary_get_user_task_summary_{user_id}"
         ]
         
         for pattern in cache_patterns:
-            cache.delete(pattern)
+            try:
+                cache.delete(pattern)
+            except Exception as e:
+                current_app.logger.warning(f"Failed to delete cache pattern {pattern}: {e}")
         
         # Also invalidate system stats as they include user counts
-        cache.delete_many("system_stats_*")
+        try:
+            cache.delete_many("system_stats_*")
+        except Exception as e:
+            current_app.logger.warning(f"Failed to delete system stats cache: {e}")
         current_app.logger.debug(f"Invalidated cache for user {user_id}")
     
     @staticmethod
     def invalidate_property_cache(property_id):
         """Invalidate all cache entries for a specific property"""
+        if cache is None:
+            return
+            
         cache_patterns = [
             f"property_stats_get_property_statistics_{property_id}"
         ]
         
         for pattern in cache_patterns:
-            cache.delete(pattern)
+            try:
+                cache.delete(pattern)
+            except Exception as e:
+                current_app.logger.warning(f"Failed to delete cache pattern {pattern}: {e}")
         
         current_app.logger.debug(f"Invalidated cache for property {property_id}")
     
     @staticmethod
     def invalidate_task_cache(user_id=None):
         """Invalidate task-related cache entries"""
+        if cache is None:
+            return
+            
         if user_id:
             cache_patterns = [
                 f"task_summary_get_user_task_summary_{user_id}",
@@ -237,11 +277,17 @@ class CacheService:
             ]
             
             for pattern in cache_patterns:
-                cache.delete(pattern)
+                try:
+                    cache.delete(pattern)
+                except Exception as e:
+                    current_app.logger.warning(f"Failed to delete cache pattern {pattern}: {e}")
         else:
             # Invalidate all task-related caches
-            cache.delete_many("task_summary_*")
-            cache.delete_many("user_dashboard_*")
+            try:
+                cache.delete_many("task_summary_*")
+                cache.delete_many("user_dashboard_*")
+            except Exception as e:
+                current_app.logger.warning(f"Failed to delete task-related caches: {e}")
         
         current_app.logger.debug(f"Invalidated task cache for user {user_id}")
     
