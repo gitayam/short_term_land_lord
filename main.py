@@ -430,6 +430,93 @@ def health():
         'full_app_loaded': app_status['full_app_loaded']
     }
 
+@app.route('/debug-admin')
+def debug_admin():
+    """Debug admin user status"""
+    if not app_status['full_app_loaded']:
+        return '<h1>❌ Full app not loaded</h1>'
+    
+    try:
+        from app.models import User, UserRoles
+        from app.utils.secrets import get_app_secrets
+        
+        secrets = get_app_secrets()
+        admin_email = secrets.get('ADMIN_EMAIL', 'admin@landlord.com')
+        admin_password = secrets.get('ADMIN_PASSWORD', 'admin123')
+        
+        admin = User.query.filter_by(email=admin_email).first()
+        
+        if not admin:
+            return f'<h1>❌ Admin user not found</h1><p>Email: {admin_email}</p>'
+        
+        # Test password
+        password_valid = admin.check_password(admin_password)
+        
+        return f'''
+        <h1>🔧 Admin User Debug</h1>
+        <p><strong>Email:</strong> {admin.email}</p>
+        <p><strong>Username:</strong> {admin.username}</p>
+        <p><strong>Role:</strong> {admin.role}</p>
+        <p><strong>Has Admin Role:</strong> {getattr(admin, 'has_admin_role', 'Not available')}</p>
+        <p><strong>Is Admin:</strong> {getattr(admin, 'is_admin', 'Not available')}</p>
+        <p><strong>Password Hash Set:</strong> {'Yes' if admin.password_hash else 'No'}</p>
+        <p><strong>Password Valid:</strong> {'✅ Yes' if password_valid else '❌ No'}</p>
+        <p><strong>Expected Password:</strong> {admin_password}</p>
+        <p><a href="/auth/login">Try Login</a></p>
+        <p><a href="/">Back to Home</a></p>
+        '''
+        
+    except Exception as e:
+        return f'<h1>Debug Error</h1><p>{str(e)}</p>'
+
+@app.route('/recreate-admin')
+def recreate_admin():
+    """Force recreate admin user"""
+    if not app_status['full_app_loaded']:
+        return '<h1>❌ Full app not loaded</h1>'
+    
+    try:
+        from app.models import User, UserRoles
+        from app.utils.secrets import get_app_secrets
+        from app import db
+        
+        secrets = get_app_secrets()
+        admin_email = secrets.get('ADMIN_EMAIL', 'admin@landlord.com')
+        admin_password = secrets.get('ADMIN_PASSWORD', 'admin123')
+        
+        # Delete existing admin if exists
+        existing_admin = User.query.filter_by(email=admin_email).first()
+        if existing_admin:
+            db.session.delete(existing_admin)
+            db.session.commit()
+        
+        # Create new admin
+        admin = User(
+            username='admin',
+            email=admin_email,
+            first_name='Admin',
+            last_name='User'
+        )
+        admin.set_password(admin_password)
+        admin.role = UserRoles.ADMIN.value
+        if hasattr(admin, 'is_admin'):
+            admin.is_admin = True
+        
+        db.session.add(admin)
+        db.session.commit()
+        
+        return f'''
+        <h1>✅ Admin User Recreated</h1>
+        <p><strong>Email:</strong> {admin_email}</p>
+        <p><strong>Password:</strong> {admin_password}</p>
+        <p><a href="/debug-admin">Check Status</a></p>
+        <p><a href="/auth/login">Try Login</a></p>
+        <p><a href="/">Back to Home</a></p>
+        '''
+        
+    except Exception as e:
+        return f'<h1>Recreate Error</h1><p>{str(e)}</p>'
+
 # Debug route removed for production deployment
 
 if __name__ == '__main__':
