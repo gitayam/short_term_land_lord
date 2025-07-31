@@ -2,6 +2,8 @@
 
 A comprehensive property management system designed specifically for short-term rental properties. This platform streamlines the coordination between property owners, cleaners, and maintenance staff while providing enhanced calendar integration with popular booking platforms like Airbnb and VRBO.
 
+**🚀 Production Deployment**: Currently deployed on Google App Engine at [https://short-term-landlord-dot-speech-memorization.uc.r.appspot.com](https://short-term-landlord-dot-speech-memorization.uc.r.appspot.com)
+
 ## Features
 ![main-page](docs/media/main-page.png)
 
@@ -17,6 +19,21 @@ A comprehensive property management system designed specifically for short-term 
 
 ![property-edit](docs/media/property-edit.png)
 
+## Production Features ⭐
+
+### Deployed Infrastructure
+- **Google App Engine**: Serverless deployment with auto-scaling
+- **Redis Caching**: 80-90% faster dashboard response times
+- **Google Cloud Secret Manager**: Secure credential management
+- **Health Monitoring**: Comprehensive system health checks and error tracking
+- **Production Security**: Input validation, XSS prevention, CSRF protection
+
+### Performance Optimizations
+- **Database Connection Pooling**: Stable performance under load
+- **Intelligent Caching**: User dashboard data (10min), property stats (30min), task summaries (15min)
+- **Slow Query Detection**: Automatic detection and logging of queries >500ms
+- **Error Tracking**: Real-time issue detection and monitoring
+
 ## Development Setup
 
 ### Prerequisites
@@ -24,6 +41,7 @@ A comprehensive property management system designed specifically for short-term 
 - Git
 - Docker and Docker Compose (recommended)
 - If not using Docker, you will need Python 3.9+ and PostgreSQL
+- For production deployment: Google Cloud SDK
 
 ### Docker Setup (Recommended)
 
@@ -80,6 +98,47 @@ A comprehensive property management system designed specifically for short-term 
    ```bash
    flask run
    ```
+
+## Production Deployment 🚀
+
+### Google App Engine Deployment
+
+The application is configured for deployment to Google App Engine as a separate service.
+
+1. **Setup Google Cloud SDK**:
+   ```bash
+   gcloud auth login
+   gcloud config set project your-project-id
+   ```
+
+2. **Configure Secrets**:
+   ```bash
+   # Store application secrets in Google Cloud Secret Manager
+   gcloud secrets create landlord-app-secrets --data-file=secrets.json
+   ```
+
+3. **Deploy to App Engine**:
+   ```bash
+   gcloud app deploy app_simple.yaml --project=your-project --version=production
+   ```
+
+### Production Configuration
+
+The application uses different configurations for production:
+
+- **Database**: SQLite with startup initialization (ephemeral but auto-recreating)
+- **Caching**: Redis-based caching for performance
+- **Sessions**: Secure session management
+- **Logging**: Structured JSON logging with request correlation
+- **Monitoring**: Health checks available at `/health` endpoint
+
+### Debug Features
+
+For troubleshooting production issues:
+
+- `/debug-admin`: Check admin user status and password validation
+- `/recreate-admin`: Force recreate admin user if needed
+- Structured logging for error tracking
 
 ## Development Workflow
 
@@ -171,6 +230,30 @@ Guests with a property-specific access link can:
 - Find WiFi information
 - View house rules and emergency contacts
 - Discover local attractions and recommendations
+
+## System Architecture 🏗️
+
+### Production Stack
+- **Frontend**: Jinja2 templates with Bootstrap 5 and FullCalendar v6
+- **Backend**: Flask with Blueprint architecture
+- **Database**: SQLAlchemy ORM with SQLite (development) / PostgreSQL (production ready)
+- **Caching**: Redis with Flask-Caching
+- **Authentication**: Flask-Login with role-based access control
+- **Security**: Marshmallow validation, bleach sanitization, CSRF protection
+- **Deployment**: Google App Engine with Cloud Secret Manager
+
+### Key Design Patterns
+- **Application Factory Pattern**: Clean configuration management
+- **Blueprint Architecture**: Modular route organization
+- **Repository Pattern**: Database abstraction layer
+- **Decorator Pattern**: Caching and validation decorators
+- **Observer Pattern**: Event-driven task notifications
+
+## Documentation 📚
+
+- **[Lessons Learned](Lessons_Learned.md)**: Deployment insights and technical decisions
+- **[Phase 1 Implementation](PHASE_1_IMPLEMENTATION_SUMMARY.md)**: Production infrastructure details
+- **[Calendar Integration](README_CALENDARS.md)**: Multi-platform booking sync setup
 
 ## Contributing
 

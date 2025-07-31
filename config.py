@@ -135,6 +135,13 @@ class TestConfig(Config):
     NOTIFICATION_SMS_ENABLED = False
     USER_TABLE_NAME = 'user'  # For testing with the legacy schema
     
+    # Override SQLAlchemy engine options for SQLite (no connection pooling)
+    SQLALCHEMY_ENGINE_OPTIONS = {}
+    
+    # Disable caching and sessions for tests
+    CACHE_TYPE = 'simple'
+    SESSION_TYPE = 'filesystem'
+    
     # Use a test server name for URL generation in tests
     SERVER_NAME = 'localhost:5000'
     
