@@ -212,44 +212,70 @@ def combined_calendar():
                 }
             })
         
-        # Generate sample booking events to demonstrate the calendar functionality
+        # Load real calendar events from synced booking platforms
+        from app.models import CalendarEvent
         from datetime import datetime, timedelta
-        import random
         
-        for i, prop in enumerate(properties[:5]):  # Limit to first 5 properties for demo
-            # Generate 2-3 sample bookings per property
-            for booking_num in range(2, 4):
-                # Random start date within next 60 days
-                start_offset = random.randint(0, 60)
-                duration = random.randint(2, 7)  # 2-7 day bookings
-                
-                start_date = datetime.now() + timedelta(days=start_offset)
-                end_date = start_date + timedelta(days=duration)
-                
-                guest_names = ['Smith Family', 'Johnson Group', 'Williams Party', 'Brown Couple', 'Davis Team']
-                platforms = ['Airbnb', 'VRBO', 'Booking.com', 'Direct']
-                statuses = ['Confirmed', 'Pending', 'Checked In']
-                
-                events.append({
-                    'id': f'booking_{prop.id}_{booking_num}',
-                    'resourceId': str(prop.id),
-                    'title': random.choice(guest_names),
-                    'start': start_date.isoformat(),
-                    'end': end_date.isoformat(),
-                    'backgroundColor': resources[i]['color'],
-                    'borderColor': resources[i]['color'],
-                    'textColor': '#ffffff',
-                    'extendedProps': {
-                        'property_id': prop.id,
-                        'property_name': prop.name,
-                        'platform': random.choice(platforms),
-                        'status': random.choice(statuses),
-                        'amount': random.randint(150, 400),
-                        'guest_count': random.randint(2, 6)
-                    }
-                })
+        property_ids = [prop.id for prop in properties]
+        if property_ids:
+            # Query real calendar events for the next 90 days
+            start_date = datetime.now().date()
+            end_date = start_date + timedelta(days=90)
+            
+            calendar_events = CalendarEvent.query.filter(
+                CalendarEvent.property_id.in_(property_ids),
+                CalendarEvent.start_date >= start_date,
+                CalendarEvent.start_date <= end_date
+            ).order_by(CalendarEvent.start_date).all()
+            
+            # Convert CalendarEvent objects to FullCalendar format
+            for event in calendar_events:
+                events.append(event.to_fullcalendar_dict())
+            
+            current_app.logger.info(f"Loaded {len(events)} real calendar events from booking platforms")
+        else:
+            current_app.logger.info("No properties available, no events to load")
         
-        current_app.logger.info(f"Generated {len(events)} sample events for calendar demonstration")
+        # If no real events exist, generate sample data for demonstration
+        if not events and properties:
+            current_app.logger.info("No real calendar events found, generating sample data for demonstration")
+            import random
+            
+            for i, prop in enumerate(properties[:3]):  # Limit to first 3 properties for demo
+                # Generate 1-2 sample bookings per property
+                for booking_num in range(1, 3):
+                    # Random start date within next 60 days
+                    start_offset = random.randint(0, 60)
+                    duration = random.randint(2, 7)  # 2-7 day bookings
+                    
+                    start_date = datetime.now() + timedelta(days=start_offset)
+                    end_date = start_date + timedelta(days=duration)
+                    
+                    guest_names = ['Smith Family', 'Johnson Group', 'Williams Party', 'Brown Couple']
+                    platforms = ['Airbnb', 'VRBO', 'Booking.com', 'Direct']
+                    statuses = ['Confirmed', 'Pending', 'Checked In']
+                    
+                    events.append({
+                        'id': f'sample_{prop.id}_{booking_num}',
+                        'resourceId': str(prop.id),
+                        'title': random.choice(guest_names),
+                        'start': start_date.isoformat(),
+                        'end': end_date.isoformat(),
+                        'backgroundColor': resources[i]['color'],
+                        'borderColor': resources[i]['color'],
+                        'textColor': '#ffffff',
+                        'extendedProps': {
+                            'property_id': prop.id,
+                            'property_name': prop.name,
+                            'platform': random.choice(platforms),
+                            'status': random.choice(statuses),
+                            'amount': random.randint(150, 400),
+                            'guest_count': random.randint(2, 6),
+                            'is_sample': True  # Mark as sample data
+                        }
+                    })
+            
+            current_app.logger.info(f"Generated {len(events)} sample events for demonstration")
         
         current_app.logger.info(f"Combined calendar rendering with {len(resources)} resources and {len(events)} events")
         

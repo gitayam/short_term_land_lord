@@ -862,6 +862,88 @@ class PropertyCalendar(db.Model):
         service_map = dict(self.SERVICE_CHOICES)
         return service_map.get(self.service, 'Other')
 
+
+class CalendarEvent(db.Model):
+    """Individual calendar events parsed from external booking platforms"""
+    __tablename__ = 'calendar_events'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    property_calendar_id = db.Column(db.Integer, db.ForeignKey('property_calendar.id'), nullable=False)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Event details
+    title = db.Column(db.String(200), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    
+    # External platform information
+    source = db.Column(db.String(20), nullable=False)  # airbnb, vrbo, booking, etc.
+    external_id = db.Column(db.String(500), nullable=True)  # UID from iCal
+    
+    # Optional booking details
+    guest_name = db.Column(db.String(100), nullable=True)
+    guest_count = db.Column(db.Integer, nullable=True)
+    booking_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    booking_status = db.Column(db.String(50), nullable=True)  # confirmed, pending, cancelled
+    
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    property_calendar = db.relationship('PropertyCalendar', backref='events')
+    property = db.relationship('Property', backref='calendar_events')
+    
+    def __repr__(self):
+        return f'<CalendarEvent {self.title} {self.start_date}-{self.end_date}>'
+    
+    def to_fullcalendar_dict(self):
+        """Convert to FullCalendar event format for frontend display"""
+        return {
+            'id': f'cal_event_{self.id}',
+            'title': self.title,
+            'start': self.start_date.isoformat(),
+            'end': (self.end_date + timedelta(days=1)).isoformat(),  # FullCalendar expects exclusive end
+            'resourceId': str(self.property_id),
+            'backgroundColor': self._get_source_color(),
+            'borderColor': self._get_source_color(),
+            'extendedProps': {
+                'property_id': self.property_id,
+                'property_name': self.property.name if self.property else 'Unknown',
+                'source': self.source,
+                'platform': self._get_source_display(),
+                'guest_name': self.guest_name,
+                'guest_count': self.guest_count,
+                'amount': float(self.booking_amount) if self.booking_amount else None,
+                'status': self.booking_status,
+                'external_id': self.external_id
+            }
+        }
+    
+    def _get_source_color(self):
+        """Get color based on booking source"""
+        color_map = {
+            'airbnb': '#FF5A5F',     # Airbnb Red
+            'vrbo': '#3D67FF',       # VRBO Blue  
+            'booking': '#003580',    # Booking.com Blue
+            'direct': '#34C759',     # Green for direct bookings
+            'blocked': '#8E8E93',    # Grey for blocked dates
+            'other': '#767676'       # Dark Grey for other
+        }
+        return color_map.get(self.source, '#767676')
+    
+    def _get_source_display(self):
+        """Get display name for booking source"""
+        display_map = {
+            'airbnb': 'Airbnb',
+            'vrbo': 'VRBO',
+            'booking': 'Booking.com',
+            'direct': 'Direct Booking',
+            'blocked': 'Blocked',
+            'other': 'Other'
+        }
+        return display_map.get(self.source, 'Other')
+
     def is_synced_recently(self):
         """Check if the calendar has been synced in the last 24 hours"""
         if not self.last_synced:

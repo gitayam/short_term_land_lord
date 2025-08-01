@@ -10,7 +10,7 @@ from logging.handlers import RotatingFileHandler
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from app import create_app, db
-from app.models import PropertyCalendar, Task
+from app.models import PropertyCalendar, Task, CalendarEvent
 from app.tasks.notifications import notify_calendar_changes
 try:
     from icalendar import Calendar
@@ -30,6 +30,60 @@ logger = logging.getLogger('calendar_sync')
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 logger.addHandler(logging.StreamHandler())
+
+def parse_and_create_events(calendar, ical_calendar):
+    """Parse iCal events and create/update CalendarEvent records"""
+    events_processed = 0
+    
+    try:
+        # Clear existing events for this calendar to avoid duplicates
+        CalendarEvent.query.filter_by(property_calendar_id=calendar.id).delete()
+        
+        # Parse events from iCal
+        for component in ical_calendar.walk():
+            if component.name == "VEVENT":
+                try:
+                    # Extract event data
+                    summary = str(component.get('summary', 'Booking'))
+                    start_date = component.get('dtstart').dt
+                    end_date = component.get('dtend').dt
+                    
+                    # Handle datetime vs date objects
+                    if hasattr(start_date, 'date'):
+                        start_date = start_date.date()
+                    if hasattr(end_date, 'date'):
+                        end_date = end_date.date()
+                    
+                    # Create event record
+                    event = CalendarEvent(
+                        property_calendar_id=calendar.id,
+                        property_id=calendar.property_id,
+                        title=summary,
+                        start_date=start_date,
+                        end_date=end_date,
+                        source=calendar.service,
+                        external_id=str(component.get('uid', f"{calendar.id}_{start_date}_{end_date}")),
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    
+                    db.session.add(event)
+                    events_processed += 1
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to parse event in calendar {calendar.id}: {str(e)}")
+                    continue
+        
+        # Commit all events for this calendar
+        db.session.commit()
+        logger.info(f"Created {events_processed} events for calendar {calendar.id}")
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to process events for calendar {calendar.id}: {str(e)}")
+        raise
+    
+    return events_processed
 
 def sync_calendars():
     """Sync all property calendars"""
@@ -58,10 +112,13 @@ def sync_calendars():
                 try:
                     response = requests.get(calendar.ical_url, timeout=10)
                     if response.status_code == 200:
-                        # Try to parse the iCal data to validate
+                        # Try to parse the iCal data and create booking events
                         if not ICALENDAR_AVAILABLE or Calendar is None:
                             raise ValueError("iCalendar library not available")
                         cal = Calendar.from_ical(response.text)
+                        
+                        # Parse events and create booking records
+                        events_created = parse_and_create_events(calendar, cal)
                         
                         # Set sync status
                         calendar.last_synced = datetime.utcnow()
@@ -71,7 +128,7 @@ def sync_calendars():
                         # Track updated calendars for notifications
                         updated_calendars.append(calendar.id)
                         
-                        logger.info(f"Calendar {calendar.id} synced successfully")
+                        logger.info(f"Calendar {calendar.id} synced successfully - {events_created} events processed")
                         success_count += 1
                     else:
                         # Update sync status
