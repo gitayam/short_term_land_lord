@@ -208,8 +208,38 @@
         border-left: 3px solid #007bff;
     }
 
-    /* Hide the sidebar property list for now */
-    .sidebar-property-list { display: none !important; }
+    /* Mobile-responsive sidebar */
+    @media (max-width: 992px) {
+        .sidebar-property-list { 
+            display: none !important; 
+        }
+        
+        .main-calendar-area {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
+        /* Mobile-friendly navigation */
+        .top-nav {
+            padding: 0.5rem 1rem;
+        }
+        
+        .top-nav-links a {
+            padding: 0.5rem;
+            font-size: 0.9em;
+        }
+        
+        .top-nav-brand {
+            font-size: 1.1em;
+        }
+    }
+    
+    /* Desktop: Show sidebar */
+    @media (min-width: 993px) {
+        .sidebar-property-list { 
+            display: block !important; 
+        }
+    }
 
     .property-color-dot {
         display: inline-block;
@@ -217,6 +247,127 @@
         height: 12px;
         border-radius: 50%;
         margin-right: 8px;
+    }
+
+    /* Mobile-First Responsive Design */
+    @media (max-width: 768px) {
+        .calendar-container {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 6px;
+        }
+        
+        /* Mobile calendar optimization */
+        #calendar {
+            width: 100vw;
+            min-width: 95vw;
+            font-size: 0.85em;
+        }
+        
+        /* Adjust FullCalendar for mobile */
+        .fc .fc-toolbar {
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .fc .fc-toolbar-title {
+            font-size: 1.25em;
+            margin: 0.5em 0;
+        }
+        
+        .fc .fc-button-group {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .fc .fc-button {
+            font-size: 0.8em;
+            padding: 0.4em 0.6em;
+        }
+        
+        /* Timeline optimization for mobile */
+        .fc .fc-timeline-lane {
+            height: 50px !important;
+            min-height: 50px !important;
+        }
+        
+        .fc .fc-timeline-lane-frame {
+            height: 50px !important;
+            min-height: 50px !important;
+        }
+        
+        .fc .fc-resource {
+            height: 50px !important;
+            min-height: 50px !important;
+            padding: 6px 8px !important;
+            font-size: 0.85em;
+        }
+        
+        .fc-timeline-event {
+            height: 38px !important;
+            line-height: 38px !important;
+            font-size: 0.8em;
+            margin-top: 3px !important;
+            margin-bottom: 3px !important;
+        }
+        
+        /* Hide detailed info on very small screens */
+        .event-content .event-details {
+            display: none;
+        }
+        
+        /* Improve touch targets */
+        .fc .fc-event {
+            min-height: 36px;
+            cursor: pointer;
+        }
+        
+        /* Optimize timeline header for mobile */
+        .fc .fc-timeline-header th {
+            min-width: 80px;
+            font-size: 0.75em;
+        }
+    }
+    
+    /* Large mobile / Small tablet */
+    @media (min-width: 576px) and (max-width: 992px) {
+        .calendar-container {
+            padding: 15px;
+        }
+        
+        .fc .fc-toolbar {
+            flex-direction: row;
+        }
+        
+        .fc .fc-button {
+            font-size: 0.9em;
+        }
+        
+        .fc .fc-timeline-lane {
+            height: 55px !important;
+        }
+        
+        .fc-timeline-event {
+            height: 42px !important;
+            line-height: 42px !important;
+        }
+    }
+    
+    /* Touch-friendly improvements */
+    @media (hover: none) and (pointer: coarse) {
+        .fc .fc-button {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        .fc .fc-event {
+            min-height: 44px;
+        }
+        
+        .fc .fc-daygrid-event {
+            padding: 4px 6px;
+        }
     }
     .event-content {
         display: flex;
@@ -323,7 +474,7 @@
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar: Property List -->
-        <div class="col-3 sidebar-property-list" style="background:#fff; border-right:1px solid #eee; min-height:700px; padding:0;">
+        <div class="col-lg-3 d-none d-lg-block sidebar-property-list" style="background:#fff; border-right:1px solid #eee; min-height:700px; padding:0;">
             <div class="p-3 border-bottom">
                 <input type="text" class="form-control" id="propertySearch" placeholder="Search listings...">
             </div>
@@ -341,7 +492,7 @@
             </div>
         </div>
         <!-- Main Calendar Area -->
-        <div class="col-9">
+        <div class="col-lg-9 col-12 main-calendar-area">
             <div class="calendar-container">
                 <div id="calendar"></div>
             </div>
@@ -431,21 +582,38 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Try resource timeline first, fallback to month view
+    // Detect mobile device for responsive configuration
+    var isMobile = window.innerWidth <= 768;
+    var isTablet = window.innerWidth > 768 && window.innerWidth <= 992;
+    
+    // Mobile-first responsive calendar configuration
     var calendarConfig = {
-        height: 'auto',
+        height: isMobile ? 'auto' : 'auto',
+        aspectRatio: isMobile ? 1.0 : 1.35,
         navLinks: true,
         selectable: true,
         editable: false,
         nowIndicator: true,
         events: deduplicatedEvents,
-        headerToolbar: {
+        headerToolbar: isMobile ? {
+            left: 'prev,next',
+            center: 'title',
+            right: 'today'
+        } : {
             left: 'prev,next today',
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,listWeek'
         },
-        initialView: 'dayGridMonth',
+        footerToolbar: isMobile ? {
+            center: 'dayGridMonth,listWeek'
+        } : false,
+        initialView: isMobile ? 'listWeek' : 'dayGridMonth',
         eventDisplay: 'block',
+        // Mobile-specific event sizing
+        eventMinHeight: isMobile ? 30 : 20,
+        eventShortHeight: isMobile ? 25 : 20,
+        // Handle window resize for responsiveness
+        windowResizeDelay: 100,
         eventContent: function(arg) {
             var content = document.createElement('div');
             content.classList.add('event-content');
