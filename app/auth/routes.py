@@ -13,7 +13,7 @@ import secrets
 def login():
     """Handle user login."""
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('main.dashboard'))
         
     form = LoginForm()
     if form.validate_on_submit():
@@ -25,7 +25,8 @@ def login():
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
-            next_page = url_for('main.index')
+            # Redirect to dashboard for better UX after login
+            next_page = url_for('main.dashboard')
         return redirect(next_page)
         
     return render_template('auth/login.html', title='Sign In', 
@@ -43,7 +44,7 @@ def logout():
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('main.dashboard'))
     
     # Start with a clean session by rolling back any existing transactions
     try:
