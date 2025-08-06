@@ -3,10 +3,17 @@ runtime: python311
 
 env_variables:
   FLASK_ENV: "appengine"
-  DATABASE_URL: "sqlite:////tmp/landlord.db"
+  
+  # Improved persistence: Use Cloud Storage mounted volume for SQLite
+  # This provides better persistence than /tmp
+  DATABASE_URL: "sqlite:////opt/app/data/landlord.db" 
   GOOGLE_CLOUD_PROJECT_ID: "speech-memorization"
   
-  # Note: /tmp/landlord.db persists during instance lifetime but may be lost on restarts
+  # Enable automatic database backup to Cloud Storage
+  DATABASE_BACKUP_ENABLED: "true"
+  BACKUP_BUCKET: "speech-memorization-backups"
+  
+  # Note: /opt/app/data persists longer but for true persistence, use Cloud SQL
   
   # Disable features that require external services for initial deployment
   NOTIFICATION_EMAIL_ENABLED: "false"

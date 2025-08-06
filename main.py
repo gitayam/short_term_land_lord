@@ -102,9 +102,17 @@ try:
         'NOTIFICATION_SMS_ENABLED': False,
     })
     
-    # Initialize database and ensure admin user exists
+    # Initialize database persistence and ensure admin user exists
     with app.app_context():
         try:
+            # Initialize database persistence (backup/restore)
+            try:
+                from app.utils.database_persistence import init_database_persistence
+                persistence = init_database_persistence(app)
+                app.logger.info("✅ Database persistence initialized")
+            except Exception as persistence_error:
+                app.logger.warning(f"Database persistence not available: {persistence_error}")
+            
             db.create_all()
             app.logger.info("✅ Database tables created")
             app_status['database_initialized'] = True

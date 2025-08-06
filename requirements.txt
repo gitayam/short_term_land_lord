@@ -18,6 +18,7 @@ boto3>=1.26.0
 twilio>=8.0.0
 beautifulsoup4>=4.11.0
 google-cloud-secret-manager>=2.16.0
+google-cloud-storage>=2.10.0
 icalendar>=5.0.0
 recurring-ical-events>=2.1.0
 marshmallow>=3.19.0
