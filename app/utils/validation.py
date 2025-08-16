@@ -2,7 +2,7 @@
 Comprehensive input validation framework for production security
 """
 import re
-from marshmallow import Schema, fields, validate, ValidationError, pre_load, post_load
+from marshmallow import Schema, fields, validate, ValidationError, pre_load, post_load, EXCLUDE
 from flask import request, abort, current_app
 from functools import wraps
 import bleach
@@ -69,7 +69,7 @@ class BaseValidationSchema(Schema):
     
     class Meta:
         # Don't include unknown fields
-        unknown = 'EXCLUDE'
+        unknown = EXCLUDE
     
     @pre_load
     def sanitize_inputs(self, data, **kwargs):

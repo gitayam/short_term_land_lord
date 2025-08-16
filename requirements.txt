@@ -44,7 +44,7 @@ icalendar==6.1.0
 recurring-ical-events==3.3.4
 
 # Data serialization
-marshmallow==3.25.2
+marshmallow==3.23.1
 
 # HTML parsing
 beautifulsoup4==4.12.3
