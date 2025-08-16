@@ -1,0 +1,581 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<style>
+.form-section {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-section h4 {
+    color: var(--primary);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.type-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.type-card {
+    text-align: center;
+    padding: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.type-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.type-card.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+}
+
+.type-card i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.conditional-field {
+    display: none;
+}
+
+.conditional-field.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.price-selector {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.price-option {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.price-option:hover {
+    border-color: var(--primary);
+}
+
+.price-option.selected {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.info-tooltip {
+    display: inline-block;
+    margin-left: 0.5rem;
+    color: var(--text-secondary);
+    cursor: help;
+}
+
+.preview-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    background: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h2 mb-0">{{ 'Edit' if recommendation else 'Create New' }} Recommendation</h1>
+                    <p class="text-secondary">Add helpful recommendations for your guests</p>
+                </div>
+                <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" 
+                   class="app-btn app-btn-ghost">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="recommendationForm">
+        {{ form.csrf_token }}
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Type Selection -->
+                <div class="form-section">
+                    <h4><i class="bi bi-tag"></i> Type & Category</h4>
+                    
+                    <label class="form-label">What type of recommendation is this?</label>
+                    <div class="type-selector mb-3">
+                        <div class="type-card" data-type="place">
+                            <i class="bi bi-geo-alt-fill"></i>
+                            <span>Place</span>
+                        </div>
+                        <div class="type-card" data-type="activity">
+                            <i class="bi bi-bicycle"></i>
+                            <span>Activity</span>
+                        </div>
+                        <div class="type-card" data-type="service">
+                            <i class="bi bi-tools"></i>
+                            <span>Service</span>
+                        </div>
+                        <div class="type-card" data-type="event">
+                            <i class="bi bi-calendar-event"></i>
+                            <span>Event</span>
+                        </div>
+                        <div class="type-card" data-type="transportation">
+                            <i class="bi bi-car-front"></i>
+                            <span>Transport</span>
+                        </div>
+                        <div class="type-card" data-type="shopping">
+                            <i class="bi bi-bag"></i>
+                            <span>Shopping</span>
+                        </div>
+                        <div class="type-card" data-type="emergency">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>Emergency</span>
+                        </div>
+                    </div>
+                    
+                    {{ form.recommendation_type(class="d-none") }}
+                    
+                    <div class="app-form-group">
+                        {{ form.category.label(class="app-form-label required") }}
+                        {{ form.category(class="app-form-control") }}
+                    </div>
+                </div>
+
+                <!-- Basic Information -->
+                <div class="form-section">
+                    <h4><i class="bi bi-info-circle"></i> Basic Information</h4>
+                    
+                    <div class="app-form-group">
+                        {{ form.title.label(class="app-form-label required") }}
+                        {{ form.title(class="app-form-control") }}
+                    </div>
+                    
+                    <div class="app-form-group">
+                        {{ form.description.label(class="app-form-label required") }}
+                        {{ form.description(class="app-form-control") }}
+                        <small class="form-text text-muted">Keep it concise - max 500 characters</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.distance_from_property.label(class="app-form-label") }}
+                                {{ form.distance_from_property(class="app-form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.price_range.label(class="app-form-label") }}
+                                <i class="bi bi-question-circle info-tooltip" data-bs-toggle="tooltip" 
+                                   title="Price range helps guests budget their trip"></i>
+                                {{ form.price_range(class="app-form-control") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location & Contact -->
+                <div class="form-section">
+                    <h4><i class="bi bi-geo"></i> Location & Contact</h4>
+                    
+                    <div class="app-form-group">
+                        {{ form.address.label(class="app-form-label") }}
+                        {{ form.address(class="app-form-control") }}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.phone.label(class="app-form-label") }}
+                                {{ form.phone(class="app-form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.website.label(class="app-form-label") }}
+                                {{ form.website(class="app-form-control") }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="app-form-group">
+                        {{ form.map_link.label(class="app-form-label") }}
+                        <i class="bi bi-question-circle info-tooltip" data-bs-toggle="tooltip" 
+                           title="Optional - provide a Google Maps or other map service link"></i>
+                        {{ form.map_link(class="app-form-control") }}
+                    </div>
+                </div>
+
+                <!-- Hours & Availability -->
+                <div class="form-section">
+                    <h4><i class="bi bi-clock"></i> Hours & Availability</h4>
+                    
+                    <div class="app-form-group">
+                        {{ form.hours.label(class="app-form-label") }}
+                        {{ form.hours(class="app-form-control") }}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.best_time_to_go.label(class="app-form-label") }}
+                                {{ form.best_time_to_go(class="app-form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.seasonal_availability.label(class="app-form-label") }}
+                                {{ form.seasonal_availability(class="app-form-control") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Type-Specific Fields -->
+                <!-- Restaurant/Food Fields -->
+                <div class="form-section conditional-field" data-types="place">
+                    <h4><i class="bi bi-cup-straw"></i> Food & Dining Details</h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.cuisine_type.label(class="app-form-label") }}
+                                {{ form.cuisine_type(class="app-form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.dietary_options.label(class="app-form-label") }}
+                                {{ form.dietary_options(class="app-form-control") }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="app-form-group">
+                        {{ form.recommended_meal.label(class="app-form-label") }}
+                        {{ form.recommended_meal(class="app-form-control") }}
+                    </div>
+                </div>
+
+                <!-- Activity Fields -->
+                <div class="form-section conditional-field" data-types="activity">
+                    <h4><i class="bi bi-bicycle"></i> Activity Details</h4>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="app-form-group">
+                                {{ form.duration.label(class="app-form-label") }}
+                                {{ form.duration(class="app-form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="app-form-group">
+                                {{ form.difficulty_level.label(class="app-form-label") }}
+                                {{ form.difficulty_level(class="app-form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="app-form-group">
+                                {{ form.age_restrictions.label(class="app-form-label") }}
+                                {{ form.age_restrictions(class="app-form-control") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Fields -->
+                <div class="form-section conditional-field" data-types="event">
+                    <h4><i class="bi bi-calendar-event"></i> Event Information</h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.event_dates.label(class="app-form-label") }}
+                                {{ form.event_dates(class="app-form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.recurring_schedule.label(class="app-form-label") }}
+                                {{ form.recurring_schedule(class="app-form-control") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transportation Fields -->
+                <div class="form-section conditional-field" data-types="transportation">
+                    <h4><i class="bi bi-car-front"></i> Transportation Details</h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.fare_info.label(class="app-form-label") }}
+                                {{ form.fare_info(class="app-form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.app_download_link.label(class="app-form-label") }}
+                                {{ form.app_download_link(class="app-form-control") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Booking Information -->
+                <div class="form-section conditional-field" data-types="place,activity,service,event">
+                    <h4><i class="bi bi-calendar-check"></i> Booking Information</h4>
+                    
+                    <div class="form-check mb-3">
+                        {{ form.booking_required(class="form-check-input") }}
+                        {{ form.booking_required.label(class="form-check-label") }}
+                    </div>
+                    
+                    <div class="app-form-group">
+                        {{ form.booking_link.label(class="app-form-label") }}
+                        {{ form.booking_link(class="app-form-control") }}
+                    </div>
+                </div>
+
+                <!-- Additional Details -->
+                <div class="form-section">
+                    <h4><i class="bi bi-plus-circle"></i> Additional Details</h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.wifi_name.label(class="app-form-label") }}
+                                {{ form.wifi_name(class="app-form-control") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="app-form-group">
+                                {{ form.wifi_password.label(class="app-form-label") }}
+                                {{ form.wifi_password(class="app-form-control") }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="app-form-group">
+                        {{ form.parking_details.label(class="app-form-label") }}
+                        {{ form.parking_details(class="app-form-control") }}
+                    </div>
+                    
+                    <div class="app-form-group">
+                        {{ form.accessibility_info.label(class="app-form-label") }}
+                        {{ form.accessibility_info(class="app-form-control") }}
+                    </div>
+                    
+                    <div class="app-form-group">
+                        {{ form.insider_tips.label(class="app-form-label") }}
+                        <i class="bi bi-question-circle info-tooltip" data-bs-toggle="tooltip" 
+                           title="Share local secrets and tips that guests wouldn't find online"></i>
+                        {{ form.insider_tips(class="app-form-control") }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Photo Upload -->
+                <div class="app-card mb-4">
+                    <div class="app-card-header">
+                        <h5>Photo</h5>
+                    </div>
+                    <div class="app-card-body">
+                        <div class="app-form-group">
+                            {{ form.photo(class="app-form-control") }}
+                            <small class="form-text text-muted">JPG, PNG or GIF. Max 5MB</small>
+                        </div>
+                        {% if recommendation and recommendation.photo_path %}
+                        <div class="mt-3">
+                            <img src="{{ recommendation.photo_url }}" class="img-fluid rounded">
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Meta Options -->
+                <div class="app-card mb-4">
+                    <div class="app-card-header">
+                        <h5>Display Options</h5>
+                    </div>
+                    <div class="app-card-body">
+                        <div class="form-check mb-2">
+                            {{ form.staff_pick(class="form-check-input") }}
+                            {{ form.staff_pick.label(class="form-check-label") }}
+                            <small class="d-block text-muted">Highlight as a staff favorite</small>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                            {{ form.is_featured(class="form-check-input") }}
+                            {{ form.is_featured.label(class="form-check-label") }}
+                            <small class="d-block text-muted">Show prominently in listings</small>
+                        </div>
+                        
+                        <div class="app-form-group mt-3">
+                            {{ form.priority_order.label(class="app-form-label") }}
+                            {{ form.priority_order(class="app-form-control") }}
+                            <small class="form-text text-muted">Higher number = appears first</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guide Book Assignment -->
+                {% if guide_books %}
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <h5>Add to Guide Books</h5>
+                    </div>
+                    <div class="app-card-body">
+                        <div class="app-form-group">
+                            <select name="guide_books" multiple class="app-form-control" size="3">
+                                {% for gb in guide_books %}
+                                <option value="{{ gb.id }}" 
+                                        {% if recommendation and gb in recommendation.guide_books %}selected{% endif %}>
+                                    {{ gb.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple</small>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" 
+                       class="app-btn app-btn-ghost">
+                        Cancel
+                    </a>
+                    <button type="submit" class="app-btn app-btn-primary">
+                        <i class="bi bi-save"></i> 
+                        {{ 'Update' if recommendation else 'Create' }} Recommendation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Type categories mapping
+const typeCategories = {{ TYPE_CATEGORIES|tojson }};
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+    
+    // Set initial type if editing
+    {% if recommendation %}
+    selectType('{{ recommendation.recommendation_type }}');
+    {% endif %}
+});
+
+// Handle type card selection
+document.querySelectorAll('.type-card').forEach(card => {
+    card.addEventListener('click', function() {
+        const type = this.dataset.type;
+        selectType(type);
+    });
+});
+
+function selectType(type) {
+    // Update visual selection
+    document.querySelectorAll('.type-card').forEach(c => c.classList.remove('active'));
+    document.querySelector(`.type-card[data-type="${type}"]`).classList.add('active');
+    
+    // Update hidden field
+    document.getElementById('recommendation_type').value = type;
+    
+    // Update categories
+    updateCategories(type);
+    
+    // Show/hide conditional fields
+    updateConditionalFields(type);
+}
+
+function updateCategories(type) {
+    const categorySelect = document.getElementById('category');
+    const categories = typeCategories[type] || [];
+    
+    // Clear existing options
+    categorySelect.innerHTML = '';
+    
+    // Add new options
+    categories.forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        categorySelect.appendChild(option);
+    });
+}
+
+function updateConditionalFields(type) {
+    // Hide all conditional fields
+    document.querySelectorAll('.conditional-field').forEach(field => {
+        field.classList.remove('show');
+    });
+    
+    // Show relevant fields
+    document.querySelectorAll('.conditional-field').forEach(field => {
+        const types = field.dataset.types;
+        if (types && types.includes(type)) {
+            field.classList.add('show');
+        }
+    });
+}
+
+// Dynamic form validation
+document.getElementById('recommendationForm').addEventListener('submit', function(e) {
+    const type = document.getElementById('recommendation_type').value;
+    
+    if (!type) {
+        e.preventDefault();
+        alert('Please select a recommendation type');
+        return false;
+    }
+    
+    // Add any type-specific validation here
+});
+</script>
+{% endblock %}
