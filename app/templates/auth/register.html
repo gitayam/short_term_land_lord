@@ -64,8 +64,18 @@
                         
                         <div class="form-group">
                             {{ form.role.label }}
-                            {{ form.role(class="form-control" + (" is-invalid" if form.role.errors else ""), id="roleSelect") }}
+                            {{ form.role(class="form-control" + (" is-invalid" if form.role.errors else ""), id="roleSelect", onchange="toggleInvitationField()") }}
                             {% for error in form.role.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Invitation Code Field (for guests) -->
+                        <div class="form-group" id="invitationField" style="display: none;">
+                            {{ form.invitation_code.label(class="font-weight-bold text-primary") }}
+                            {{ form.invitation_code(class="form-control" + (" is-invalid" if form.invitation_code.errors else ""), placeholder="Enter your invitation code") }}
+                            <small class="form-text text-muted">{{ form.invitation_code.description }}</small>
+                            {% for error in form.invitation_code.errors %}
                             <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
                         </div>
@@ -86,10 +96,11 @@
                             {% endfor %}
                         </div>
                         
-                        <div class="form-group">
+                        <!-- Message Field (not required for guests) -->
+                        <div class="form-group" id="messageField">
                             {{ form.message.label }}
                             {{ form.message(class="form-control" + (" is-invalid" if form.message.errors else ""), rows="3") }}
-                            <small class="form-text text-muted">{{ form.message.description }}</small>
+                            <small class="form-text text-muted" id="messageDescription">{{ form.message.description }}</small>
                             {% for error in form.message.errors %}
                             <div class="invalid-feedback">{{ error }}</div>
                             {% endfor %}
@@ -112,19 +123,39 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    $(document).ready(function() {
-        // Change submit button text based on role
-        $('#roleSelect').change(function() {
-            var role = $(this).val();
-            if (role === 'property_owner') {
-                $('button[type="submit"]').text('Continue');
-            } else {
-                $('button[type="submit"]').text('Submit Request');
-            }
-        });
+    function toggleInvitationField() {
+        var role = document.getElementById('roleSelect').value;
+        var invitationField = document.getElementById('invitationField');
+        var messageField = document.getElementById('messageField');
+        var messageDescription = document.getElementById('messageDescription');
+        var submitButton = document.querySelector('button[type="submit"], input[type="submit"]');
         
-        // Initialize with correct text
-        $('#roleSelect').trigger('change');
+        if (role === 'guest') {
+            // Show invitation field for guests
+            invitationField.style.display = 'block';
+            // Message is optional for guests
+            messageDescription.textContent = 'Optional: Tell us about yourself';
+            submitButton.textContent = 'Register as Guest';
+        } else {
+            // Hide invitation field for other roles
+            invitationField.style.display = 'none';
+            // Message is required for other roles
+            messageDescription.textContent = 'Tell us a bit about yourself and why you want to join the platform';
+            
+            if (role === 'property_owner') {
+                submitButton.textContent = 'Continue';
+            } else {
+                submitButton.textContent = 'Submit Request';
+            }
+        }
+    }
+    
+    $(document).ready(function() {
+        // Initialize form state
+        toggleInvitationField();
+        
+        // Handle role changes
+        $('#roleSelect').change(toggleInvitationField);
     });
 </script>
 {% endblock %}
