@@ -223,8 +223,11 @@ def create_recommendation(property_id):
             property_id=property_id,
             title=form.title.data,
             description=form.description.data,
+            recommendation_type=form.recommendation_type.data,
             category=form.category.data,
             map_link=form.map_link.data,
+            distance_from_property=form.distance_from_property.data,
+            price_range=form.price_range.data,
             best_time_to_go=form.best_time_to_go.data,
             recommended_meal=form.recommended_meal.data,
             wifi_name=form.wifi_name.data,
@@ -276,8 +279,11 @@ def edit_recommendation(id):
         try:
             recommendation.title = form.title.data
             recommendation.description = form.description.data
+            recommendation.recommendation_type = form.recommendation_type.data
             recommendation.category = form.category.data
             recommendation.map_link = form.map_link.data
+            recommendation.distance_from_property = form.distance_from_property.data
+            recommendation.price_range = form.price_range.data
             recommendation.best_time_to_go = form.best_time_to_go.data
             recommendation.recommended_meal = form.recommended_meal.data
             recommendation.wifi_name = form.wifi_name.data

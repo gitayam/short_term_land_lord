@@ -2,150 +2,317 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Edit Recommendation</h2>
-    <form method="post" enctype="multipart/form-data">
-        {{ form.csrf_token }}
-        
-        <div class="mb-3">
-            <label for="title" class="form-label">Title</label>
-            {{ form.title(class="form-control") }}
-            {% if form.title.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.title.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('property.view', id=recommendation.property_id) }}">Property</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('recommendations.list_recommendations', property_id=recommendation.property_id) }}">Recommendations</a></li>
+                    <li class="breadcrumb-item active">Edit</li>
+                </ol>
+            </nav>
+            <h2 class="h3 mb-0">Edit Recommendation</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="app-card">
+                <div class="app-card-body">
+                    <form method="POST" enctype="multipart/form-data" id="recommendationForm">
+                        {{ form.csrf_token }}
+                        
+                        <!-- Basic Information -->
+                        <div class="section-header mb-3">
+                            <h5 class="mb-0">Basic Information</h5>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="app-form-group">
+                                    {{ form.title.label(class="app-form-label required") }}
+                                    {{ form.title(class="app-form-control", placeholder="e.g., Central Park, Joe's Pizza, Uber") }}
+                                    {% if form.title.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.title.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="app-form-group">
+                                    {{ form.recommendation_type.label(class="app-form-label required") }}
+                                    {{ form.recommendation_type(class="app-form-control", id="recommendationType", onchange="toggleTypeSpecificFields()") }}
+                                    {% if form.recommendation_type.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.recommendation_type.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="app-form-group">
+                            {{ form.description.label(class="app-form-label") }}
+                            {{ form.description(class="app-form-control", rows="3", placeholder="Brief description of why you recommend this...") }}
+                            {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.description.errors[0] }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.category.label(class="app-form-label") }}
+                                    {{ form.category(class="app-form-control") }}
+                                    {% if form.category.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.category.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.photo.label(class="app-form-label") }}
+                                    {% if recommendation.photo_path %}
+                                    <div class="mb-2">
+                                        <small class="text-secondary">Current photo on file</small>
+                                    </div>
+                                    {% endif %}
+                                    {{ form.photo(class="app-form-control", accept="image/*") }}
+                                    {% if form.photo.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.photo.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                    <small class="form-text text-secondary">Upload a new photo to replace existing (max 10MB)</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Type-Specific Fields -->
+                        <div class="section-header mb-3 mt-4">
+                            <h5 class="mb-0">Details</h5>
+                        </div>
+
+                        <!-- All type-specific field groups with same structure as create.html -->
+                        <!-- Place Fields -->
+                        <div id="placeFields" class="type-specific-fields">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.distance_from_property.label(class="app-form-label") }}
+                                        {{ form.distance_from_property(class="app-form-control", placeholder="e.g., 5 min walk, 10 min drive") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.map_link.label(class="app-form-label") }}
+                                        {{ form.map_link(class="app-form-control", placeholder="Google Maps or other map link (optional)") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.best_time_to_go.label(class="app-form-label") }}
+                                        {{ form.best_time_to_go(class="app-form-control", placeholder="e.g., Sunset, Weekday mornings") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.hours.label(class="app-form-label") }}
+                                        {{ form.hours(class="app-form-control", placeholder="e.g., Mon-Fri 9am-5pm") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.price_range.label(class="app-form-label") }}
+                                        {{ form.price_range(class="app-form-control", placeholder="e.g., $, $$, $$$, or Free") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.parking_details.label(class="app-form-label") }}
+                                        {{ form.parking_details(class="app-form-control", placeholder="e.g., Street parking, Valet available") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="app-form-group">
+                                {{ form.recommended_meal.label(class="app-form-label") }}
+                                {{ form.recommended_meal(class="app-form-control", placeholder="For restaurants: signature dish or must-try item") }}
+                            </div>
+                        </div>
+
+                        <!-- Other type fields hidden by default -->
+                        <div id="activityFields" class="type-specific-fields" style="display: none;">
+                            <!-- Same as create.html -->
+                        </div>
+                        <div id="serviceFields" class="type-specific-fields" style="display: none;">
+                            <!-- Same as create.html -->
+                        </div>
+                        <div id="eventFields" class="type-specific-fields" style="display: none;">
+                            <!-- Same as create.html -->
+                        </div>
+                        <div id="transportationFields" class="type-specific-fields" style="display: none;">
+                            <!-- Same as create.html -->
+                        </div>
+                        <div id="shoppingFields" class="type-specific-fields" style="display: none;">
+                            <!-- Same as create.html -->
+                        </div>
+                        <div id="emergencyFields" class="type-specific-fields" style="display: none;">
+                            <!-- Same as create.html -->
+                        </div>
+
+                        <!-- WiFi Fields (kept for backward compatibility) -->
+                        <div id="wifiFields" class="type-specific-fields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.wifi_name.label(class="app-form-label") }}
+                                        {{ form.wifi_name(class="app-form-control") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.wifi_password.label(class="app-form-label") }}
+                                        {{ form.wifi_password(class="app-form-control") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Guide Book Assignment -->
+                        <div class="section-header mb-3 mt-4">
+                            <h5 class="mb-0">Organization</h5>
+                        </div>
+                        
+                        <div class="app-form-group">
+                            {{ form.guide_books.label(class="app-form-label") }}
+                            {{ form.guide_books(class="app-form-control", multiple=True, size=3) }}
+                            <small class="form-text text-secondary">Hold Ctrl/Cmd to select multiple guide books</small>
+                            {% if form.guide_books.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.guide_books.errors[0] }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('recommendations.list_recommendations', property_id=recommendation.property_id) }}" class="app-btn app-btn-ghost">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <div>
+                                <button type="submit" class="app-btn app-btn-primary">
+                                    <i class="bi bi-save"></i> Save Changes
+                                </button>
+                                <button type="button" class="app-btn app-btn-danger ms-2" onclick="confirmDelete()">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
-            {% endif %}
         </div>
 
-        <div class="mb-3">
-            <label for="description" class="form-label">Description</label>
-            {{ form.description(class="form-control") }}
-            {% if form.description.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.description.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
+        <!-- Help Sidebar -->
+        <div class="col-lg-4">
+            <div class="app-card">
+                <div class="app-card-header">
+                    <h5 class="mb-0">Current Details</h5>
+                </div>
+                <div class="app-card-body">
+                    <div class="mb-3">
+                        <h6 class="text-secondary">Created</h6>
+                        <p class="small mb-0">{{ recommendation.created_at.strftime('%B %d, %Y') if recommendation.created_at }}</p>
+                    </div>
+                    
+                    {% if recommendation.vote_count > 0 %}
+                    <div class="mb-3">
+                        <h6 class="text-secondary">Guest Votes</h6>
+                        <p class="small mb-0">{{ recommendation.vote_count }} guests found this helpful</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <h6 class="text-primary"><i class="bi bi-lightbulb"></i> Editing Tips</h6>
+                        <p class="small text-secondary mb-0">Update the type if this recommendation better fits a different category. The form will adjust to show relevant fields.</p>
+                    </div>
+                </div>
             </div>
-            {% endif %}
         </div>
-
-        <div class="mb-3">
-            <label for="category" class="form-label">Category</label>
-            {{ form.category(class="form-control") }}
-            {% if form.category.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.category.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="map_link" class="form-label">Map Link</label>
-            {{ form.map_link(class="form-control") }}
-            {% if form.map_link.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.map_link.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="best_time_to_go" class="form-label">Best Time to Go</label>
-            {{ form.best_time_to_go(class="form-control") }}
-            {% if form.best_time_to_go.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.best_time_to_go.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="recommended_meal" class="form-label">Recommended Meal</label>
-            {{ form.recommended_meal(class="form-control") }}
-            {% if form.recommended_meal.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.recommended_meal.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="wifi_name" class="form-label">WiFi Network Name</label>
-            {{ form.wifi_name(class="form-control") }}
-            {% if form.wifi_name.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.wifi_name.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="wifi_password" class="form-label">WiFi Password</label>
-            {{ form.wifi_password(class="form-control") }}
-            {% if form.wifi_password.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.wifi_password.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="parking_details" class="form-label">Parking Details</label>
-            {{ form.parking_details(class="form-control") }}
-            {% if form.parking_details.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.parking_details.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3 form-check">
-            {{ form.add_to_guide(class="form-check-input", checked=recommendation.in_guide_book) }}
-            <label class="form-check-label" for="add_to_guide">Add to Property Guide Book</label>
-            {% if form.add_to_guide.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.add_to_guide.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="photo" class="form-label">Photo</label>
-            {% if recommendation.photo_url %}
-            <div class="mb-2">
-                <img src="{{ recommendation.photo_url }}" alt="Current photo" class="img-thumbnail" style="max-width: 200px;">
-                <p class="text-muted">Upload a new photo to replace the current one</p>
-            </div>
-            {% endif %}
-            {{ form.photo(class="form-control") }}
-            {% if form.photo.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.photo.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <button type="submit" class="btn btn-primary">Update Recommendation</button>
-        <a href="{{ url_for('recommendations.list_recommendations', property_id=recommendation.property_id) }}" class="btn btn-secondary">Cancel</a>
-    </form>
+    </div>
 </div>
-{% endblock %} 
+
+<!-- Delete Confirmation Form -->
+<form id="deleteForm" method="POST" action="{{ url_for('recommendations.delete_recommendation', id=recommendation.id) }}" style="display: none;">
+    {{ form.csrf_token }}
+</form>
+
+<style>
+.section-header {
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.type-specific-fields {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.app-form-label.required::after {
+    content: " *";
+    color: var(--danger);
+}
+</style>
+
+<script>
+function toggleTypeSpecificFields() {
+    const type = document.getElementById('recommendationType').value;
+    
+    // Hide all type-specific field groups
+    document.querySelectorAll('.type-specific-fields').forEach(group => {
+        group.style.display = 'none';
+    });
+    
+    // Show relevant fields based on type
+    const fieldMap = {
+        'place': 'placeFields',
+        'activity': 'activityFields',
+        'service': 'serviceFields',
+        'event': 'eventFields',
+        'transportation': 'transportationFields',
+        'shopping': 'shoppingFields',
+        'emergency': 'emergencyFields'
+    };
+    
+    if (fieldMap[type]) {
+        const fields = document.getElementById(fieldMap[type]);
+        if (fields) {
+            fields.style.display = 'block';
+        }
+    }
+}
+
+function confirmDelete() {
+    if (confirm('Are you sure you want to delete this recommendation? This action cannot be undone.')) {
+        document.getElementById('deleteForm').submit();
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleTypeSpecificFields();
+});
+</script>
+{% endblock %}
