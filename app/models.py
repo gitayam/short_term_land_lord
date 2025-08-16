@@ -1879,13 +1879,17 @@ class GuideBook(db.Model):
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     
     # Relationships
-    # associated_property = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
+    property_obj = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
     recommendations = db.relationship('RecommendationBlock', 
                                    secondary='guide_book_recommendations',
                                    backref=db.backref('guide_books', lazy=True))
 
     def __repr__(self):
         return f'<GuideBook {self.name}>'
+
+    def get_property(self):
+        """Get the property this guide book belongs to"""
+        return self.property_obj
 
     @property
     def recommendations_count(self):
@@ -1903,6 +1907,79 @@ class GuideBook(db.Model):
         if self.is_public and not self.access_token:
             return self.generate_access_token()
         return self.access_token
+    
+    @property
+    def associated_property(self):
+        """Alias for property to maintain backward compatibility"""
+        return self.property_obj
+    
+    @property
+    def property(self):
+        """Property accessor for backward compatibility"""
+        return self.property_obj
+
+class GuideBookSection(db.Model):
+    """Model for different sections within a guide book"""
+    __tablename__ = 'guide_book_sections'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    guide_book_id = db.Column(db.Integer, db.ForeignKey('guide_books.id'), nullable=False)
+    section_type = db.Column(db.String(50), nullable=False)  # house_rules, check_in, wifi, appliances, emergency, transportation, faq, etc.
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=True)  # Rich text content
+    order_index = db.Column(db.Integer, default=0)  # For ordering sections
+    is_active = db.Column(db.Boolean, default=True)
+    icon = db.Column(db.String(50), nullable=True)  # Bootstrap icon class
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    guide_book = db.relationship('GuideBook', backref=db.backref('sections', lazy=True, order_by='GuideBookSection.order_index'))
+    entries = db.relationship('GuideBookEntry', backref='section', lazy=True, cascade='all, delete-orphan', order_by='GuideBookEntry.order_index')
+    
+    def __repr__(self):
+        return f'<GuideBookSection {self.title} for GuideBook {self.guide_book_id}>'
+
+class GuideBookEntry(db.Model):
+    """Model for individual entries within a guide book section"""
+    __tablename__ = 'guide_book_entries'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    section_id = db.Column(db.Integer, db.ForeignKey('guide_book_sections.id'), nullable=False)
+    entry_type = db.Column(db.String(50), nullable=False)  # text, instruction, contact, location, link, image
+    title = db.Column(db.String(200), nullable=True)
+    content = db.Column(db.Text, nullable=True)
+    # Additional fields for different entry types
+    subtitle = db.Column(db.String(200), nullable=True)
+    url = db.Column(db.String(500), nullable=True)  # For links
+    phone = db.Column(db.String(50), nullable=True)  # For contacts
+    email = db.Column(db.String(100), nullable=True)  # For contacts
+    address = db.Column(db.String(500), nullable=True)  # For locations
+    latitude = db.Column(db.Float, nullable=True)  # For map locations
+    longitude = db.Column(db.Float, nullable=True)  # For map locations
+    image_path = db.Column(db.String(500), nullable=True)  # For images
+    icon = db.Column(db.String(50), nullable=True)  # Bootstrap icon class
+    order_index = db.Column(db.Integer, default=0)  # For ordering entries
+    is_important = db.Column(db.Boolean, default=False)  # Highlight important entries
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<GuideBookEntry {self.title or self.entry_type} for Section {self.section_id}>'
+    
+    def get_formatted_content(self):
+        """Return formatted content based on entry type"""
+        if self.entry_type == 'contact':
+            parts = []
+            if self.phone:
+                parts.append(f'Phone: {self.phone}')
+            if self.email:
+                parts.append(f'Email: {self.email}')
+            if self.address:
+                parts.append(f'Address: {self.address}')
+            return '\n'.join(parts)
+        return self.content
 
 # Association table for guide books and recommendations
 guide_book_recommendations = db.Table('guide_book_recommendations',

@@ -123,13 +123,21 @@
                         {% endif %}
 
                         <div class="d-flex justify-content-between align-items-center pt-4 border-top">
-                            <button type="submit" class="app-btn app-btn-primary">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="app-btn app-btn-primary">
+                                    {% if guide_book %}
+                                        <i class="bi bi-save"></i> Update Guide Book
+                                    {% else %}
+                                        <i class="bi bi-plus-circle"></i> Create Guide Book
+                                    {% endif %}
+                                </button>
                                 {% if guide_book %}
-                                    <i class="bi bi-save"></i> Update Guide Book
-                                {% else %}
-                                    <i class="bi bi-plus-circle"></i> Create Guide Book
+                                <a href="{{ url_for('recommendations.manage_sections', guide_book_id=guide_book.id) }}" 
+                                   class="app-btn app-btn-secondary">
+                                    <i class="bi bi-list-nested"></i> Manage Sections
+                                </a>
                                 {% endif %}
-                            </button>
+                            </div>
                             {% if guide_book and guide_book.is_public and guide_book.access_token %}
                             <button type="button"
                                     onclick="copyGuideBookUrl('{{ url_for('recommendations.public_guide_book', token=guide_book.access_token, _external=True) }}')"
