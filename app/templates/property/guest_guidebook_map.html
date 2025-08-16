@@ -6,9 +6,9 @@
     <title>{{ property.name }} - Interactive Map</title>
     
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
     
@@ -152,7 +152,7 @@
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h4 class="mb-0">
-                        <i class="fas fa-map-marked-alt me-2"></i>
+                        <i class="bi bi-geo-alt-fill me-2"></i>
                         {{ property.name }} - Interactive Map
                     </h4>
                     <small class="text-muted">{{ entries_with_coordinates }} locations</small>
@@ -160,10 +160,10 @@
                 <div class="btn-group">
                     <a href="{{ url_for('property.guest_guidebook', property_id=property.id, token=token) }}" 
                        class="btn btn-outline-primary">
-                        <i class="fas fa-list me-1"></i>List View
+                        <i class="bi bi-list me-1"></i>List View
                     </a>
                     <button class="btn btn-primary" id="toggleSidebar">
-                        <i class="fas fa-bars me-1"></i>Locations
+                        <i class="bi bi-list me-1"></i>Locations
                     </button>
                 </div>
             </div>
@@ -187,7 +187,7 @@
                        id="filter-{{ category|replace(' ', '-') }}" 
                        data-category="{{ category }}" checked>
                 <label class="form-check-label" for="filter-{{ category|replace(' ', '-') }}">
-                    <i class="fas fa-{{ get_category_icon(category) }} me-1"></i>
+                    <i class="bi bi-{{ get_category_icon(category) }} me-1"></i>
                     {{ category }}
                 </label>
             </div>
@@ -197,7 +197,7 @@
         <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-toggle" onclick="toggleSidebar()">
-                <i class="fas fa-chevron-right" id="sidebarIcon"></i>
+                <i class="bi bi-chevron-right" id="sidebarIcon"></i>
             </div>
             
             <div class="p-3">
@@ -206,7 +206,7 @@
                 {% for entry in entries_with_coords %}
                 <div class="card entry-card" data-entry-id="{{ entry.id }}" onclick="focusEntry({{ entry.id }})">
                     <div class="card-body p-3">
-                        <div class="d-flex align-items-start">
+                        <div class="d-flex align-items-star-fillt">
                             {% if entry.image_url or entry.image_path %}
                             <img src="{{ entry.image_url or url_for('guidebook.serve_image', filename=entry.image_path) }}" 
                                  class="rounded me-3" 
@@ -215,7 +215,7 @@
                             {% else %}
                             <div class="bg-primary rounded me-3 d-flex align-items-center justify-content-center text-white"
                                  style="width: 60px; height: 60px; min-width: 60px;">
-                                <i class="fas fa-{{ get_category_icon(entry.category) }}"></i>
+                                <i class="bi bi-{{ get_category_icon(entry.category) }}"></i>
                             </div>
                             {% endif %}
                             
@@ -223,15 +223,15 @@
                                 <h6 class="mb-1">
                                     {{ entry.title }}
                                     {% if entry.is_featured %}
-                                    <i class="fas fa-star text-warning ms-1"></i>
+                                    <i class="bi bi-star-fill text-warning ms-1"></i>
                                     {% endif %}
                                 </h6>
                                 <small class="text-muted d-block mb-1">
-                                    <i class="fas fa-tag me-1"></i>{{ entry.category }}
+                                    <i class="bi bi-tag-fill me-1"></i>{{ entry.category }}
                                 </small>
                                 {% if entry.address %}
                                 <small class="text-muted d-block">
-                                    <i class="fas fa-map-marker-alt me-1"></i>{{ entry.address[:40] }}{% if entry.address|length > 40 %}...{% endif %}
+                                    <i class="bi bi-geo-alt-fill me-1"></i>{{ entry.address[:40] }}{% if entry.address|length > 40 %}...{% endif %}
                                 </small>
                                 {% endif %}
                             </div>
@@ -240,7 +240,7 @@
                         {% if entry.host_tip %}
                         <div class="mt-2 p-2 bg-light rounded">
                             <small class="text-primary">
-                                <i class="fas fa-lightbulb me-1"></i>
+                                <i class="bi bi-lightbulb-fill me-1"></i>
                                 <strong>Host Tip:</strong> {{ entry.host_tip[:60] }}{% if entry.host_tip|length > 60 %}...{% endif %}
                             </small>
                         </div>
@@ -255,17 +255,17 @@
         <div class="map-controls">
             <div class="btn-group-vertical">
                 <button class="btn btn-white border" onclick="resetView()" title="Reset View">
-                    <i class="fas fa-home"></i>
+                    <i class="bi bi-house-fill"></i>
                 </button>
                 <button class="btn btn-white border" onclick="toggleFullscreen()" title="Fullscreen">
-                    <i class="fas fa-expand"></i>
+                    <i class="bi bi-arrows-fullscreen"></i>
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     
@@ -288,22 +288,22 @@
         
         // Category icon mapping
         const categoryIcons = {
-            'Restaurant': 'utensils',
-            'Café': 'coffee',
-            'Bar': 'wine-glass-alt',
-            'Attraction': 'landmark',
-            'Shopping': 'shopping-bag',
-            'Outdoor Activity': 'mountain',
-            'Transportation': 'bus',
-            'Services': 'concierge-bell',
-            'Emergency': 'exclamation-triangle',
-            'Grocery': 'shopping-cart',
-            'Entertainment': 'theater-masks',
-            'Other': 'map-marker-alt'
+            'Restaurant': 'cup-hot-fill',
+            'Café': 'cup-fill',
+            'Bar': 'cup-straw',
+            'Attraction': 'building-fill',
+            'Shopping': 'bag-fill',
+            'Outdoor Activity': 'tree-fill',
+            'Transportation': 'bus-front-fill',
+            'Services': 'gear-fill',
+            'Emergency': 'exclamation-triangle-fill',
+            'Grocery': 'cart-fill',
+            'Entertainment': 'camera-reels-fill',
+            'Other': 'geo-alt-fill'
         };
 
         function get_category_icon(category) {
-            return categoryIcons[category] || 'map-marker-alt';
+            return categoryIcons[category] || 'geo-alt-fill';
         }
         
         // Create custom marker icons
@@ -314,7 +314,7 @@
             return L.divIcon({
                 className: 'custom-marker ' + categoryClass + featuredClass,
                 html: `<div style="background-color: inherit; width: 30px; height: 30px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
-                        <i class="fas fa-${get_category_icon(entry.category)} text-white" style="font-size: 12px;"></i>
+                        <i class="bi bi-${get_category_icon(entry.category)} text-white" style="font-size: 12px;"></i>
                        </div>`,
                 iconSize: [30, 30],
                 iconAnchor: [15, 15],
@@ -337,13 +337,13 @@
                             ''}
                         <h6 class="mb-2">
                             ${entry.title}
-                            ${entry.is_featured ? '<i class="fas fa-star text-warning ms-1"></i>' : ''}
+                            ${entry.is_featured ? '<i class="bi bi-star-fill text-warning ms-1"></i>' : ''}
                         </h6>
                         <p class="small text-muted mb-2">${entry.description}</p>
-                        ${entry.address ? `<p class="small mb-1"><i class="fas fa-map-marker-alt me-1"></i>${entry.address}</p>` : ''}
-                        ${entry.phone_number ? `<p class="small mb-1"><i class="fas fa-phone me-1"></i><a href="tel:${entry.phone_number}">${entry.phone_number}</a></p>` : ''}
-                        ${entry.website_url ? `<p class="small mb-1"><i class="fas fa-globe me-1"></i><a href="${entry.website_url}" target="_blank">Visit Website</a></p>` : ''}
-                        ${entry.host_tip ? `<div class="mt-2 p-2 bg-light rounded"><small class="text-primary"><i class="fas fa-lightbulb me-1"></i><strong>Host Tip:</strong> ${entry.host_tip}</small></div>` : ''}
+                        ${entry.address ? `<p class="small mb-1"><i class="bi bi-geo-alt-fill me-1"></i>${entry.address}</p>` : ''}
+                        ${entry.telephone-fill_number ? `<p class="small mb-1"><i class="bi bi-telephone-fill me-1"></i><a href="tel:${entry.telephone-fill_number}">${entry.telephone-fill_number}</a></p>` : ''}
+                        ${entry.website_url ? `<p class="small mb-1"><i class="bi bi-globe2 me-1"></i><a href="${entry.website_url}" target="_blank">Visit Website</a></p>` : ''}
+                        ${entry.host_tip ? `<div class="mt-2 p-2 bg-light rounded"><small class="text-primary"><i class="bi bi-lightbulb-fill me-1"></i><strong>Host Tip:</strong> ${entry.host_tip}</small></div>` : ''}
                     </div>
                 `;
                 
@@ -364,7 +364,7 @@
         const propertyIcon = L.divIcon({
             className: 'property-marker',
             html: `<div style="background-color: #e74c3c; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,0.3);">
-                    <i class="fas fa-home text-white" style="font-size: 16px;"></i>
+                    <i class="bi bi-house-fill text-white" style="font-size: 16px;"></i>
                    </div>`,
             iconSize: [40, 40],
             iconAnchor: [20, 20]
@@ -390,11 +390,11 @@
             sidebar.classList.toggle('open');
             
             if (sidebar.classList.contains('open')) {
-                icon.className = 'fas fa-chevron-left';
-                button.innerHTML = '<i class="fas fa-times me-1"></i>Close';
+                icon.className = 'bi bi-chevron-left';
+                button.innerHTML = '<i class="bi bi-x-lg me-1"></i>Close';
             } else {
-                icon.className = 'fas fa-chevron-right';
-                button.innerHTML = '<i class="fas fa-bars me-1"></i>Locations';
+                icon.className = 'bi bi-chevron-right';
+                button.innerHTML = '<i class="bi bi-list me-1"></i>Locations';
             }
         }
         
@@ -495,13 +495,13 @@
         // Handle URL hash for direct entry linking
         function handleHash() {
             const hash = window.location.hash;
-            if (hash.startsWith('#entry-')) {
+            if (hash.star-filltsWith('#entry-')) {
                 const entryId = parseInt(hash.replace('#entry-', ''));
                 focusEntry(entryId);
                 // Open sidebar to show the entry
                 document.getElementById('sidebar').classList.add('open');
-                document.getElementById('sidebarIcon').className = 'fas fa-chevron-left';
-                document.getElementById('toggleSidebar').innerHTML = '<i class="fas fa-times me-1"></i>Close';
+                document.getElementById('sidebarIcon').className = 'bi bi-chevron-left';
+                document.getElementById('toggleSidebar').innerHTML = '<i class="bi bi-x-lg me-1"></i>Close';
             }
         }
         
