@@ -1077,6 +1077,11 @@
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{{ url_for('static', filename='js/property-form-helpers.js') }}"></script>
+<!-- Google Places API for address autocomplete -->
+<script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initMap">
+</script>
 <script>
 // Form step management
 let currentStep = 1;
@@ -1253,7 +1258,7 @@ function fetchZillowData() {
     });
 }
 
-// Calendar URL validation
+// Calendar URL validation using smart helper
 function validateCalendarUrl(input) {
     const url = input.value;
     const validatorDiv = document.getElementById('url-validator');
@@ -1264,18 +1269,15 @@ function validateCalendarUrl(input) {
         return;
     }
     
+    const validation = PropertyFormHelpers.validateCalendarUrl(url);
     validatorDiv.style.display = 'block';
     
-    // Check for known calendar platforms
-    if (url.includes('airbnb.com') || url.includes('vrbo.com') || url.includes('booking.com')) {
+    if (validation.valid) {
         badge.className = 'validation-badge valid';
-        badge.innerHTML = '<i class="fas fa-check"></i> Valid calendar URL';
-    } else if (url.includes('.ics') || url.includes('ical')) {
-        badge.className = 'validation-badge valid';
-        badge.innerHTML = '<i class="fas fa-check"></i> Valid iCal format';
+        badge.innerHTML = `<i class="fas fa-check"></i> ${validation.message}`;
     } else {
         badge.className = 'validation-badge invalid';
-        badge.innerHTML = '<i class="fas fa-times"></i> Please check URL format';
+        badge.innerHTML = `<i class="fas fa-times"></i> ${validation.message}`;
     }
 }
 
@@ -1353,6 +1355,12 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.remove();
     }, 3000);
+}
+
+// Google Maps callback
+function initMap() {
+    // This function is called when Google Maps API loads
+    console.log('Google Maps API loaded');
 }
 
 // Initialize on load
