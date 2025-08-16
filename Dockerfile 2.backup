@@ -1,0 +1,47 @@
+# Backup service Dockerfile
+FROM python:3.9-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    aws-cli \
+    curl \
+    tar \
+    gzip \
+    gcc \
+    musl-dev \
+    linux-headers \
+    python3-dev \
+    && rm -rf /var/cache/apk/*
+
+# Set work directory
+WORKDIR /app
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies (minimal set for backup operations)
+RUN pip install --no-cache-dir \
+    boto3 \
+    psycopg2-binary \
+    psutil \
+    flask
+
+# Copy backup scripts
+COPY scripts/backup.sh /app/backup.sh
+COPY app/utils/backup_manager.py /app/backup_manager.py
+COPY config.py /app/config.py
+
+# Create backup user
+RUN addgroup -S backup && adduser -S backup -G backup
+
+# Create directories
+RUN mkdir -p /backups /app/logs \
+    && chown -R backup:backup /backups /app/logs \
+    && chmod +x /app/backup.sh
+
+# Switch to backup user
+USER backup
+
+# Default command
+CMD ["/app/backup.sh"]

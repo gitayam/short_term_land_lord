@@ -211,7 +211,8 @@ def create():
         flash('Property created successfully! 🎉', 'success')
         return redirect(url_for('property.view', id=property.id))
     
-    return render_template('property/create.html', title='Add Property', form=form, rooms=[])
+    # Using improved template for better UX
+    return render_template('property/create_improved.html', title='Add Property', form=form, rooms=[])
 
 @bp.route('/<int:id>/view')
 @login_required

@@ -175,3 +175,4 @@ cython_debug/
 app/static/uploads/properties/*
 app.db
 .cursor/rules/migration.mdc
+flask_session/

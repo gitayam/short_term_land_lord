@@ -1,0 +1,1411 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
+<style>
+    :root {
+        --primary-color: #4A90E2;
+        --secondary-color: #6C63FF;
+        --success-color: #27AE60;
+        --warning-color: #F39C12;
+        --danger-color: #E74C3C;
+        --dark-color: #2C3E50;
+        --light-bg: #F8F9FA;
+        --border-color: #E0E6ED;
+        --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+        --shadow-lg: 0 8px 24px rgba(0,0,0,0.16);
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Modern Form Container */
+    .property-form-container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        margin: 2rem 0;
+    }
+
+    /* Progress Bar */
+    .progress-container {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        padding: 2rem;
+        color: white;
+    }
+
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1.5rem;
+        position: relative;
+    }
+
+    .progress-step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        z-index: 2;
+    }
+
+    .progress-step::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        right: -50%;
+        height: 2px;
+        background: rgba(255,255,255,0.3);
+        z-index: -1;
+    }
+
+    .progress-step:last-child::before {
+        display: none;
+    }
+
+    .progress-step.active::before {
+        background: white;
+    }
+
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        background: rgba(255,255,255,0.2);
+        border: 2px solid rgba(255,255,255,0.5);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        transition: var(--transition);
+    }
+
+    .progress-step.active .step-circle {
+        background: white;
+        color: var(--primary-color);
+        border-color: white;
+        transform: scale(1.1);
+    }
+
+    .progress-step.completed .step-circle {
+        background: var(--success-color);
+        border-color: var(--success-color);
+    }
+
+    .step-label {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+
+    .progress-step.active .step-label {
+        opacity: 1;
+        font-weight: 600;
+    }
+
+    /* Form Sections */
+    .form-section {
+        display: none;
+        animation: fadeIn 0.5s ease-in-out;
+        padding: 2rem;
+    }
+
+    .form-section.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Modern Card Sections */
+    .section-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        transition: var(--transition);
+    }
+
+    .section-card:hover {
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-color);
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--light-bg);
+    }
+
+    .section-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-right: 1rem;
+    }
+
+    .section-title {
+        flex: 1;
+    }
+
+    .section-title h5 {
+        margin: 0;
+        color: var(--dark-color);
+        font-weight: 600;
+    }
+
+    .section-title p {
+        margin: 0;
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Floating Labels */
+    .floating-label-group {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .floating-label-group input,
+    .floating-label-group select,
+    .floating-label-group textarea {
+        padding: 1.25rem 0.75rem 0.5rem;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        transition: var(--transition);
+        background: white;
+        width: 100%;
+    }
+
+    .floating-label-group input:focus,
+    .floating-label-group select:focus,
+    .floating-label-group textarea:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        outline: none;
+    }
+
+    .floating-label-group label {
+        position: absolute;
+        top: 0.25rem;
+        left: 0.75rem;
+        font-size: 0.75rem;
+        color: var(--primary-color);
+        font-weight: 600;
+        background: white;
+        padding: 0 0.25rem;
+        transition: var(--transition);
+        pointer-events: none;
+    }
+
+    /* Input Icons */
+    .input-icon-group {
+        position: relative;
+    }
+
+    .input-icon-group .input-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        pointer-events: none;
+    }
+
+    .input-icon-group input {
+        padding-right: 2.5rem;
+    }
+
+    /* Smart Suggestions */
+    .smart-suggestion {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .smart-suggestion:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .smart-suggestion i {
+        font-size: 1.25rem;
+    }
+
+    /* Enhanced Buttons */
+    .btn-modern {
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: var(--transition);
+        border: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-modern::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    .btn-modern:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    .btn-primary-modern {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        color: white;
+    }
+
+    .btn-primary-modern:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* Room Cards */
+    .room-card {
+        background: var(--light-bg);
+        border: 2px dashed var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+        transition: var(--transition);
+    }
+
+    .room-card:hover {
+        border-style: solid;
+        background: white;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .room-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .room-number {
+        background: var(--primary-color);
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+
+    /* Tooltip */
+    .tooltip-icon {
+        color: var(--primary-color);
+        cursor: help;
+        margin-left: 0.5rem;
+    }
+
+    /* Quick Fill Buttons */
+    .quick-fill-container {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .quick-fill-btn {
+        padding: 0.5rem 1rem;
+        background: var(--light-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .quick-fill-btn:hover {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    /* Calendar URL Validator */
+    .url-validator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .validation-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .validation-badge.valid {
+        background: rgba(39, 174, 96, 0.1);
+        color: var(--success-color);
+    }
+
+    .validation-badge.invalid {
+        background: rgba(231, 76, 60, 0.1);
+        color: var(--danger-color);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .progress-steps {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .progress-step::before {
+            display: none;
+        }
+
+        .section-card {
+            padding: 1rem;
+        }
+
+        .btn-modern {
+            width: 100%;
+        }
+    }
+
+    /* Loading Spinner */
+    .spinner-modern {
+        width: 40px;
+        height: 40px;
+        border: 4px solid var(--light-bg);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Success Animation */
+    .success-checkmark {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+    }
+
+    .success-checkmark circle {
+        stroke: var(--success-color);
+        stroke-width: 2;
+        fill: none;
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+
+    .success-checkmark path {
+        stroke: var(--success-color);
+        stroke-width: 3;
+        fill: none;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+    }
+
+    @keyframes stroke {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="max-width: 1200px;">
+    <div class="property-form-container">
+        <!-- Progress Header -->
+        <div class="progress-container">
+            <h2 class="mb-0">🏠 Add New Property</h2>
+            <p class="mt-2 mb-0 opacity-75">Let's get your property set up in just a few steps</p>
+            
+            <div class="progress-steps">
+                <div class="progress-step active" data-step="1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Location</div>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Details</div>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Schedule</div>
+                </div>
+                <div class="progress-step" data-step="4">
+                    <div class="step-circle">4</div>
+                    <div class="step-label">Amenities</div>
+                </div>
+                <div class="progress-step" data-step="5">
+                    <div class="step-circle">5</div>
+                    <div class="step-label">Review</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Content -->
+        <form method="post" novalidate id="propertyForm">
+            {{ form.hidden_tag() }}
+            <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Step 1: Location Information -->
+            <div class="form-section active" data-step="1">
+                <!-- Smart Suggestion -->
+                <div class="smart-suggestion" onclick="useZillowFetch()">
+                    <i class="fas fa-magic"></i>
+                    <div>
+                        <strong>Save Time!</strong> Import property details from Zillow
+                        <br><small>Just paste a Zillow URL or enter an address</small>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">📍</div>
+                        <div class="section-title">
+                            <h5>Property Location</h5>
+                            <p>Where is your property located?</p>
+                        </div>
+                    </div>
+
+                    <div class="floating-label-group">
+                        <input type="text" 
+                               id="street_address" 
+                               name="street_address" 
+                               class="form-control" 
+                               placeholder=" "
+                               value="{{ form.street_address.data or '' }}"
+                               required>
+                        <label for="street_address">Street Address</label>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="floating-label-group">
+                                <input type="text" 
+                                       id="city" 
+                                       name="city" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.city.data or '' }}"
+                                       required>
+                                <label for="city">City</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="floating-label-group">
+                                <input type="text" 
+                                       id="state" 
+                                       name="state" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.state.data or '' }}"
+                                       required>
+                                <label for="state">State/Province</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="floating-label-group">
+                                <input type="text" 
+                                       id="zip_code" 
+                                       name="zip_code" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.zip_code.data or '' }}"
+                                       required>
+                                <label for="zip_code">ZIP Code</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="floating-label-group">
+                                <input type="text" 
+                                       id="country" 
+                                       name="country" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.country.data or 'United States' }}"
+                                       required>
+                                <label for="country">Country</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Location Suggestions -->
+                    <div class="mt-3">
+                        <small class="text-muted">Popular locations:</small>
+                        <div class="quick-fill-container mt-2">
+                            <button type="button" class="quick-fill-btn" onclick="fillLocation('NC', 'United States')">
+                                North Carolina, USA
+                            </button>
+                            <button type="button" class="quick-fill-btn" onclick="fillLocation('FL', 'United States')">
+                                Florida, USA
+                            </button>
+                            <button type="button" class="quick-fill-btn" onclick="fillLocation('CA', 'United States')">
+                                California, USA
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('property.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Cancel
+                    </a>
+                    <button type="button" class="btn btn-modern btn-primary-modern" onclick="nextStep()">
+                        Next Step <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Property Details -->
+            <div class="form-section" data-step="2">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">🏠</div>
+                        <div class="section-title">
+                            <h5>Property Details</h5>
+                            <p>Tell us about your property</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="floating-label-group">
+                                <input type="text" 
+                                       id="name" 
+                                       name="name" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.name.data or '' }}">
+                                <label for="name">Property Name (Optional)</label>
+                                <small class="text-muted">e.g., "Sunset Beach House" or "Downtown Loft"</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="floating-label-group">
+                                <select id="property_type" name="property_type" class="form-control" required>
+                                    <option value="">Select Property Type</option>
+                                    <option value="house" {% if form.property_type.data == 'house' %}selected{% endif %}>🏠 House</option>
+                                    <option value="suite" {% if form.property_type.data == 'suite' %}selected{% endif %}>🏢 Suite</option>
+                                    <option value="apartment" {% if form.property_type.data == 'apartment' %}selected{% endif %}>🏢 Apartment</option>
+                                    <option value="condo" {% if form.property_type.data == 'condo' %}selected{% endif %}>🏙️ Condominium</option>
+                                    <option value="townhouse" {% if form.property_type.data == 'townhouse' %}selected{% endif %}>🏘️ Townhouse</option>
+                                    <option value="duplex" {% if form.property_type.data == 'duplex' %}selected{% endif %}>🏠🏠 Duplex</option>
+                                    <option value="cabin" {% if form.property_type.data == 'cabin' %}selected{% endif %}>🌲 Cabin</option>
+                                    <option value="cottage" {% if form.property_type.data == 'cottage' %}selected{% endif %}>🏡 Cottage</option>
+                                    <option value="villa" {% if form.property_type.data == 'villa' %}selected{% endif %}>🏛️ Villa</option>
+                                    <option value="loft" {% if form.property_type.data == 'loft' %}selected{% endif %}>🏭 Loft</option>
+                                    <option value="studio" {% if form.property_type.data == 'studio' %}selected{% endif %}>🏠 Studio</option>
+                                    <option value="guesthouse" {% if form.property_type.data == 'guesthouse' %}selected{% endif %}>🏘️ Guest House</option>
+                                    <option value="tiny_house" {% if form.property_type.data == 'tiny_house' %}selected{% endif %}>🏚️ Tiny House</option>
+                                    <option value="boat" {% if form.property_type.data == 'boat' %}selected{% endif %}>⛵ Boat</option>
+                                    <option value="rv" {% if form.property_type.data == 'rv' %}selected{% endif %}>🚐 RV/Camper</option>
+                                    <option value="tree_house" {% if form.property_type.data == 'tree_house' %}selected{% endif %}>🌳 Tree House</option>
+                                    <option value="farm_stay" {% if form.property_type.data == 'farm_stay' %}selected{% endif %}>🚜 Farm Stay</option>
+                                    <option value="castle" {% if form.property_type.data == 'castle' %}selected{% endif %}>🏰 Castle</option>
+                                    <option value="other" {% if form.property_type.data == 'other' %}selected{% endif %}>🏗️ Other</option>
+                                </select>
+                                <label for="property_type">Property Type</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="floating-label-group">
+                        <textarea id="description" 
+                                  name="description" 
+                                  class="form-control" 
+                                  rows="4" 
+                                  placeholder=" ">{{ form.description.data or '' }}</textarea>
+                        <label for="description">Property Description</label>
+                        <small class="text-muted">Describe your property, special features, and what makes it unique</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="floating-label-group">
+                                <input type="number" 
+                                       id="bedrooms" 
+                                       name="bedrooms" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.bedrooms.data or '' }}"
+                                       min="0">
+                                <label for="bedrooms">Bedrooms</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="floating-label-group">
+                                <input type="number" 
+                                       id="bathrooms" 
+                                       name="bathrooms" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.bathrooms.data or '' }}"
+                                       min="0"
+                                       step="0.5">
+                                <label for="bathrooms">Bathrooms</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="floating-label-group">
+                                <input type="number" 
+                                       id="square_feet" 
+                                       name="square_feet" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.square_feet.data or '' }}"
+                                       min="0">
+                                <label for="square_feet">Square Feet</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="floating-label-group">
+                                <input type="number" 
+                                       id="year_built" 
+                                       name="year_built" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.year_built.data or '' }}"
+                                       min="1800"
+                                       max="2100">
+                                <label for="year_built">Year Built</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">📅</div>
+                        <div class="section-title">
+                            <h5>Calendar Integration</h5>
+                            <p>Sync with your booking platforms</p>
+                        </div>
+                    </div>
+
+                    <div class="floating-label-group">
+                        <input type="url" 
+                               id="ical_url" 
+                               name="ical_url" 
+                               class="form-control" 
+                               placeholder=" "
+                               value="{{ form.ical_url.data or '' }}"
+                               onblur="validateCalendarUrl(this)">
+                        <label for="ical_url">Calendar URL (iCal)</label>
+                        <div class="url-validator" id="url-validator" style="display: none;">
+                            <span class="validation-badge" id="validation-badge"></span>
+                        </div>
+                        <small class="text-muted">Get this from Airbnb, VRBO, or Booking.com calendar sync settings</small>
+                    </div>
+
+                    <!-- Platform Quick Links -->
+                    <div class="mt-3">
+                        <small class="text-muted">Need help finding your calendar URL?</small>
+                        <div class="quick-fill-container mt-2">
+                            <a href="https://www.airbnb.com/help/article/99" target="_blank" class="quick-fill-btn">
+                                <i class="fab fa-airbnb"></i> Airbnb Guide
+                            </a>
+                            <a href="https://help.vrbo.com/articles/How-do-I-export-my-calendar" target="_blank" class="quick-fill-btn">
+                                VRBO Guide
+                            </a>
+                            <a href="https://partner.booking.com/en-us/help/rates-availability/how-do-i-export-calendar" target="_blank" class="quick-fill-btn">
+                                Booking.com Guide
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary" onclick="previousStep()">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-modern btn-primary-modern" onclick="nextStep()">
+                        Next Step <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Schedule & Access -->
+            <div class="form-section" data-step="3">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">⏰</div>
+                        <div class="section-title">
+                            <h5>Check-in/Check-out Times</h5>
+                            <p>Set your standard times</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="floating-label-group">
+                                <input type="time" 
+                                       id="checkin_time" 
+                                       name="checkin_time" 
+                                       class="form-control" 
+                                       value="{{ form.checkin_time.data or '15:00' }}">
+                                <label for="checkin_time">Check-in Time</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="floating-label-group">
+                                <input type="time" 
+                                       id="checkout_time" 
+                                       name="checkout_time" 
+                                       class="form-control" 
+                                       value="{{ form.checkout_time.data or '11:00' }}">
+                                <label for="checkout_time">Check-out Time</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">🗑️</div>
+                        <div class="section-title">
+                            <h5>Waste Collection</h5>
+                            <p>Help guests manage trash and recycling</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>🗑️ Trash Collection</h6>
+                            <div class="floating-label-group">
+                                <select id="trash_day" name="trash_day" class="form-control">
+                                    <option value="">Select Day</option>
+                                    <option value="monday">Monday</option>
+                                    <option value="tuesday">Tuesday</option>
+                                    <option value="wednesday">Wednesday</option>
+                                    <option value="thursday">Thursday</option>
+                                    <option value="friday">Friday</option>
+                                </select>
+                                <label for="trash_day">Trash Day</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>♻️ Recycling Collection</h6>
+                            <div class="floating-label-group">
+                                <select id="recycling_day" name="recycling_day" class="form-control">
+                                    <option value="">Select Day</option>
+                                    <option value="monday">Monday</option>
+                                    <option value="tuesday">Tuesday</option>
+                                    <option value="wednesday">Wednesday</option>
+                                    <option value="thursday">Thursday</option>
+                                    <option value="friday">Friday</option>
+                                </select>
+                                <label for="recycling_day">Recycling Day</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="floating-label-group mt-3">
+                        <textarea id="recycling_notes" 
+                                  name="recycling_notes" 
+                                  class="form-control" 
+                                  rows="3" 
+                                  placeholder=" ">{{ form.recycling_notes.data or '' }}</textarea>
+                        <label for="recycling_notes">Recycling Instructions</label>
+                        <small class="text-muted">What items are accepted? Any special rules?</small>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">🔑</div>
+                        <div class="section-title">
+                            <h5>Property Access</h5>
+                            <p>How guests access your property</p>
+                        </div>
+                    </div>
+
+                    <div class="floating-label-group">
+                        <textarea id="entry_instructions" 
+                                  name="entry_instructions" 
+                                  class="form-control" 
+                                  rows="3" 
+                                  placeholder=" " 
+                                  required>{{ form.entry_instructions.data or '' }}</textarea>
+                        <label for="entry_instructions">Entry Instructions</label>
+                        <small class="text-muted">Keypad codes, lockbox location, or key pickup instructions</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="floating-label-group">
+                                <input type="text" 
+                                       id="wifi_network" 
+                                       name="wifi_network" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.wifi_network.data or '' }}">
+                                <label for="wifi_network">WiFi Network Name</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="floating-label-group">
+                                <input type="text" 
+                                       id="wifi_password" 
+                                       name="wifi_password" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.wifi_password.data or '' }}">
+                                <label for="wifi_password">WiFi Password</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary" onclick="previousStep()">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-modern btn-primary-modern" onclick="nextStep()">
+                        Next Step <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Amenities & Utilities -->
+            <div class="form-section" data-step="4">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">🛏️</div>
+                        <div class="section-title">
+                            <h5>Rooms & Amenities</h5>
+                            <p>Add rooms to help cleaners prepare</p>
+                        </div>
+                    </div>
+
+                    <div id="rooms-container">
+                        <!-- Room forms will be added here dynamically -->
+                    </div>
+
+                    <button type="button" class="btn btn-outline-primary" onclick="addRoom()">
+                        <i class="fas fa-plus"></i> Add Room
+                    </button>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">🔌</div>
+                        <div class="section-title">
+                            <h5>Utility Contacts</h5>
+                            <p>Optional: Store utility information for emergencies</p>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> This information is optional but helpful for managing maintenance issues.
+                    </div>
+
+                    <!-- Simplified utility fields -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="floating-label-group">
+                                <input type="text" 
+                                       id="electric_provider" 
+                                       name="electric_provider" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.electric_provider.data or '' }}">
+                                <label for="electric_provider">Electric Company</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="floating-label-group">
+                                <input type="text" 
+                                       id="water_provider" 
+                                       name="water_provider" 
+                                       class="form-control" 
+                                       placeholder=" "
+                                       value="{{ form.water_provider.data or '' }}">
+                                <label for="water_provider">Water Company</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">🧹</div>
+                        <div class="section-title">
+                            <h5>Cleaning Supplies</h5>
+                            <p>Where cleaners can find supplies</p>
+                        </div>
+                    </div>
+
+                    <div class="floating-label-group">
+                        <textarea id="cleaning_supplies_location" 
+                                  name="cleaning_supplies_location" 
+                                  class="form-control" 
+                                  rows="2" 
+                                  placeholder=" ">{{ form.cleaning_supplies_location.data or '' }}</textarea>
+                        <label for="cleaning_supplies_location">Supplies Location</label>
+                        <small class="text-muted">e.g., "Under kitchen sink, hall closet"</small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary" onclick="previousStep()">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-modern btn-primary-modern" onclick="nextStep()">
+                        Review <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 5: Review & Submit -->
+            <div class="form-section" data-step="5">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">✅</div>
+                        <div class="section-title">
+                            <h5>Review Your Property</h5>
+                            <p>Make sure everything looks good</p>
+                        </div>
+                    </div>
+
+                    <div id="review-content">
+                        <!-- Review content will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon">📝</div>
+                        <div class="section-title">
+                            <h5>Special Instructions</h5>
+                            <p>Any additional notes for your team?</p>
+                        </div>
+                    </div>
+
+                    <div class="floating-label-group">
+                        <textarea id="special_instructions" 
+                                  name="special_instructions" 
+                                  class="form-control" 
+                                  rows="3" 
+                                  placeholder=" ">{{ form.special_instructions.data or '' }}</textarea>
+                        <label for="special_instructions">Additional Notes (Optional)</label>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-outline-secondary" onclick="previousStep()">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button type="submit" class="btn btn-modern btn-primary-modern btn-lg">
+                        <i class="fas fa-check"></i> Create Property
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Zillow Import Modal -->
+<div class="modal fade" id="zillowModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import from Zillow</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="floating-label-group">
+                    <input type="text" 
+                           id="zillowInput" 
+                           class="form-control" 
+                           placeholder=" ">
+                    <label for="zillowInput">Zillow URL or Address</label>
+                    <small class="text-muted">e.g., "123 Main St, City, State" or Zillow listing URL</small>
+                </div>
+                <div id="zillowError" class="alert alert-danger mt-3" style="display:none;"></div>
+                <div id="zillowLoading" class="text-center mt-3" style="display:none;">
+                    <div class="spinner-modern"></div>
+                    <p class="mt-2">Fetching property details...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="fetchZillowData()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{{ url_for('static', filename='js/property-form-helpers.js') }}"></script>
+<!-- Google Places API for address autocomplete -->
+<script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initMap">
+</script>
+<script>
+// Form step management
+let currentStep = 1;
+const totalSteps = 5;
+
+function showStep(step) {
+    // Hide all sections
+    document.querySelectorAll('.form-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Show current section
+    document.querySelector(`.form-section[data-step="${step}"]`).classList.add('active');
+    
+    // Update progress
+    document.querySelectorAll('.progress-step').forEach(progressStep => {
+        const stepNum = parseInt(progressStep.dataset.step);
+        progressStep.classList.remove('active', 'completed');
+        
+        if (stepNum < step) {
+            progressStep.classList.add('completed');
+        } else if (stepNum === step) {
+            progressStep.classList.add('active');
+        }
+    });
+    
+    // Update review content when reaching the last step
+    if (step === 5) {
+        updateReviewContent();
+    }
+    
+    // Scroll to top of form
+    document.querySelector('.property-form-container').scrollIntoView({ behavior: 'smooth' });
+}
+
+function nextStep() {
+    if (validateCurrentStep()) {
+        if (currentStep < totalSteps) {
+            currentStep++;
+            showStep(currentStep);
+        }
+    }
+}
+
+function previousStep() {
+    if (currentStep > 1) {
+        currentStep--;
+        showStep(currentStep);
+    }
+}
+
+function validateCurrentStep() {
+    const currentSection = document.querySelector(`.form-section[data-step="${currentStep}"]`);
+    const requiredFields = currentSection.querySelectorAll('[required]');
+    let isValid = true;
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    });
+    
+    if (!isValid) {
+        // Show error message
+        showNotification('Please fill in all required fields', 'error');
+    }
+    
+    return isValid;
+}
+
+function updateReviewContent() {
+    const reviewContent = document.getElementById('review-content');
+    
+    // Gather form data
+    const address = document.getElementById('street_address').value;
+    const city = document.getElementById('city').value;
+    const state = document.getElementById('state').value;
+    const zip = document.getElementById('zip_code').value;
+    const propertyType = document.getElementById('property_type').selectedOptions[0]?.text || '';
+    const bedrooms = document.getElementById('bedrooms').value;
+    const bathrooms = document.getElementById('bathrooms').value;
+    
+    // Build review HTML
+    reviewContent.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-muted">Location</h6>
+                <p class="mb-3">
+                    <strong>${address}</strong><br>
+                    ${city}, ${state} ${zip}
+                </p>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted">Property Type</h6>
+                <p class="mb-3"><strong>${propertyType}</strong></p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-muted">Bedrooms</h6>
+                <p class="mb-3"><strong>${bedrooms || 'Not specified'}</strong></p>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted">Bathrooms</h6>
+                <p class="mb-3"><strong>${bathrooms || 'Not specified'}</strong></p>
+            </div>
+        </div>
+    `;
+}
+
+// Zillow fetch functionality
+function useZillowFetch() {
+    const modal = new bootstrap.Modal(document.getElementById('zillowModal'));
+    modal.show();
+}
+
+function fetchZillowData() {
+    const input = document.getElementById('zillowInput').value;
+    const errorDiv = document.getElementById('zillowError');
+    const loadingDiv = document.getElementById('zillowLoading');
+    const csrfToken = document.getElementById('csrf_token').value;
+    
+    if (!input) {
+        errorDiv.textContent = 'Please enter an address or Zillow URL';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    errorDiv.style.display = 'none';
+    loadingDiv.style.display = 'block';
+    
+    fetch('/api/fetch_zillow', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ query: input })
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingDiv.style.display = 'none';
+        
+        if (data.error) {
+            errorDiv.textContent = data.error;
+            errorDiv.style.display = 'block';
+        } else {
+            // Populate form fields
+            for (const [key, value] of Object.entries(data)) {
+                const field = document.querySelector(`[name="${key}"]`);
+                if (field) {
+                    field.value = value;
+                    // Trigger change event for select2
+                    if (field.tagName === 'SELECT') {
+                        $(field).trigger('change');
+                    }
+                }
+            }
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('zillowModal')).hide();
+            
+            // Show success message
+            showNotification('Property details imported successfully!', 'success');
+        }
+    })
+    .catch(error => {
+        loadingDiv.style.display = 'none';
+        errorDiv.textContent = 'Failed to fetch property details. Please try again.';
+        errorDiv.style.display = 'block';
+    });
+}
+
+// Calendar URL validation using smart helper
+function validateCalendarUrl(input) {
+    const url = input.value;
+    const validatorDiv = document.getElementById('url-validator');
+    const badge = document.getElementById('validation-badge');
+    
+    if (!url) {
+        validatorDiv.style.display = 'none';
+        return;
+    }
+    
+    const validation = PropertyFormHelpers.validateCalendarUrl(url);
+    validatorDiv.style.display = 'block';
+    
+    if (validation.valid) {
+        badge.className = 'validation-badge valid';
+        badge.innerHTML = `<i class="fas fa-check"></i> ${validation.message}`;
+    } else {
+        badge.className = 'validation-badge invalid';
+        badge.innerHTML = `<i class="fas fa-times"></i> ${validation.message}`;
+    }
+}
+
+// Location quick fill
+function fillLocation(state, country) {
+    document.getElementById('state').value = state;
+    document.getElementById('country').value = country;
+}
+
+// Room management
+let roomCount = 0;
+
+function addRoom() {
+    roomCount++;
+    const roomsContainer = document.getElementById('rooms-container');
+    
+    const roomCard = document.createElement('div');
+    roomCard.className = 'room-card';
+    roomCard.id = `room-${roomCount}`;
+    
+    roomCard.innerHTML = `
+        <div class="room-card-header">
+            <div class="d-flex align-items-center gap-2">
+                <div class="room-number">${roomCount}</div>
+                <h6 class="mb-0">Room ${roomCount}</h6>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRoom(${roomCount})">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="floating-label-group">
+                    <input type="text" 
+                           name="room_${roomCount}_name" 
+                           class="form-control" 
+                           placeholder=" ">
+                    <label>Room Name</label>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="floating-label-group">
+                    <select name="room_${roomCount}_type" class="form-control">
+                        <option value="bedroom">🛏️ Bedroom</option>
+                        <option value="living_room">🛋️ Living Room</option>
+                        <option value="kitchen">🍳 Kitchen</option>
+                        <option value="bathroom">🚿 Bathroom</option>
+                        <option value="office">💼 Office</option>
+                    </select>
+                    <label>Room Type</label>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    roomsContainer.appendChild(roomCard);
+}
+
+function removeRoom(roomId) {
+    const room = document.getElementById(`room-${roomId}`);
+    if (room) {
+        room.remove();
+    }
+}
+
+// Notification system
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
+    notification.style.zIndex = '9999';
+    notification.innerHTML = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Google Maps callback
+function initMap() {
+    // This function is called when Google Maps API loads
+    console.log('Google Maps API loaded');
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Select2
+    $('.select2-enable').select2({
+        theme: 'bootstrap-5',
+        width: '100%'
+    });
+    
+    // Initialize time pickers
+    flatpickr('.time-picker', {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "H:i",
+        time_24hr: true
+    });
+    
+    // Form validation
+    const form = document.getElementById('propertyForm');
+    form.addEventListener('submit', function(e) {
+        if (!validateCurrentStep()) {
+            e.preventDefault();
+        }
+    });
+    
+    // Remove validation on input
+    document.querySelectorAll('input, select, textarea').forEach(field => {
+        field.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+        });
+    });
+});
+</script>
+{% endblock %}
