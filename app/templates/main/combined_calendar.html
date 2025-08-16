@@ -199,9 +199,8 @@
     }
 
     .dates-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        min-width: 1200px;
+        display: flex;
+        min-width: max-content;
         border-collapse: collapse;
     }
 
@@ -212,6 +211,8 @@
         font-size: 0.875rem;
         font-weight: var(--font-weight-medium);
         color: var(--gray-600);
+        min-width: 120px;
+        flex-shrink: 0;
     }
 
     .date-header.today {
@@ -305,9 +306,8 @@
     }
 
     .days-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        min-width: 1200px;
+        display: flex;
+        min-width: max-content;
         height: 100%;
         position: relative;
     }
@@ -316,6 +316,8 @@
         border-right: 1px solid var(--gray-200);
         position: relative;
         min-height: 80px;
+        min-width: 120px;
+        flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -382,6 +384,13 @@
         font-size: 0.7rem;
         opacity: 0.9;
         white-space: nowrap;
+    }
+
+    .guest-count {
+        font-size: 0.65rem;
+        opacity: 0.9;
+        white-space: nowrap;
+        margin-top: 2px;
     }
 
     /* Navigation Controls */
@@ -565,7 +574,7 @@ console.log('Events loaded:', rawEvents.length);
 class TimelineCalendar {
     constructor() {
         this.currentStartDate = new Date();
-        this.daysToShow = 14; // Show 2 weeks
+        this.daysToShow = 30; // Show 30 days for better overview
         this.properties = resources;
         this.events = this.processEvents(rawEvents);
         
@@ -700,8 +709,7 @@ class TimelineCalendar {
             const dayEvents = this.getDayEvents(date, propertyEvents);
             
             return `
-                <div class="day-cell ${isToday ? 'today' : ''}" 
-                     style="grid-column: ${index + 1};">
+                <div class="day-cell ${isToday ? 'today' : ''}" data-date-index="${index}">
                     ${dayEvents.map(event => this.renderBookingBlock(event, date, dates)).join('')}
                 </div>
             `;
@@ -712,11 +720,13 @@ class TimelineCalendar {
         return events.filter(event => {
             const eventStart = new Date(event.startDate);
             const eventEnd = new Date(event.endDate);
+            const checkDate = new Date(date); // Don't modify original date!
+            
             eventStart.setHours(0, 0, 0, 0);
             eventEnd.setHours(23, 59, 59, 999);
-            date.setHours(12, 0, 0, 0);
+            checkDate.setHours(12, 0, 0, 0);
             
-            return date >= eventStart && date <= eventEnd;
+            return checkDate >= eventStart && checkDate <= eventEnd;
         });
     }
 
@@ -736,18 +746,20 @@ class TimelineCalendar {
         if (endIndex === -1) endIndex = allDates.length - 1;
         
         const span = endIndex - startIndex + 1;
-        const width = `calc(${span * 100}% - 4px)`;
+        const width = `${span * 120 - 4}px`; // 120px per day minus padding
 
         const platformClass = event.platform.toLowerCase();
         const guestName = event.title || 'Booking';
-        const price = event.extendedProps?.price || '';
+        const amount = event.extendedProps?.amount || '';
+        const guestCount = event.extendedProps?.guest_count || '';
 
         return `
             <div class="booking-block ${platformClass}" 
-                 style="left: 2px; width: ${width};"
+                 style="left: 2px; width: ${width}; z-index: 5;"
                  onclick="showEventModal('${event.id}')">
                 <div class="booking-guest">${guestName}</div>
-                ${price ? `<div class="booking-price">$${price}</div>` : ''}
+                ${amount ? `<div class="booking-price">$${amount}</div>` : ''}
+                ${guestCount ? `<div class="guest-count">👥 ${guestCount}</div>` : ''}
             </div>
         `;
     }
