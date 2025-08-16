@@ -146,30 +146,8 @@ def combined_calendar():
             
         current_app.logger.info(f"Found {len(properties)} properties for user")
         
-        # If no properties exist, create sample ones
-        if not properties:
-            current_app.logger.info("No properties found, creating sample properties")
-            try:
-                sample_properties = [
-                    {'name': 'Oceanview Condo', 'address': '123 Beach Blvd, Miami, FL 33139'},
-                    {'name': 'Mountain Lodge', 'address': '456 Alpine Drive, Denver, CO 80424'},
-                    {'name': 'City Loft', 'address': '789 Urban Street, New York, NY 10001'}
-                ]
-                
-                for sample in sample_properties:
-                    new_property = Property(
-                        name=sample['name'],
-                        address=sample['address'],
-                        owner_id=current_user.id
-                    )
-                    db.session.add(new_property)
-                
-                db.session.commit()
-                properties = Property.query.order_by(Property.name).all()
-                current_app.logger.info(f"Created {len(properties)} sample properties")
-            except Exception as e:
-                current_app.logger.error(f"Error creating sample properties: {e}")
-                properties = []
+        # Log info about real properties found
+        current_app.logger.info(f"Found {len(properties)} real properties for calendar display")
         
         if not properties:
             flash('No properties found.', 'warning')
@@ -203,12 +181,17 @@ def combined_calendar():
                 'id': str(prop.id),
                 'title': prop.name,
                 'color': color,
+                'property_type': getattr(prop, 'property_type', 'house').lower(),
+                'city': getattr(prop, 'city', ''),
+                'state': getattr(prop, 'state', ''),
+                'address': getattr(prop, 'address', ''),
+                'image_url': getattr(prop, 'image_url', '/static/img/default-property.jpg'),
                 'extendedProps': {
                     'color': color,
                     'city': getattr(prop, 'city', ''),
                     'state': getattr(prop, 'state', ''),
                     'address': getattr(prop, 'address', ''),
-                    'image_url': getattr(prop, 'image_url', '/static/images/default-property.jpg')
+                    'image_url': getattr(prop, 'image_url', '/static/img/default-property.jpg')
                 }
             })
         
@@ -218,15 +201,17 @@ def combined_calendar():
         
         property_ids = [prop.id for prop in properties]
         if property_ids:
-            # Query real calendar events for the next 90 days
-            start_date = datetime.now().date()
-            end_date = start_date + timedelta(days=90)
+            # Query real calendar events from the database - expand date range to show more events
+            start_date = datetime.now().date() - timedelta(days=30)  # Show past 30 days too
+            end_date = start_date + timedelta(days=120)  # Show next 90 days
             
             calendar_events = CalendarEvent.query.filter(
                 CalendarEvent.property_id.in_(property_ids),
                 CalendarEvent.start_date >= start_date,
                 CalendarEvent.start_date <= end_date
             ).order_by(CalendarEvent.start_date).all()
+            
+            current_app.logger.info(f"Found {len(calendar_events)} calendar events in database for date range {start_date} to {end_date}")
             
             # Convert CalendarEvent objects to FullCalendar format
             for event in calendar_events:
@@ -236,46 +221,24 @@ def combined_calendar():
         else:
             current_app.logger.info("No properties available, no events to load")
         
-        # If no real events exist, generate sample data for demonstration
+        # If no calendar events exist, suggest running calendar sync
         if not events and properties:
-            current_app.logger.info("No real calendar events found, generating sample data for demonstration")
-            import random
+            current_app.logger.info("No calendar events found. Calendar data should be synced from external platforms.")
+            current_app.logger.info("Tip: Check PropertyCalendar settings and run calendar sync to import real booking data.")
             
-            for i, prop in enumerate(properties[:3]):  # Limit to first 3 properties for demo
-                # Generate 1-2 sample bookings per property
-                for booking_num in range(1, 3):
-                    # Random start date within next 60 days
-                    start_offset = random.randint(0, 60)
-                    duration = random.randint(2, 7)  # 2-7 day bookings
-                    
-                    start_date = datetime.now() + timedelta(days=start_offset)
-                    end_date = start_date + timedelta(days=duration)
-                    
-                    guest_names = ['Smith Family', 'Johnson Group', 'Williams Party', 'Brown Couple']
-                    platforms = ['Airbnb', 'VRBO', 'Booking.com', 'Direct']
-                    statuses = ['Confirmed', 'Pending', 'Checked In']
-                    
-                    events.append({
-                        'id': f'sample_{prop.id}_{booking_num}',
-                        'resourceId': str(prop.id),
-                        'title': random.choice(guest_names),
-                        'start': start_date.isoformat(),
-                        'end': end_date.isoformat(),
-                        'backgroundColor': resources[i]['color'],
-                        'borderColor': resources[i]['color'],
-                        'textColor': '#ffffff',
-                        'extendedProps': {
-                            'property_id': prop.id,
-                            'property_name': prop.name,
-                            'platform': random.choice(platforms),
-                            'status': random.choice(statuses),
-                            'amount': random.randint(150, 400),
-                            'guest_count': random.randint(2, 6),
-                            'is_sample': True  # Mark as sample data
-                        }
-                    })
+            # Check if there are PropertyCalendar entries configured
+            from app.models import PropertyCalendar
+            calendars = PropertyCalendar.query.filter(
+                PropertyCalendar.property_id.in_(property_ids),
+                PropertyCalendar.is_active == True
+            ).all()
             
-            current_app.logger.info(f"Generated {len(events)} sample events for demonstration")
+            if calendars:
+                current_app.logger.info(f"Found {len(calendars)} active PropertyCalendar entries. Consider running sync to import events.")
+            else:
+                current_app.logger.info("No PropertyCalendar entries found. Set up calendar URLs in property settings to enable event import.")
+            
+            current_app.logger.info(f"Combined calendar displaying {len(events)} real calendar events")
         
         current_app.logger.info(f"Combined calendar rendering with {len(resources)} resources and {len(events)} events")
         
@@ -325,33 +288,27 @@ def dashboard_events():
 
         events = []
         
-        # Generate sample events for dashboard (similar to combined calendar)
+        # Get real calendar events for dashboard
         from datetime import datetime, timedelta
-        import random
+        from app.models import CalendarEvent
         
-        for prop in properties[:5]:  # Limit to first 5 properties
-            # Generate 1-2 sample events per property
-            for event_num in range(1, 3):
-                # Random start date within next 30 days
-                start_offset = random.randint(0, 30)
-                duration = random.randint(1, 5)  # 1-5 day events
-                
-                start_date = datetime.now() + timedelta(days=start_offset)
-                end_date = start_date + timedelta(days=duration)
-                
-                events.append({
-                    'id': f'dashboard_event_{prop.id}_{event_num}',
-                    'title': f'{prop.name} Event',
-                    'start': start_date.isoformat(),
-                    'end': end_date.isoformat(),
-                    'backgroundColor': '#007bff',
-                    'borderColor': '#007bff',
-                    'extendedProps': {
-                        'property_id': prop.id,
-                        'property_name': prop.name,
-                        'type': 'property_event'
-                    }
-                })
+        property_ids = [p.id for p in properties]
+        if property_ids:
+            # Query real calendar events for the next 60 days
+            start_date = datetime.now().date()
+            end_date = start_date + timedelta(days=60)
+            
+            calendar_events = CalendarEvent.query.filter(
+                CalendarEvent.property_id.in_(property_ids),
+                CalendarEvent.start_date >= start_date,
+                CalendarEvent.start_date <= end_date
+            ).order_by(CalendarEvent.start_date).all()
+            
+            current_app.logger.info(f"Dashboard found {len(calendar_events)} calendar events for date range {start_date} to {end_date}")
+            
+            # Convert CalendarEvent objects to FullCalendar format
+            for event in calendar_events:
+                events.append(event.to_fullcalendar_dict())
 
         # Try to get real bookings if they exist
         try:

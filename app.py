@@ -13,4 +13,11 @@ def make_shell_context():
     }
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    import sys
+    port = 5001
+    if len(sys.argv) > 1 and sys.argv[1].startswith('--port'):
+        if '=' in sys.argv[1]:
+            port = int(sys.argv[1].split('=')[1])
+        elif len(sys.argv) > 2:
+            port = int(sys.argv[2])
+    app.run(host='0.0.0.0', port=port, debug=True)
