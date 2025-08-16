@@ -64,14 +64,18 @@ def create_demo_data():
             ).first()
             
             if not existing_invitation:
-                invitation = GuestInvitation.create_invitation(
-                    created_by_id=admin.id,
+                # Generate a shorter, more user-friendly invitation code
+                code = GuestInvitation.generate_unique_code(length=8)
+                invitation = GuestInvitation(
+                    code=code,
                     property_id=property.id,
+                    created_by_id=admin.id,
                     email='guest@demo.com',
                     guest_name='Demo Guest',
-                    expires_in_days=30,
+                    expires_at=datetime.utcnow() + timedelta(days=30),
                     notes='Demo invitation for testing'
                 )
+                db.session.add(invitation)
                 db.session.commit()
                 
                 print("✅ Demo Data Created Successfully!")

@@ -30,8 +30,8 @@ class GuestInvitationForm(FlaskForm):
 class GuestRegistrationForm(FlaskForm):
     """Form for guest account registration using invitation code"""
     invitation_code = StringField('Invitation Code', 
-                                 validators=[DataRequired(), Length(min=24, max=24)],
-                                 render_kw={"placeholder": "Enter your 24-character invitation code"})
+                                 validators=[DataRequired(), Length(min=5, max=24)],
+                                 render_kw={"placeholder": "Enter your invitation code"})
     first_name = StringField('First Name', validators=[DataRequired(), Length(min=2, max=64)])
     last_name = StringField('Last Name', validators=[DataRequired(), Length(min=2, max=64)])
     email = StringField('Email Address', validators=[DataRequired(), Email(), Length(max=120)])
@@ -208,7 +208,7 @@ class PropertyBrowseFilterForm(FlaskForm):
 class EmailVerificationForm(FlaskForm):
     """Form for email verification token input"""
     token = StringField('Verification Code', 
-                       validators=[DataRequired(), Length(min=32, max=64)],
+                       validators=[DataRequired(), Length(min=5, max=64)],
                        render_kw={"placeholder": "Enter the verification code from your email"})
 
 

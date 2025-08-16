@@ -2490,10 +2490,13 @@ class GuestInvitation(db.Model):
         self.updated_at = datetime.utcnow()
     
     @classmethod
-    def generate_unique_code(cls):
-        """Generate a unique 24-character invitation code"""
+    def generate_unique_code(cls, length=12):
+        """Generate a unique invitation code (5-24 characters, default 12)"""
         import string
         import secrets
+        
+        # Ensure length is within valid range
+        length = max(5, min(24, length))
         
         # Use alphanumeric characters (avoiding similar-looking ones)
         alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits
@@ -2501,7 +2504,7 @@ class GuestInvitation(db.Model):
         
         max_attempts = 10
         for _ in range(max_attempts):
-            code = ''.join(secrets.choice(alphabet) for _ in range(24))
+            code = ''.join(secrets.choice(alphabet) for _ in range(length))
             
             # Check if code already exists
             if not cls.query.filter_by(code=code).first():
@@ -2509,7 +2512,7 @@ class GuestInvitation(db.Model):
         
         # Fallback to UUID-based code if random generation fails
         import uuid
-        return str(uuid.uuid4()).replace('-', '')[:24].upper()
+        return str(uuid.uuid4()).replace('-', '')[:length].upper()
     
     @classmethod
     def create_invitation(cls, created_by_id, property_id=None, email=None, guest_name=None, 

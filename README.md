@@ -16,6 +16,7 @@ A comprehensive property management system designed specifically for short-term 
 - **Cleaning Sessions**: Document cleaning with before/after videos and photos
 - **Maintenance Requests**: Report and track maintenance issues
 - **Guest Access Portal**: Provide information to guests with customizable access
+- **Guest Account System**: Invitation-based guest accounts with booking history and direct booking capabilities
 
 ![property-edit](docs/media/property-edit.png)
 
@@ -221,8 +222,24 @@ As maintenance staff, you can:
 - **Tasks**: View recurring maintenance tasks assigned to you
 - **History**: Track your completed maintenance tasks
 
-### Guest Access
+### Guest Access & Account System
 
+#### Public Access (No Account Required)
+- **Browse Properties**: Explore available properties with photos and descriptions
+- **Property Information**: View basic property details, amenities, and location information
+- **Contact Forms**: Submit inquiries about properties
+
+#### Guest Accounts (Invitation-Based)
+Guests can create accounts using invitation codes provided by property hosts:
+
+- **Account Creation**: Register using unique invitation codes (5-24 characters)
+- **Booking History**: View past and upcoming stays across all properties
+- **Direct Booking**: Book directly and save on platform fees (coming soon)
+- **Property Access**: Detailed information including exact addresses and WiFi passwords
+- **Personalized Dashboard**: Manage profile, preferences, and booking history
+- **Local Guides**: Access curated local recommendations and property guides
+
+#### Traditional Guest Access (Property-Specific Links)
 Guests with a property-specific access link can:
 
 - View property details and photos
@@ -230,6 +247,8 @@ Guests with a property-specific access link can:
 - Find WiFi information
 - View house rules and emergency contacts
 - Discover local attractions and recommendations
+
+**Getting Started**: See our [Guest Guide](docs/guest_guide.md) for detailed instructions on creating an account and using guest features.
 
 ## System Architecture 🏗️
 
@@ -254,6 +273,8 @@ Guests with a property-specific access link can:
 - **[Lessons Learned](Lessons_Learned.md)**: Deployment insights and technical decisions
 - **[Phase 1 Implementation](PHASE_1_IMPLEMENTATION_SUMMARY.md)**: Production infrastructure details
 - **[Calendar Integration](README_CALENDARS.md)**: Multi-platform booking sync setup
+- **[Guest System Guide](docs/guest_guide.md)**: Comprehensive guide for guests using the account system
+- **[Guest API Documentation](docs/API_GUEST_ACCESS.md)**: Technical API documentation for guest access features
 
 ## Contributing
 

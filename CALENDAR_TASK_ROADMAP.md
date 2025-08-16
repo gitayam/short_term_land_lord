@@ -28,7 +28,7 @@
 ## 🏠 **Phase 1: Enhanced Guest Experience (Q3 2025 - PRIORITY)**
 
 ### **Guest Account Creation System**
-- 🔄 **Invitation Code System**: 24-character alphanumeric codes for guest account creation
+- 🔄 **Invitation Code System**: Flexible invitation codes (5-24 characters) for guest account creation
 - 🔄 **Code Generation**: Secure random code generation with expiration dates
 - 🔄 **Guest Registration Flow**: Simple registration process with invitation codes
 - 🔄 **Account Verification**: Email verification for guest accounts
