@@ -89,7 +89,7 @@
                             </thead>
                             <tbody>
                                 {% for invitation in invitations %}
-                                <tr class="{% if invitation.is_expired() %}table-warning{% elif invitation.is_used %}table-success{% elif not invitation.is_active %}table-secondary{% endif %}">
+                                <tr class="{% if invitation.is_expired %}table-warning{% elif invitation.is_used %}table-success{% elif not invitation.is_active %}table-secondary{% endif %}">
                                     <td>
                                         <code class="invitation-code">{{ invitation.invitation_code }}</code>
                                         <button class="btn btn-sm btn-ghost" onclick="copyToClipboard('{{ invitation.invitation_code }}')" title="Copy code">
@@ -109,7 +109,7 @@
                                     <td>
                                         {% if invitation.is_used %}
                                         <span class="badge bg-success">Used</span>
-                                        {% elif invitation.is_expired() %}
+                                        {% elif invitation.is_expired %}
                                         <span class="badge bg-warning">Expired</span>
                                         {% elif invitation.is_active %}
                                         <span class="badge bg-primary">Active</span>

@@ -133,7 +133,7 @@ Best regards!</textarea>
                         <h6 class="text-secondary">Status</h6>
                         {% if invitation.is_used %}
                         <span class="badge bg-success">Used ({{ invitation.uses }}/{{ invitation.max_uses }})</span>
-                        {% elif invitation.is_expired() %}
+                        {% elif invitation.is_expired %}
                         <span class="badge bg-warning">Expired</span>
                         {% elif invitation.is_active %}
                         <span class="badge bg-primary">Active</span>
