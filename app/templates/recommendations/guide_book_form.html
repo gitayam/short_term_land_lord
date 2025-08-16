@@ -1,133 +1,146 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <div class="max-w-3xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">{{ title }}</h1>
-                <p class="text-gray-600 mt-2">Manage your property guide book settings and content</p>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h2 mb-0">{{ title }}</h1>
+                    <p class="text-secondary">Manage your property guide book settings and content</p>
+                </div>
+                <a href="{{ url_for('recommendations.list_guide_books', property_id=property.id) }}" 
+                   class="app-btn app-btn-ghost">
+                    <i class="bi bi-arrow-left"></i> Back to Guide Books
+                </a>
             </div>
-            <a href="{{ url_for('recommendations.list_guide_books', property_id=property.id) }}" 
-               class="text-blue-500 hover:text-blue-700 flex items-center">
-                <i class="fas fa-arrow-left mr-2"></i> Back to Guide Books
-            </a>
-        </div>
 
-        <div class="bg-white shadow-lg rounded-lg p-6">
-            <form method="post" class="space-y-6">
-                {{ form.csrf_token }}
-                {{ form.property_id }}
-                
-                <div class="mb-6">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
-                        Guide Book Name
-                        <span class="text-red-500">*</span>
-                    </label>
-                    {{ form.name(class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500" + (" border-red-500" if form.name.errors else ""), placeholder="Enter a descriptive name") }}
-                    {% if form.name.errors %}
-                    <p class="text-red-500 text-xs italic mt-1">{{ form.name.errors[0] }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="mb-6">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
-                        Description
-                        <span class="text-red-500">*</span>
-                    </label>
-                    {{ form.description(class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-blue-500 h-32" + (" border-red-500" if form.description.errors else ""), placeholder="Describe what makes this guide book special...") }}
-                    {% if form.description.errors %}
-                    <p class="text-red-500 text-xs italic mt-1">{{ form.description.errors[0] }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="mb-6 bg-gray-50 p-4 rounded-lg">
-                    <h3 class="text-lg font-semibold mb-4">Visibility Settings</h3>
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                            <div>
-                                <label class="flex items-center cursor-pointer">
-                                    {{ form.is_public(class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500") }}
-                                    <span class="ml-2 text-gray-700">Make this guide book public</span>
-                                </label>
-                                <p class="text-sm text-gray-500 mt-1">Public guide books can be shared with anyone via a link</p>
+            <div class="app-card">
+                <div class="app-card-body">
+                    <form method="post">
+                        {{ form.csrf_token }}
+                        {{ form.property_id }}
+                        
+                        <div class="app-form-group">
+                            <label class="app-form-label required" for="name">
+                                Guide Book Name
+                            </label>
+                            {{ form.name(class="app-form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Enter a descriptive name") }}
+                            {% if form.name.errors %}
+                            <div class="app-form-error">
+                                <i class="bi bi-exclamation-circle"></i> {{ form.name.errors[0] }}
                             </div>
-                            <div class="text-gray-400">
-                                <i class="fas fa-globe text-xl"></i>
+                            {% endif %}
+                        </div>
+
+                        <div class="app-form-group">
+                            <label class="app-form-label required" for="description">
+                                Description
+                            </label>
+                            {{ form.description(class="app-form-control", style="min-height: 120px;" + (" is-invalid" if form.description.errors else ""), placeholder="Describe what makes this guide book special...", rows="5") }}
+                            {% if form.description.errors %}
+                            <div class="app-form-error">
+                                <i class="bi bi-exclamation-circle"></i> {{ form.description.errors[0] }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="app-surface mb-4" style="background: var(--bg-secondary);">
+                            <h3 class="h5 mb-3">Visibility Settings</h3>
+                            <div class="app-card">
+                                <div class="app-card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="app-checkbox">
+                                            {{ form.is_public(class="form-check-input") }}
+                                            <div class="ms-3">
+                                                <label class="form-check-label fw-medium" for="is_public">
+                                                    Make this guide book public
+                                                </label>
+                                                <p class="text-secondary small mb-0">Public guide books can be shared with anyone via a link</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-secondary">
+                                            <i class="bi bi-globe fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                {% if guide_book %}
-                <div class="mb-6 bg-gray-50 p-4 rounded-lg">
-                    <h3 class="text-lg font-semibold mb-4">Manage Recommendations</h3>
-                    <div class="space-y-3">
-                        {% if guide_book.recommendations %}
-                            {% for recommendation in guide_book.recommendations %}
-                            <div class="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-                                <div class="flex items-center space-x-3">
-                                    {% if recommendation.photo_path %}
-                                    <img src="{{ url_for('static', filename=recommendation.photo_path) }}" 
-                                         alt="{{ recommendation.title }}"
-                                         class="w-12 h-12 object-cover rounded">
-                                    {% else %}
-                                    <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                                        <i class="fas fa-image text-gray-400"></i>
-                                    </div>
-                                    {% endif %}
-                                    <div>
-                                        <h4 class="font-medium text-gray-800">{{ recommendation.title }}</h4>
-                                        <span class="text-sm text-gray-500">{{ recommendation.get_category_display() }}</span>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <a href="{{ url_for('recommendations.edit_recommendation', id=recommendation.id) }}" 
-                                       class="text-blue-500 hover:text-blue-700 p-2">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button type="button" 
-                                            onclick="removeRecommendation('{{ recommendation.id }}')"
-                                            class="text-red-500 hover:text-red-700 p-2">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="text-center py-8">
-                                <div class="text-gray-400 mb-3">
-                                    <i class="fas fa-book-open text-4xl"></i>
-                                </div>
-                                <p class="text-gray-600">No recommendations added yet</p>
-                                <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" 
-                                   class="text-blue-500 hover:text-blue-700 mt-2 inline-block">
-                                    Browse recommendations to add
-                                </a>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-
-                <div class="flex items-center justify-between pt-4 border-t">
-                    <button type="submit" 
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg focus:outline-none focus:shadow-outline transition duration-200">
                         {% if guide_book %}
-                            <i class="fas fa-save mr-2"></i> Update Guide Book
-                        {% else %}
-                            <i class="fas fa-plus mr-2"></i> Create Guide Book
+                        <div class="app-surface mb-4" style="background: var(--bg-secondary);">
+                            <h3 class="h5 mb-3">Manage Recommendations</h3>
+                            <div class="app-card">
+                                <div class="app-card-body">
+                                    {% if guide_book.recommendations %}
+                                        <div class="d-flex flex-column gap-3">
+                                            {% for recommendation in guide_book.recommendations %}
+                                            <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    {% if recommendation.photo_path %}
+                                                    <img src="{{ url_for('static', filename=recommendation.photo_path) }}" 
+                                                         alt="{{ recommendation.title }}"
+                                                         class="rounded" style="width: 48px; height: 48px; object-fit: cover;">
+                                                    {% else %}
+                                                    <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                                        <i class="bi bi-image text-secondary"></i>
+                                                    </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <h6 class="mb-0">{{ recommendation.title }}</h6>
+                                                        <small class="text-secondary">{{ recommendation.get_category_display() }}</small>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-2">
+                                                    <a href="{{ url_for('recommendations.edit_recommendation', id=recommendation.id) }}" 
+                                                       class="app-btn app-btn-ghost app-btn-icon app-btn-sm">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                    <button type="button" 
+                                                            onclick="removeRecommendation('{{ recommendation.id }}')"
+                                                            class="app-btn app-btn-danger app-btn-icon app-btn-sm">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="text-center py-5">
+                                            <div class="text-secondary mb-3">
+                                                <i class="bi bi-book fs-1"></i>
+                                            </div>
+                                            <p class="text-secondary mb-3">No recommendations added yet</p>
+                                            <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" 
+                                               class="app-btn app-btn-secondary app-btn-sm">
+                                                Browse recommendations to add
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
                         {% endif %}
-                    </button>
-                    {% if guide_book and guide_book.is_public and guide_book.access_token %}
-                    <button type="button"
-                            onclick="copyGuideBookUrl('{{ url_for('recommendations.public_guide_book', token=guide_book.access_token, _external=True) }}')"
-                            class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg focus:outline-none focus:shadow-outline transition duration-200">
-                        <i class="fas fa-link mr-2"></i> Copy Public Link
-                    </button>
-                    {% endif %}
+
+                        <div class="d-flex justify-content-between align-items-center pt-4 border-top">
+                            <button type="submit" class="app-btn app-btn-primary">
+                                {% if guide_book %}
+                                    <i class="bi bi-save"></i> Update Guide Book
+                                {% else %}
+                                    <i class="bi bi-plus-circle"></i> Create Guide Book
+                                {% endif %}
+                            </button>
+                            {% if guide_book and guide_book.is_public and guide_book.access_token %}
+                            <button type="button"
+                                    onclick="copyGuideBookUrl('{{ url_for('recommendations.public_guide_book', token=guide_book.access_token, _external=True) }}')"
+                                    class="app-btn app-btn-success">
+                                <i class="bi bi-link-45deg"></i> Copy Public Link
+                            </button>
+                            {% endif %}
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
