@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white text-center">
+                    <h4><i class="fas fa-user-plus"></i> Create Guest Account</h4>
+                    <p class="mb-0">Join our guest community</p>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Invitation Info -->
+                    {% if invitation %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Invitation Details:</strong><br>
+                        {% if invitation.property_ref %}
+                        Property: {{ invitation.property_ref.name }}<br>
+                        {% else %}
+                        Access: All Properties<br>
+                        {% endif %}
+                        {% if invitation.guest_name %}
+                        Guest: {{ invitation.guest_name }}<br>
+                        {% endif %}
+                        Expires: {{ invitation.expires_at.strftime('%B %d, %Y') }}
+                    </div>
+                    {% endif %}
+                    
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Invitation Code (Hidden) -->
+                        {{ form.invitation_code(type="hidden") }}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.first_name.label(class="form-label") }}
+                                {{ form.first_name(class="form-control") }}
+                                {% for error in form.first_name.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.last_name.label(class="form-label") }}
+                                {{ form.last_name(class="form-control") }}
+                                {% for error in form.last_name.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control") }}
+                            {% for error in form.email.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.phone.label(class="form-label") }}
+                            {{ form.phone(class="form-control") }}
+                            <div class="form-text">Optional: For booking confirmations and support</div>
+                            {% for error in form.phone.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.password.label(class="form-label") }}
+                                {{ form.password(class="form-control") }}
+                                <div class="form-text">Minimum 8 characters</div>
+                                {% for error in form.password.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.password_confirm.label(class="form-label") }}
+                                {{ form.password_confirm(class="form-control") }}
+                                {% for error in form.password_confirm.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Consent Checkboxes -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.booking_reminders_consent(class="form-check-input") }}
+                                {{ form.booking_reminders_consent.label(class="form-check-label") }}
+                            </div>
+                            <div class="form-check">
+                                {{ form.marketing_emails_consent(class="form-check-input") }}
+                                {{ form.marketing_emails_consent.label(class="form-check-label") }}
+                            </div>
+                        </div>
+                        
+                        <!-- Terms and Privacy -->
+                        <div class="mb-3">
+                            <div class="alert alert-light small">
+                                <i class="fas fa-shield-alt"></i>
+                                By creating an account, you agree to our terms of service and privacy policy. 
+                                Your information will be used to manage your bookings and provide customer support.
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-user-plus"></i> Create Account
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-3">
+                        <p class="text-muted">Already have an account? 
+                            <a href="{{ url_for('auth.login') }}">Sign in here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Benefits Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-star"></i> Guest Account Benefits</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success"></i> Direct booking capability</li>
+                                <li><i class="fas fa-check text-success"></i> Booking history tracking</li>
+                                <li><i class="fas fa-check text-success"></i> Exclusive guest offers</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success"></i> Priority customer support</li>
+                                <li><i class="fas fa-check text-success"></i> Property information access</li>
+                                <li><i class="fas fa-check text-success"></i> Personalized experience</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

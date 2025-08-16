@@ -1,14 +1,21 @@
-# Short Term Landlord - Calendar & Task Management Roadmap
+# Short Term Landlord - Enhanced Property Management Roadmap
 
 ## 🎯 **Current Status (August 2025)**
 
-### ✅ **Completed Features**
+### ✅ **Completed Features - Calendar & Task Management**
 - **Combined Calendar Timeline View**: Airbnb-style horizontal scrolling timeline calendar
 - **Real Property Data Integration**: Using actual property data from database
 - **Calendar Event Sync**: Real-time iCal sync from Airbnb/VRBO/Booking.com platforms
 - **Timeline Scroll Synchronization**: Fixed date header alignment with property rows
 - **Modal Booking Details**: Click events to view booking information
 - **Property Navigation**: Clickable property links to individual property pages
+
+### ✅ **Completed Features - Guest Experience**
+- **Guest Property Access**: Token-based guest access system (`/property/guest/<token>`)
+- **Property Guidebook**: Comprehensive guest guidebook with local attractions and amenities
+- **Guest Property Views**: Detailed property information for guest check-ins
+- **Interactive Maps**: Guidebook entries with coordinates and map integration
+- **Tabbed Interface**: WiFi, House Rules, Local Attractions organized in tabs
 
 ### 🔧 **Recently Fixed Issues**
 - **Calendar Modal Buttons**: Fixed "Assign Task" and "Repair Request" button functionality
@@ -18,7 +25,38 @@
 
 ---
 
-## 🚀 **Phase 1: Enhanced Task Integration (Q3 2025)**
+## 🏠 **Phase 1: Enhanced Guest Experience (Q3 2025 - PRIORITY)**
+
+### **Guest Account Creation System**
+- 🔄 **Invitation Code System**: 24-character alphanumeric codes for guest account creation
+- 🔄 **Code Generation**: Secure random code generation with expiration dates
+- 🔄 **Guest Registration Flow**: Simple registration process with invitation codes
+- 🔄 **Account Verification**: Email verification for guest accounts
+- 🔄 **Profile Management**: Basic guest profile with contact information
+
+### **Unauthenticated Guest Browsing**
+- 🔄 **Property Discovery**: Public property listings with limited information
+- 🔄 **Virtual Tours**: Photo galleries and basic property descriptions
+- 🔄 **Location Information**: City/area information without exact addresses
+- 🔄 **Amenity Highlights**: Key features and amenities for marketing
+- 🔄 **Contact Forms**: Lead generation through property inquiry forms
+
+### **Enhanced Guest Portal**
+- 🔄 **Check-in Integration**: QR codes and digital check-in process from Airbnb bookings
+- 🔄 **Booking History**: View past stays and associated properties
+- 🔄 **Future Booking System**: Direct booking capability for repeat guests
+- 🔄 **Guest Reviews**: Ability for guests to leave property feedback
+- 🔄 **Support Portal**: Direct communication with property management
+
+### **Property Owner Benefits**
+- 🔄 **Guest Database**: Centralized database of verified guests across properties
+- 🔄 **Direct Booking Revenue**: Bypass platform fees for repeat guests
+- 🔄 **Guest Relationship Management**: Track guest preferences and booking patterns
+- 🔄 **Marketing Analytics**: Track guest engagement and conversion rates
+
+---
+
+## 🚀 **Phase 2: Enhanced Task Integration (Q3-Q4 2025)**
 
 ### **Task Creation from Calendar Events**
 - ✅ **Modal Button Handlers**: JavaScript click handlers for task/repair creation
@@ -39,7 +77,7 @@
 
 ---
 
-## 🏗️ **Phase 2: Advanced Calendar Features (Q4 2025)**
+## 🏗️ **Phase 3: Advanced Calendar Features (Q4 2025)**
 
 ### **Multi-Platform Calendar Aggregation**
 - 🔄 **Platform Integration**: Enhanced Airbnb, VRBO, Booking.com sync
@@ -61,7 +99,7 @@
 
 ---
 
-## 📊 **Phase 3: Analytics & Optimization (Q1 2026)**
+## 📊 **Phase 4: Analytics & Optimization (Q1 2026)**
 
 ### **Performance Analytics**
 - 🔄 **Occupancy Metrics**: Platform-specific occupancy rates
@@ -123,45 +161,121 @@
 
 ## 📋 **Implementation Priority Matrix**
 
-### **High Priority (Immediate)**
+### **High Priority (Immediate - Guest Experience)**
+1. **Guest Invitation Code System**: Implement 24-character code generation and validation
+2. **Guest Account Registration**: Create registration flow with invitation codes
+3. **Public Property Browsing**: Unauthenticated property discovery pages
+4. **Guest Portal Enhancement**: Integrate with existing guest token system
+5. **Database Schema**: Add guest_invitation_codes and enhanced guest_users tables
+
+### **High Priority (Task Integration)**
 1. **Task Form Enhancement**: Auto-populate forms with booking context
-2. **Database Migration**: Apply CalendarEvent schema enhancements
-3. **URL Routing**: Ensure task creation routes work with calendar context
-4. **Error Handling**: Robust error handling for failed external sync
+2. **URL Routing**: Ensure task creation routes work with calendar context
+3. **Error Handling**: Robust error handling for failed external sync
 
 ### **Medium Priority (Next 2-4 weeks)**
-1. **Event Type Classification**: Implement booking/blocked/maintenance categorization
-2. **Tag System**: JSON-based flexible tagging for calendar events
-3. **Sync Optimization**: Improved calendar sync performance and reliability
-4. **Mobile Optimization**: Mobile-responsive calendar interface
+1. **Guest Booking History**: Display past stays for registered guests
+2. **Direct Booking System**: Enable future bookings for verified guests
+3. **QR Code Check-in**: Digital check-in integration with Airbnb bookings
+4. **Event Type Classification**: Implement booking/blocked/maintenance categorization
+5. **Mobile Optimization**: Mobile-responsive calendar and guest interfaces
 
 ### **Low Priority (Future)**
-1. **Advanced Analytics**: ML-based predictive features
-2. **Third-party Integrations**: Additional booking platform support
-3. **API Development**: Public API for external integrations
-4. **Advanced Automation**: Complex rule-based task automation
+1. **Guest CRM System**: Advanced guest relationship management
+2. **Marketing Automation**: Automated guest re-engagement campaigns
+3. **Advanced Analytics**: ML-based predictive features for guest behavior
+4. **Third-party Integrations**: Additional booking platform support
+5. **API Development**: Public API for external integrations
+6. **Advanced Automation**: Complex rule-based task automation
 
 ---
 
 ## 🎯 **Success Metrics**
 
 ### **User Experience**
+- **Guest Registration Time**: < 2 minutes from invitation code to account creation
+- **Property Discovery**: < 5 seconds to browse available properties
 - **Task Creation Time**: < 30 seconds from calendar event to task creation
 - **Calendar Load Time**: < 2 seconds for 90-day timeline view
-- **Sync Reliability**: > 99% successful calendar sync operations
-- **Mobile Usability**: Full functionality on mobile devices
+- **Mobile Usability**: Full functionality on mobile devices for guests and staff
 
 ### **Business Impact**
+- **Guest Conversion Rate**: > 15% of browsing guests create accounts
+- **Direct Booking Rate**: > 25% of repeat guests book directly (bypassing platform fees)
+- **Guest Retention**: > 40% of guests return for future stays
+- **Revenue Impact**: 10-15% increase in profit margin from direct bookings
 - **Task Completion Rate**: > 95% on-time task completion
-- **Revenue Tracking**: 100% accurate cross-platform revenue reporting
-- **Staff Efficiency**: 25% reduction in time spent on scheduling tasks
-- **Guest Satisfaction**: Improved review scores due to better property management
+- **Guest Satisfaction**: Improved review scores due to better guest experience
 
 ### **Technical Performance**
 - **Database Performance**: < 100ms for calendar queries
 - **API Response Time**: < 500ms for all calendar/task operations
 - **Uptime**: > 99.9% system availability
 - **Data Accuracy**: 100% consistency between platforms and internal calendar
+
+---
+
+## 🔧 **Technical Implementation Details - Guest Features**
+
+### **Database Schema Changes Required**
+```sql
+-- Guest invitation codes table
+CREATE TABLE guest_invitation_codes (
+    id INTEGER PRIMARY KEY,
+    code VARCHAR(24) UNIQUE NOT NULL,
+    property_id INTEGER,
+    created_by_id INTEGER,
+    expires_at DATETIME,
+    used_at DATETIME,
+    used_by_id INTEGER,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Enhanced users table for guest accounts
+ALTER TABLE users ADD COLUMN account_type VARCHAR(20) DEFAULT 'staff';
+ALTER TABLE users ADD COLUMN invitation_code_id INTEGER;
+ALTER TABLE users ADD COLUMN guest_preferences JSON;
+ALTER TABLE users ADD COLUMN last_check_in DATETIME;
+
+-- Guest bookings history (for direct bookings)
+CREATE TABLE guest_bookings (
+    id INTEGER PRIMARY KEY,
+    guest_user_id INTEGER,
+    property_id INTEGER,
+    check_in_date DATE,
+    check_out_date DATE,
+    booking_source VARCHAR(50), -- 'direct', 'airbnb', 'vrbo', etc.
+    external_booking_id VARCHAR(100),
+    status VARCHAR(20) DEFAULT 'confirmed',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### **Route Structure**
+```python
+# New guest-facing routes
+/browse                          # Public property discovery
+/browse/property/<int:id>        # Public property details
+/guest/register/<code>           # Guest registration with code
+/guest/dashboard                 # Guest portal after login
+/guest/bookings                  # Guest booking history
+/guest/book/<int:property_id>    # Direct booking for verified guests
+/api/guest/properties            # API for property discovery
+```
+
+### **Security Considerations**
+- **Rate Limiting**: Guest registration and browsing endpoints
+- **Data Privacy**: Limited property information for unauthenticated users
+- **Access Control**: Role-based permissions for guest vs staff features
+- **Code Security**: Secure generation and expiration of invitation codes
+- **Email Verification**: Required for guest account activation
+
+### **Integration Points**
+- **Existing Token System**: Leverage current `/property/guest/<token>` for check-in
+- **Property Model**: Use existing guest-facing fields (wifi_password, house_rules, etc.)
+- **Guidebook System**: Integrate with existing guidebook for guest information
+- **Calendar Events**: Link guest accounts to booking history via CalendarEvent
 
 ---
 

@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-calendar-alt"></i> My Bookings</h2>
+            <p class="text-muted">View and manage your booking history</p>
+        </div>
+        <a href="{{ url_for('guest.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+    
+    <!-- Upcoming Bookings -->
+    {% if upcoming_bookings %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5><i class="fas fa-calendar-check"></i> Upcoming Bookings</h5>
+        </div>
+        <div class="card-body">
+            {% for booking in upcoming_bookings %}
+            <div class="card mb-3 border-primary">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="card-title">
+                                {{ booking.property_ref.name }}
+                                <span class="badge bg-primary">Upcoming</span>
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="card-text small">
+                                        <i class="fas fa-map-marker-alt text-muted"></i> 
+                                        {{ booking.property_ref.city }}, {{ booking.property_ref.state }}<br>
+                                        <i class="fas fa-calendar text-muted"></i> 
+                                        {{ booking.check_in_date.strftime('%B %d, %Y') }} - 
+                                        {{ booking.check_out_date.strftime('%B %d, %Y') }}<br>
+                                        <i class="fas fa-moon text-muted"></i> {{ booking.duration_nights }} night(s)
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="card-text small">
+                                        <i class="fas fa-users text-muted"></i> {{ booking.guest_count }} guest(s)<br>
+                                        <i class="fas fa-tag text-muted"></i> {{ booking.booking_source_display }}
+                                        {% if booking.confirmation_code %}
+                                        <br><i class="fas fa-barcode text-muted"></i> {{ booking.confirmation_code }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            {% if booking.special_requests %}
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <strong>Special Requests:</strong> {{ booking.special_requests }}
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="btn-group-vertical" role="group">
+                                <a href="{{ url_for('guest.view_property_public', property_id=booking.property_id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> View Property
+                                </a>
+                                {% if booking.property_ref.guest_access_token %}
+                                <a href="{{ url_for('property.guest_view', token=booking.property_ref.guest_access_token) }}" 
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-info-circle"></i> Property Info
+                                </a>
+                                {% endif %}
+                                {% if booking.booking_source == 'direct' %}
+                                <button class="btn btn-sm btn-outline-secondary" disabled>
+                                    <i class="fas fa-edit"></i> Modify (Coming Soon)
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Current Bookings -->
+    {% if current_bookings %}
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5><i class="fas fa-home"></i> Current Stay</h5>
+        </div>
+        <div class="card-body">
+            {% for booking in current_bookings %}
+            <div class="card mb-3 border-success">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="card-title">
+                                {{ booking.property_ref.name }}
+                                <span class="badge bg-success">Current Stay</span>
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="card-text small">
+                                        <i class="fas fa-map-marker-alt text-muted"></i> 
+                                        {{ booking.property_ref.city }}, {{ booking.property_ref.state }}<br>
+                                        <i class="fas fa-calendar text-muted"></i> 
+                                        {{ booking.check_in_date.strftime('%B %d, %Y') }} - 
+                                        {{ booking.check_out_date.strftime('%B %d, %Y') }}<br>
+                                        <i class="fas fa-moon text-muted"></i> {{ booking.duration_nights }} night(s)
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="card-text small">
+                                        <i class="fas fa-users text-muted"></i> {{ booking.guest_count }} guest(s)<br>
+                                        <i class="fas fa-tag text-muted"></i> {{ booking.booking_source_display }}
+                                        {% if booking.confirmation_code %}
+                                        <br><i class="fas fa-barcode text-muted"></i> {{ booking.confirmation_code }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="btn-group-vertical" role="group">
+                                {% if booking.property_ref.guest_access_token %}
+                                <a href="{{ url_for('property.guest_view', token=booking.property_ref.guest_access_token) }}" 
+                                   class="btn btn-sm btn-success">
+                                    <i class="fas fa-home"></i> Property Portal
+                                </a>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-phone"></i> Contact Host
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Past Bookings -->
+    {% if past_bookings %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-history"></i> Past Stays ({{ past_bookings|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% for booking in past_bookings %}
+            <div class="card mb-3 border-light">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="card-title">{{ booking.property_ref.name }}</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="card-text small text-muted">
+                                        <i class="fas fa-map-marker-alt"></i> 
+                                        {{ booking.property_ref.city }}, {{ booking.property_ref.state }}<br>
+                                        <i class="fas fa-calendar"></i> 
+                                        {{ booking.check_in_date.strftime('%B %d, %Y') }} - 
+                                        {{ booking.check_out_date.strftime('%B %d, %Y') }}<br>
+                                        <i class="fas fa-moon"></i> {{ booking.duration_nights }} night(s)
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="card-text small text-muted">
+                                        <i class="fas fa-users"></i> {{ booking.guest_count }} guest(s)<br>
+                                        <i class="fas fa-tag"></i> {{ booking.booking_source_display }}
+                                        {% if booking.total_amount %}
+                                        <br><i class="fas fa-dollar-sign"></i> ${{ booking.total_amount }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="btn-group-vertical" role="group">
+                                <a href="{{ url_for('guest.view_property_public', property_id=booking.property_id) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> View Property
+                                </a>
+                                {% if booking.booking_source == 'direct' %}
+                                <a href="{{ url_for('guest.book_property', property_id=booking.property_id) }}" 
+                                   class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-repeat"></i> Book Again
+                                </a>
+                                {% else %}
+                                <button class="btn btn-sm btn-outline-secondary" disabled>
+                                    <i class="fas fa-info-circle"></i> External Booking
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- No Bookings Message -->
+    {% if not upcoming_bookings and not current_bookings and not past_bookings %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+            <h5>No Bookings Yet</h5>
+            <p class="text-muted mb-4">You haven't made any bookings yet. Start exploring our properties!</p>
+            <a href="{{ url_for('guest.browse_properties') }}" class="btn btn-primary">
+                <i class="fas fa-search"></i> Browse Properties
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Booking Summary -->
+    {% if upcoming_bookings or current_bookings or past_bookings %}
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ upcoming_bookings|length }}</h3>
+                    <p class="card-text small text-muted">Upcoming Bookings</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success">{{ current_bookings|length }}</h3>
+                    <p class="card-text small text-muted">Current Stays</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-secondary">{{ past_bookings|length }}</h3>
+                    <p class="card-text small text-muted">Past Stays</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
