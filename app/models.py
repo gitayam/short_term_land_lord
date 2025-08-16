@@ -861,6 +861,12 @@ class PropertyCalendar(db.Model):
         """Return a user-friendly display name for the calendar service"""
         service_map = dict(self.SERVICE_CHOICES)
         return service_map.get(self.service, 'Other')
+    
+    def is_synced_recently(self):
+        """Check if calendar was synced within the last 24 hours"""
+        if not self.last_synced:
+            return False
+        return (datetime.utcnow() - self.last_synced).total_seconds() < 86400  # 24 hours in seconds
 
 
 class CalendarEvent(db.Model):
