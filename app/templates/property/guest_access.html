@@ -39,6 +39,34 @@
                     </div>
                     {% endif %}
                     
+                    <!-- Guest Invitation Management -->
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="alert-heading"><i class="bi bi-envelope-plus"></i> Guest Invitation System</h5>
+                                <p class="mb-2">Create personalized invitation codes for specific guests with expiration dates and usage limits.</p>
+                                <ul class="small mb-0">
+                                    <li>Generate secure invitation codes</li>
+                                    <li>Set expiration dates and usage limits</li>
+                                    <li>Share via QR codes, email, or SMS</li>
+                                    <li>Track invitation usage and status</li>
+                                </ul>
+                            </div>
+                            <div class="text-end">
+                                <a href="{{ url_for('property_routes.manage_invitations', property_id=property.id) }}" 
+                                   class="btn btn-primary">
+                                    <i class="bi bi-gear"></i> Manage Invitations
+                                </a>
+                                <div class="mt-2">
+                                    <a href="{{ url_for('property_routes.create_invitation', property_id=property.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-plus"></i> Quick Create
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
                         {{ form.guest_rules.label(class="form-label") }}
                         {{ form.guest_rules(class="form-control", rows=4) }}
