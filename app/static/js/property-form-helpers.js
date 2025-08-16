@@ -111,6 +111,11 @@ class PropertyFormHelpers {
                 bathrooms: 2,
                 description: 'Beautiful house perfect for families and groups'
             },
+            'suite': {
+                bedrooms: 1,
+                bathrooms: 1,
+                description: 'Comfortable suite with hotel-style amenities'
+            },
             'apartment': {
                 bedrooms: 2,
                 bathrooms: 1,
@@ -121,10 +126,75 @@ class PropertyFormHelpers {
                 bathrooms: 2,
                 description: 'Stylish condominium with great amenities'
             },
+            'townhouse': {
+                bedrooms: 3,
+                bathrooms: 2.5,
+                description: 'Spacious townhouse with multiple levels'
+            },
+            'duplex': {
+                bedrooms: 2,
+                bathrooms: 1.5,
+                description: 'Duplex unit offering privacy and space'
+            },
             'cabin': {
                 bedrooms: 2,
                 bathrooms: 1,
                 description: 'Cozy cabin retreat perfect for getaways'
+            },
+            'cottage': {
+                bedrooms: 2,
+                bathrooms: 1,
+                description: 'Charming cottage with rustic appeal'
+            },
+            'villa': {
+                bedrooms: 4,
+                bathrooms: 3,
+                description: 'Luxurious villa with premium amenities'
+            },
+            'loft': {
+                bedrooms: 1,
+                bathrooms: 1,
+                description: 'Urban loft with open floor plan and high ceilings'
+            },
+            'studio': {
+                bedrooms: 0,
+                bathrooms: 1,
+                description: 'Efficient studio perfect for solo travelers'
+            },
+            'guesthouse': {
+                bedrooms: 1,
+                bathrooms: 1,
+                description: 'Private guesthouse offering independence'
+            },
+            'tiny_house': {
+                bedrooms: 1,
+                bathrooms: 1,
+                description: 'Unique tiny house experience with everything you need'
+            },
+            'boat': {
+                bedrooms: 2,
+                bathrooms: 1,
+                description: 'Unique waterfront accommodation on a boat'
+            },
+            'rv': {
+                bedrooms: 1,
+                bathrooms: 1,
+                description: 'Mobile home experience with all amenities'
+            },
+            'tree_house': {
+                bedrooms: 1,
+                bathrooms: 1,
+                description: 'Magical tree house escape in nature'
+            },
+            'farm_stay': {
+                bedrooms: 2,
+                bathrooms: 1,
+                description: 'Authentic farm experience with rural charm'
+            },
+            'castle': {
+                bedrooms: 5,
+                bathrooms: 4,
+                description: 'Historic castle offering a royal experience'
             }
         };
 

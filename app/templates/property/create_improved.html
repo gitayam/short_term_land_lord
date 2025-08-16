@@ -635,11 +635,24 @@
                                 <select id="property_type" name="property_type" class="form-control" required>
                                     <option value="">Select Property Type</option>
                                     <option value="house" {% if form.property_type.data == 'house' %}selected{% endif %}>🏠 House</option>
+                                    <option value="suite" {% if form.property_type.data == 'suite' %}selected{% endif %}>🏢 Suite</option>
                                     <option value="apartment" {% if form.property_type.data == 'apartment' %}selected{% endif %}>🏢 Apartment</option>
                                     <option value="condo" {% if form.property_type.data == 'condo' %}selected{% endif %}>🏙️ Condominium</option>
                                     <option value="townhouse" {% if form.property_type.data == 'townhouse' %}selected{% endif %}>🏘️ Townhouse</option>
+                                    <option value="duplex" {% if form.property_type.data == 'duplex' %}selected{% endif %}>🏠🏠 Duplex</option>
                                     <option value="cabin" {% if form.property_type.data == 'cabin' %}selected{% endif %}>🌲 Cabin</option>
+                                    <option value="cottage" {% if form.property_type.data == 'cottage' %}selected{% endif %}>🏡 Cottage</option>
                                     <option value="villa" {% if form.property_type.data == 'villa' %}selected{% endif %}>🏛️ Villa</option>
+                                    <option value="loft" {% if form.property_type.data == 'loft' %}selected{% endif %}>🏭 Loft</option>
+                                    <option value="studio" {% if form.property_type.data == 'studio' %}selected{% endif %}>🏠 Studio</option>
+                                    <option value="guesthouse" {% if form.property_type.data == 'guesthouse' %}selected{% endif %}>🏘️ Guest House</option>
+                                    <option value="tiny_house" {% if form.property_type.data == 'tiny_house' %}selected{% endif %}>🏚️ Tiny House</option>
+                                    <option value="boat" {% if form.property_type.data == 'boat' %}selected{% endif %}>⛵ Boat</option>
+                                    <option value="rv" {% if form.property_type.data == 'rv' %}selected{% endif %}>🚐 RV/Camper</option>
+                                    <option value="tree_house" {% if form.property_type.data == 'tree_house' %}selected{% endif %}>🌳 Tree House</option>
+                                    <option value="farm_stay" {% if form.property_type.data == 'farm_stay' %}selected{% endif %}>🚜 Farm Stay</option>
+                                    <option value="castle" {% if form.property_type.data == 'castle' %}selected{% endif %}>🏰 Castle</option>
+                                    <option value="other" {% if form.property_type.data == 'other' %}selected{% endif %}>🏗️ Other</option>
                                 </select>
                                 <label for="property_type">Property Type</label>
                             </div>

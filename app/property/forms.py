@@ -52,7 +52,7 @@ class PropertyForm(FlaskForm):
     name = StringField('Property Name (Optional)', validators=[Optional(), Length(min=2, max=100)])
     description = TextAreaField('Description')
     
-    # Property specifications
+    # Property specifications (expanded with all Airbnb types)
     property_type = SelectField('Property Type 🏘️', choices=[
         ('', 'Select Type'),
         ('house', '🏠 House'),
@@ -64,6 +64,15 @@ class PropertyForm(FlaskForm):
         ('cabin', '🌲 Cabin'),
         ('cottage', '🏡 Cottage'),
         ('villa', '🏛️ Villa'),
+        ('loft', '🏭 Loft'),
+        ('studio', '🏠 Studio'),
+        ('guesthouse', '🏘️ Guest House'),
+        ('tiny_house', '🏚️ Tiny House'),
+        ('boat', '⛵ Boat'),
+        ('rv', '🚐 RV/Camper'),
+        ('tree_house', '🌳 Tree House'),
+        ('farm_stay', '🚜 Farm Stay'),
+        ('castle', '🏰 Castle'),
         ('other', '🏗️ Other')
     ], validators=[DataRequired()])
     
