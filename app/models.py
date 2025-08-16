@@ -1894,19 +1894,64 @@ class RecommendationBlock(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Basic Information
     title = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=False)  # 300-char limit enforced in form
-    category = db.Column(db.String(20), nullable=False)  # Store enum as string in SQLite
-    map_link = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    recommendation_type = db.Column(db.String(30), nullable=False, default='place')  # place, activity, service, event, transportation, shopping, emergency
+    category = db.Column(db.String(50), nullable=False)  # More specific subcategory
+    
+    # Location & Contact
+    address = db.Column(db.String(500), nullable=True)
+    phone = db.Column(db.String(50), nullable=True)
+    website = db.Column(db.String(500), nullable=True)
+    map_link = db.Column(db.String(500), nullable=True)  # Now optional
+    distance_from_property = db.Column(db.String(50), nullable=True)  # e.g., "5 min walk", "10 min drive"
+    
+    # Timing & Availability
+    hours = db.Column(db.String(500), nullable=True)  # Operating hours (can be JSON for complex schedules)
     best_time_to_go = db.Column(db.String(255), nullable=True)
-    recommended_meal = db.Column(db.String(255), nullable=True)  # For food recommendations
-    wifi_name = db.Column(db.String(255), nullable=True)  # WiFi network name (SSID)
-    wifi_password = db.Column(db.String(255), nullable=True)  # WiFi password if available
-    parking_details = db.Column(db.Text, nullable=True)  # Parking information
-    hours = db.Column(db.String(255), nullable=True)  # Operating hours
-    in_guide_book = db.Column(db.Boolean, default=False)  # Whether this recommendation is in the guide book
+    seasonal_availability = db.Column(db.String(255), nullable=True)  # e.g., "Summer only", "Year-round"
+    
+    # Booking & Pricing
+    booking_required = db.Column(db.Boolean, default=False)
+    booking_link = db.Column(db.String(500), nullable=True)
+    price_range = db.Column(db.String(50), nullable=True)  # e.g., "$", "$$", "$$$", "$$$$", "Free"
+    
+    # Specific Fields for Different Types
+    # For Restaurants/Food
+    recommended_meal = db.Column(db.String(255), nullable=True)
+    cuisine_type = db.Column(db.String(100), nullable=True)
+    dietary_options = db.Column(db.String(255), nullable=True)  # Vegetarian, Vegan, Gluten-free, etc.
+    
+    # For Activities
+    duration = db.Column(db.String(100), nullable=True)  # e.g., "2-3 hours"
+    difficulty_level = db.Column(db.String(50), nullable=True)  # Easy, Moderate, Difficult
+    age_restrictions = db.Column(db.String(100), nullable=True)
+    
+    # For Transportation
+    app_download_link = db.Column(db.String(500), nullable=True)
+    fare_info = db.Column(db.String(255), nullable=True)
+    
+    # For Events
+    event_dates = db.Column(db.String(255), nullable=True)
+    recurring_schedule = db.Column(db.String(255), nullable=True)  # e.g., "Every Saturday"
+    
+    # Additional Details
+    wifi_name = db.Column(db.String(255), nullable=True)
+    wifi_password = db.Column(db.String(255), nullable=True)
+    parking_details = db.Column(db.Text, nullable=True)
+    accessibility_info = db.Column(db.String(255), nullable=True)  # Wheelchair accessible, etc.
+    insider_tips = db.Column(db.Text, nullable=True)  # Local tips and tricks
+    
+    # Meta Information
+    in_guide_book = db.Column(db.Boolean, default=False)
     photo_path = db.Column(db.String(500), nullable=True)
-    staff_pick = db.Column(db.Boolean, default=False)  # Whether this is marked as a staff pick
+    staff_pick = db.Column(db.Boolean, default=False)
+    priority_order = db.Column(db.Integer, default=0)  # For custom ordering
+    is_featured = db.Column(db.Boolean, default=False)  # Featured recommendations
+    rating = db.Column(db.Float, nullable=True)  # Average rating (1-5)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -1917,13 +1962,68 @@ class RecommendationBlock(db.Model):
         return f'<RecommendationBlock {self.title} for Property {self.property_id}>'
     
     def get_category_display(self):
-        return self.category.title()
+        return self.category.replace('_', ' ').title()
+    
+    def get_type_display(self):
+        return self.recommendation_type.replace('_', ' ').title()
+    
+    def get_price_display(self):
+        """Return price range with visual indicators"""
+        if not self.price_range:
+            return None
+        if self.price_range.lower() == 'free':
+            return 'Free'
+        return self.price_range
+    
+    def get_type_icon(self):
+        """Return an icon class based on recommendation type"""
+        icons = {
+            'place': 'bi-geo-alt-fill',
+            'activity': 'bi-bicycle',
+            'service': 'bi-tools',
+            'event': 'bi-calendar-event',
+            'transportation': 'bi-car-front',
+            'shopping': 'bi-bag',
+            'emergency': 'bi-exclamation-triangle-fill'
+        }
+        return icons.get(self.recommendation_type, 'bi-pin-map')
+    
+    def get_category_icon(self):
+        """Return an icon class based on category"""
+        icons = {
+            'restaurant': 'bi-cup-straw',
+            'bar': 'bi-cup',
+            'cafe': 'bi-cup-hot',
+            'museum': 'bi-building',
+            'park': 'bi-tree',
+            'beach': 'bi-umbrella',
+            'shopping': 'bi-bag',
+            'grocery': 'bi-basket',
+            'pharmacy': 'bi-capsule',
+            'hospital': 'bi-hospital',
+            'gym': 'bi-heart-pulse',
+            'spa': 'bi-flower1',
+            'tour': 'bi-map',
+            'rental': 'bi-key',
+            'taxi': 'bi-taxi-front',
+            'bus': 'bi-bus-front',
+            'train': 'bi-train-front'
+        }
+        return icons.get(self.category.lower(), self.get_type_icon())
     
     @property
     def photo_url(self):
         if self.photo_path:
             return url_for('static', filename=f'recommendations/{self.photo_path}')
         return None
+    
+    @property
+    def has_contact_info(self):
+        return any([self.phone, self.website, self.address, self.map_link])
+    
+    @property
+    def has_booking_info(self):
+        return self.booking_required or self.booking_link
     
     @property
     def vote_count(self):
@@ -1976,13 +2076,17 @@ class GuideBook(db.Model):
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     
     # Relationships
-    # associated_property = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
+    property_obj = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
     recommendations = db.relationship('RecommendationBlock', 
                                    secondary='guide_book_recommendations',
                                    backref=db.backref('guide_books', lazy=True))
 
     def __repr__(self):
         return f'<GuideBook {self.name}>'
+
+    def get_property(self):
+        """Get the property this guide book belongs to"""
+        return self.property_obj
 
     @property
     def recommendations_count(self):
@@ -2000,6 +2104,79 @@ class GuideBook(db.Model):
         if self.is_public and not self.access_token:
             return self.generate_access_token()
         return self.access_token
+    
+    @property
+    def associated_property(self):
+        """Alias for property to maintain backward compatibility"""
+        return self.property_obj
+    
+    @property
+    def property(self):
+        """Property accessor for backward compatibility"""
+        return self.property_obj
+
+class GuideBookSection(db.Model):
+    """Model for different sections within a guide book"""
+    __tablename__ = 'guide_book_sections'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    guide_book_id = db.Column(db.Integer, db.ForeignKey('guide_books.id'), nullable=False)
+    section_type = db.Column(db.String(50), nullable=False)  # house_rules, check_in, wifi, appliances, emergency, transportation, faq, etc.
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=True)  # Rich text content
+    order_index = db.Column(db.Integer, default=0)  # For ordering sections
+    is_active = db.Column(db.Boolean, default=True)
+    icon = db.Column(db.String(50), nullable=True)  # Bootstrap icon class
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    guide_book = db.relationship('GuideBook', backref=db.backref('sections', lazy=True, order_by='GuideBookSection.order_index'))
+    entries = db.relationship('GuideBookEntry', backref='section', lazy=True, cascade='all, delete-orphan', order_by='GuideBookEntry.order_index')
+    
+    def __repr__(self):
+        return f'<GuideBookSection {self.title} for GuideBook {self.guide_book_id}>'
+
+class GuideBookEntry(db.Model):
+    """Model for individual entries within a guide book section"""
+    __tablename__ = 'guide_book_entries'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    section_id = db.Column(db.Integer, db.ForeignKey('guide_book_sections.id'), nullable=False)
+    entry_type = db.Column(db.String(50), nullable=False)  # text, instruction, contact, location, link, image
+    title = db.Column(db.String(200), nullable=True)
+    content = db.Column(db.Text, nullable=True)
+    # Additional fields for different entry types
+    subtitle = db.Column(db.String(200), nullable=True)
+    url = db.Column(db.String(500), nullable=True)  # For links
+    phone = db.Column(db.String(50), nullable=True)  # For contacts
+    email = db.Column(db.String(100), nullable=True)  # For contacts
+    address = db.Column(db.String(500), nullable=True)  # For locations
+    latitude = db.Column(db.Float, nullable=True)  # For map locations
+    longitude = db.Column(db.Float, nullable=True)  # For map locations
+    image_path = db.Column(db.String(500), nullable=True)  # For images
+    icon = db.Column(db.String(50), nullable=True)  # Bootstrap icon class
+    order_index = db.Column(db.Integer, default=0)  # For ordering entries
+    is_important = db.Column(db.Boolean, default=False)  # Highlight important entries
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<GuideBookEntry {self.title or self.entry_type} for Section {self.section_id}>'
+    
+    def get_formatted_content(self):
+        """Return formatted content based on entry type"""
+        if self.entry_type == 'contact':
+            parts = []
+            if self.phone:
+                parts.append(f'Phone: {self.phone}')
+            if self.email:
+                parts.append(f'Email: {self.email}')
+            if self.address:
+                parts.append(f'Address: {self.address}')
+            return '\n'.join(parts)
+        return self.content
 
 # Association table for guide books and recommendations
 guide_book_recommendations = db.Table('guide_book_recommendations',

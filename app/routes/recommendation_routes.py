@@ -2,9 +2,10 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 import os
 from app import db
-from app.models import RecommendationBlock, Property, MediaType, RecommendationVote, GuideBook
+from app.models import RecommendationBlock, Property, MediaType, RecommendationVote, GuideBook, GuideBookSection, GuideBookEntry
 from app.forms.recommendation_forms import RecommendationBlockForm
 from app.forms.guide_book_forms import GuideBookForm
+from app.forms.guide_book_section_forms import GuideBookSectionForm, GuideBookEntryForm, BulkGuideBookEntryForm
 from app.utils.storage import allowed_file, save_file_to_storage
 from sqlalchemy import func
 
@@ -397,4 +398,272 @@ def view_property_guide_book(property_id):
         flash('No guide book found for this property.', 'warning')
         return redirect(url_for('recommendations.list_guide_books', property_id=property_id))
     
-    return redirect(url_for('recommendations.view_guide_book', id=guide_book.id)) 
+    return redirect(url_for('recommendations.view_guide_book', id=guide_book.id))
+
+# Guide Book Section Management Routes
+@bp.route('/guide-book/<int:guide_book_id>/sections')
+@login_required
+def manage_sections(guide_book_id):
+    """Manage sections for a guide book."""
+    guide_book = GuideBook.query.get_or_404(guide_book_id)
+    property = guide_book.property
+    
+    # Check permissions
+    if not (current_user.is_admin or current_user.is_property_owner or 
+            (current_user.is_property_manager and property.is_managed_by(current_user))):
+        flash('You do not have permission to manage this guide book.', 'error')
+        return redirect(url_for('main.index'))
+    
+    sections = GuideBookSection.query.filter_by(
+        guide_book_id=guide_book_id,
+        is_active=True
+    ).order_by(GuideBookSection.order_index).all()
+    
+    return render_template('recommendations/guide_book_sections.html',
+                         guide_book=guide_book,
+                         property=property,
+                         sections=sections)
+
+@bp.route('/guide-book/<int:guide_book_id>/section/create', methods=['GET', 'POST'])
+@login_required
+def create_section(guide_book_id):
+    """Create a new section for a guide book."""
+    guide_book = GuideBook.query.get_or_404(guide_book_id)
+    property = guide_book.property
+    
+    # Check permissions
+    if not (current_user.is_admin or current_user.is_property_owner or 
+            (current_user.is_property_manager and property.is_managed_by(current_user))):
+        flash('You do not have permission to add sections to this guide book.', 'error')
+        return redirect(url_for('main.index'))
+    
+    form = GuideBookSectionForm()
+    
+    if form.validate_on_submit():
+        section = GuideBookSection(
+            guide_book_id=guide_book_id,
+            section_type=form.section_type.data,
+            title=form.title.data,
+            content=form.content.data,
+            icon=form.icon.data,
+            order_index=form.order_index.data,
+            is_active=form.is_active.data
+        )
+        
+        # Auto-create common entries based on section type
+        if form.section_type.data == 'check_in':
+            # Add default check-in entries
+            default_entries = [
+                ('instruction', 'Check-in Time', '3:00 PM - 10:00 PM'),
+                ('instruction', 'Check-out Time', 'Before 11:00 AM'),
+                ('instruction', 'Key Location', 'Lockbox on the front door'),
+                ('text', 'Late Check-in', 'Please contact us if arriving after 10 PM')
+            ]
+            for entry_type, title, content in default_entries:
+                entry = GuideBookEntry(
+                    entry_type=entry_type,
+                    title=title,
+                    content=content,
+                    is_active=True
+                )
+                section.entries.append(entry)
+        
+        elif form.section_type.data == 'wifi':
+            default_entries = [
+                ('text', 'Network Name', 'PropertyWiFi'),
+                ('text', 'Password', 'YourPassword123'),
+                ('instruction', 'Smart TV', 'Netflix and YouTube are pre-installed')
+            ]
+            for entry_type, title, content in default_entries:
+                entry = GuideBookEntry(
+                    entry_type=entry_type,
+                    title=title,
+                    content=content,
+                    is_active=True
+                )
+                section.entries.append(entry)
+        
+        elif form.section_type.data == 'emergency':
+            default_entries = [
+                ('contact', 'Emergency Services', None),
+                ('contact', 'Property Manager', None),
+                ('contact', 'Nearest Hospital', None)
+            ]
+            for i, (entry_type, title, content) in enumerate(default_entries):
+                entry = GuideBookEntry(
+                    entry_type=entry_type,
+                    title=title,
+                    content=content,
+                    is_important=True if i == 0 else False,
+                    is_active=True
+                )
+                if title == 'Emergency Services':
+                    entry.phone = '911'
+                section.entries.append(entry)
+        
+        db.session.add(section)
+        db.session.commit()
+        
+        flash('Section created successfully!', 'success')
+        return redirect(url_for('recommendations.edit_section', section_id=section.id))
+    
+    return render_template('recommendations/guide_book_section_form.html',
+                         form=form,
+                         guide_book=guide_book,
+                         property=property,
+                         title='Create Section')
+
+@bp.route('/section/<int:section_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_section(section_id):
+    """Edit a guide book section and manage its entries."""
+    section = GuideBookSection.query.get_or_404(section_id)
+    guide_book = section.guide_book
+    property = guide_book.property
+    
+    # Check permissions
+    if not (current_user.is_admin or current_user.is_property_owner or 
+            (current_user.is_property_manager and property.is_managed_by(current_user))):
+        flash('You do not have permission to edit this section.', 'error')
+        return redirect(url_for('main.index'))
+    
+    form = GuideBookSectionForm(obj=section)
+    entry_form = GuideBookEntryForm()
+    bulk_form = BulkGuideBookEntryForm()
+    
+    if form.validate_on_submit() and 'update_section' in request.form:
+        section.section_type = form.section_type.data
+        section.title = form.title.data
+        section.content = form.content.data
+        section.icon = form.icon.data
+        section.order_index = form.order_index.data
+        section.is_active = form.is_active.data
+        
+        db.session.commit()
+        flash('Section updated successfully!', 'success')
+        return redirect(url_for('recommendations.edit_section', section_id=section_id))
+    
+    entries = GuideBookEntry.query.filter_by(
+        section_id=section_id,
+        is_active=True
+    ).order_by(GuideBookEntry.order_index).all()
+    
+    return render_template('recommendations/guide_book_section_edit.html',
+                         form=form,
+                         entry_form=entry_form,
+                         bulk_form=bulk_form,
+                         section=section,
+                         entries=entries,
+                         guide_book=guide_book,
+                         property=property)
+
+@bp.route('/section/<int:section_id>/entry/create', methods=['POST'])
+@login_required
+def create_entry(section_id):
+    """Create a new entry in a section."""
+    section = GuideBookSection.query.get_or_404(section_id)
+    guide_book = section.guide_book
+    property = guide_book.property
+    
+    # Check permissions
+    if not (current_user.is_admin or current_user.is_property_owner or 
+            (current_user.is_property_manager and property.is_managed_by(current_user))):
+        flash('You do not have permission to add entries to this section.', 'error')
+        return redirect(url_for('main.index'))
+    
+    form = GuideBookEntryForm()
+    
+    if form.validate_on_submit():
+        entry = GuideBookEntry(
+            section_id=section_id,
+            entry_type=form.entry_type.data,
+            title=form.title.data,
+            subtitle=form.subtitle.data,
+            content=form.content.data,
+            phone=form.phone.data,
+            email=form.email.data,
+            address=form.address.data,
+            latitude=form.latitude.data,
+            longitude=form.longitude.data,
+            url=form.url.data,
+            icon=form.icon.data,
+            order_index=form.order_index.data,
+            is_important=form.is_important.data,
+            is_active=form.is_active.data
+        )
+        
+        # Handle image upload
+        if form.image.data:
+            filename = save_file_to_storage(form.image.data, 'guide_book_entries')
+            if filename:
+                entry.image_path = filename
+        
+        db.session.add(entry)
+        db.session.commit()
+        
+        flash('Entry added successfully!', 'success')
+    else:
+        flash('Error adding entry. Please check the form.', 'error')
+    
+    return redirect(url_for('recommendations.edit_section', section_id=section_id))
+
+@bp.route('/section/<int:section_id>/entries/bulk', methods=['POST'])
+@login_required
+def create_bulk_entries(section_id):
+    """Create multiple entries at once."""
+    section = GuideBookSection.query.get_or_404(section_id)
+    guide_book = section.guide_book
+    property = guide_book.property
+    
+    # Check permissions
+    if not (current_user.is_admin or current_user.is_property_owner or 
+            (current_user.is_property_manager and property.is_managed_by(current_user))):
+        flash('You do not have permission to add entries to this section.', 'error')
+        return redirect(url_for('main.index'))
+    
+    form = BulkGuideBookEntryForm()
+    
+    if form.validate_on_submit():
+        entries_text = form.entries.data
+        entry_type = form.entry_type.data
+        
+        # Split by newlines and create entries
+        lines = [line.strip() for line in entries_text.split('\n') if line.strip()]
+        
+        for i, line in enumerate(lines):
+            entry = GuideBookEntry(
+                section_id=section_id,
+                entry_type=entry_type,
+                content=line,
+                order_index=i * 10,  # Space them out for easy reordering
+                is_active=True
+            )
+            db.session.add(entry)
+        
+        db.session.commit()
+        flash(f'{len(lines)} entries added successfully!', 'success')
+    else:
+        flash('Error adding entries. Please check the form.', 'error')
+    
+    return redirect(url_for('recommendations.edit_section', section_id=section_id))
+
+@bp.route('/entry/<int:entry_id>/delete', methods=['POST'])
+@login_required
+def delete_entry(entry_id):
+    """Delete an entry from a section."""
+    entry = GuideBookEntry.query.get_or_404(entry_id)
+    section = entry.section
+    guide_book = section.guide_book
+    property = guide_book.property
+    
+    # Check permissions
+    if not (current_user.is_admin or current_user.is_property_owner or 
+            (current_user.is_property_manager and property.is_managed_by(current_user))):
+        flash('You do not have permission to delete this entry.', 'error')
+        return redirect(url_for('main.index'))
+    
+    entry.is_active = False
+    db.session.commit()
+    
+    flash('Entry deleted successfully!', 'success')
+    return redirect(url_for('recommendations.edit_section', section_id=section.id)) 
