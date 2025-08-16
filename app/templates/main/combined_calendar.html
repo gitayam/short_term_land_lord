@@ -161,79 +161,268 @@
         outline: none;
     }
 
-    /* Simple Calendar Styling */
-    #calendar {
+    /* Timeline Calendar Container */
+    .timeline-calendar {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
         min-height: 600px;
     }
 
-    /* Basic FullCalendar Styling */
-    .fc {
-        max-width: 100%;
+    /* Timeline Header */
+    .timeline-header {
+        display: flex;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--gray-200);
+        position: sticky;
+        top: 0;
+        z-index: 100;
     }
 
-    .fc .fc-toolbar.fc-header-toolbar {
-        margin-bottom: var(--spacing-lg);
+    .timeline-property-header {
+        width: 280px;
+        min-width: 280px;
         padding: var(--spacing-lg);
+        border-right: 1px solid var(--gray-200);
         background: var(--bg-secondary);
+        display: flex;
+        align-items: center;
+        font-weight: var(--font-weight-semibold);
+        color: var(--gray-700);
+    }
+
+    .timeline-dates-header {
+        flex: 1;
+        overflow-x: auto;
+        background: var(--bg-secondary);
+    }
+
+    .dates-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        min-width: 1200px;
+        border-collapse: collapse;
+    }
+
+    .date-header {
+        padding: var(--spacing-md);
+        text-align: center;
+        border-right: 1px solid var(--gray-200);
+        font-size: 0.875rem;
+        font-weight: var(--font-weight-medium);
+        color: var(--gray-600);
+    }
+
+    .date-header.today {
+        background: var(--airbnb-accessible);
+        color: white;
+        font-weight: var(--font-weight-bold);
+    }
+
+    .date-number {
+        font-size: 1.1rem;
+        font-weight: var(--font-weight-bold);
+        color: var(--gray-800);
+        margin-bottom: 2px;
+    }
+
+    .date-day {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Timeline Body */
+    .timeline-body {
+        display: flex;
+        flex-direction: column;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .timeline-row {
+        display: flex;
+        border-bottom: 1px solid var(--gray-200);
+        min-height: 80px;
+        transition: background-color var(--transition-fast);
+    }
+
+    .timeline-row:hover {
+        background-color: var(--gray-50);
+    }
+
+    .property-info {
+        width: 280px;
+        min-width: 280px;
+        padding: var(--spacing-lg);
+        border-right: 1px solid var(--gray-200);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+    }
+
+    .property-image {
+        width: 48px;
+        height: 48px;
         border-radius: var(--radius-lg);
+        object-fit: cover;
         box-shadow: var(--shadow-sm);
     }
 
-    .fc .fc-toolbar-title {
-        font-size: 1.75rem;
-        font-weight: var(--font-weight-bold);
+    .property-details h4 {
+        font-size: 0.95rem;
+        font-weight: var(--font-weight-semibold);
         color: var(--gray-800);
+        margin: 0 0 4px 0;
+        line-height: 1.2;
     }
 
-    .fc .fc-button {
-        background: var(--bg-primary);
-        border: 1px solid var(--gray-300);
-        color: var(--gray-700);
+    .property-location {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+        margin: 0;
+    }
+
+    .property-status {
+        margin-top: 4px;
+    }
+
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+        font-weight: var(--font-weight-medium);
+        background: var(--status-confirmed);
+        color: white;
+    }
+
+    /* Timeline Days */
+    .timeline-days {
+        flex: 1;
+        overflow-x: auto;
+        position: relative;
+    }
+
+    .days-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        min-width: 1200px;
+        height: 100%;
+        position: relative;
+    }
+
+    .day-cell {
+        border-right: 1px solid var(--gray-200);
+        position: relative;
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        color: var(--gray-400);
+    }
+
+    .day-cell.today {
+        background: linear-gradient(135deg, rgba(255, 90, 95, 0.1) 0%, rgba(255, 90, 95, 0.05) 100%);
+        border-right-color: var(--airbnb-accessible);
+    }
+
+    /* Booking Blocks */
+    .booking-block {
+        position: absolute;
+        top: 8px;
+        bottom: 8px;
         border-radius: var(--radius-md);
+        padding: var(--spacing-sm);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: var(--font-weight-medium);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        min-width: 100px;
+    }
+
+    .booking-block:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        z-index: 10;
+    }
+
+    .booking-block.airbnb {
+        background: linear-gradient(135deg, var(--airbnb-accessible) 0%, #C71E23 100%);
+    }
+
+    .booking-block.vrbo {
+        background: linear-gradient(135deg, var(--vrbo-accessible) 0%, #1565C0 100%);
+    }
+
+    .booking-block.booking {
+        background: linear-gradient(135deg, var(--booking-accessible) 0%, #0A3D91 100%);
+    }
+
+    .booking-block.direct {
+        background: linear-gradient(135deg, var(--direct-accessible) 0%, #1B5E20 100%);
+    }
+
+    .booking-guest {
+        font-weight: var(--font-weight-semibold);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 2px;
+    }
+
+    .booking-price {
+        font-size: 0.7rem;
+        opacity: 0.9;
+        white-space: nowrap;
+    }
+
+    /* Navigation Controls */
+    .timeline-nav {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        padding: var(--spacing-lg);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        justify-content: space-between;
+    }
+
+    .nav-controls {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .nav-btn {
         padding: var(--spacing-sm) var(--spacing-md);
-        box-shadow: var(--shadow-xs);
+        border: 1px solid var(--gray-300);
+        background: var(--bg-primary);
+        border-radius: var(--radius-md);
+        color: var(--gray-700);
+        font-size: 0.875rem;
+        font-weight: var(--font-weight-medium);
+        cursor: pointer;
         transition: all var(--transition-fast);
     }
 
-    .fc .fc-button:hover {
+    .nav-btn:hover {
         background: var(--gray-50);
         border-color: var(--gray-400);
         transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
     }
 
-    /* Platform-Specific Event Colors */
-    .fc-event.airbnb-event {
-        background: linear-gradient(135deg, var(--airbnb-accessible) 0%, #C71E23 100%) !important;
-        border: none !important;
-    }
-    
-    .fc-event.vrbo-event {
-        background: linear-gradient(135deg, var(--vrbo-accessible) 0%, #1565C0 100%) !important;
-        border: none !important;
-    }
-    
-    .fc-event.booking-event {
-        background: linear-gradient(135deg, var(--booking-accessible) 0%, #0A3D91 100%) !important;
-        border: none !important;
-    }
-    
-    .fc-event.direct-event {
-        background: linear-gradient(135deg, var(--direct-accessible) 0%, #1B5E20 100%) !important;
-        border: none !important;
-    }
-
-    .fc-event {
-        border-radius: var(--radius-lg) !important;
-        padding: var(--spacing-xs) var(--spacing-sm) !important;
-        font-weight: var(--font-weight-medium) !important;
-        box-shadow: var(--shadow-sm) !important;
-        transition: all var(--transition-fast) !important;
-    }
-
-    .fc-event:hover {
-        transform: translateY(-1px) scale(1.02) !important;
-        box-shadow: var(--shadow-lg) !important;
+    .current-period {
+        font-size: 1.1rem;
+        font-weight: var(--font-weight-bold);
+        color: var(--gray-800);
     }
 
     /* Property type icons */
@@ -291,10 +480,33 @@
                 {% endfor %}
             </div>
         </div>
-        <!-- Main Calendar Area -->
+        <!-- Main Timeline Calendar Area -->
         <div class="col-lg-9 col-12 main-calendar-area">
-            <div class="calendar-container">
-                <div id="calendar"></div>
+            <div class="timeline-calendar">
+                <!-- Timeline Navigation -->
+                <div class="timeline-nav">
+                    <div class="current-period" id="currentPeriod">August 2025</div>
+                    <div class="nav-controls">
+                        <button class="nav-btn" id="prevWeek">← Previous</button>
+                        <button class="nav-btn" id="todayBtn">Today</button>
+                        <button class="nav-btn" id="nextWeek">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Timeline Header with Dates -->
+                <div class="timeline-header">
+                    <div class="timeline-property-header">Properties</div>
+                    <div class="timeline-dates-header">
+                        <div class="dates-grid" id="datesGrid">
+                            <!-- Dates will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline Body with Property Rows -->
+                <div class="timeline-body" id="timelineBody">
+                    <!-- Property rows will be populated by JavaScript -->
+                </div>
             </div>
         </div>
     </div>
@@ -339,8 +551,6 @@
 
 {% block scripts %}
 {{ super() }}
-{# Include FullCalendar v6 basic #}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 {# Include Bootstrap JS for modal #}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -351,112 +561,274 @@ var rawEvents = {{ events|tojson|safe }} || [];
 console.log('Resources loaded:', resources.length);
 console.log('Events loaded:', rawEvents.length);
 
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, starting calendar initialization...');
-    
-    var calendarEl = document.getElementById('calendar');
-    
-    if (!calendarEl) {
-        console.error('Calendar element not found');
-        return;
+// Timeline Calendar Implementation
+class TimelineCalendar {
+    constructor() {
+        this.currentStartDate = new Date();
+        this.daysToShow = 14; // Show 2 weeks
+        this.properties = resources;
+        this.events = this.processEvents(rawEvents);
+        
+        this.init();
     }
 
-    if (typeof FullCalendar === 'undefined') {
-        console.error('FullCalendar library not loaded');
-        return;
+    init() {
+        this.setupEventListeners();
+        this.setCurrentWeek();
+        this.render();
+        this.scrollToToday();
     }
 
-    // Process events
-    var processedEvents = [];
-    rawEvents.forEach(function(event) {
-        if (event && event.start) {
-            if (!event.resourceId && event.extendedProps && event.extendedProps.property_id) {
-                event.resourceId = String(event.extendedProps.property_id);
-            }
-            processedEvents.push(event);
+    processEvents(events) {
+        return events.map(event => {
+            return {
+                ...event,
+                startDate: new Date(event.start),
+                endDate: event.end ? new Date(event.end) : new Date(event.start),
+                platform: event.extendedProps?.platform || 'direct',
+                propertyId: event.extendedProps?.property_id || event.resourceId
+            };
+        });
+    }
+
+    setCurrentWeek() {
+        // Start from Monday of current week
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        this.currentStartDate = new Date(today);
+        this.currentStartDate.setDate(today.getDate() + mondayOffset);
+    }
+
+    setupEventListeners() {
+        document.getElementById('prevWeek').addEventListener('click', () => {
+            this.currentStartDate.setDate(this.currentStartDate.getDate() - 7);
+            this.render();
+        });
+
+        document.getElementById('nextWeek').addEventListener('click', () => {
+            this.currentStartDate.setDate(this.currentStartDate.getDate() + 7);
+            this.render();
+        });
+
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            this.setCurrentWeek();
+            this.render();
+            this.scrollToToday();
+        });
+    }
+
+    generateDates() {
+        const dates = [];
+        for (let i = 0; i < this.daysToShow; i++) {
+            const date = new Date(this.currentStartDate);
+            date.setDate(this.currentStartDate.getDate() + i);
+            dates.push(date);
         }
-    });
+        return dates;
+    }
 
-    console.log('Processed events:', processedEvents.length);
+    renderDateHeaders() {
+        const datesGrid = document.getElementById('datesGrid');
+        const dates = this.generateDates();
+        const today = new Date();
+        
+        datesGrid.innerHTML = dates.map(date => {
+            const isToday = date.toDateString() === today.toDateString();
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            return `
+                <div class="date-header ${isToday ? 'today' : ''}" data-date="${date.toISOString().split('T')[0]}">
+                    <div class="date-number">${date.getDate()}</div>
+                    <div class="date-day">${dayNames[date.getDay()]}</div>
+                </div>
+            `;
+        }).join('');
 
-    // Create calendar with simplified view
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        height: 'auto',
-        events: processedEvents,
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,listWeek'
-        },
-        eventClassNames: function(arg) {
-            var platform = arg.event.extendedProps.platform || 'direct';
-            return [platform.toLowerCase() + '-event'];
-        },
-        eventClick: function(info) {
-            showEventModal(info.event);
-        },
-        eventDisplay: 'block',
-        dayMaxEvents: 3
-    });
+        // Update period display
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
+        const startMonth = monthNames[this.currentStartDate.getMonth()];
+        const endDate = new Date(this.currentStartDate);
+        endDate.setDate(endDate.getDate() + this.daysToShow - 1);
+        const endMonth = monthNames[endDate.getMonth()];
+        
+        const periodText = startMonth === endMonth 
+            ? `${startMonth} ${this.currentStartDate.getFullYear()}`
+            : `${startMonth} - ${endMonth} ${this.currentStartDate.getFullYear()}`;
+        
+        document.getElementById('currentPeriod').textContent = periodText;
+    }
+
+    renderPropertyRows() {
+        const timelineBody = document.getElementById('timelineBody');
+        const dates = this.generateDates();
+        
+        timelineBody.innerHTML = this.properties.map(property => {
+            const propertyEvents = this.events.filter(event => 
+                String(event.propertyId) === String(property.id)
+            );
+
+            return `
+                <div class="timeline-row" data-property-id="${property.id}">
+                    <div class="property-info">
+                        <img src="${property.image_url || '/static/img/default-property.jpg'}" 
+                             alt="${property.title}" class="property-image">
+                        <div class="property-details">
+                            <h4>${property.title}</h4>
+                            <p class="property-location">📍 ${property.city}, ${property.state}</p>
+                            <div class="property-status">
+                                <span class="status-badge">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="timeline-days">
+                        <div class="days-grid">
+                            ${this.renderDayCells(dates, propertyEvents)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    renderDayCells(dates, propertyEvents) {
+        const today = new Date();
+        
+        return dates.map((date, index) => {
+            const isToday = date.toDateString() === today.toDateString();
+            const dayEvents = this.getDayEvents(date, propertyEvents);
+            
+            return `
+                <div class="day-cell ${isToday ? 'today' : ''}" 
+                     style="grid-column: ${index + 1};">
+                    ${dayEvents.map(event => this.renderBookingBlock(event, date, dates)).join('')}
+                </div>
+            `;
+        }).join('');
+    }
+
+    getDayEvents(date, events) {
+        return events.filter(event => {
+            const eventStart = new Date(event.startDate);
+            const eventEnd = new Date(event.endDate);
+            eventStart.setHours(0, 0, 0, 0);
+            eventEnd.setHours(23, 59, 59, 999);
+            date.setHours(12, 0, 0, 0);
+            
+            return date >= eventStart && date <= eventEnd;
+        });
+    }
+
+    renderBookingBlock(event, currentDate, allDates) {
+        const eventStart = new Date(event.startDate);
+        const eventEnd = new Date(event.endDate);
+        
+        // Check if this is the start of the booking block
+        const isStart = currentDate.toDateString() === eventStart.toDateString() || 
+                       (currentDate <= eventStart && currentDate === allDates[0]);
+
+        if (!isStart) return '';
+
+        // Calculate span
+        const startIndex = allDates.findIndex(d => d.toDateString() === currentDate.toDateString());
+        let endIndex = allDates.findIndex(d => d.toDateString() === eventEnd.toDateString());
+        if (endIndex === -1) endIndex = allDates.length - 1;
+        
+        const span = endIndex - startIndex + 1;
+        const width = `calc(${span * 100}% - 4px)`;
+
+        const platformClass = event.platform.toLowerCase();
+        const guestName = event.title || 'Booking';
+        const price = event.extendedProps?.price || '';
+
+        return `
+            <div class="booking-block ${platformClass}" 
+                 style="left: 2px; width: ${width};"
+                 onclick="showEventModal('${event.id}')">
+                <div class="booking-guest">${guestName}</div>
+                ${price ? `<div class="booking-price">$${price}</div>` : ''}
+            </div>
+        `;
+    }
+
+    render() {
+        this.renderDateHeaders();
+        this.renderPropertyRows();
+    }
+
+    scrollToToday() {
+        setTimeout(() => {
+            const todayHeader = document.querySelector('.date-header.today');
+            if (todayHeader) {
+                const datesContainer = document.querySelector('.timeline-dates-header');
+                const scrollLeft = todayHeader.offsetLeft - datesContainer.offsetWidth / 2;
+                datesContainer.scrollLeft = Math.max(0, scrollLeft);
+                
+                // Also scroll timeline days
+                document.querySelectorAll('.timeline-days').forEach(container => {
+                    container.scrollLeft = Math.max(0, scrollLeft);
+                });
+            }
+        }, 100);
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, starting timeline calendar...');
+    
+    if (resources.length === 0) {
+        console.warn('No properties found, creating sample data');
+        // Add sample properties for demo
+        resources = [
+            {
+                id: '1',
+                title: 'Elegant Suite',
+                city: 'Miami',
+                state: 'FL',
+                image_url: '/static/img/default-property.jpg'
+            }
+        ];
+    }
+
+    // Initialize timeline calendar
+    window.timelineCalendar = new TimelineCalendar();
+});
+
+// Event modal function
+function showEventModal(eventId) {
+    const event = rawEvents.find(e => e.id === eventId);
+    if (!event) return;
 
     try {
-        calendar.render();
-        console.log('Calendar rendered successfully!');
-    } catch (error) {
-        console.error('Error rendering calendar:', error);
-        calendarEl.innerHTML = '<div class="alert alert-warning">Calendar could not be loaded. Error: ' + error.message + '</div>';
+        const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+        document.getElementById('property-name').textContent = event.extendedProps?.property_name || 'Unknown Property';
+        document.getElementById('guest-summary').textContent = event.title || 'No guest information';
+        
+        const startDate = new Date(event.start).toLocaleDateString();
+        const endDate = event.end ? new Date(event.end).toLocaleDateString() : startDate;
+        document.getElementById('date-range').textContent = startDate + ' to ' + endDate;
+        document.getElementById('source').textContent = event.extendedProps?.platform || 'Direct Booking';
+        
+        modal.show();
+    } catch (e) {
+        console.error('Error showing event modal:', e);
     }
+}
 
-    function showEventModal(event) {
-        try {
-            var modal = new bootstrap.Modal(document.getElementById('eventModal'));
-            document.getElementById('property-name').textContent = event.extendedProps.property_name || 'Unknown Property';
-            document.getElementById('guest-summary').textContent = event.title || 'No guest information';
-            
-            var startDate = new Date(event.start).toLocaleDateString();
-            var endDate = event.end ? new Date(event.end).toLocaleDateString() : startDate;
-            document.getElementById('date-range').textContent = startDate + ' to ' + endDate;
-            document.getElementById('source').textContent = event.extendedProps.platform || 'Direct Booking';
-            
-            modal.show();
-        } catch (e) {
-            console.error('Error showing event modal:', e);
-        }
-    }
-
-    // Enhanced search functionality
-    var searchInput = document.getElementById('propertySearch');
+// Enhanced search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('propertySearch');
     if (searchInput) {
         searchInput.addEventListener('input', function() {
-            var val = this.value.toLowerCase();
-            document.querySelectorAll('.property-list-item').forEach(function(item) {
-                var name = item.querySelector('.fw-semibold').textContent.toLowerCase();
-                item.style.display = name.includes(val) ? '' : 'none';
+            const val = this.value.toLowerCase();
+            document.querySelectorAll('.timeline-row').forEach(function(row) {
+                const propertyName = row.querySelector('h4').textContent.toLowerCase();
+                row.style.display = propertyName.includes(val) ? '' : 'none';
             });
         });
     }
-
-    // Property selection
-    document.querySelectorAll('.property-list-item').forEach(function(item) {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            var resourceId = this.getAttribute('data-resource-id');
-            
-            document.querySelectorAll('.property-list-item').forEach(function(p) {
-                p.classList.remove('active');
-            });
-            this.classList.add('active');
-            
-            try {
-                if (calendar && calendar.scrollToResource) {
-                    calendar.scrollToResource(resourceId);
-                }
-            } catch (e) {
-                console.warn('Could not scroll to resource:', e);
-            }
-        });
-    });
 });
 </script>
 {% endblock %}
