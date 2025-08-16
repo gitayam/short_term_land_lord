@@ -5,7 +5,7 @@ env_variables:
   DATABASE_URL: "sqlite:///:memory:"
   GOOGLE_CLOUD_PROJECT_ID: "serverless-test-12345"
 
-entrypoint: gunicorn main:app --bind :$PORT
+entrypoint: gunicorn app:app --bind :$PORT
 
 automatic_scaling:
   max_instances: 10
