@@ -2,8 +2,7 @@
 
 {% block styles %}
 {{ super() }}
-{# Use FullCalendar v6 basic #}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
+{# Timeline calendar uses custom CSS - no external calendar library needed #}
 
 <style>
     /* CSS Custom Properties - Design System */
@@ -569,6 +568,7 @@ var rawEvents = {{ events|tojson|safe }} || [];
 
 console.log('Resources loaded:', resources.length);
 console.log('Events loaded:', rawEvents.length);
+console.log('Sample event data:', rawEvents);
 
 // Timeline Calendar Implementation
 class TimelineCalendar {

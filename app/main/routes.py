@@ -242,23 +242,23 @@ def combined_calendar():
             import random
             
             for i, prop in enumerate(properties[:3]):  # Limit to first 3 properties for demo
-                # Generate 1-2 sample bookings per property
-                for booking_num in range(1, 3):
-                    # Random start date within next 60 days
-                    start_offset = random.randint(0, 60)
-                    duration = random.randint(2, 7)  # 2-7 day bookings
+                # Generate 1-2 sample bookings per property with consistent dates
+                sample_bookings = [
+                    {'start_offset': 1, 'duration': 3, 'guest': 'Johnson Group', 'platform': 'VRBO', 'amount': 282},
+                    {'start_offset': 8, 'duration': 4, 'guest': 'Brown Couple', 'platform': 'Airbnb', 'amount': 320}
+                ]
+                
+                for booking_num, booking_data in enumerate(sample_bookings[:2]):
+                    start_offset = booking_data['start_offset']
+                    duration = booking_data['duration']
                     
                     start_date = datetime.now() + timedelta(days=start_offset)
                     end_date = start_date + timedelta(days=duration)
                     
-                    guest_names = ['Smith Family', 'Johnson Group', 'Williams Party', 'Brown Couple']
-                    platforms = ['Airbnb', 'VRBO', 'Booking.com', 'Direct']
-                    statuses = ['Confirmed', 'Pending', 'Checked In']
-                    
                     events.append({
                         'id': f'sample_{prop.id}_{booking_num}',
                         'resourceId': str(prop.id),
-                        'title': random.choice(guest_names),
+                        'title': booking_data['guest'],
                         'start': start_date.isoformat(),
                         'end': end_date.isoformat(),
                         'backgroundColor': resources[i]['color'],
@@ -267,10 +267,10 @@ def combined_calendar():
                         'extendedProps': {
                             'property_id': prop.id,
                             'property_name': prop.name,
-                            'platform': random.choice(platforms),
-                            'status': random.choice(statuses),
-                            'amount': random.randint(150, 400),
-                            'guest_count': random.randint(2, 6),
+                            'platform': booking_data['platform'],
+                            'status': 'Confirmed',
+                            'amount': booking_data['amount'],
+                            'guest_count': 4 if booking_data['guest'] == 'Johnson Group' else 2,
                             'is_sample': True  # Mark as sample data
                         }
                     })
