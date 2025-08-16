@@ -520,6 +520,103 @@ class User(UserMixin, db.Model):
         else:
             # Service staff and other roles
             return []
+    
+    # Guest-specific fields
+    @property 
+    def is_guest_user(self):
+        """Check if user is a guest user"""
+        return self.role == UserRoles.PROPERTY_GUEST.value
+    
+    # Guest account management
+    invitation_code_id = db.Column(db.Integer, db.ForeignKey('guest_invitations.id'), nullable=True)
+    guest_preferences = db.Column(db.Text, nullable=True)  # JSON for guest preferences
+    last_check_in = db.Column(db.DateTime, nullable=True)  # Track guest's last check-in
+    guest_rating = db.Column(db.Float, nullable=True)  # Guest rating from property owners
+    guest_notes = db.Column(db.Text, nullable=True)  # Internal notes about the guest
+    
+    # Guest contact preferences 
+    marketing_emails_consent = db.Column(db.Boolean, default=False, nullable=False)
+    booking_reminders_consent = db.Column(db.Boolean, default=True, nullable=False)
+    
+    # Guest verification
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_verification_token = db.Column(db.String(64), nullable=True)
+    email_verification_sent_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationship to invitation that created this guest account
+    invitation_used = db.relationship('GuestInvitation', foreign_keys=[invitation_code_id], 
+                                     backref='guest_user_created', lazy=True)
+    
+    def create_guest_user(self, email, first_name, last_name, invitation_code):
+        """Create a new guest user account"""
+        # Verify invitation code
+        invitation = GuestInvitation.get_by_code(invitation_code)
+        if not invitation or not invitation.is_available:
+            raise ValueError("Invalid or expired invitation code")
+        
+        # Create guest user
+        self.email = email
+        self.first_name = first_name
+        self.last_name = last_name
+        self.role = UserRoles.PROPERTY_GUEST.value
+        self.invitation_code_id = invitation.id
+        self.is_active = True
+        
+        # Generate email verification token
+        import secrets
+        self.email_verification_token = secrets.token_urlsafe(32)
+        self.email_verification_sent_at = datetime.utcnow()
+        
+        # Mark invitation as used
+        invitation.mark_as_used(self.id)
+        
+        return self
+    
+    def verify_email(self, token):
+        """Verify guest email with token"""
+        if (self.email_verification_token == token and 
+            self.email_verification_sent_at and
+            datetime.utcnow() - self.email_verification_sent_at < timedelta(days=7)):
+            self.email_verified = True
+            self.email_verification_token = None
+            self.email_verification_sent_at = None
+            return True
+        return False
+    
+    def get_guest_preferences(self):
+        """Get guest preferences as dict"""
+        if self.guest_preferences:
+            import json
+            try:
+                return json.loads(self.guest_preferences)
+            except json.JSONDecodeError:
+                return {}
+        return {}
+    
+    def update_guest_preferences(self, preferences_dict):
+        """Update guest preferences"""
+        import json
+        self.guest_preferences = json.dumps(preferences_dict)
+        self.updated_at = datetime.utcnow()
+    
+    def get_guest_properties(self):
+        """Get properties this guest has access to"""
+        if not self.is_guest_user:
+            return []
+        
+        # Get properties from bookings
+        from sqlalchemy import distinct
+        property_ids = db.session.query(distinct(GuestBooking.property_id)).filter_by(
+            guest_user_id=self.id
+        ).all()
+        
+        properties = []
+        for (prop_id,) in property_ids:
+            prop = Property.query.get(prop_id)
+            if prop:
+                properties.append(prop)
+        
+        return properties
 
 class Property(db.Model):
     """
@@ -2322,3 +2419,286 @@ class GuidebookEntry(db.Model):
         """Get all entries for a property formatted for map display"""
         entries = cls.query.filter_by(property_id=property_id, is_active=True).all()
         return [entry.get_map_data() for entry in entries if entry.has_coordinates()]
+
+
+class GuestInvitation(db.Model):
+    """Model for guest invitation codes that allow guests to create accounts"""
+    __tablename__ = 'guest_invitations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(24), unique=True, nullable=False, index=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    email = db.Column(db.String(120), nullable=True)  # Optional: pre-specify guest email
+    guest_name = db.Column(db.String(200), nullable=True)  # Optional: guest name
+    
+    # Expiration and usage tracking
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    used_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Status fields
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    max_uses = db.Column(db.Integer, default=1, nullable=False)  # How many times code can be used
+    current_uses = db.Column(db.Integer, default=0, nullable=False)
+    
+    # Metadata
+    notes = db.Column(db.Text, nullable=True)  # Internal notes about the invitation
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    property_ref = db.relationship('Property', backref='guest_invitations', lazy=True)
+    created_by = db.relationship('User', foreign_keys=[created_by_id], backref='created_invitations', lazy=True)
+    used_by = db.relationship('User', foreign_keys=[used_by_id], backref='used_invitations', lazy=True)
+    
+    def __repr__(self):
+        return f'<GuestInvitation {self.code}>'
+    
+    @property
+    def is_expired(self):
+        """Check if the invitation has expired"""
+        return datetime.utcnow() > self.expires_at
+    
+    @property
+    def is_available(self):
+        """Check if the invitation can still be used"""
+        return (self.is_active and 
+                not self.is_expired and 
+                self.current_uses < self.max_uses)
+    
+    @property
+    def is_single_use(self):
+        """Check if this is a single-use invitation"""
+        return self.max_uses == 1
+    
+    def mark_as_used(self, user_id):
+        """Mark the invitation as used by a specific user"""
+        self.current_uses += 1
+        if self.is_single_use:
+            self.used_at = datetime.utcnow()
+            self.used_by_id = user_id
+        self.updated_at = datetime.utcnow()
+        
+        # Deactivate if max uses reached
+        if self.current_uses >= self.max_uses:
+            self.is_active = False
+    
+    def extend_expiration(self, days=30):
+        """Extend the expiration date by specified days"""
+        self.expires_at = datetime.utcnow() + timedelta(days=days)
+        self.updated_at = datetime.utcnow()
+    
+    @classmethod
+    def generate_unique_code(cls, length=12):
+        """Generate a unique invitation code (5-24 characters, default 12)"""
+        import string
+        import secrets
+        
+        # Ensure length is within valid range
+        length = max(5, min(24, length))
+        
+        # Use alphanumeric characters (avoiding similar-looking ones)
+        alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits
+        alphabet = alphabet.replace('0', '').replace('O', '').replace('l', '').replace('I', '')
+        
+        max_attempts = 10
+        for _ in range(max_attempts):
+            code = ''.join(secrets.choice(alphabet) for _ in range(length))
+            
+            # Check if code already exists
+            if not cls.query.filter_by(code=code).first():
+                return code
+        
+        # Fallback to UUID-based code if random generation fails
+        import uuid
+        return str(uuid.uuid4()).replace('-', '')[:length].upper()
+    
+    @classmethod
+    def create_invitation(cls, created_by_id, property_id=None, email=None, guest_name=None, 
+                         expires_in_days=30, max_uses=1, notes=None):
+        """Create a new guest invitation"""
+        code = cls.generate_unique_code()
+        expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+        
+        invitation = cls(
+            code=code,
+            property_id=property_id,
+            created_by_id=created_by_id,
+            email=email,
+            guest_name=guest_name,
+            expires_at=expires_at,
+            max_uses=max_uses,
+            notes=notes
+        )
+        
+        db.session.add(invitation)
+        db.session.commit()
+        return invitation
+    
+    @classmethod
+    def get_by_code(cls, code):
+        """Get invitation by code"""
+        return cls.query.filter_by(code=code, is_active=True).first()
+    
+    @classmethod
+    def get_active_by_property(cls, property_id):
+        """Get all active invitations for a property"""
+        return cls.query.filter_by(
+            property_id=property_id, 
+            is_active=True
+        ).filter(
+            cls.expires_at > datetime.utcnow()
+        ).order_by(cls.created_at.desc()).all()
+    
+    @classmethod
+    def cleanup_expired(cls):
+        """Clean up expired invitations"""
+        expired = cls.query.filter(
+            cls.expires_at < datetime.utcnow(),
+            cls.is_active == True
+        ).all()
+        
+        for invitation in expired:
+            invitation.is_active = False
+        
+        db.session.commit()
+        return len(expired)
+
+
+class GuestBooking(db.Model):
+    """Model for tracking guest bookings (both external and direct)"""
+    __tablename__ = 'guest_bookings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    guest_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Booking details
+    check_in_date = db.Column(db.Date, nullable=False)
+    check_out_date = db.Column(db.Date, nullable=False)
+    guest_count = db.Column(db.Integer, default=1, nullable=False)
+    
+    # Booking source and external references
+    booking_source = db.Column(db.String(50), nullable=False)  # 'direct', 'airbnb', 'vrbo', 'booking_com'
+    external_booking_id = db.Column(db.String(100), nullable=True)  # ID from external platform
+    external_booking_url = db.Column(db.String(500), nullable=True)  # Link to external booking
+    
+    # Financial information
+    total_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    currency = db.Column(db.String(3), default='USD', nullable=False)
+    
+    # Status tracking
+    status = db.Column(db.String(20), default='confirmed', nullable=False)  # confirmed, cancelled, completed
+    confirmation_code = db.Column(db.String(50), nullable=True)
+    
+    # Guest communication
+    special_requests = db.Column(db.Text, nullable=True)
+    host_notes = db.Column(db.Text, nullable=True)  # Internal notes from host
+    
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    guest_user = db.relationship('User', backref='guest_bookings', lazy=True)
+    property_ref = db.relationship('Property', backref='guest_bookings', lazy=True)
+    
+    def __repr__(self):
+        return f'<GuestBooking {self.id}: {self.guest_user.email} at {self.property_ref.name}>'
+    
+    @property
+    def duration_nights(self):
+        """Calculate the number of nights for this booking"""
+        return (self.check_out_date - self.check_in_date).days
+    
+    @property
+    def is_current(self):
+        """Check if the booking is currently active"""
+        today = datetime.now().date()
+        return self.check_in_date <= today <= self.check_out_date
+    
+    @property
+    def is_future(self):
+        """Check if the booking is in the future"""
+        return self.check_in_date > datetime.now().date()
+    
+    @property
+    def is_past(self):
+        """Check if the booking is in the past"""
+        return self.check_out_date < datetime.now().date()
+    
+    @property
+    def booking_source_display(self):
+        """Get human-readable booking source"""
+        source_map = {
+            'direct': 'Direct Booking',
+            'airbnb': 'Airbnb',
+            'vrbo': 'VRBO',
+            'booking_com': 'Booking.com'
+        }
+        return source_map.get(self.booking_source, self.booking_source.title())
+    
+    def to_calendar_event_dict(self):
+        """Convert booking to calendar event format"""
+        return {
+            'id': f'guest_booking_{self.id}',
+            'title': f'{self.guest_user.first_name} {self.guest_user.last_name}',
+            'start': self.check_in_date.isoformat(),
+            'end': self.check_out_date.isoformat(),
+            'backgroundColor': '#28a745',  # Green for confirmed bookings
+            'borderColor': '#28a745',
+            'extendedProps': {
+                'type': 'guest_booking',
+                'property_id': self.property_id,
+                'guest_count': self.guest_count,
+                'booking_source': self.booking_source,
+                'total_amount': str(self.total_amount) if self.total_amount else None,
+                'confirmation_code': self.confirmation_code,
+                'status': self.status
+            }
+        }
+    
+    @classmethod
+    def get_by_guest(cls, guest_user_id, include_past=True):
+        """Get all bookings for a specific guest"""
+        query = cls.query.filter_by(guest_user_id=guest_user_id)
+        
+        if not include_past:
+            query = query.filter(cls.check_out_date >= datetime.now().date())
+        
+        return query.order_by(cls.check_in_date.desc()).all()
+    
+    @classmethod
+    def get_by_property(cls, property_id, include_past=True):
+        """Get all bookings for a specific property"""
+        query = cls.query.filter_by(property_id=property_id)
+        
+        if not include_past:
+            query = query.filter(cls.check_out_date >= datetime.now().date())
+        
+        return query.order_by(cls.check_in_date.desc()).all()
+    
+    @classmethod
+    def create_direct_booking(cls, guest_user_id, property_id, check_in_date, check_out_date,
+                            guest_count=1, total_amount=None, special_requests=None):
+        """Create a new direct booking"""
+        import secrets
+        confirmation_code = secrets.token_hex(8).upper()
+        
+        booking = cls(
+            guest_user_id=guest_user_id,
+            property_id=property_id,
+            check_in_date=check_in_date,
+            check_out_date=check_out_date,
+            guest_count=guest_count,
+            booking_source='direct',
+            total_amount=total_amount,
+            confirmation_code=confirmation_code,
+            special_requests=special_requests,
+            status='confirmed'
+        )
+        
+        db.session.add(booking)
+        db.session.commit()
+        return booking

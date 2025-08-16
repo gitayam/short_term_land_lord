@@ -155,6 +155,9 @@ def create_app(config_class=Config):
     from app.guidebook import bp as guidebook_bp
     app.register_blueprint(guidebook_bp, url_prefix='/guidebook')
 
+    from app.guest import bp as guest_bp
+    app.register_blueprint(guest_bp, url_prefix='/guest')
+
     from app.routes.health import bp as health_bp
     app.register_blueprint(health_bp)
     
