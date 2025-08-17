@@ -5,7 +5,7 @@ from app import db
 from app.auth import bp
 from app.auth.forms import RegistrationForm, PropertyRegistrationForm, LoginForm, RequestPasswordResetForm, ResetPasswordForm, InviteServiceStaffForm
 from app.models import User, RegistrationRequest, Property, UserRoles, ApprovalStatus
-from app.utils.security import rate_limit, log_security_event
+from app.utils.security import rate_limit, log_security_event, SessionManager
 from urllib.parse import urlparse as url_parse
 from sqlalchemy import or_
 import secrets
@@ -68,6 +68,10 @@ def login():
             'email': form.email.data,
             'user_id': user.id
         }, user_id=user.id)
+        
+        # Set up secure session
+        SessionManager.regenerate_session_id()
+        SessionManager.secure_session_setup()
         
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')

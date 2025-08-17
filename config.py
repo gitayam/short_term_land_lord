@@ -40,6 +40,13 @@ class Config:
     SESSION_USE_SIGNER = True
     SESSION_KEY_PREFIX = os.environ.get('SESSION_KEY_PREFIX', 'stll_session:')
     
+    # Enhanced session security
+    SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'  # HTTPS only in production
+    SESSION_COOKIE_HTTPONLY = True  # Prevent XSS access to session cookie
+    SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+    SESSION_COOKIE_NAME = 'stll_session'
+    SESSION_COOKIE_DOMAIN = None  # Use default (current domain)
+    
     # Performance settings
     SQLALCHEMY_RECORD_QUERIES = os.environ.get('SQLALCHEMY_RECORD_QUERIES', 'false').lower() == 'true'
     DATABASE_QUERY_TIMEOUT = int(os.environ.get('DATABASE_QUERY_TIMEOUT', 30))
@@ -188,6 +195,11 @@ class ProductionConfig(Config):
     # Production security settings
     WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
     PERMANENT_SESSION_LIFETIME = 1800  # 30 minutes
+    
+    # Force secure sessions in production
+    SESSION_COOKIE_SECURE = True  # Always require HTTPS
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Strict'  # Stricter in production
     
     # Enable all monitoring in production
     SQLALCHEMY_RECORD_QUERIES = True
