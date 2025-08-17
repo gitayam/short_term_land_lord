@@ -4,10 +4,37 @@ We're building production-quality code together for the OmniCore platform. Your 
 
 When you seem stuck or overly complex, I'll redirect you - my guidance helps you stay on track.
 
+## 🔒 SECURITY-FIRST MINDSET
+**Security is not optional - it's foundational. Every line of code must be secure.**
+
+### The Golden Security Rules:
+1. **Never trust user input** - Validate everything, sanitize everything
+2. **Fail securely** - When in doubt, deny access
+3. **Defense in depth** - Multiple layers of security
+4. **Principle of least privilege** - Minimal access by default
+5. **Security by design** - Not as an afterthought
+
+### Security Red Flags to ALWAYS catch:
+- 🚨 Hardcoded secrets (even "temporary" ones)
+- 🚨 Debug code with sensitive data
+- 🚨 Disabled security features
+- 🚨 Missing authentication checks  
+- 🚨 Unvalidated user input
+- 🚨 Direct SQL concatenation
+- 🚨 Unrestricted file operations
+- 🚨 Missing rate limiting
+
 ## 🚨 AUTOMATED CHECKS ARE MANDATORY
 **ALL linting and test issues are BLOCKING - EVERYTHING must be ✅ GREEN!**  
 No errors. No formatting issues. No linting problems. Zero tolerance.  
 These are not suggestions. Fix ALL issues before continuing.
+
+### 🔒 SECURITY CHECKS ARE EQUALLY MANDATORY
+**Security vulnerabilities are BLOCKING - NO exceptions!**
+- Run security linters (bandit for Python, eslint-plugin-security for JS)
+- Check for hardcoded secrets before EVERY commit
+- Validate all user inputs WITHOUT exception
+- Never disable security features "temporarily"
 
 ## CRITICAL WORKFLOW - ALWAYS FOLLOW THIS!
 
@@ -168,6 +195,16 @@ Always use the credentials from docker-compose.yml for consistency with the runn
 - **NO synchronous operations in async code** - Keep async consistent
 - **NO TODOs in final code**
 
+### 🔒 SECURITY FORBIDDEN - INSTANT BLOCKERS:
+- **NO hardcoded secrets** - Not even "temporary" or with "will-fix-later"
+- **NO debug prints with sensitive data** - Remove ALL debug statements before commit
+- **NO disabled CSRF protection** - Must be enabled globally
+- **NO string concatenation in SQL** - Use parameterized queries ONLY
+- **NO unrestricted file uploads** - Validate type, size, and content
+- **NO missing rate limiting** - Especially on auth endpoints
+- **NO default/weak passwords** - Enforce strong password policy
+- **NO plain HTTP in production** - HTTPS only, secure cookies
+
 ### Required Standards:
 - **Type hints on all functions**: Use proper typing annotations
 - **Docstrings on all public functions**: Google style docstrings
@@ -177,6 +214,16 @@ Always use the credentials from docker-compose.yml for consistency with the runn
 - **Service layer pattern**: Controllers → Services → Repositories
 - **Proper error handling**: Return appropriate HTTP status codes
 - **Database migrations**: Always use Alembic, never manual SQL
+
+### 🔒 Security-First Standards:
+- **Input validation on EVERY endpoint** - Use Marshmallow/Pydantic schemas
+- **Output encoding in ALL templates** - Prevent XSS with proper escaping
+- **Authentication checks on protected routes** - Use decorators consistently
+- **Audit logging for sensitive operations** - Track who did what and when
+- **Secure session configuration** - Redis in production, secure cookies
+- **Rate limiting on all public endpoints** - Prevent abuse and DOS
+- **Security headers on all responses** - CSP, HSTS, X-Frame-Options
+- **Regular dependency updates** - Check for vulnerabilities weekly
 
 ### Testing Standards (Backend)
 ```bash
@@ -384,13 +431,47 @@ alembic downgrade -1
 - Lazy load routes and components
 - Optimize bundle size with code splitting
 
-### Security Always:
-- Validate all inputs (Pydantic for backend, Zod for frontend)
-- Use parameterized queries (SQLAlchemy handles this)
-- Implement proper authentication/authorization
-- Never expose sensitive data in frontend
-- Use HTTPS in production
-- Implement CORS properly
+### 🔒 Security Always - NON-NEGOTIABLE:
+
+**Before EVERY commit, ask yourself:**
+1. Did I hardcode any secrets? (Check with `grep -r "password\|secret\|key\|token" .`)
+2. Did I validate ALL user inputs?
+3. Did I remove ALL debug prints?
+4. Did I add rate limiting to new endpoints?
+5. Did I check for SQL injection risks?
+6. Did I test authentication/authorization?
+
+**Security Checklist:**
+- ✅ Validate all inputs (Pydantic for backend, Zod for frontend)
+- ✅ Use parameterized queries (SQLAlchemy handles this)
+- ✅ Implement proper authentication/authorization
+- ✅ Never expose sensitive data in frontend
+- ✅ Use HTTPS in production (secure cookies, HSTS)
+- ✅ Implement CORS properly (specific origins, not *)
+- ✅ Add rate limiting (especially auth endpoints)
+- ✅ Enable CSRF protection globally
+- ✅ Sanitize file uploads (type, size, content)
+- ✅ Log security events (failed logins, permission denials)
+- ✅ Use secure session storage (Redis in production)
+- ✅ Implement account lockout after failed attempts
+- ✅ Enforce strong password policy (12+ chars, complexity)
+- ✅ Set security headers (CSP, X-Frame-Options, etc.)
+
+**Security Testing Commands:**
+```bash
+# Python security scan
+pip install bandit safety
+bandit -r app/
+safety check
+
+# Check for secrets
+git secrets --scan
+grep -r "password\|secret\|key\|token" . --exclude-dir=.git
+
+# JavaScript security scan  
+npm audit
+npm run lint:security
+```
 
 ## Communication Protocol
 
