@@ -34,12 +34,25 @@
 - ✅ **Guest Portal**: Access controls, guidebooks, information sharing
 - ✅ **Messaging**: SMS integration with Twilio
 
-### Recent Fixes (Aug 2024) ✅
-- ✅ Fixed 74+ test failures
-- ✅ Resolved authentication/login issues
+### Recent Updates (Aug 2024) ✅
+- ✅ Fixed 74+ test failures and authentication issues
 - ✅ Added CalendarEvent model for real bookings
 - ✅ Implemented mobile-responsive design
 - ✅ Enhanced database persistence
+- ✅ **NEW: Guest Invitation System** - Complete invitation code workflow
+- ✅ **NEW: UI/UX Standardization** - Bootstrap 5.3.0 + unified icons
+- ✅ **NEW: Code Cleanup** - Removed 186+ duplicate files and 5,233 lines of technical debt
+- ✅ **NEW: Business Analytics Dashboard** - Revenue and occupancy tracking
+- ✅ **LATEST: Comprehensive Financial Analytics** - Full P&L, cash flow, tax reporting
+
+### Financial Analytics Features (NEW - Aug 2024) 🔥
+- ✅ **Holistic Financial Tracking**: Revenue, expenses, profit/loss analysis
+- ✅ **Expense Categories**: Utilities, insurance, labor, supplies, maintenance
+- ✅ **Tax-Ready Reports**: IRS-compliant expense categorization and export
+- ✅ **Cash Flow Analysis**: 12-month trend tracking with forecasting
+- ✅ **Property Performance**: ROI and profitability comparison across properties
+- ✅ **Export Functionality**: CSV exports for accounting and tax preparation
+- ✅ **Automated Calculations**: Net income, profit margins, tax savings estimates
 
 ---
 
