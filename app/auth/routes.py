@@ -20,15 +20,49 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
-        if user is None or not user.check_password(form.password.data):
-            # Log failed login attempt
+        
+        # Check if user exists and account is not locked
+        if user is None:
+            # Log failed login attempt for non-existent user
             log_security_event('login_failed', {
                 'email': form.email.data,
-                'reason': 'invalid_credentials'
+                'reason': 'user_not_found'
             })
             flash('Invalid email or password', 'danger')
             return redirect(url_for('auth.login'))
+        
+        if user.is_account_locked():
+            # Log failed login attempt for locked account
+            log_security_event('login_failed', {
+                'email': form.email.data,
+                'reason': 'account_locked',
+                'locked_until': user.locked_until.isoformat() if user.locked_until else None
+            }, user_id=user.id)
+            flash('Account is temporarily locked due to multiple failed login attempts. Please try again later.', 'warning')
+            return redirect(url_for('auth.login'))
+        
+        if not user.check_password(form.password.data):
+            # Record failed login attempt
+            user.record_failed_login()
+            db.session.commit()
             
+            # Log failed login attempt
+            log_security_event('login_failed', {
+                'email': form.email.data,
+                'reason': 'invalid_password',
+                'failed_attempts': user.failed_login_attempts
+            }, user_id=user.id)
+            
+            if user.is_account_locked():
+                flash('Too many failed login attempts. Account has been temporarily locked.', 'danger')
+            else:
+                flash('Invalid email or password', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        # Successful login
+        user.record_successful_login()
+        db.session.commit()
+        
         # Log successful login
         log_security_event('login_success', {
             'email': form.email.data,

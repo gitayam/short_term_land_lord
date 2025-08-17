@@ -310,6 +310,11 @@ class User(UserMixin, db.Model):
     two_factor_method = db.Column(db.String(20), nullable=True)  # sms, authenticator
     last_password_change = db.Column(db.DateTime, nullable=True)
     
+    # Account lockout settings
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime, nullable=True)
+    last_failed_login = db.Column(db.DateTime, nullable=True)
+    
     # Connected services
     google_calendar_connected = db.Column(db.Boolean, default=False)
     google_calendar_token = db.Column(db.Text, nullable=True)
@@ -353,6 +358,53 @@ class User(UserMixin, db.Model):
         if not result:
             current_app.logger.warning(f"Password check failed for user {self.email}")
         return result
+    
+    def is_account_locked(self) -> bool:
+        """Check if account is currently locked"""
+        if self.locked_until is None:
+            return False
+        return datetime.utcnow() < self.locked_until
+    
+    def lock_account(self, duration_minutes: int = None) -> None:
+        """Lock account for specified duration or progressive lockout"""
+        from datetime import timedelta
+        
+        if duration_minutes is None:
+            # Progressive lockout: 5min, 15min, 1hr, 24hr
+            if self.failed_login_attempts <= 5:
+                duration_minutes = 5
+            elif self.failed_login_attempts <= 10:
+                duration_minutes = 15
+            elif self.failed_login_attempts <= 15:
+                duration_minutes = 60
+            else:
+                duration_minutes = 1440  # 24 hours
+        
+        self.locked_until = datetime.utcnow() + timedelta(minutes=duration_minutes)
+        current_app.logger.warning(f"Account locked for user {self.email} until {self.locked_until}")
+    
+    def unlock_account(self) -> None:
+        """Unlock account and reset failed attempts"""
+        self.locked_until = None
+        self.failed_login_attempts = 0
+        self.last_failed_login = None
+        current_app.logger.info(f"Account unlocked for user {self.email}")
+    
+    def record_failed_login(self) -> None:
+        """Record a failed login attempt"""
+        self.failed_login_attempts = (self.failed_login_attempts or 0) + 1
+        self.last_failed_login = datetime.utcnow()
+        
+        # Lock account after 5 failed attempts
+        if self.failed_login_attempts >= 5:
+            self.lock_account()
+    
+    def record_successful_login(self) -> None:
+        """Record successful login and reset failed attempts"""
+        self.failed_login_attempts = 0
+        self.last_failed_login = None
+        self.last_login = datetime.utcnow()
+        # Don't unlock here - let manual unlock handle locked accounts
     
     def get_full_name(self) -> str:
         """Return user's full name (first + last)"""
