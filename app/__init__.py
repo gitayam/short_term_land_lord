@@ -167,6 +167,12 @@ def create_app(config_class=Config):
     from app.routes.property_routes import bp as property_routes_bp
     app.register_blueprint(property_routes_bp)
     
+    from app.routes.analytics_routes import bp as analytics_bp
+    app.register_blueprint(analytics_bp)
+    
+    from app.routes.financial_analytics_routes import bp as financial_analytics_bp
+    app.register_blueprint(financial_analytics_bp)
+    
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
 

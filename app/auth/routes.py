@@ -46,6 +46,9 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
     
+    # Pre-fill invitation code if provided in URL
+    invitation_code = request.args.get('invitation_code')
+    
     # Start with a clean session by rolling back any existing transactions
     try:
         db.session.rollback()
@@ -60,6 +63,12 @@ def register():
             print(f"ERROR: Failed to log rollback error: {str(e)}, Logging error: {str(log_error)}")
     
     form = RegistrationForm()
+    
+    # Pre-fill invitation code if provided
+    if invitation_code and request.method == 'GET':
+        form.invitation_code.data = invitation_code
+        form.role.data = 'guest'
+    
     property_form = None
     
     # Handle property owner registration (two-step process)
@@ -235,8 +244,70 @@ def register():
             if hasattr(form, 'username') and form.username.data:
                 username = form.username.data
             
+            # If this is a guest registration, handle immediately
+            if form.role.data == 'guest':
+                try:
+                    # Import models
+                    from app.models import GuestInvitation, GuestBooking
+                    
+                    # Get and validate invitation
+                    invitation = GuestInvitation.query.filter_by(
+                        invitation_code=form.invitation_code.data,
+                        is_active=True,
+                        is_used=False
+                    ).first()
+                    
+                    if not invitation or invitation.is_expired():
+                        flash('Invalid or expired invitation code.', 'danger')
+                        return render_template('auth/register.html', title='Register', form=form)
+                    
+                    # Create guest user directly (no approval needed)
+                    guest_user = User(
+                        email=form.email.data,
+                        first_name=form.first_name.data,
+                        last_name=form.last_name.data,
+                        phone=form.phone.data if hasattr(form, 'phone') else None,
+                        role=UserRoles.GUEST.value,
+                        is_active=True,
+                        username=form.username.data if hasattr(form, 'username') and form.username.data else None
+                    )
+                    guest_user.set_password(form.password.data)
+                    
+                    db.session.add(guest_user)
+                    db.session.flush()  # Get the user ID
+                    
+                    # Create guest booking record
+                    guest_booking = GuestBooking(
+                        guest_id=guest_user.id,
+                        invitation_id=invitation.id,
+                        property_id=invitation.property_id
+                    )
+                    db.session.add(guest_booking)
+                    
+                    # Mark invitation as used
+                    invitation.uses += 1
+                    if invitation.uses >= invitation.max_uses:
+                        invitation.is_used = True
+                    
+                    db.session.commit()
+                    
+                    flash('Registration successful! You can now log in.', 'success')
+                    return redirect(url_for('auth.login'))
+                    
+                except Exception as e:
+                    db.session.rollback()
+                    try:
+                        if current_app:
+                            current_app.logger.error(f"Error during guest registration: {str(e)}")
+                        else:
+                            print(f"ERROR: Error during guest registration: {str(e)}")
+                    except Exception as log_error:
+                        print(f"ERROR: Failed to log guest registration error: {str(e)}, Logging error: {str(log_error)}")
+                    flash('An error occurred during registration. Please try again.', 'danger')
+                    return render_template('auth/register.html', title='Register', form=form)
+            
             # If this is a property owner, go to step 2
-            if form.role.data == UserRoles.PROPERTY_OWNER.value:
+            elif form.role.data == UserRoles.PROPERTY_OWNER.value:
                 # Store data in session for the next step
                 try:
                     # Create registration request

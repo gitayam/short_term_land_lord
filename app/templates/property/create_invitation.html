@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('property.view', id=property.id) }}">{{ property.name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('property_routes.manage_invitations', property_id=property.id) }}">Invitations</a></li>
+                    <li class="breadcrumb-item active">Create New</li>
+                </ol>
+            </nav>
+            <h2 class="h3 mb-0">Create Guest Invitation</h2>
+            <p class="text-secondary">Generate an invitation code for {{ property.name }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="app-card">
+                <div class="app-card-header">
+                    <h5 class="mb-0">Invitation Details</h5>
+                </div>
+                <div class="app-card-body">
+                    <form method="POST">
+                        {{ form.csrf_token }}
+                        
+                        <!-- Guest Information -->
+                        <div class="section-header mb-3">
+                            <h6 class="mb-0">Guest Information (Optional)</h6>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.guest_name.label(class="app-form-label") }}
+                                    {{ form.guest_name(class="app-form-control", placeholder="e.g., John and Jane Smith") }}
+                                    {% if form.guest_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.guest_name.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.email.label(class="app-form-label") }}
+                                    {{ form.email(class="app-form-control", placeholder="guest@example.com") }}
+                                    {% if form.email.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.email.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                    <small class="form-text text-secondary">Optional: Guest email for tracking</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Invitation Settings -->
+                        <div class="section-header mb-3 mt-4">
+                            <h6 class="mb-0">Invitation Settings</h6>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.expires_in_days.label(class="app-form-label required") }}
+                                    {{ form.expires_in_days(class="app-form-control") }}
+                                    {% if form.expires_in_days.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.expires_in_days.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                    <small class="form-text text-secondary">How many days until this invitation expires</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.max_uses.label(class="app-form-label required") }}
+                                    {{ form.max_uses(class="app-form-control") }}
+                                    {% if form.max_uses.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.max_uses.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                    <small class="form-text text-secondary">How many times this code can be used</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="app-form-group">
+                            {{ form.notes.label(class="app-form-label") }}
+                            {{ form.notes(class="app-form-control", rows="3", placeholder="Internal notes about this invitation (not visible to guests)") }}
+                            {% if form.notes.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.notes.errors[0] }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('property_routes.manage_invitations', property_id=property.id) }}" 
+                               class="app-btn app-btn-ghost">
+                                <i class="bi bi-arrow-left"></i> Back to Invitations
+                            </a>
+                            <button type="submit" class="app-btn app-btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create Invitation Code
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Sidebar -->
+        <div class="col-lg-4">
+            <div class="app-card">
+                <div class="app-card-header">
+                    <h5 class="mb-0">Tips</h5>
+                </div>
+                <div class="app-card-body">
+                    <div class="mb-3">
+                        <h6 class="text-primary"><i class="bi bi-person"></i> Guest Information</h6>
+                        <p class="small text-secondary mb-0">Adding guest name and email helps you track who the invitation is for, but it's not required.</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-primary"><i class="bi bi-clock"></i> Expiration</h6>
+                        <p class="small text-secondary mb-0">Choose an appropriate expiration time. 30 days is good for most guests.</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-primary"><i class="bi bi-arrow-repeat"></i> Max Uses</h6>
+                        <p class="small text-secondary mb-0">Set to 1 for single guest/family, or higher if you want to share the same code with multiple people.</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-primary"><i class="bi bi-share"></i> Sharing</h6>
+                        <p class="small text-secondary mb-0">After creating, you'll get a shareable link that includes the invitation code automatically.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="app-card mt-3">
+                <div class="app-card-header">
+                    <h5 class="mb-0">What Guests Will See</h5>
+                </div>
+                <div class="app-card-body">
+                    <div class="border rounded p-3 bg-light">
+                        <h6 class="text-primary">Registration Form</h6>
+                        <p class="small mb-2">1. Select "Guest (with invitation code)"</p>
+                        <p class="small mb-2">2. Enter the invitation code</p>
+                        <p class="small mb-2">3. Fill out their information</p>
+                        <p class="small mb-0">4. Get access to {{ property.name }} guide and recommendations</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.section-header {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.app-form-label.required::after {
+    content: " *";
+    color: var(--danger);
+}
+</style>
+{% endblock %}

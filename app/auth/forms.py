@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectField, TextAreaField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional
+from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, ValidationError
 
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -19,12 +19,40 @@ class RegistrationForm(FlaskForm):
     role = SelectField('Role', choices=[
         ('property_owner', 'Property Owner'),
         ('service_staff', 'Service Staff'),
-        ('property_manager', 'Property Manager')
+        ('property_manager', 'Property Manager'),
+        ('guest', 'Guest (with invitation code)')
     ], validators=[DataRequired()])
+    invitation_code = StringField('Invitation Code', 
+                                validators=[Optional(), Length(min=5, max=24)],
+                                description="Required for guest registration")
     message = TextAreaField('Why do you want to join?', 
                          validators=[Length(max=500)],
                          description="Tell us a bit about yourself and why you want to join the platform")
     submit = SubmitField('Request Registration')
+    
+    def validate_invitation_code(self, field):
+        if self.role.data == 'guest':
+            if not field.data:
+                raise ValidationError('Invitation code is required for guest registration.')
+            
+            # Import here to avoid circular imports
+            from app.models import GuestInvitation
+            invitation = GuestInvitation.query.filter_by(
+                invitation_code=field.data,
+                is_active=True,
+                is_used=False
+            ).first()
+            
+            if not invitation:
+                raise ValidationError('Invalid or expired invitation code.')
+            
+            if invitation.is_expired():
+                raise ValidationError('This invitation code has expired.')
+    
+    def validate_message(self, field):
+        # Message is required for non-guest roles
+        if self.role.data != 'guest' and not field.data:
+            raise ValidationError('Please tell us why you want to join the platform.')
 
 class PropertyRegistrationForm(FlaskForm):
     """Form for adding property details during registration"""

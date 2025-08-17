@@ -2649,6 +2649,26 @@ class GuestInvitation(db.Model):
         """Check if this is a single-use invitation"""
         return self.max_uses == 1
     
+    @property
+    def invitation_code(self):
+        """Alias for code attribute to maintain template compatibility"""
+        return self.code
+    
+    @property
+    def uses(self):
+        """Alias for current_uses to maintain template compatibility"""
+        return self.current_uses
+    
+    @property
+    def is_used(self):
+        """Check if invitation has been used"""
+        return self.current_uses > 0
+    
+    @property
+    def property(self):
+        """Alias for property_ref to maintain template compatibility"""
+        return self.property_ref
+    
     def mark_as_used(self, user_id):
         """Mark the invitation as used by a specific user"""
         self.current_uses += 1

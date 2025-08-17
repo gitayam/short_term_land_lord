@@ -6,9 +6,9 @@
     <title>{{ property.name }} - Local Guidebook</title>
     
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
     
@@ -95,21 +95,21 @@
             <div class="row align-items-center">
                 <div class="col-lg-8">
                     <h1 class="display-4 fw-bold mb-3">
-                        <i class="fas fa-map-marked-alt me-3"></i>
+                        <i class="bi bi-geo-alt-fill me-3"></i>
                         {{ property.name }}
                     </h1>
                     <p class="lead mb-4">Discover the best local spots handpicked by your host</p>
                     <div class="d-flex flex-wrap gap-3">
                         <span class="badge bg-light text-dark fs-6">
-                            <i class="fas fa-map-pin me-1"></i>
+                            <i class="bi bi-geo-alt-fill me-1"></i>
                             {{ entries_with_coordinates }} locations on map
                         </span>
                         <span class="badge bg-light text-dark fs-6">
-                            <i class="fas fa-star me-1"></i>
+                            <i class="bi bi-star-fill me-1"></i>
                             {{ featured_count }} featured recommendations
                         </span>
                         <span class="badge bg-light text-dark fs-6">
-                            <i class="fas fa-list me-1"></i>
+                            <i class="bi bi-list-task me-1"></i>
                             {{ total_entries }} total recommendations
                         </span>
                     </div>
@@ -117,7 +117,7 @@
                 <div class="col-lg-4 text-center">
                     <a href="{{ url_for('property.guest_guidebook_map', property_id=property.id, token=token) }}" 
                        class="btn btn-light btn-lg">
-                        <i class="fas fa-map me-2"></i>
+                        <i class="bi bi-map me-2"></i>
                         View Interactive Map
                     </a>
                 </div>
@@ -138,7 +138,7 @@
                             <div class="card category-card h-100" onclick="scrollToCategory('{{ category }}')">
                                 <div class="card-body text-center">
                                     <div class="category-icon bg-primary">
-                                        <i class="fas fa-{{ get_category_icon(category) }}"></i>
+                                        <i class="bi bi-{{ get_category_icon(category) }}"></i>
                                     </div>
                                     <h6 class="card-title mb-1">{{ category }}</h6>
                                     <small class="text-muted">{{ entries|length }} places</small>
@@ -155,7 +155,7 @@
             <section id="category-{{ category|replace(' ', '-') }}" class="mb-5">
                 <div class="d-flex align-items-center mb-4">
                     <div class="category-icon bg-primary me-3">
-                        <i class="fas fa-{{ get_category_icon(category) }}"></i>
+                        <i class="bi bi-{{ get_category_icon(category) }}"></i>
                     </div>
                     <div>
                         <h2 class="mb-0">{{ category }}</h2>
@@ -174,13 +174,13 @@
                                      alt="{{ entry.title }}">
                                 {% if entry.is_featured %}
                                 <span class="position-absolute top-0 end-0 badge featured-badge m-2">
-                                    <i class="fas fa-star me-1"></i>Featured
+                                    <i class="bi bi-star-fill me-1"></i>Featured
                                 </span>
                                 {% endif %}
                             </div>
                             {% elif entry.is_featured %}
                             <div class="card-header featured-badge text-center">
-                                <i class="fas fa-star me-1"></i>Featured Recommendation
+                                <i class="bi bi-star-fill me-1"></i>Featured Recommendation
                             </div>
                             {% endif %}
                             
@@ -190,21 +190,21 @@
                                 
                                 {% if entry.address %}
                                 <p class="mb-2">
-                                    <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                    <i class="bi bi-geo-alt-fill text-primary me-2"></i>
                                     <small>{{ entry.address }}</small>
                                 </p>
                                 {% endif %}
                                 
-                                {% if entry.phone_number %}
+                                {% if entry.telephone-fill_number %}
                                 <p class="mb-2">
-                                    <i class="fas fa-phone text-success me-2"></i>
-                                    <small><a href="tel:{{ entry.phone_number }}" class="text-decoration-none">{{ entry.phone_number }}</a></small>
+                                    <i class="bi bi-telephone-fill text-success me-2"></i>
+                                    <small><a href="tel:{{ entry.telephone-fill_number }}" class="text-decoration-none">{{ entry.telephone-fill_number }}</a></small>
                                 </p>
                                 {% endif %}
                                 
                                 {% if entry.opening_hours_text %}
                                 <p class="mb-2">
-                                    <i class="fas fa-clock text-info me-2"></i>
+                                    <i class="bi bi-clock-fill text-info me-2"></i>
                                     <small>{{ entry.opening_hours_text }}</small>
                                 </p>
                                 {% endif %}
@@ -224,7 +224,7 @@
                                 {% if entry.host_tip %}
                                 <div class="host-tip mt-3">
                                     <small>
-                                        <i class="fas fa-lightbulb text-warning me-1"></i>
+                                        <i class="bi bi-lightbulb-fill text-warning me-1"></i>
                                         <strong>Host Tip:</strong> {{ entry.host_tip }}
                                     </small>
                                 </div>
@@ -237,20 +237,20 @@
                                         {% if entry.has_coordinates() %}
                                         <a href="{{ url_for('property.guest_guidebook_map', property_id=property.id, token=token) }}#entry-{{ entry.id }}" 
                                            class="btn btn-outline-primary">
-                                            <i class="fas fa-map-pin me-1"></i>Show on Map
+                                            <i class="bi bi-geo-alt-fill me-1"></i>Show on Map
                                         </a>
                                         {% endif %}
                                         {% if entry.website_url %}
                                         <a href="{{ entry.website_url }}" 
                                            target="_blank" 
                                            class="btn btn-outline-info">
-                                            <i class="fas fa-external-link-alt me-1"></i>Website
+                                            <i class="bi bi-box-arrow-up-right me-1"></i>Website
                                         </a>
                                         {% endif %}
                                     </div>
                                     {% if entry.has_coordinates() %}
                                     <span class="badge bg-success">
-                                        <i class="fas fa-map-pin"></i> On Map
+                                        <i class="bi bi-geo-alt-fill"></i> On Map
                                     </span>
                                     {% endif %}
                                 </div>
@@ -264,7 +264,7 @@
         {% else %}
             <!-- Empty State -->
             <div class="text-center py-5">
-                <i class="fas fa-map-marked-alt fa-4x text-muted mb-4"></i>
+                <i class="bi bi-geo-alt-fill fa-4x text-muted mb-4"></i>
                 <h3>Guidebook Coming Soon</h3>
                 <p class="text-muted">Your host is still curating local recommendations for you.</p>
             </div>
@@ -275,32 +275,32 @@
     {% if entries_with_coordinates > 0 %}
     <a href="{{ url_for('property.guest_guidebook_map', property_id=property.id, token=token) }}" 
        class="btn btn-primary sticky-map-toggle">
-        <i class="fas fa-map me-2"></i>Interactive Map
+        <i class="bi bi-map me-2"></i>Interactive Map
     </a>
     {% endif %}
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Category icon mapping
+        // Category icon mapping for Bootstrap Icons
         const categoryIcons = {
-            'Restaurant': 'utensils',
-            'Café': 'coffee',
-            'Bar': 'wine-glass-alt',
-            'Attraction': 'landmark',
-            'Shopping': 'shopping-bag',
-            'Outdoor Activity': 'mountain',
-            'Transportation': 'bus',
-            'Services': 'concierge-bell',
-            'Emergency': 'exclamation-triangle',
-            'Grocery': 'shopping-cart',
-            'Entertainment': 'theater-masks',
-            'Other': 'map-marker-alt'
+            'Restaurant': 'cup-hot-fill',
+            'Café': 'cup-fill',
+            'Bar': 'cup-straw',
+            'Attraction': 'building-fill',
+            'Shopping': 'bag-fill',
+            'Outdoor Activity': 'tree-fill',
+            'Transportation': 'bus-front-fill',
+            'Services': 'gear-fill',
+            'Emergency': 'exclamation-triangle-fill',
+            'Grocery': 'cart-fill',
+            'Entertainment': 'camera-reels-fill',
+            'Other': 'geo-alt-fill'
         };
 
         function get_category_icon(category) {
-            return categoryIcons[category] || 'map-marker-alt';
+            return categoryIcons[category] || 'geo-alt-fill';
         }
 
         function scrollToCategory(category) {
