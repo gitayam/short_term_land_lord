@@ -5,11 +5,13 @@ from app import db
 from app.auth import bp
 from app.auth.forms import RegistrationForm, PropertyRegistrationForm, LoginForm, RequestPasswordResetForm, ResetPasswordForm, InviteServiceStaffForm
 from app.models import User, RegistrationRequest, Property, UserRoles, ApprovalStatus
+from app.utils.security import rate_limit, log_security_event
 from urllib.parse import urlparse as url_parse
 from sqlalchemy import or_
 import secrets
 
 @bp.route('/login', methods=['GET', 'POST'])
+@rate_limit(limit=5, window=300, per='ip', message="Too many login attempts. Please try again in 5 minutes.")
 def login():
     """Handle user login."""
     if current_user.is_authenticated:
@@ -19,9 +21,20 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user is None or not user.check_password(form.password.data):
+            # Log failed login attempt
+            log_security_event('login_failed', {
+                'email': form.email.data,
+                'reason': 'invalid_credentials'
+            })
             flash('Invalid email or password', 'danger')
             return redirect(url_for('auth.login'))
             
+        # Log successful login
+        log_security_event('login_success', {
+            'email': form.email.data,
+            'user_id': user.id
+        }, user_id=user.id)
+        
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
@@ -42,6 +55,7 @@ def logout():
 # ... (other imports and functions remain the same) ...
 
 @bp.route('/register', methods=['GET', 'POST'])
+@rate_limit(limit=10, window=3600, per='ip', message="Too many registration attempts. Please try again in 1 hour.")
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
