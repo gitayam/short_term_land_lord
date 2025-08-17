@@ -76,7 +76,7 @@ def create_repair_request():
     try:
         property_id = request.args.get('property_id', type=int)
         current_app.logger.debug(f"[DEBUG] property_id from request: {property_id}")
-        print("REPAIR REQUEST ROUTE HIT", flush=True)
+        # Repair request route accessed
         
         # Validate property exists and access
         if not property_id:
@@ -109,12 +109,11 @@ def create_repair_request():
         if request.method == 'GET':
             form.property.data = property
         current_app.logger.debug(f"[DEBUG] Form data on GET/POST: {form.data}")
-        print(f"[DEBUG] Form validation: {form.validate()}", flush=True)
-        print(f"[DEBUG] Form errors: {form.errors}", flush=True)
-        print(f"[DEBUG] Request method: {request.method}", flush=True)
+        # Validate form without debug output
+        form_is_valid = form.validate()
         
-        if form.validate_on_submit():
-            print("FORM VALIDATED", flush=True)
+        if form_is_valid and request.method == 'POST':
+            # Form validated successfully
             current_app.logger.info(f"[DEBUG] Form validated successfully: {form.data}")
             try:
                 # Create the task
@@ -201,7 +200,7 @@ def create_repair_request():
         
         # If form validation failed, check for specific errors
         if form.errors:
-            print("FORM ERRORS:", form.errors, flush=True)
+            # Form has validation errors
             current_app.logger.warning(f"[DEBUG] Form validation errors: {form.errors}")
             flash(f"Form validation errors: {form.errors}", 'danger')
         

@@ -58,9 +58,9 @@ def register():
             if current_app:
                 current_app.logger.error(f"Error rolling back session: {str(e)}")
             else:
-                print(f"ERROR: Error rolling back session (current_app unavailable): {str(e)}")  # Fallback logging
+                pass  # Session rollback failed, but we can't log without app context
         except Exception as log_error:
-            print(f"ERROR: Failed to log rollback error: {str(e)}, Logging error: {str(log_error)}")
+            pass  # Unable to log error
     
     form = RegistrationForm()
     
@@ -77,32 +77,32 @@ def register():
         property_step = True
         property_form = PropertyRegistrationForm()
         
-        # Debug: Print request method and form data
-        print("\n=== Property Registration Debug ===")
-        print(f"Request method: {request.method}")
-        print(f"Form data: {request.form}")
+        # Log property registration attempt
+        if current_app:
+            current_app.logger.debug(f"Property registration step - Method: {request.method}")
         
         # Get user data from session
         user_data = session.get('registration_data', {})
-        print(f"Session registration_data exists: {'registration_data' in session}")
-        print(f"User data from session: {user_data}")
+        # Session data handled securely without logging sensitive information
         
         if not user_data:
             flash('Registration information missing. Please start again.', 'danger')
-            print("No user data in session, redirecting to register")
+            if current_app:
+                current_app.logger.warning("Registration data missing from session")
             return redirect(url_for('auth.register'))
             
         # Handle property form submission
-        print(f"Validating property form. Form valid: {property_form.validate()}")
         if not property_form.validate():
-            print(f"Property form errors: {property_form.errors}")
+            if current_app:
+                current_app.logger.debug("Property form validation failed")
             
         if property_form.validate_on_submit():
-            print("Property form is valid, processing submission...")
+            if current_app:
+                current_app.logger.info("Processing property registration")
             user_data['property_name'] = property_form.property_name.data
             user_data['property_address'] = property_form.property_address.data
             user_data['property_description'] = property_form.property_description.data
-            print(f"Updated user_data with property info: {user_data}")
+            # Property info stored in session
             
             try:
                 # Import models at function level to ensure they're available in all code paths
@@ -188,9 +188,9 @@ def register():
                         if current_app:
                             current_app.logger.error(f"Error during registration: {str(e)}")
                         else:
-                            print(f"Error during registration: {str(e)}")
+                            pass  # Error already handled above
                     except Exception as log_err:
-                        print(f"Error logging registration error: {str(log_err)}")
+                        pass  # Unable to log error
                     flash('An error occurred during registration. Please try again.', 'danger')
                     return render_template('auth/register_property.html', title='Register Property', form=property_form)
                 
@@ -213,9 +213,9 @@ def register():
                     if current_app:
                         current_app.logger.error(f"Registration error: {str(e)}")
                     else:
-                        print(f"ERROR: Registration error (current_app unavailable): {str(e)}")  # Fallback logging
+                        pass  # Cannot log without app context
                 except Exception as log_error:
-                    print(f"ERROR: Failed to log registration error: {str(e)}, Logging error: {str(log_error)}")
+                    pass  # Unable to log error
                 flash(f'An error occurred during registration. Please try again. Error: {str(e)}', 'danger')
                 return render_template('auth/register_property.html', title='Register Property', form=property_form)
         
@@ -300,9 +300,9 @@ def register():
                         if current_app:
                             current_app.logger.error(f"Error during guest registration: {str(e)}")
                         else:
-                            print(f"ERROR: Error during guest registration: {str(e)}")
+                            pass  # Error already handled above
                     except Exception as log_error:
-                        print(f"ERROR: Failed to log guest registration error: {str(e)}, Logging error: {str(log_error)}")
+                        pass  # Unable to log error
                     flash('An error occurred during registration. Please try again.', 'danger')
                     return render_template('auth/register.html', title='Register', form=form)
             
@@ -335,9 +335,9 @@ def register():
                         if current_app:
                             current_app.logger.error(f"Error creating registration request: {str(e)}")
                         else:
-                            print(f"ERROR: Error creating registration request (current_app unavailable): {str(e)}")  # Fallback logging
+                            pass  # Cannot log without app context
                     except Exception as log_error:
-                        print(f"ERROR: Failed to log registration request error: {str(e)}, Logging error: {str(log_error)}")
+                        pass  # Unable to log error
                     flash('An error occurred during registration. Please try again.', 'danger')
                     return render_template('auth/register.html', title='Register', form=form)
                 
@@ -386,9 +386,9 @@ def register():
                         if current_app:
                             current_app.logger.error(f"Error creating registration request: {str(e)}")
                         else:
-                            print(f"ERROR: Error creating registration request (current_app unavailable): {str(e)}")  # Fallback logging
+                            pass  # Cannot log without app context
                     except Exception as log_error:
-                        print(f"ERROR: Failed to log registration request error: {str(e)}, Logging error: {str(log_error)}")
+                        pass  # Unable to log error
                     flash('An error occurred during registration. Please try again.', 'danger')
                     return render_template('auth/register.html', title='Register', form=form)
         except Exception as e:
