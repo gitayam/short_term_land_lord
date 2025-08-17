@@ -311,7 +311,7 @@ def get_upcoming_expenses(properties, days=30):
             'due_date': expense.due_date,
             'category': expense.category,
             'is_overdue': expense.is_overdue,
-            'property': expense.property.name if expense.property else 'All Properties'
+            'property': expense.property_rel.name if expense.property_rel else 'All Properties'
         })
     
     return upcoming

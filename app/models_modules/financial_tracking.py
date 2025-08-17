@@ -6,7 +6,7 @@ Tracks all revenue streams, operating expenses, and provides holistic financial 
 from datetime import datetime, date
 from decimal import Decimal
 from enum import Enum
-from sqlalchemy import Column, Integer, String, DateTime, Numeric, Boolean, Text, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Numeric, Boolean, Text, Date, ForeignKey, func
 from sqlalchemy.orm import relationship
 from app import db
 
@@ -82,7 +82,7 @@ class RecurringExpense(db.Model):
     created_by_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     
     # Relationships
-    property = relationship('Property', backref='recurring_expenses')
+    property_rel = relationship('Property', backref='recurring_expenses')
     created_by = relationship('User', backref='created_recurring_expenses')
     expense_entries = relationship('Expense', backref='recurring_template', lazy='dynamic')
     
@@ -150,9 +150,12 @@ class Expense(db.Model):
     receipt_url = Column(String(500), nullable=True)  # Cloud storage URL
     receipt_filename = Column(String(200), nullable=True)
     
-    # Relationships and references
-    invoice_id = Column(Integer, ForeignKey('invoices.id'), nullable=True)  # If paying an invoice
-    task_id = Column(Integer, ForeignKey('booking_task.id'), nullable=True)  # If related to a task
+    # Relationships and references  
+    # Note: Foreign keys commented out to avoid table dependency issues during initialization
+    # invoice_id = Column(Integer, ForeignKey('invoices.id'), nullable=True)  # If paying an invoice
+    # task_id = Column(Integer, ForeignKey('booking_task.id'), nullable=True)  # If related to a task
+    invoice_id = Column(Integer, nullable=True)  # If paying an invoice
+    task_id = Column(Integer, nullable=True)  # If related to a task
     
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -161,7 +164,7 @@ class Expense(db.Model):
     approved_by_id = Column(Integer, ForeignKey('users.id'), nullable=True)
     
     # Relationships
-    property = relationship('Property', backref='expenses')
+    property_rel = relationship('Property', backref='expenses')
     created_by = relationship('User', foreign_keys=[created_by_id], backref='created_expenses')
     approved_by = relationship('User', foreign_keys=[approved_by_id], backref='approved_expenses')
     
@@ -223,7 +226,7 @@ class FinancialPeriod(db.Model):
     created_by_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     
     # Relationships
-    property = relationship('Property', backref='financial_periods')
+    property_rel = relationship('Property', backref='financial_periods')
     created_by = relationship('User', backref='created_financial_periods')
     
     def __repr__(self):
@@ -342,5 +345,4 @@ class TaxDocument(db.Model):
         return f'<TaxDocument {self.document_type} for {self.tax_year}>'
 
 
-# Import necessary functions for FinancialPeriod calculations
-from sqlalchemy import func
+# End of financial tracking models
