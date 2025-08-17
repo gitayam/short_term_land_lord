@@ -74,7 +74,14 @@
         border-radius: 12px;
         padding: 1.5rem;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        min-height: 400px;
+        height: 400px;
+        position: relative;
+    }
+    
+    .chart-container canvas {
+        max-height: 320px;
+        width: 100% !important;
+        height: 320px !important;
     }
     
     .expense-category-item {
@@ -309,7 +316,9 @@
         <div class="col-md-8">
             <div class="chart-container">
                 <h5 class="mb-3">12-Month Cash Flow Trend</h5>
-                <canvas id="cashFlowChart"></canvas>
+                <div style="position: relative; height: 320px; width: 100%;">
+                    <canvas id="cashFlowChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -434,9 +443,15 @@
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// Cash Flow Chart
-const cashFlowCtx = document.getElementById('cashFlowChart').getContext('2d');
-const cashFlowChart = new Chart(cashFlowCtx, {
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCashFlowChart();
+});
+
+function initializeCashFlowChart() {
+    // Cash Flow Chart
+    const cashFlowCtx = document.getElementById('cashFlowChart').getContext('2d');
+    const cashFlowChart = new Chart(cashFlowCtx, {
     type: 'line',
     data: {
         labels: [{% for item in cash_flow_data %}'{{ item.month }}'{% if not loop.last %},{% endif %}{% endfor %}],
@@ -466,9 +481,17 @@ const cashFlowChart = new Chart(cashFlowCtx, {
     options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
         plugins: {
             legend: {
-                position: 'top'
+                position: 'top',
+                labels: {
+                    usePointStyle: true,
+                    padding: 20
+                }
             },
             tooltip: {
                 callbacks: {
@@ -479,17 +502,33 @@ const cashFlowChart = new Chart(cashFlowCtx, {
             }
         },
         scales: {
+            x: {
+                grid: {
+                    display: false
+                }
+            },
             y: {
                 beginAtZero: true,
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                },
                 ticks: {
                     callback: function(value) {
                         return '$' + value.toLocaleString();
-                    }
+                    },
+                    maxTicksLimit: 8
                 }
+            }
+        },
+        elements: {
+            point: {
+                radius: 4,
+                hoverRadius: 6
             }
         }
     }
-});
+    });
+}
 
 function updatePeriod() {
     const month = document.getElementById('monthSelect').value;
