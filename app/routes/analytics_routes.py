@@ -12,10 +12,9 @@ from collections import defaultdict
 
 from app import db
 from app.models import (
-    Property, CalendarEvent, Invoice, InvoiceItem, 
-    BookingTask, GuestBooking, User, UserRoles
+    Property, CalendarEvent, BookingTask, GuestBooking, User, UserRoles
 )
-from app.utils.decorators import property_owner_required
+from app.models_modules.invoicing import Invoice, InvoiceItem
 
 bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 

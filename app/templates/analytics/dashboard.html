@@ -136,11 +136,18 @@
         
         <div class="date-selector">
             <select id="monthSelect" class="form-select form-select-sm" onchange="updateDateRange()">
-                {% for i in range(1, 13) %}
-                <option value="{{ i }}" {% if i == metrics.month %}selected{% endif %}>
-                    {{ calendar.month_name[i] }}
-                </option>
-                {% endfor %}
+                <option value="1" {% if 1 == metrics.month %}selected{% endif %}>January</option>
+                <option value="2" {% if 2 == metrics.month %}selected{% endif %}>February</option>
+                <option value="3" {% if 3 == metrics.month %}selected{% endif %}>March</option>
+                <option value="4" {% if 4 == metrics.month %}selected{% endif %}>April</option>
+                <option value="5" {% if 5 == metrics.month %}selected{% endif %}>May</option>
+                <option value="6" {% if 6 == metrics.month %}selected{% endif %}>June</option>
+                <option value="7" {% if 7 == metrics.month %}selected{% endif %}>July</option>
+                <option value="8" {% if 8 == metrics.month %}selected{% endif %}>August</option>
+                <option value="9" {% if 9 == metrics.month %}selected{% endif %}>September</option>
+                <option value="10" {% if 10 == metrics.month %}selected{% endif %}>October</option>
+                <option value="11" {% if 11 == metrics.month %}selected{% endif %}>November</option>
+                <option value="12" {% if 12 == metrics.month %}selected{% endif %}>December</option>
             </select>
             <select id="yearSelect" class="form-select form-select-sm" onchange="updateDateRange()">
                 {% for year in range(current_year - 2, current_year + 1) %}
