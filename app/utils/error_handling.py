@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional, Tuple
 from functools import wraps
 from flask import current_app, request, jsonify, render_template
 from werkzeug.exceptions import HTTPException
+from flask_wtf.csrf import CSRFError
 import logging
 
 

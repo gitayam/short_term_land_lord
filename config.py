@@ -270,8 +270,12 @@ class AppEngineConfig(Config):
     HEALTH_CHECK_ENABLED = True
     PROMETHEUS_METRICS = False
     
-    # Disable CSRF for now to simplify deployment
-    WTF_CSRF_ENABLED = False
+    # Enable CSRF protection for security
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
+    # Use secure CSRF settings for serverless
+    WTF_CSRF_SSL_STRICT = True  # Require HTTPS for CSRF tokens
+    WTF_CSRF_CHECK_DEFAULT = True  # Check CSRF on all POST/PUT/DELETE requests
 
 # Configuration mapping
 config = {
