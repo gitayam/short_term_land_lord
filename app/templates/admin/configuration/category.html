@@ -18,6 +18,35 @@
         </div>
     </div>
 
+    {% if category == 'sms' %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-exclamation-triangle"></i> SMS Configuration Requirements</h5>
+                <p>To enable SMS notifications, you need:</p>
+                <ul>
+                    <li>A Twilio account with verified phone number</li>
+                    <li>Account SID and Auth Token added to your <code>.env</code> file</li>
+                    <li>SMS notifications enabled in the Features settings</li>
+                </ul>
+                <p class="mb-0"><strong>Security Note:</strong> Twilio credentials are sensitive and can only be configured via environment variables for security reasons.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if category == 'integration' %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-key"></i> API Keys Security</h5>
+                <p>All API keys and tokens must be stored in your <code>.env</code> file for security. They cannot be edited through this interface.</p>
+                <p class="mb-0">Never commit API keys to version control. Always use environment variables.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     {% if editable_settings %}
     <div class="row mb-4">
         <div class="col-md-12">
@@ -109,6 +138,53 @@
                                         (Options: {{ setting.validation.choices|join(', ') }})
                                         {% endif %}
                                     </small>
+                                    {% endif %}
+                                    
+                                    {% if category == 'sms' and key == 'TWILIO_PHONE_NUMBER' %}
+                                    <div class="alert alert-info mt-2">
+                                        <i class="fas fa-info-circle"></i> <strong>Twilio Setup Guide:</strong><br>
+                                        <ol class="mb-0 mt-2">
+                                            <li>Sign up for a Twilio account at <a href="https://www.twilio.com/try-twilio" target="_blank" class="alert-link">twilio.com</a></li>
+                                            <li>Navigate to <a href="https://console.twilio.com" target="_blank" class="alert-link">Twilio Console</a></li>
+                                            <li>Find your Account SID and Auth Token in the dashboard</li>
+                                            <li>Add them to your <code>.env</code> file:
+                                                <pre class="mb-1 mt-1"><code>TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code></pre>
+                                            </li>
+                                            <li>Purchase a phone number from <a href="https://console.twilio.com/us1/develop/phone-numbers/manage/search" target="_blank" class="alert-link">Phone Numbers → Buy a Number</a></li>
+                                            <li>Enter the phone number here in E.164 format (e.g., +1234567890)</li>
+                                        </ol>
+                                        <hr>
+                                        <small><strong>Note:</strong> Credentials must be in <code>.env</code> file for security. They cannot be edited here.</small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if category == 'email' and key == 'MAIL_SERVER' %}
+                                    <div class="alert alert-info mt-2">
+                                        <i class="fas fa-info-circle"></i> <strong>Email Configuration Guide:</strong><br>
+                                        <p class="mb-2 mt-2">Common SMTP settings for popular providers:</p>
+                                        <table class="table table-sm">
+                                            <tr><th>Provider</th><th>SMTP Server</th><th>Port</th><th>TLS</th></tr>
+                                            <tr><td>Gmail</td><td>smtp.gmail.com</td><td>587</td><td>Yes</td></tr>
+                                            <tr><td>Outlook</td><td>smtp-mail.outlook.com</td><td>587</td><td>Yes</td></tr>
+                                            <tr><td>Yahoo</td><td>smtp.mail.yahoo.com</td><td>587</td><td>Yes</td></tr>
+                                            <tr><td>SendGrid</td><td>smtp.sendgrid.net</td><td>587</td><td>Yes</td></tr>
+                                        </table>
+                                        <small><strong>Note:</strong> Add your email password to <code>.env</code>: <code>MAIL_PASSWORD=your_password</code></small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if category == 'integration' and 'OPENAI' in key %}
+                                    <div class="alert alert-info mt-2">
+                                        <i class="fas fa-info-circle"></i> <strong>OpenAI API Setup:</strong><br>
+                                        <ol class="mb-0 mt-2">
+                                            <li>Sign up at <a href="https://platform.openai.com/signup" target="_blank" class="alert-link">OpenAI Platform</a></li>
+                                            <li>Go to <a href="https://platform.openai.com/api-keys" target="_blank" class="alert-link">API Keys</a></li>
+                                            <li>Create a new secret key</li>
+                                            <li>Add to your <code>.env</code> file: <code>OPENAI_API_KEY=sk-...</code></li>
+                                            <li>Set up billing at <a href="https://platform.openai.com/account/billing" target="_blank" class="alert-link">Billing Settings</a></li>
+                                        </ol>
+                                    </div>
                                     {% endif %}
                                     
                                     {% if setting.default is not none %}
