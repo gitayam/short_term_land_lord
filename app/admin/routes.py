@@ -1,12 +1,11 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app import db
 from app.models import SiteSetting, User, UserRoles, RepairRequest, RepairRequestStatus, Property, RegistrationRequest, ApprovalStatus
 from app.admin.forms import SiteSettingsForm, RequestReviewForm
 from app.auth.decorators import admin_required
 from app.auth.email import send_email
-
-bp = Blueprint('admin', __name__)
+from app.admin import bp
 
 @bp.route('/settings', methods=['GET', 'POST'])
 @login_required

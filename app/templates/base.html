@@ -124,9 +124,29 @@
                             {{ current_user.get_full_name() }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{{ url_for('profile.profile') }}">My Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('profile.profile') }}">
+                                <i class="bi bi-person-circle"></i> My Profile
+                            </a></li>
+                            {% if current_user.is_admin %}
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                            <li><h6 class="dropdown-header">Administration</h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}">
+                                <i class="bi bi-speedometer2"></i> Admin Dashboard
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_config.index') }}">
+                                <i class="bi bi-sliders"></i> Configuration
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.settings') }}">
+                                <i class="bi bi-gear"></i> Site Settings
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin.users') }}">
+                                <i class="bi bi-people"></i> User Management
+                            </a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                <i class="bi bi-box-arrow-right"></i> Logout
+                            </a></li>
                         </ul>
                     </li>
                     {% else %}
