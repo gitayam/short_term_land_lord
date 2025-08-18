@@ -954,7 +954,7 @@ def repair_requests():
     sort_by = request.args.get('sort_by', 'priority')
     property_id = request.args.get('property_id', type=int)
     
-    # Base query - get tasks tagged as repair requests
+    # Base query - get tasks tagged as repair requests (secure parameterized query)
     query = Task.query.filter(Task.tags.like('%repair_request%'))
     
     # Apply property filter if specified

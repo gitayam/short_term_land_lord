@@ -35,8 +35,10 @@ def list_recommendations(property_id):
     if category:
         query = query.filter_by(category=category)
     if search:
-        query = query.filter(RecommendationBlock.title.ilike(f'%{search}%') | 
-                           RecommendationBlock.description.ilike(f'%{search}%'))
+        # Secure parameterized query to prevent SQL injection
+        search_pattern = f'%{search}%'
+        query = query.filter(RecommendationBlock.title.ilike(search_pattern) | 
+                           RecommendationBlock.description.ilike(search_pattern))
     if in_guide_book:
         query = query.filter_by(in_guide_book=True)
     

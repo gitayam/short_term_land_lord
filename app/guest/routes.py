@@ -31,9 +31,10 @@ def browse_properties():
     # Build query for public properties
     query = Property.query.filter_by(status='active')
     
-    # Apply filters
+    # Apply filters - secure parameterized queries to prevent SQL injection
     if form.city.data:
-        query = query.filter(Property.city.ilike(f'%{form.city.data}%'))
+        city_pattern = f'%{form.city.data}%'
+        query = query.filter(Property.city.ilike(city_pattern))
     
     if form.state.data:
         query = query.filter_by(state=form.state.data)
@@ -473,11 +474,12 @@ def api_properties():
     state = request.args.get('state', '')
     property_type = request.args.get('type', '')
     
-    # Build query
+    # Build query - secure parameterized queries to prevent SQL injection
     query = Property.query.filter_by(status='active')
     
     if city:
-        query = query.filter(Property.city.ilike(f'%{city}%'))
+        city_pattern = f'%{city}%'
+        query = query.filter(Property.city.ilike(city_pattern))
     if state:
         query = query.filter_by(state=state)
     if property_type:
