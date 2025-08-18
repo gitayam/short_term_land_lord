@@ -4,9 +4,13 @@ from app import db
 from app.profile import bp
 from app.models import User
 from werkzeug.security import check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime
 import json
+import os
+import uuid
 from app.profile.forms import PersonalInfoForm, ChangePasswordForm, PreferencesForm
+from app.utils.storage import allowed_file, validate_file_content
 
 @bp.route('/')
 @login_required
@@ -162,25 +166,63 @@ def update_preferences():
 @bp.route('/upload-image', methods=['POST'])
 @login_required
 def upload_profile_image():
-    """Handle profile image upload"""
+    """Handle profile image upload with security validation"""
     if 'profile_image' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
     
     file = request.files['profile_image']
-    if file.filename == '':
+    if not file or file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    if file and file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-        try:
-            # Save file logic would go here
-            current_user.profile_image = f"uploads/profile/{file.filename}"
-            db.session.commit()
-            return jsonify({'success': True, 'message': 'Profile image updated successfully'})
-        except Exception as e:
-            current_app.logger.error(f"Error uploading profile image: {e}")
-            return jsonify({'error': 'Failed to upload image'}), 500
-    
-    return jsonify({'error': 'Invalid file type'}), 400
+    try:
+        # Validate file extension
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Invalid file type. Only JPG, PNG, GIF allowed'}), 400
+        
+        # Validate file content
+        if not validate_file_content(file):
+            return jsonify({'error': 'Invalid file content - file type mismatch'}), 400
+        
+        # Check file size (max 5MB for profile images)
+        max_size = 5 * 1024 * 1024  # 5MB
+        file.stream.seek(0, 2)
+        file_size = file.stream.tell() 
+        file.stream.seek(0)
+        
+        if file_size > max_size:
+            return jsonify({'error': 'File too large. Maximum size: 5MB'}), 400
+        
+        # Create secure upload directory
+        upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), 'profile')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Generate secure unique filename
+        original_filename = secure_filename(file.filename)
+        extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'jpg'
+        secure_filename_str = f"profile_{current_user.id}_{uuid.uuid4().hex}.{extension}"
+        
+        # Save file securely
+        file_path = os.path.join(upload_dir, secure_filename_str)
+        file.save(file_path)
+        
+        # Update user profile with relative path
+        user = User.query.get(current_user.id)
+        user.profile_image = f"uploads/profile/{secure_filename_str}"
+        db.session.add(user)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Profile image updated successfully',
+            'image_url': user.profile_image
+        })
+        
+    except ValueError as e:
+        current_app.logger.warning(f"File validation error: {e}")
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        current_app.logger.error(f"Error uploading profile image: {e}")
+        return jsonify({'error': 'Failed to upload image'}), 500
 
 @bp.route('/toggle-2fa', methods=['POST'])
 @login_required

@@ -1,12 +1,47 @@
 import os
+import magic
+import uuid
 from werkzeug.utils import secure_filename
 from flask import current_app
 from app.models import MediaType, StorageBackend
 
 def allowed_file(filename):
     """Check if the file extension is allowed."""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
+    if not filename or '.' not in filename:
+        return False
+    
+    extension = filename.rsplit('.', 1)[1].lower()
+    allowed_extensions = current_app.config.get('ALLOWED_EXTENSIONS', [])
+    return extension in allowed_extensions
+
+def validate_file_content(file):
+    """Validate file content using magic numbers."""
+    # Read first 1024 bytes for magic number detection
+    file.stream.seek(0)
+    file_header = file.stream.read(1024)
+    file.stream.seek(0)
+    
+    # Use python-magic to detect actual file type
+    try:
+        file_type = magic.from_buffer(file_header, mime=True)
+        
+        # Define allowed MIME types
+        allowed_mime_types = {
+            'image/jpeg',
+            'image/png', 
+            'image/gif',
+            'image/webp',
+            'video/mp4',
+            'video/mov',
+            'video/avi',
+            'application/pdf',
+            'text/plain',
+            'text/csv'
+        }
+        
+        return file_type in allowed_mime_types
+    except Exception:
+        return False
 
 def save_file_to_storage(file, property_id, media_type):
     """Save a file to the configured storage backend.
@@ -19,12 +54,30 @@ def save_file_to_storage(file, property_id, media_type):
     Returns:
         tuple: (file_path, storage_backend, file_size, mime_type)
     """
-    if not file or not allowed_file(file.filename):
-        raise ValueError("Invalid file type")
+    if not file or not file.filename:
+        raise ValueError("No file provided")
     
-    # Generate a unique filename
-    filename = secure_filename(file.filename)
-    unique_filename = f"{property_id}_{media_type.value}_{filename}"
+    # Validate file extension
+    if not allowed_file(file.filename):
+        raise ValueError("Invalid file extension")
+    
+    # Validate file content
+    if not validate_file_content(file):
+        raise ValueError("Invalid file content - file type mismatch")
+    
+    # Check file size (max 10MB)
+    max_size = current_app.config.get('MAX_FILE_SIZE', 10 * 1024 * 1024)
+    file.stream.seek(0, 2)  # Seek to end
+    file_size = file.stream.tell()
+    file.stream.seek(0)  # Reset to beginning
+    
+    if file_size > max_size:
+        raise ValueError(f"File too large. Maximum size: {max_size} bytes")
+    
+    # Generate a secure unique filename
+    original_filename = secure_filename(file.filename)
+    extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
+    unique_filename = f"{property_id}_{media_type.value}_{uuid.uuid4().hex}.{extension}"
     
     # Get storage backend from config
     storage_backend = current_app.config.get('STORAGE_BACKEND', StorageBackend.LOCAL)
