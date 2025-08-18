@@ -170,6 +170,7 @@
     // Apply theme on page load
     document.addEventListener('DOMContentLoaded', function() {
         const currentTheme = '{{ user_theme }}';
+        
         if (currentTheme === 'system') {
             // Check system preference
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -177,6 +178,9 @@
             } else {
                 document.body.setAttribute('data-bs-theme', 'light');
             }
+        } else {
+            // Apply the user's saved theme preference
+            document.body.setAttribute('data-bs-theme', currentTheme);
         }
     });
     </script>
