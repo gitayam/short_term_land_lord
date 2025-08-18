@@ -189,7 +189,7 @@
                 <div class="metric-label">Avg Occupancy Rate</div>
                 <div class="metric-value">{{ "{:.1f}".format(metrics.occupancy_rate) }}%</div>
                 <div class="occupancy-bar">
-                    <div class="occupancy-fill" style="width: {{ metrics.occupancy_rate }}%"></div>
+                    <div class="occupancy-fill" style="width: {{ "%.1f"|format(metrics.occupancy_rate) }}%"></div>
                 </div>
             </div>
         </div>
@@ -220,7 +220,7 @@
                 <canvas id="sourcesChart"></canvas>
                 <div class="mt-3">
                     {% for source, count in metrics.booking_sources.items() %}
-                    <span class="booking-source-badge {{ source }}">
+                    <span class="booking-source-badge {{ source|e }}">
                         {{ source|capitalize }}: {{ count }}
                     </span>
                     {% endfor %}
@@ -249,7 +249,7 @@
                             <strong>${{ "{:,.2f}".format(revenue) }}</strong>
                             <div class="occupancy-bar" style="width: 100px;">
                                 <div class="occupancy-fill" 
-                                     style="width: {{ metrics.occupancy_by_property[property_name] }}%"></div>
+                                     style="width: {{ "%.1f"|format(metrics.occupancy_by_property[property_name]) }}%"></div>
                             </div>
                         </div>
                     </div>
@@ -337,7 +337,7 @@ const revenueCtx = document.getElementById('revenueChart').getContext('2d');
 const revenueChart = new Chart(revenueCtx, {
     type: 'line',
     data: {
-        labels: [{% for item in metrics.monthly_revenue %}'{{ item.month }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        labels: [{% for item in metrics.monthly_revenue %}{{ item.month|tojson }}{% if not loop.last %},{% endif %}{% endfor %}],
         datasets: [{
             label: 'Revenue',
             data: [{% for item in metrics.monthly_revenue %}{{ item.revenue }}{% if not loop.last %},{% endif %}{% endfor %}],
@@ -380,7 +380,7 @@ const sourcesCtx = document.getElementById('sourcesChart').getContext('2d');
 const sourcesChart = new Chart(sourcesCtx, {
     type: 'doughnut',
     data: {
-        labels: [{% for source, count in metrics.booking_sources.items() %}'{{ source|capitalize }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        labels: [{% for source, count in metrics.booking_sources.items() %}{{ (source|capitalize)|tojson }}{% if not loop.last %},{% endif %}{% endfor %}],
         datasets: [{
             data: [{% for source, count in metrics.booking_sources.items() %}{{ count }}{% if not loop.last %},{% endif %}{% endfor %}],
             backgroundColor: [

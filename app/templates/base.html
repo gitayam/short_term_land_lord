@@ -169,7 +169,7 @@
     <script>
     // Apply theme on page load
     document.addEventListener('DOMContentLoaded', function() {
-        const currentTheme = '{{ user_theme }}';
+        const currentTheme = {{ user_theme|tojson }};
         
         if (currentTheme === 'system') {
             // Check system preference
