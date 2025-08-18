@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">Configuration Audit Log</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_config.index') }}">Configuration</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Audit Log</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Configuration Changes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if audit_logs.items %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Setting</th>
+                                    <th>Old Value</th>
+                                    <th>New Value</th>
+                                    <th>Changed By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in audit_logs.items %}
+                                <tr>
+                                    <td>
+                                        <small>{{ log.changed_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                                    </td>
+                                    <td>
+                                        <code>{{ log.setting_key }}</code>
+                                    </td>
+                                    <td>
+                                        {% if log.old_value %}
+                                            {% if log.old_value|length > 50 %}
+                                                <span title="{{ log.old_value }}">{{ log.old_value[:50] }}...</span>
+                                            {% else %}
+                                                {{ log.old_value }}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Not set</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.new_value %}
+                                            {% if log.new_value|length > 50 %}
+                                                <span title="{{ log.new_value }}">{{ log.new_value[:50] }}...</span>
+                                            {% else %}
+                                                {{ log.new_value }}
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Deleted</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.changed_by %}
+                                            {{ log.changed_by.email }}
+                                        {% else %}
+                                            <span class="text-muted">System</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if audit_logs.has_prev or audit_logs.has_next %}
+                    <nav aria-label="Audit log pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if audit_logs.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_config.audit_log', page=audit_logs.prev_num) }}">
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </span>
+                            </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    Page {{ audit_logs.page }} of {{ audit_logs.pages }}
+                                </span>
+                            </li>
+                            
+                            {% if audit_logs.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_config.audit_log', page=audit_logs.next_num) }}">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No configuration changes have been recorded yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <a href="{{ url_for('admin_config.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Configuration
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

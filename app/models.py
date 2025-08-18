@@ -1724,8 +1724,14 @@ class SiteSetting(db.Model):
     value = db.Column(db.Text, nullable=True)
     description = db.Column(db.String(255), nullable=True)
     visible = db.Column(db.Boolean, default=True)
+    category = db.Column(db.String(32), nullable=True)  # Added for categorization
+    config_type = db.Column(db.String(16), nullable=True)  # Added for type info
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Track who made changes
+    
+    # Relationship to track who updated the setting
+    updated_by = db.relationship('User', backref='setting_updates', foreign_keys=[updated_by_id])
     
     @classmethod
     def get_setting(cls, key, default=None):
@@ -1734,19 +1740,53 @@ class SiteSetting(db.Model):
         return setting.value if setting else default
     
     @classmethod
-    def set_setting(cls, key, value, description=None, visible=True):
+    def set_setting(cls, key, value, description=None, visible=True, category=None, config_type=None, updated_by_id=None):
         """Create or update a setting"""
         setting = db.session.get(cls, key)
         
         if setting:
+            # Store old value for audit
+            old_value = setting.value
             setting.value = value
             setting.updated_at = datetime.utcnow()
             if description:
                 setting.description = description
             setting.visible = visible
+            if category:
+                setting.category = category
+            if config_type:
+                setting.config_type = config_type
+            if updated_by_id:
+                setting.updated_by_id = updated_by_id
+                # Create audit log entry
+                if old_value != value:
+                    audit = ConfigurationAudit(
+                        setting_key=key,
+                        old_value=old_value,
+                        new_value=value,
+                        changed_by_id=updated_by_id
+                    )
+                    db.session.add(audit)
         else:
-            setting = cls(key=key, value=value, description=description, visible=visible)
+            setting = cls(
+                key=key, 
+                value=value, 
+                description=description, 
+                visible=visible,
+                category=category,
+                config_type=config_type,
+                updated_by_id=updated_by_id
+            )
             db.session.add(setting)
+            # Create audit log entry for new setting
+            if updated_by_id:
+                audit = ConfigurationAudit(
+                    setting_key=key,
+                    old_value=None,
+                    new_value=value,
+                    changed_by_id=updated_by_id
+                )
+                db.session.add(audit)
         
         db.session.commit()
         return setting
@@ -1761,6 +1801,25 @@ class SiteSetting(db.Model):
         """Check if guest reviews feature is enabled"""
         value = cls.get_setting('guest_reviews_enabled', 'false')
         return value.lower() == 'true'
+
+
+class ConfigurationAudit(db.Model):
+    """Model for tracking configuration changes for audit trail"""
+    __tablename__ = 'configuration_audit'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    setting_key = db.Column(db.String(64), nullable=False)
+    old_value = db.Column(db.Text, nullable=True)
+    new_value = db.Column(db.Text, nullable=True)
+    changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    changed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationship to track who made the change
+    changed_by = db.relationship('User', backref='configuration_changes', foreign_keys=[changed_by_id])
+    
+    def __repr__(self):
+        return f'<ConfigurationAudit {self.setting_key} by {self.changed_by_id}>'
+
 
 def create_admin_user_from_env():
     """Create an admin user from environment variables if one doesn't exist"""

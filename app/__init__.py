@@ -146,6 +146,10 @@ def create_app(config_class=Config):
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
     
+    # Register configuration management blueprint
+    from app.admin.config_routes import bp as admin_config_bp
+    app.register_blueprint(admin_config_bp)
+    
     from app.workforce import bp as workforce_bp
     app.register_blueprint(workforce_bp, url_prefix='/workforce')
 

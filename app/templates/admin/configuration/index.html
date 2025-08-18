@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">Configuration Management</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Configuration</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Configuration Management System</strong><br>
+                Settings are loaded with the following priority:
+                <ol class="mb-0 mt-2">
+                    <li>Environment variables (.env file) - Highest priority</li>
+                    <li>Database settings - Can be modified through this interface</li>
+                    <li>Default values - Used when no other value is set</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for category in categories %}
+        {% set info = category_info.get(category, {}) %}
+        {% set counts = category_counts.get(category, {'editable': 0, 'total': 0}) %}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-{{ info.get('color', 'primary') }} text-white">
+                    <h5 class="mb-0">
+                        <i class="{{ info.get('icon', 'fas fa-cog') }}"></i>
+                        {{ category.replace('_', ' ').title() }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">{{ info.get('description', 'Configuration settings') }}</p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge badge-primary">{{ counts.total }} Settings</span>
+                        {% if counts.editable > 0 %}
+                        <span class="badge badge-success">{{ counts.editable }} Editable</span>
+                        {% else %}
+                        <span class="badge badge-secondary">Read-Only</span>
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('admin_config.category_settings', category=category) }}" 
+                       class="btn btn-outline-{{ info.get('color', 'primary') }} btn-block">
+                        <i class="fas fa-edit"></i> Manage Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tools"></i> Configuration Tools
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('admin_config.audit_log') }}" class="btn btn-outline-info">
+                            <i class="fas fa-history"></i> View Audit Log
+                        </a>
+                        <a href="{{ url_for('admin_config.export_config') }}" class="btn btn-outline-success">
+                            <i class="fas fa-download"></i> Export Configuration
+                        </a>
+                        <a href="{{ url_for('admin.settings') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-cog"></i> Legacy Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add hover effects for cards
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.classList.add('shadow');
+        });
+        card.addEventListener('mouseleave', function() {
+            this.classList.remove('shadow');
+            this.classList.add('shadow-sm');
+        });
+    });
+});
+</script>
+
+<style>
+.card {
+    transition: all 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-5px);
+}
+</style>
+{% endblock %}
