@@ -99,10 +99,10 @@
                                     </td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="{{ url_for('profile.view_user', id=user.id) }}" class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="showUserDetails({{ user.id }}, '{{ user.email }}', '{{ user.get_full_name() }}', '{{ user.role }}', '{{ user.created_at.strftime('%Y-%m-%d') }}')">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                 <span class="sr-only">Toggle Dropdown</span>
                                             </button>
                                             <div class="dropdown-menu">
@@ -137,4 +137,52 @@
         </div>
     </div>
 </div>
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1" role="dialog" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userDetailsModalLabel">User Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row">
+                    <dt class="col-sm-4">User ID:</dt>
+                    <dd class="col-sm-8" id="modal-user-id"></dd>
+                    
+                    <dt class="col-sm-4">Email:</dt>
+                    <dd class="col-sm-8" id="modal-user-email"></dd>
+                    
+                    <dt class="col-sm-4">Full Name:</dt>
+                    <dd class="col-sm-8" id="modal-user-name"></dd>
+                    
+                    <dt class="col-sm-4">Role:</dt>
+                    <dd class="col-sm-8" id="modal-user-role"></dd>
+                    
+                    <dt class="col-sm-4">Created:</dt>
+                    <dd class="col-sm-8" id="modal-user-created"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showUserDetails(userId, email, fullName, role, created) {
+    document.getElementById('modal-user-id').textContent = userId;
+    document.getElementById('modal-user-email').textContent = email;
+    document.getElementById('modal-user-name').textContent = fullName;
+    document.getElementById('modal-user-role').textContent = role;
+    document.getElementById('modal-user-created').textContent = created;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+    modal.show();
+}
+</script>
+
 {% endblock %} 
