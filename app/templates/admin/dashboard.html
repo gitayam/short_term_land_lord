@@ -3,11 +3,21 @@
 {% block content %}
 <div class="container mt-4">
     <div class="row">
-        <div class="col-md-12">
-            <h1 class="mb-4">Admin Dashboard</h1>
+        <div class="col-12">
+            <div class="d-flex align-items-center mb-4">
+                <div class="me-3">
+                    <div class="app-icon-circle app-icon-circle-primary">
+                        <i class="bi bi-shield-lock-fill fs-3"></i>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="h2 mb-1">Admin Dashboard</h1>
+                    <p class="text-secondary mb-0">System overview and administrative controls</p>
+                </div>
+            </div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}" class="app-link">Dashboard</a></li>
                     <li class="breadcrumb-item active">Admin</li>
                 </ol>
             </nav>
@@ -15,45 +25,60 @@
     </div>
     
     <div class="row">
-        <div class="col-md-8">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">System Statistics</h5>
+        <div class="col-lg-8">
+            <div class="app-card mb-4">
+                <div class="app-card-header">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-graph-up text-primary me-2"></i>
+                        <h5 class="mb-0">System Statistics</h5>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ user_count }}</h5>
-                                    <p class="card-text">Total Users</p>
+                <div class="app-card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6 col-xl-3">
+                            <div class="app-stat-card">
+                                <div class="app-stat-icon app-stat-icon-primary">
+                                    <i class="bi bi-people-fill"></i>
+                                </div>
+                                <div class="app-stat-content">
+                                    <div class="app-stat-number">{{ user_count }}</div>
+                                    <div class="app-stat-label">Total Users</div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="col-md-3 mb-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ owner_count }}</h5>
-                                    <p class="card-text">Property Owners</p>
+                        <div class="col-md-6 col-xl-3">
+                            <div class="app-stat-card">
+                                <div class="app-stat-icon app-stat-icon-success">
+                                    <i class="bi bi-house-fill"></i>
+                                </div>
+                                <div class="app-stat-content">
+                                    <div class="app-stat-number">{{ owner_count }}</div>
+                                    <div class="app-stat-label">Property Owners</div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="col-md-3 mb-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ manager_count }}</h5>
-                                    <p class="card-text">Property Managers</p>
+                        <div class="col-md-6 col-xl-3">
+                            <div class="app-stat-card">
+                                <div class="app-stat-icon app-stat-icon-info">
+                                    <i class="bi bi-person-badge-fill"></i>
+                                </div>
+                                <div class="app-stat-content">
+                                    <div class="app-stat-number">{{ manager_count }}</div>
+                                    <div class="app-stat-label">Property Managers</div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="col-md-3 mb-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ staff_count }}</h5>
-                                    <p class="card-text">Service Staff</p>
+                        <div class="col-md-6 col-xl-3">
+                            <div class="app-stat-card">
+                                <div class="app-stat-icon app-stat-icon-warning">
+                                    <i class="bi bi-tools"></i>
+                                </div>
+                                <div class="app-stat-content">
+                                    <div class="app-stat-number">{{ staff_count }}</div>
+                                    <div class="app-stat-label">Service Staff</div>
                                 </div>
                             </div>
                         </div>
@@ -62,32 +87,43 @@
             </div>
             
             {% if pending_registrations > 0 %}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-danger text-white">
+            <div class="app-card mb-4 app-card-urgent">
+                <div class="app-card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Pending Registration Requests</h5>
-                        <a href="{{ url_for('admin.registrations') }}" class="btn btn-sm btn-light">View All</a>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                            <h5 class="mb-0">Pending Registration Requests</h5>
+                        </div>
+                        <a href="{{ url_for('admin.registrations') }}" class="app-btn app-btn-sm app-btn-outline">View All</a>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="alert alert-warning">
-                        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Action Required</h4>
-                        <p>You have <strong>{{ pending_registrations }}</strong> pending registration requests that need your review.</p>
-                        <hr>
-                        <a href="{{ url_for('admin.registrations') }}" class="btn btn-primary">Review Registration Requests</a>
+                <div class="app-card-body">
+                    <div class="app-alert app-alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <div>
+                            <h6 class="mb-2">Action Required</h6>
+                            <p class="mb-3">You have <strong class="text-danger">{{ pending_registrations }}</strong> pending registration requests that need your review.</p>
+                            <a href="{{ url_for('admin.registrations') }}" class="app-btn app-btn-danger">
+                                <i class="bi bi-eye me-2"></i>
+                                Review Registration Requests
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
             {% endif %}
             
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-warning text-white">
-                    <h5 class="mb-0">Pending Repair Requests</h5>
+            <div class="app-card mb-4">
+                <div class="app-card-header">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-wrench-adjustable text-warning me-2"></i>
+                        <h5 class="mb-0">Pending Repair Requests</h5>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="app-card-body">
                     {% if pending_requests %}
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                    <div class="app-table-container">
+                        <table class="app-table">
                             <thead>
                                 <tr>
                                     <th>Property</th>
@@ -101,35 +137,36 @@
                             <tbody>
                                 {% for request in pending_requests %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Property">
                                         {% if request.property_id in property_dict %}
                                             <strong>{{ property_dict[request.property_id].name }}</strong>
                                         {% else %}
                                             Property #{{ request.property_id }}
                                         {% endif %}
                                     </td>
-                                    <td>{{ request.title }}</td>
-                                    <td>
+                                    <td data-label="Title">{{ request.title }}</td>
+                                    <td data-label="Severity">
                                         {% if request.severity.value == 'urgent_severity' %}
-                                        <span class="badge badge-danger">Urgent</span>
+                                        <span class="app-badge app-badge-danger">Urgent</span>
                                         {% elif request.severity.value == 'high_severity' %}
-                                        <span class="badge badge-warning">High</span>
+                                        <span class="app-badge app-badge-warning">High</span>
                                         {% elif request.severity.value == 'medium_severity' %}
-                                        <span class="badge badge-primary">Medium</span>
+                                        <span class="app-badge app-badge-info">Medium</span>
                                         {% else %}
-                                        <span class="badge badge-secondary">Low</span>
+                                        <span class="app-badge app-badge-secondary">Low</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         {% if request.status.value == 'pending_status' %}
-                                        <span class="badge badge-warning">Pending</span>
+                                        <span class="app-badge app-badge-warning">Pending</span>
                                         {% elif request.status.value == 'approved_status' %}
-                                        <span class="badge badge-success">Approved</span>
+                                        <span class="app-badge app-badge-success">Approved</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ request.created_at.strftime('%b %d, %Y') }}</td>
-                                    <td>
-                                        <a href="{{ url_for('property.view', id=request.property_id) }}" class="btn btn-sm btn-outline-primary">
+                                    <td data-label="Date">{{ request.created_at.strftime('%b %d, %Y') }}</td>
+                                    <td data-label="Actions">
+                                        <a href="{{ url_for('property.view', id=request.property_id) }}" class="app-btn app-btn-sm app-btn-outline">
+                                            <i class="bi bi-eye me-1"></i>
                                             View Property
                                         </a>
                                     </td>
@@ -139,47 +176,96 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted">No pending repair requests.</p>
+                    <div class="app-empty-state">
+                        <i class="bi bi-check-circle-fill text-success mb-3"></i>
+                        <p class="text-secondary mb-0">No pending repair requests. Great job!</p>
+                    </div>
                     {% endif %}
                 </div>
             </div>
         </div>
         
-        <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">Admin Actions</h5>
+        <div class="col-lg-4">
+            <div class="app-card mb-4">
+                <div class="app-card-header">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-gear-fill text-info me-2"></i>
+                        <h5 class="mb-0">Admin Actions</h5>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="list-group">
-                        <a href="{{ url_for('admin_config.index') }}" class="list-group-item list-group-item-action">
-                            <i class="fas fa-sliders-h"></i> Configuration Management
-                            <span class="badge badge-success">New</span>
+                <div class="app-card-body p-0">
+                    <div class="app-action-list">
+                        <a href="{{ url_for('admin_config.index') }}" class="app-action-item">
+                            <div class="app-action-icon app-action-icon-primary">
+                                <i class="bi bi-sliders"></i>
+                            </div>
+                            <div class="app-action-content">
+                                <div class="app-action-title">Configuration Management</div>
+                                <div class="app-action-subtitle">System configuration settings</div>
+                            </div>
+                            <div class="app-action-badge">
+                                <span class="app-badge app-badge-success app-badge-sm">New</span>
+                            </div>
                         </a>
-                        <a href="{{ url_for('admin.settings') }}" class="list-group-item list-group-item-action">
-                            <i class="fas fa-cogs"></i> Site Settings (Legacy)
+                        
+                        <a href="{{ url_for('admin.settings') }}" class="app-action-item">
+                            <div class="app-action-icon app-action-icon-secondary">
+                                <i class="bi bi-gear"></i>
+                            </div>
+                            <div class="app-action-content">
+                                <div class="app-action-title">Site Settings</div>
+                                <div class="app-action-subtitle">Legacy configuration options</div>
+                            </div>
                         </a>
-                        <a href="{{ url_for('admin.registrations') }}" class="list-group-item list-group-item-action">
-                            <i class="fas fa-user-plus"></i> Registration Requests 
+                        
+                        <a href="{{ url_for('admin.registrations') }}" class="app-action-item {% if pending_registrations > 0 %}app-action-urgent{% endif %}">
+                            <div class="app-action-icon {% if pending_registrations > 0 %}app-action-icon-danger{% else %}app-action-icon-info{% endif %}">
+                                <i class="bi bi-person-plus"></i>
+                            </div>
+                            <div class="app-action-content">
+                                <div class="app-action-title">Registration Requests</div>
+                                <div class="app-action-subtitle">Review new user applications</div>
+                            </div>
                             {% if pending_registrations > 0 %}
-                            <span class="badge badge-danger">{{ pending_registrations }}</span>
+                            <div class="app-action-badge">
+                                <span class="app-badge app-badge-danger">{{ pending_registrations }}</span>
+                            </div>
                             {% endif %}
                         </a>
-                        <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action">
-                            <i class="fas fa-users"></i> User Management
+                        
+                        <a href="{{ url_for('admin.users') }}" class="app-action-item">
+                            <div class="app-action-icon app-action-icon-warning">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <div class="app-action-content">
+                                <div class="app-action-title">User Management</div>
+                                <div class="app-action-subtitle">Manage user accounts and roles</div>
+                            </div>
                         </a>
                     </div>
                 </div>
             </div>
             
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">Quick Links</h5>
+            <div class="app-card mb-4">
+                <div class="app-card-header">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-bookmark-fill text-secondary me-2"></i>
+                        <h5 class="mb-0">Quick Links</h5>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="list-group">
-                        <a href="{{ url_for('main.dashboard') }}" class="list-group-item list-group-item-action">
-                            <i class="fas fa-tachometer-alt"></i> Main Dashboard
+                <div class="app-card-body p-0">
+                    <div class="app-action-list">
+                        <a href="{{ url_for('main.dashboard') }}" class="app-action-item">
+                            <div class="app-action-icon app-action-icon-primary">
+                                <i class="bi bi-speedometer2"></i>
+                            </div>
+                            <div class="app-action-content">
+                                <div class="app-action-title">Main Dashboard</div>
+                                <div class="app-action-subtitle">Return to main application view</div>
+                            </div>
+                            <div class="app-action-arrow">
+                                <i class="bi bi-arrow-right"></i>
+                            </div>
                         </a>
                     </div>
                 </div>
@@ -187,4 +273,183 @@
         </div>
     </div>
 </div>
+
+<style>
+.app-icon-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--app-surface-secondary);
+}
+
+.app-icon-circle-primary {
+    background: var(--app-primary-light);
+    color: var(--app-primary);
+}
+
+.app-stat-card {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+    background: var(--app-surface);
+    border-radius: 12px;
+    border: 1px solid var(--app-border-color);
+    transition: all 0.2s ease;
+}
+
+.app-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--app-primary-light);
+}
+
+.app-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+}
+
+.app-stat-icon-primary { background: var(--app-primary-light); color: var(--app-primary); }
+.app-stat-icon-success { background: var(--app-success-light); color: var(--app-success); }
+.app-stat-icon-info { background: var(--app-info-light); color: var(--app-info); }
+.app-stat-icon-warning { background: var(--app-warning-light); color: var(--app-warning); }
+
+.app-stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--app-text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.app-stat-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--app-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.app-card-urgent {
+    border-left: 4px solid var(--app-danger);
+    background: linear-gradient(135deg, var(--app-surface) 0%, var(--app-danger-light) 100%);
+}
+
+.app-action-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.app-action-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--app-border-color);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+}
+
+.app-action-item:hover {
+    background: var(--app-surface-hover);
+    color: inherit;
+    text-decoration: none;
+}
+
+.app-action-item:last-child {
+    border-bottom: none;
+}
+
+.app-action-urgent {
+    background: var(--app-danger-light);
+    border-color: var(--app-danger);
+}
+
+.app-action-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.app-action-icon-primary { background: var(--app-primary-light); color: var(--app-primary); }
+.app-action-icon-secondary { background: var(--app-surface-secondary); color: var(--app-text-secondary); }
+.app-action-icon-info { background: var(--app-info-light); color: var(--app-info); }
+.app-action-icon-warning { background: var(--app-warning-light); color: var(--app-warning); }
+.app-action-icon-danger { background: var(--app-danger-light); color: var(--app-danger); }
+
+.app-action-content {
+    flex: 1;
+}
+
+.app-action-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+}
+
+.app-action-subtitle {
+    font-size: 0.8rem;
+    color: var(--app-text-secondary);
+    line-height: 1.3;
+}
+
+.app-action-badge {
+    margin-left: 0.5rem;
+}
+
+.app-action-arrow {
+    margin-left: 0.5rem;
+    color: var(--app-text-tertiary);
+    transition: transform 0.2s ease;
+}
+
+.app-action-item:hover .app-action-arrow {
+    transform: translateX(2px);
+}
+
+.app-empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.app-empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .app-stat-card {
+        padding: 1rem;
+    }
+    
+    .app-stat-number {
+        font-size: 1.5rem;
+    }
+    
+    .app-stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .app-action-item {
+        padding: 0.875rem 1rem;
+    }
+}
+</style>
+
 {% endblock %} 
