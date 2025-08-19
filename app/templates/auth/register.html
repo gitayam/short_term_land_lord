@@ -3,117 +3,182 @@
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Request to Join</h4>
+        <div class="col-md-8 col-lg-7">
+            <div class="app-card">
+                <div class="app-card-header text-center">
+                    <i class="bi bi-person-plus-fill fs-1 text-primary mb-3"></i>
+                    <h4 class="mb-1">Join Our Platform</h4>
+                    <p class="text-secondary mb-0">Complete this form to request an account</p>
                 </div>
-                <div class="card-body">
+                <div class="app-card-body">
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
-                                <div class="alert alert-{{ category }}">
-                                    {{ message }}
+                                <div class="app-alert app-alert-{% if category == 'error' %}danger{% else %}{{ category }}{% endif %}">
+                                    <i class="bi bi-{% if category == 'error' %}exclamation-triangle{% elif category == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+                                    <div>{{ message }}</div>
                                 </div>
                             {% endfor %}
                         {% endif %}
                     {% endwith %}
                     
-                    <p class="lead mb-4">Complete this form to request an account. Your request will be reviewed by an administrator.</p>
+                    <div class="app-alert app-alert-info mb-4">
+                        <i class="bi bi-info-circle"></i>
+                        <div>
+                            <strong>Review Process:</strong> Your request will be reviewed by an administrator and you'll be notified via email once approved.
+                        </div>
+                    </div>
                     
                     {% if form.role.data == 'property_owner' %}
-                    <div class="progress mb-4">
-                        <div class="progress-bar" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">Step 1 of 2</div>
+                    <div class="app-progress mb-4">
+                        <div class="app-progress-bar" style="width: 50%;" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">
+                            <span class="app-progress-text">Step 1 of 2</span>
+                        </div>
                     </div>
                     {% endif %}
                     
-                    <form method="post" novalidate>
+                    <form method="post" novalidate class="app-form" id="registerForm">
                         {{ form.hidden_tag() }}
                         
-                        <div class="form-group">
-                            {{ form.email.label }}
-                            {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.first_name.label(class="app-form-label") }}
+                                    <div class="app-form-input-wrapper">
+                                        <i class="bi bi-person app-form-icon"></i>
+                                        {{ form.first_name(class="app-form-input" + (" app-form-input-invalid" if form.first_name.errors else ""), placeholder="Enter your first name") }}
+                                    </div>
+                                    {% for error in form.first_name.errors %}
+                                    <div class="app-form-error">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.last_name.label(class="app-form-label") }}
+                                    <div class="app-form-input-wrapper">
+                                        <i class="bi bi-person app-form-icon"></i>
+                                        {{ form.last_name(class="app-form-input" + (" app-form-input-invalid" if form.last_name.errors else ""), placeholder="Enter your last name") }}
+                                    </div>
+                                    {% for error in form.last_name.errors %}
+                                    <div class="app-form-error">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="app-form-group">
+                            {{ form.email.label(class="app-form-label") }}
+                            <div class="app-form-input-wrapper">
+                                <i class="bi bi-envelope-at app-form-icon"></i>
+                                {{ form.email(class="app-form-input" + (" app-form-input-invalid" if form.email.errors else ""), placeholder="Enter your email address") }}
+                            </div>
                             {% for error in form.email.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
+                            <div class="app-form-error">{{ error }}</div>
                             {% endfor %}
                         </div>
                         
-                        <div class="form-group">
-                            {{ form.first_name.label }}
-                            {{ form.first_name(class="form-control" + (" is-invalid" if form.first_name.errors else "")) }}
-                            {% for error in form.first_name.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        
-                        <div class="form-group">
-                            {{ form.last_name.label }}
-                            {{ form.last_name(class="form-control" + (" is-invalid" if form.last_name.errors else "")) }}
-                            {% for error in form.last_name.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        
-                        <div class="form-group">
-                            {{ form.phone.label }}
-                            {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else "")) }}
+                        <div class="app-form-group">
+                            {{ form.phone.label(class="app-form-label") }}
+                            <div class="app-form-input-wrapper">
+                                <i class="bi bi-telephone app-form-icon"></i>
+                                {{ form.phone(class="app-form-input" + (" app-form-input-invalid" if form.phone.errors else ""), placeholder="Enter your phone number") }}
+                            </div>
                             {% for error in form.phone.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
+                            <div class="app-form-error">{{ error }}</div>
                             {% endfor %}
                         </div>
                         
-                        <div class="form-group">
-                            {{ form.role.label }}
-                            {{ form.role(class="form-control" + (" is-invalid" if form.role.errors else ""), id="roleSelect", onchange="toggleInvitationField()") }}
+                        <div class="app-form-group">
+                            {{ form.role.label(class="app-form-label") }}
+                            <div class="app-form-input-wrapper">
+                                <i class="bi bi-shield app-form-icon"></i>
+                                {{ form.role(class="app-form-select" + (" app-form-input-invalid" if form.role.errors else ""), id="roleSelect", onchange="toggleInvitationField()") }}
+                            </div>
                             {% for error in form.role.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
+                            <div class="app-form-error">{{ error }}</div>
                             {% endfor %}
                         </div>
                         
                         <!-- Invitation Code Field (for guests) -->
-                        <div class="form-group" id="invitationField" style="display: none;">
-                            {{ form.invitation_code.label(class="font-weight-bold text-primary") }}
-                            {{ form.invitation_code(class="form-control" + (" is-invalid" if form.invitation_code.errors else ""), placeholder="Enter your invitation code") }}
-                            <small class="form-text text-muted">{{ form.invitation_code.description }}</small>
+                        <div class="app-form-group" id="invitationField" style="display: none;">
+                            {{ form.invitation_code.label(class="app-form-label app-form-label-highlight") }}
+                            <div class="app-form-input-wrapper">
+                                <i class="bi bi-ticket-perforated app-form-icon"></i>
+                                {{ form.invitation_code(class="app-form-input" + (" app-form-input-invalid" if form.invitation_code.errors else ""), placeholder="Enter your invitation code") }}
+                            </div>
+                            <small class="app-form-help">{{ form.invitation_code.description }}</small>
                             {% for error in form.invitation_code.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
+                            <div class="app-form-error">{{ error }}</div>
                             {% endfor %}
                         </div>
                         
-                        <div class="form-group">
-                            {{ form.password.label }}
-                            {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
-                            {% for error in form.password.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        
-                        <div class="form-group">
-                            {{ form.password2.label }}
-                            {{ form.password2(class="form-control" + (" is-invalid" if form.password2.errors else "")) }}
-                            {% for error in form.password2.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.password.label(class="app-form-label") }}
+                                    <div class="app-form-input-wrapper">
+                                        <i class="bi bi-key app-form-icon"></i>
+                                        {{ form.password(class="app-form-input" + (" app-form-input-invalid" if form.password.errors else ""), placeholder="Choose a strong password") }}
+                                        <button type="button" class="app-form-toggle-password" aria-label="Toggle password visibility">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    {% for error in form.password.errors %}
+                                    <div class="app-form-error">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.password2.label(class="app-form-label") }}
+                                    <div class="app-form-input-wrapper">
+                                        <i class="bi bi-key-fill app-form-icon"></i>
+                                        {{ form.password2(class="app-form-input" + (" app-form-input-invalid" if form.password2.errors else ""), placeholder="Confirm your password") }}
+                                        <button type="button" class="app-form-toggle-password" aria-label="Toggle password visibility">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
+                                    {% for error in form.password2.errors %}
+                                    <div class="app-form-error">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Message Field (not required for guests) -->
-                        <div class="form-group" id="messageField">
-                            {{ form.message.label }}
-                            {{ form.message(class="form-control" + (" is-invalid" if form.message.errors else ""), rows="3") }}
-                            <small class="form-text text-muted" id="messageDescription">{{ form.message.description }}</small>
+                        <div class="app-form-group" id="messageField">
+                            {{ form.message.label(class="app-form-label") }}
+                            <div class="app-form-input-wrapper">
+                                <i class="bi bi-chat-text app-form-icon app-form-icon-top"></i>
+                                {{ form.message(class="app-form-textarea" + (" app-form-input-invalid" if form.message.errors else ""), rows="3", placeholder="Tell us about yourself...") }}
+                            </div>
+                            <small class="app-form-help" id="messageDescription">{{ form.message.description }}</small>
                             {% for error in form.message.errors %}
-                            <div class="invalid-feedback">{{ error }}</div>
+                            <div class="app-form-error">{{ error }}</div>
                             {% endfor %}
                         </div>
                         
-                        <div class="form-group">
-                            {{ form.submit(class="btn btn-primary btn-block") }}
+                        <div class="app-form-group">
+                            <button type="submit" class="app-btn app-btn-primary app-btn-lg w-100" id="registerSubmit">
+                                <span class="btn-text">{{ form.submit.label.text }}</span>
+                                <span class="btn-loading d-none">
+                                    <i class="bi bi-arrow-clockwise spin"></i>
+                                    Submitting...
+                                </span>
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
             <div class="text-center mt-3">
-                <p>Already have an account? <a href="{{ url_for('auth.login') }}">Sign in here</a></p>
+                <p class="text-secondary mb-0">
+                    Already have an account? 
+                    <a href="{{ url_for('auth.login') }}" class="app-link app-link-primary">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>
+                        Sign in here
+                    </a>
+                </p>
             </div>
         </div>
     </div>
@@ -123,19 +188,55 @@
 {% block scripts %}
 {{ super() }}
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Password visibility toggles
+        document.querySelectorAll('.app-form-toggle-password').forEach(function(toggle) {
+            toggle.addEventListener('click', function() {
+                const passwordInput = this.parentElement.querySelector('input[type="password"], input[type="text"]');
+                const isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                const icon = this.querySelector('i');
+                icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+                this.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+            });
+        });
+        
+        // Form submission with loading state
+        const registerForm = document.getElementById('registerForm');
+        const submitBtn = document.getElementById('registerSubmit');
+        
+        if (registerForm && submitBtn) {
+            registerForm.addEventListener('submit', function() {
+                const btnText = submitBtn.querySelector('.btn-text');
+                const btnLoading = submitBtn.querySelector('.btn-loading');
+                
+                submitBtn.disabled = true;
+                btnText.classList.add('d-none');
+                btnLoading.classList.remove('d-none');
+            });
+        }
+        
+        // Initialize form state
+        toggleInvitationField();
+        
+        // Handle role changes
+        document.getElementById('roleSelect').addEventListener('change', toggleInvitationField);
+    });
+    
     function toggleInvitationField() {
         var role = document.getElementById('roleSelect').value;
         var invitationField = document.getElementById('invitationField');
         var messageField = document.getElementById('messageField');
         var messageDescription = document.getElementById('messageDescription');
-        var submitButton = document.querySelector('button[type="submit"], input[type="submit"]');
+        var submitButton = document.getElementById('registerSubmit');
+        var btnText = submitButton.querySelector('.btn-text');
         
         if (role === 'guest') {
             // Show invitation field for guests
             invitationField.style.display = 'block';
             // Message is optional for guests
             messageDescription.textContent = 'Optional: Tell us about yourself';
-            submitButton.textContent = 'Register as Guest';
+            btnText.textContent = 'Register as Guest';
         } else {
             // Hide invitation field for other roles
             invitationField.style.display = 'none';
@@ -143,19 +244,63 @@
             messageDescription.textContent = 'Tell us a bit about yourself and why you want to join the platform';
             
             if (role === 'property_owner') {
-                submitButton.textContent = 'Continue';
+                btnText.textContent = 'Continue to Property Details';
             } else {
-                submitButton.textContent = 'Submit Request';
+                btnText.textContent = 'Submit Registration Request';
             }
         }
     }
-    
-    $(document).ready(function() {
-        // Initialize form state
-        toggleInvitationField();
-        
-        // Handle role changes
-        $('#roleSelect').change(toggleInvitationField);
-    });
 </script>
+
+<style>
+.app-form-icon-top {
+    top: 20px !important;
+}
+
+.app-form-label-highlight {
+    color: var(--app-primary) !important;
+    font-weight: 600;
+}
+
+.app-form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 12px;
+    padding-right: 40px !important;
+}
+
+.app-progress {
+    background-color: var(--app-surface-secondary);
+    border-radius: 8px;
+    height: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.app-progress-bar {
+    background: linear-gradient(90deg, var(--app-primary), var(--app-primary-light));
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.app-progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 768px) {
+    .app-progress-text {
+        font-size: 0.7rem;
+    }
+}
+</style>
 {% endblock %}
