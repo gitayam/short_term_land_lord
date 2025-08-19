@@ -263,6 +263,187 @@
             padding: 1rem;
         }
     }
+    
+    /* Toast Notification System */
+    .app-toast-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 9999;
+        max-width: 400px;
+        width: 100%;
+        pointer-events: none;
+    }
+    
+    .app-toast {
+        background: var(--app-surface);
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        margin-bottom: 0.75rem;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: auto;
+        overflow: hidden;
+        position: relative;
+        border: 1px solid var(--app-border-color);
+    }
+    
+    .app-toast-show {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    
+    .app-toast-hide {
+        opacity: 0;
+        transform: translateX(100%) scale(0.95);
+    }
+    
+    .app-toast-content {
+        display: flex;
+        align-items: flex-start;
+        padding: 1rem;
+        gap: 0.75rem;
+    }
+    
+    .app-toast-icon {
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.125rem;
+        margin-top: 0.125rem;
+    }
+    
+    .app-toast-message {
+        flex: 1;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        color: var(--app-text-primary);
+        font-weight: 500;
+    }
+    
+    .app-toast-action {
+        flex-shrink: 0;
+        margin-left: 0.5rem;
+    }
+    
+    .app-toast-close {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: none;
+        border: none;
+        color: var(--app-text-tertiary);
+        font-size: 1.125rem;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+    }
+    
+    .app-toast-close:hover {
+        background: var(--app-surface-hover);
+        color: var(--app-text-secondary);
+    }
+    
+    .app-toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: currentColor;
+        border-radius: 0 0 12px 12px;
+        animation: toastProgress linear;
+        transform-origin: left;
+    }
+    
+    @keyframes toastProgress {
+        0% { width: 100%; }
+        100% { width: 0%; }
+    }
+    
+    /* Toast Type Variations */
+    .app-toast-success {
+        border-left: 4px solid var(--app-success);
+    }
+    
+    .app-toast-success .app-toast-icon {
+        color: var(--app-success);
+    }
+    
+    .app-toast-success .app-toast-progress {
+        background: var(--app-success);
+    }
+    
+    .app-toast-error,
+    .app-toast-danger {
+        border-left: 4px solid var(--app-danger);
+    }
+    
+    .app-toast-error .app-toast-icon,
+    .app-toast-danger .app-toast-icon {
+        color: var(--app-danger);
+    }
+    
+    .app-toast-error .app-toast-progress,
+    .app-toast-danger .app-toast-progress {
+        background: var(--app-danger);
+    }
+    
+    .app-toast-warning {
+        border-left: 4px solid var(--app-warning);
+    }
+    
+    .app-toast-warning .app-toast-icon {
+        color: var(--app-warning);
+    }
+    
+    .app-toast-warning .app-toast-progress {
+        background: var(--app-warning);
+    }
+    
+    .app-toast-info {
+        border-left: 4px solid var(--app-info);
+    }
+    
+    .app-toast-info .app-toast-icon {
+        color: var(--app-info);
+    }
+    
+    .app-toast-info .app-toast-progress {
+        background: var(--app-info);
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 576px) {
+        .app-toast-container {
+            left: 1rem;
+            right: 1rem;
+            top: 1rem;
+            max-width: none;
+        }
+        
+        .app-toast {
+            margin-bottom: 0.5rem;
+        }
+        
+        .app-toast-content {
+            padding: 0.875rem;
+            gap: 0.625rem;
+        }
+        
+        .app-toast-message {
+            font-size: 0.875rem;
+        }
+    }
     </style>
 </head>
 <body data-bs-theme="{{ user_theme }}">
@@ -474,15 +655,13 @@
         </div>
     </nav>
 
+    <!-- Toast Container -->
+    <div class="app-toast-container" id="toastContainer"></div>
+    
     <main class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            {% for category, message in messages %}
-            <div class="app-alert app-alert-{{ category }} alert alert-{{ category }}">
-                <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-triangle{% elif category == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-                {{ message }}
-            </div>
-            {% endfor %}
+            <div id="flashMessages" data-messages="{{ messages | tojson | e }}" style="display: none;"></div>
         {% endif %}
         {% endwith %}
 
@@ -544,6 +723,143 @@
                 }
             });
         });
+        
+        // Toast Notification System
+        class ToastManager {
+            constructor() {
+                this.container = document.getElementById('toastContainer');
+                this.toastId = 0;
+                this.initializeFlashMessages();
+            }
+            
+            initializeFlashMessages() {
+                const flashElement = document.getElementById('flashMessages');
+                if (flashElement && flashElement.dataset.messages) {
+                    try {
+                        const messages = JSON.parse(flashElement.dataset.messages);
+                        messages.forEach(([category, message]) => {
+                            this.show(message, category, {
+                                duration: category === 'error' || category === 'danger' ? 8000 : 5000,
+                                persistent: false
+                            });
+                        });
+                    } catch (e) {
+                        console.error('Error parsing flash messages:', e);
+                    }
+                }
+            }
+            
+            show(message, type = 'info', options = {}) {
+                const config = {
+                    duration: 5000,
+                    persistent: false,
+                    dismissible: true,
+                    action: null,
+                    ...options
+                };
+                
+                const toast = this.createToast(message, type, config);
+                this.container.appendChild(toast);
+                
+                // Animate in
+                requestAnimationFrame(() => {
+                    toast.classList.add('app-toast-show');
+                });
+                
+                // Auto dismiss
+                if (!config.persistent && config.duration > 0) {
+                    setTimeout(() => this.dismiss(toast), config.duration);
+                }
+                
+                return toast;
+            }
+            
+            createToast(message, type, config) {
+                const toastId = `toast-${this.toastId++}`;
+                const iconMap = {
+                    success: 'check-circle-fill',
+                    error: 'exclamation-triangle-fill',
+                    danger: 'exclamation-triangle-fill',
+                    warning: 'exclamation-circle-fill',
+                    info: 'info-circle-fill'
+                };
+                
+                const toast = document.createElement('div');
+                toast.className = `app-toast app-toast-${type}`;
+                toast.id = toastId;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'polite');
+                
+                const icon = iconMap[type] || iconMap.info;
+                
+                toast.innerHTML = `
+                    <div class="app-toast-content">
+                        <div class="app-toast-icon">
+                            <i class="bi bi-${icon}"></i>
+                        </div>
+                        <div class="app-toast-message">
+                            ${message}
+                        </div>
+                        ${config.action ? `
+                            <div class="app-toast-action">
+                                <button class="app-btn app-btn-sm app-btn-ghost" onclick="${config.action.handler}">
+                                    ${config.action.text}
+                                </button>
+                            </div>
+                        ` : ''}
+                        ${config.dismissible ? `
+                            <button class="app-toast-close" onclick="window.toastManager.dismiss(this.closest('.app-toast'))" aria-label="Close">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="app-toast-progress"></div>
+                `;
+                
+                // Animate progress bar
+                if (!config.persistent && config.duration > 0) {
+                    const progressBar = toast.querySelector('.app-toast-progress');
+                    progressBar.style.animationDuration = `${config.duration}ms`;
+                }
+                
+                return toast;
+            }
+            
+            dismiss(toast) {
+                if (!toast || !toast.parentNode) return;
+                
+                toast.classList.add('app-toast-hide');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }
+            
+            success(message, options = {}) {
+                return this.show(message, 'success', options);
+            }
+            
+            error(message, options = {}) {
+                return this.show(message, 'error', { ...options, duration: 8000 });
+            }
+            
+            warning(message, options = {}) {
+                return this.show(message, 'warning', options);
+            }
+            
+            info(message, options = {}) {
+                return this.show(message, 'info', options);
+            }
+            
+            clear() {
+                const toasts = this.container.querySelectorAll('.app-toast');
+                toasts.forEach(toast => this.dismiss(toast));
+            }
+        }
+        
+        // Initialize toast manager
+        window.toastManager = new ToastManager();
     });
     </script>
     
