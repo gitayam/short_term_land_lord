@@ -37,6 +37,9 @@ google-cloud-storage==3.3.0
 # Image processing
 Pillow==11.3.0
 
+# File type detection
+python-magic==0.4.27
+
 # Date and time handling
 python-dateutil==2.9.0.post0
 pytz==2024.2

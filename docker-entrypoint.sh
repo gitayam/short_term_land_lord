@@ -82,14 +82,18 @@ echo -e "${BLUE}Checking environment variables...${NC}"
 echo -e "${BLUE}ADMIN_EMAIL: ${ADMIN_EMAIL:-'NOT SET'}${NC}"
 echo -e "${BLUE}ADMIN_PASSWORD: ${ADMIN_PASSWORD:+'SET' (hidden)}${NC}"
 
-python migrations/create_admin.py
+# Temporarily skip admin creation to test Flask app startup
+echo -e "${YELLOW}Skipping admin user creation for now to test Flask app startup...${NC}"
+echo -e "${YELLOW}You can create an admin user manually later via the web interface${NC}"
 
-if [ $? -ne 0 ]; then
-    echo -e "${YELLOW}Admin user creation failed, but continuing...${NC}"
-    echo -e "${YELLOW}You can create an admin user manually later${NC}"
-else
-    echo -e "${GREEN}Admin user created/verified successfully!${NC}"
-fi
+# python migrations/create_admin.py
+
+# if [ $? -ne 0 ]; then
+#     echo -e "${YELLOW}Admin user creation failed, but continuing...${NC}"
+#     echo -e "${YELLOW}You can create an admin user manually later${NC}"
+# else
+#     echo -e "${GREEN}Admin user created/verified successfully!${NC}"
+# fi
 
 # Start the Flask application
 echo -e "${GREEN}Database is ready. Starting Flask application...${NC}"

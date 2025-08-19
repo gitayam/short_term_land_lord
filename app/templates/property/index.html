@@ -13,12 +13,35 @@
     {% for property in properties %}
     <div class="col">
         <div class="card h-100">
-            <div class="card-img-top bg-light" style="height: 200px; overflow: hidden;">
+            <div class="card-img-top" style="height: 200px; overflow: hidden;">
                 {% if property.images|length > 0 %}
-                <img src="{{ property.get_primary_image_url() }}" class="img-fluid" alt="{{ property.name }}">
+                <img src="{{ property.get_primary_image_url() }}" class="w-100 h-100" style="object-fit: cover;" alt="{{ property.name }}">
                 {% else %}
-                <div class="d-flex justify-content-center align-items-center h-100 text-muted">
-                    <span>No image available</span>
+                {% set gradients = [
+                    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                    'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+                ] %}
+                {% set property_icons = {
+                    'house': 'fa-home',
+                    'apartment': 'fa-building',
+                    'condo': 'fa-building',
+                    'townhouse': 'fa-home',
+                    'villa': 'fa-home',
+                    'cottage': 'fa-home',
+                    'studio': 'fa-door-open',
+                    'loft': 'fa-building'
+                } %}
+                {% set icon_class = property_icons.get(property.property_type, 'fa-home') %}
+                {% set gradient = gradients[property.id % gradients|length] %}
+                <div class="d-flex justify-content-center align-items-center h-100" style="background: {{ gradient }};">
+                    <div class="text-center text-white">
+                        <i class="fas {{ icon_class }}" style="font-size: 3rem;"></i>
+                        <div class="mt-2" style="font-size: 0.9rem; opacity: 0.9;">{{ property.property_type|capitalize }}</div>
+                    </div>
                 </div>
                 {% endif %}
             </div>

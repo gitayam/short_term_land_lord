@@ -4,7 +4,9 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.property import bp
 from app.property.forms import PropertyForm, PropertyImageForm, PropertyCalendarForm, RoomForm, GuestAccessForm
-from app.models import Property, PropertyImage, UserRoles, PropertyCalendar, Room, RoomFurniture, Task, TaskProperty, CleaningSession, RepairRequest, ServiceType, GuestReview, TaskAssignment
+from app.models import (Property, PropertyImage, UserRoles, PropertyCalendar, Room, RoomFurniture, 
+                       Task, TaskProperty, CleaningSession, RepairRequest, ServiceType, GuestReview, 
+                       TaskAssignment, BookingRequest, BookingRequestStatus, GuestAccountRequest, User)
 from datetime import datetime, timedelta
 import os
 import uuid
@@ -1622,3 +1624,175 @@ def booking_calendar_settings(id):
     return render_template('property/booking_calendar_settings.html',
                           property=property,
                           booking_calendar_url=booking_calendar_url)
+
+
+@bp.route('/<int:id>/request-booking', methods=['POST'])
+def request_booking(id):
+    """Handle booking request submission from public calendar"""
+    from app.utils.email import send_email
+    
+    property = Property.query.get_or_404(id)
+    
+    # Extract form data
+    guest_name = request.form.get('guest_name')
+    guest_email = request.form.get('guest_email')
+    guest_phone = request.form.get('guest_phone')
+    check_in_date = request.form.get('check_in_date')
+    check_out_date = request.form.get('check_out_date')
+    number_of_guests = request.form.get('number_of_guests', 1)
+    
+    # Previous stay info
+    previous_stay = request.form.get('previous_stay') == 'yes'
+    previous_stay_property = request.form.get('previous_stay_property') if previous_stay else None
+    previous_stay_dates = request.form.get('previous_stay_dates') if previous_stay else None
+    
+    # Additional info
+    special_requests = request.form.get('special_requests')
+    notes = request.form.get('notes')
+    
+    try:
+        # Check if user with this email already exists
+        existing_user = User.query.filter_by(email=guest_email).first()
+        
+        # Create booking request
+        booking_request = BookingRequest(
+            property_id=id,
+            guest_name=guest_name,
+            guest_email=guest_email,
+            guest_phone=guest_phone,
+            check_in_date=datetime.strptime(check_in_date, '%Y-%m-%d').date(),
+            check_out_date=datetime.strptime(check_out_date, '%Y-%m-%d').date(),
+            number_of_guests=int(number_of_guests),
+            previous_stay_property=previous_stay_property,
+            previous_stay_dates=previous_stay_dates,
+            notes=notes,
+            special_requests=special_requests,
+            user_id=existing_user.id if existing_user else None,
+            expires_at=datetime.utcnow() + timedelta(days=7)  # Expire after 7 days
+        )
+        
+        db.session.add(booking_request)
+        db.session.flush()  # Get the ID without committing
+        
+        # Create guest account request if user doesn't exist
+        guest_account_request = None
+        if not existing_user:
+            guest_account_request = GuestAccountRequest(
+                full_name=guest_name,
+                email=guest_email,
+                phone=guest_phone,
+                booking_request_id=booking_request.id
+            )
+            db.session.add(guest_account_request)
+        
+        db.session.commit()
+        
+        # Send confirmation email to guest
+        try:
+            email_body = f"""
+            Dear {guest_name},
+            
+            Thank you for your booking request for {property.name}!
+            
+            Booking Details:
+            - Check-in: {check_in_date}
+            - Check-out: {check_out_date}
+            - Number of Guests: {number_of_guests}
+            
+            We have received your request and will review it shortly. You will receive a confirmation email once your booking is approved.
+            
+            {"If you don't have an account yet, we'll create one for you and send login instructions after approval." if not existing_user else ""}
+            
+            Best regards,
+            The Property Management Team
+            """
+            
+            send_email(
+                to=guest_email,
+                subject=f"Booking Request Received - {property.name}",
+                body=email_body
+            )
+        except Exception as e:
+            current_app.logger.error(f"Failed to send booking confirmation email: {e}")
+        
+        # Send notification to property owner and managers
+        try:
+            # Get all users who should be notified
+            recipients = []
+            
+            # Add property owner
+            if property.owner:
+                recipients.append(property.owner.email)
+            
+            # Add property managers (if any)
+            managers = User.query.filter(
+                User.role == UserRoles.PROPERTY_MANAGER
+            ).all()
+            recipients.extend([m.email for m in managers])
+            
+            # Add admins
+            admins = User.query.filter(
+                User.role == UserRoles.ADMIN
+            ).all()
+            recipients.extend([a.email for a in admins])
+            
+            if recipients:
+                admin_url = url_for('admin.pending_booking_requests', _external=True)
+                
+                email_body = f"""
+                New booking request received for {property.name}!
+                
+                Guest Information:
+                - Name: {guest_name}
+                - Email: {guest_email}
+                - Phone: {guest_phone or 'Not provided'}
+                
+                Booking Details:
+                - Check-in: {check_in_date}
+                - Check-out: {check_out_date}
+                - Number of Guests: {number_of_guests}
+                
+                {"Previous Guest: Yes - " + previous_stay_property if previous_stay else "New Guest"}
+                
+                Special Requests: {special_requests or 'None'}
+                Notes: {notes or 'None'}
+                
+                Please review and approve/reject this request at:
+                {admin_url}
+                
+                This request will expire in 7 days if not acted upon.
+                """
+                
+                for recipient in set(recipients):  # Remove duplicates
+                    try:
+                        send_email(
+                            to=recipient,
+                            subject=f"New Booking Request - {property.name}",
+                            body=email_body
+                        )
+                    except Exception as e:
+                        current_app.logger.error(f"Failed to send notification to {recipient}: {e}")
+        except Exception as e:
+            current_app.logger.error(f"Failed to send owner/manager notifications: {e}")
+        
+        # Return success response
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True,
+                'message': 'Your booking request has been submitted successfully!'
+            })
+        else:
+            flash('Your booking request has been submitted successfully! You will receive a confirmation email shortly.', 'success')
+            return redirect(url_for('property.public_booking_calendar', token=property.booking_calendar_token))
+            
+    except Exception as e:
+        current_app.logger.error(f"Error processing booking request: {e}")
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'message': 'An error occurred while processing your request. Please try again.'
+            }), 500
+        else:
+            flash('An error occurred while processing your request. Please try again.', 'danger')
+            return redirect(url_for('property.public_booking_calendar', token=property.booking_calendar_token))

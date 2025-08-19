@@ -269,6 +269,18 @@
         object-fit: cover;
         box-shadow: var(--shadow-sm);
     }
+    
+    .property-placeholder {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-sm);
+        color: white;
+        font-size: 1.5rem;
+    }
 
     .property-details h4 {
         font-size: 0.95rem;
@@ -474,7 +486,31 @@
                 <a href="/property/{{ resource.id }}/view" class="list-group-item list-group-item-action d-flex align-items-center property-list-item" data-resource-id="{{ resource.id }}">
                     <span class="property-color-dot" style="background: {{ resource.color }};"></span>
                     <div class="property-type-icon property-type-{{ resource.property_type or 'house' }}"></div>
-                    <img src="{{ resource.image_url or '/static/img/default-property.jpg' }}" alt="{{ resource.title }}" class="rounded me-3" style="width:48px; height:48px; object-fit:cover; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+                    {% if resource.image_url %}
+                    <img src="{{ resource.image_url }}" alt="{{ resource.title }}" class="rounded me-3" style="width:48px; height:48px; object-fit:cover; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+                    {% else %}
+                    {% set gradients = [
+                        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                        'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+                    ] %}
+                    {% set property_icons = {
+                        'house': '🏠',
+                        'apartment': '🏢',
+                        'condo': '🏢',
+                        'townhouse': '🏘️',
+                        'villa': '🏡',
+                        'cottage': '🏚️',
+                        'studio': '🚪',
+                        'loft': '🏢'
+                    } %}
+                    {% set icon = property_icons.get(resource.property_type, '🏠') %}
+                    {% set gradient = gradients[resource.id % gradients|length] %}
+                    <div class="property-placeholder me-3" style="width:48px; height:48px; background: {{ gradient }}; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); color: white; font-size: 1.5rem;">{{ icon }}</div>
+                    {% endif %}
                     <div class="flex-grow-1">
                         <div class="fw-semibold text-gray-800">{{ resource.title }}</div>
                         <div class="text-muted small d-flex align-items-center gap-1">
@@ -674,16 +710,46 @@ class TimelineCalendar {
         const timelineBody = document.getElementById('timelineBody');
         const dates = this.generateDates();
         
+        // Define gradients and icons for properties without images
+        const gradients = [
+            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+        ];
+        
+        const propertyIcons = {
+            'house': '🏠',
+            'apartment': '🏢',
+            'condo': '🏢',
+            'townhouse': '🏘️',
+            'villa': '🏡',
+            'cottage': '🏚️',
+            'studio': '🚪',
+            'loft': '🏢'
+        };
+        
         timelineBody.innerHTML = this.properties.map(property => {
             const propertyEvents = this.events.filter(event => 
                 String(event.propertyId) === String(property.id)
             );
+            
+            // Get property type from property object or default to 'house'
+            const propertyType = property.property_type || 'house';
+            const icon = propertyIcons[propertyType] || '🏠';
+            const gradient = gradients[property.id % gradients.length];
+            
+            // Create image or placeholder
+            const imageElement = property.image_url 
+                ? `<img src="${property.image_url}" alt="${property.title}" class="property-image">`
+                : `<div class="property-placeholder" style="background: ${gradient};">${icon}</div>`;
 
             return `
                 <div class="timeline-row" data-property-id="${property.id}">
                     <div class="property-info">
-                        <img src="${property.image_url || '/static/img/default-property.jpg'}" 
-                             alt="${property.title}" class="property-image">
+                        ${imageElement}
                         <div class="property-details">
                             <h4><a href="/property/${property.id}/view" style="color: inherit; text-decoration: none;">${property.title}</a></h4>
                             <p class="property-location">📍 ${property.city}, ${property.state}</p>

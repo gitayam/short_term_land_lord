@@ -127,7 +127,7 @@ def calculate_comprehensive_metrics(properties, start_date, end_date):
         ).scalar() or Decimal('0.00')
 
         # Additional revenue from paid invoices
-        invoice_revenue = db.session.query(func.sum(Invoice.total_amount)).filter(
+        invoice_revenue = db.session.query(func.sum(Invoice.total)).filter(
             Invoice.property_id.in_(property_ids),
             Invoice.created_at >= datetime.combine(start_date, datetime.min.time()),
             Invoice.created_at <= datetime.combine(end_date, datetime.max.time()),

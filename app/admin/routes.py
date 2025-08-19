@@ -1,11 +1,14 @@
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from app import db
-from app.models import SiteSetting, User, UserRoles, RepairRequest, RepairRequestStatus, Property, RegistrationRequest, ApprovalStatus
+from app.models import (SiteSetting, User, UserRoles, RepairRequest, RepairRequestStatus, 
+                       Property, RegistrationRequest, ApprovalStatus, UserNote, UserAccountAction)
 from app.admin.forms import SiteSettingsForm, RequestReviewForm
 from app.auth.decorators import admin_required
 from app.auth.email import send_email
 from app.admin import bp
+import secrets
+import string
 
 @bp.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -59,8 +62,8 @@ def dashboard():
     # Get pending and recently created repair requests
     pending_requests = RepairRequest.query.filter(
         RepairRequest.status.in_([
-            RepairRequestStatus.PENDING.value, 
-            RepairRequestStatus.APPROVED.value
+            RepairRequestStatus.PENDING, 
+            RepairRequestStatus.APPROVED
         ])
     ).order_by(RepairRequest.created_at.desc()).limit(10).all()
     
@@ -202,4 +205,316 @@ def users():
     return render_template('admin/users.html',
                           users=users,
                           current_role=role_filter,
-                          title='User Management') 
+                          title='User Management')
+
+
+@bp.route('/users/<int:user_id>/details')
+@login_required
+@admin_required
+def user_details(user_id):
+    """Get detailed user information including notes and actions"""
+    user = User.query.get_or_404(user_id)
+    notes = user.get_recent_notes(20)
+    actions = user.get_recent_actions(20)
+    
+    return jsonify({
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'full_name': user.get_full_name(),
+            'role': user.role,
+            'is_active': user.is_active,
+            'is_suspended': user.is_suspended,
+            'created_at': user.created_at.strftime('%Y-%m-%d %H:%M'),
+            'last_login': user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never',
+            'failed_login_attempts': user.failed_login_attempts,
+            'status': user.status_text,
+            'status_badge_class': user.status_badge_class
+        },
+        'notes': [{
+            'id': note.id,
+            'content': note.content,
+            'note_type': note.note_type,
+            'is_important': note.is_important,
+            'admin_name': note.admin_name,
+            'created_at': note.created_at.strftime('%Y-%m-%d %H:%M')
+        } for note in notes],
+        'actions': [{
+            'id': action.id,
+            'action_type': action.action_type,
+            'old_value': action.old_value,
+            'new_value': action.new_value,
+            'reason': action.reason,
+            'admin_name': action.admin_name,
+            'created_at': action.created_at.strftime('%Y-%m-%d %H:%M')
+        } for action in actions]
+    })
+
+
+@bp.route('/users/<int:user_id>/disable', methods=['POST'])
+@login_required
+@admin_required
+def disable_user(user_id):
+    """Disable a user account"""
+    user = User.query.get_or_404(user_id)
+    reason = request.json.get('reason', '') if request.is_json else request.form.get('reason', '')
+    
+    if user.id == current_user.id:
+        return jsonify({'success': False, 'error': 'Cannot disable your own account'}), 400
+    
+    if user.disable_account(current_user, reason):
+        flash(f'User {user.email} has been disabled', 'success')
+        return jsonify({'success': True, 'message': f'User {user.email} has been disabled'})
+    else:
+        return jsonify({'success': False, 'error': 'User is already disabled'}), 400
+
+
+@bp.route('/users/<int:user_id>/enable', methods=['POST'])
+@login_required
+@admin_required
+def enable_user(user_id):
+    """Enable a user account"""
+    user = User.query.get_or_404(user_id)
+    reason = request.json.get('reason', '') if request.is_json else request.form.get('reason', '')
+    
+    if user.enable_account(current_user, reason):
+        flash(f'User {user.email} has been enabled', 'success')
+        return jsonify({'success': True, 'message': f'User {user.email} has been enabled'})
+    else:
+        return jsonify({'success': False, 'error': 'User is already enabled'}), 400
+
+
+@bp.route('/users/<int:user_id>/change-role', methods=['POST'])
+@login_required
+@admin_required
+def change_user_role(user_id):
+    """Change a user's role and handle assignments"""
+    from app.models import PropertyAssignment, UserManagerAssignment, UserOwnerAssignment
+    
+    user = User.query.get_or_404(user_id)
+    new_role = request.json.get('role') if request.is_json else request.form.get('role')
+    reason = request.json.get('reason', '') if request.is_json else request.form.get('reason', '')
+    assignments = request.json.get('assignments', {}) if request.is_json else {}
+    
+    if user.id == current_user.id:
+        return jsonify({'success': False, 'error': 'Cannot change your own role'}), 400
+    
+    # Validate role
+    try:
+        UserRoles(new_role)
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Invalid role specified'}), 400
+    
+    # Change the role first
+    if user.change_role(new_role, current_user, reason):
+        # Handle assignments based on the new role
+        try:
+            # Clear existing assignments for this user
+            PropertyAssignment.query.filter_by(user_id=user.id, is_active=True).update({'is_active': False})
+            UserManagerAssignment.query.filter_by(user_id=user.id, is_active=True).update({'is_active': False})
+            UserOwnerAssignment.query.filter_by(manager_id=user.id, is_active=True).update({'is_active': False})
+            
+            assignment_messages = []
+            
+            # Property assignments for property managers and service staff
+            if new_role in ['property_manager', 'service_staff'] and assignments.get('properties'):
+                for property_id in assignments['properties']:
+                    assignment = PropertyAssignment(
+                        user_id=user.id,
+                        property_id=int(property_id),
+                        assigned_by=current_user.id,
+                        role=new_role,
+                        is_active=True
+                    )
+                    db.session.add(assignment)
+                assignment_messages.append(f"Assigned to {len(assignments['properties'])} properties")
+            
+            # Manager assignment for service staff
+            if new_role == 'service_staff' and assignments.get('manager'):
+                assignment = UserManagerAssignment(
+                    user_id=user.id,
+                    manager_id=int(assignments['manager']),
+                    assigned_by=current_user.id,
+                    is_active=True
+                )
+                db.session.add(assignment)
+                assignment_messages.append("Assigned to property manager")
+            
+            # Owner assignment for property managers
+            if new_role == 'property_manager' and assignments.get('owner'):
+                assignment = UserOwnerAssignment(
+                    manager_id=user.id,
+                    owner_id=int(assignments['owner']),
+                    assigned_by=current_user.id,
+                    is_active=True
+                )
+                db.session.add(assignment)
+                assignment_messages.append("Assigned to property owner")
+            
+            db.session.commit()
+            
+            success_message = f'User {user.email} role changed to {new_role}'
+            if assignment_messages:
+                success_message += f'. {", ".join(assignment_messages)}'
+            
+            flash(success_message, 'success')
+            return jsonify({'success': True, 'message': success_message})
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'error': f'Assignment failed: {str(e)}'}), 400
+    else:
+        return jsonify({'success': False, 'error': 'Role change failed'}), 400
+
+
+@bp.route('/users/<int:user_id>/reset-password', methods=['POST'])
+@login_required
+@admin_required
+def reset_user_password(user_id):
+    """Reset a user's password"""
+    user = User.query.get_or_404(user_id)
+    reason = request.json.get('reason', '') if request.is_json else request.form.get('reason', '')
+    send_email_notification = request.json.get('send_email', True) if request.is_json else request.form.get('send_email', 'true') == 'true'
+    
+    # Generate random password
+    def generate_random_password(length=12):
+        characters = string.ascii_letters + string.digits + "!@#$%^&*"
+        return ''.join(secrets.choice(characters) for _ in range(length))
+    
+    new_password = generate_random_password()
+    
+    if user.reset_password_admin(current_user, new_password, reason):
+        if send_email_notification:
+            # Send email with new password
+            subject = 'Your Password Has Been Reset'
+            body = f"""
+            Dear {user.get_full_name()},
+            
+            Your password has been reset by an administrator.
+            
+            Your new temporary password is: {new_password}
+            
+            Please log in and change your password immediately.
+            
+            Login here: {url_for('auth.login', _external=True)}
+            
+            Best regards,
+            The Property Management Team
+            """
+            send_email(subject, recipients=[user.email], text_body=body, html_body=body)
+        
+        flash(f'Password reset for {user.email}', 'success')
+        return jsonify({
+            'success': True, 
+            'message': f'Password reset for {user.email}',
+            'new_password': new_password if not send_email_notification else None
+        })
+    else:
+        return jsonify({'success': False, 'error': 'Password reset failed'}), 400
+
+
+@bp.route('/users/<int:user_id>/add-note', methods=['POST'])
+@login_required
+@admin_required
+def add_user_note(user_id):
+    """Add a note to a user"""
+    user = User.query.get_or_404(user_id)
+    content = request.json.get('content') if request.is_json else request.form.get('content')
+    note_type = request.json.get('note_type', 'general') if request.is_json else request.form.get('note_type', 'general')
+    is_important = request.json.get('is_important', False) if request.is_json else request.form.get('is_important') == 'true'
+    
+    if not content or not content.strip():
+        return jsonify({'success': False, 'error': 'Note content is required'}), 400
+    
+    note = user.add_admin_note(current_user, content.strip(), note_type, is_important)
+    
+    return jsonify({
+        'success': True,
+        'message': 'Note added successfully',
+        'note': {
+            'id': note.id,
+            'content': note.content,
+            'note_type': note.note_type,
+            'is_important': note.is_important,
+            'admin_name': note.admin_name,
+            'created_at': note.created_at.strftime('%Y-%m-%d %H:%M')
+        }
+    })
+
+
+@bp.route('/users/<int:user_id>/notes/<int:note_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_user_note(user_id, note_id):
+    """Delete a user note"""
+    note = UserNote.query.get_or_404(note_id)
+    
+    if note.user_id != user_id:
+        return jsonify({'success': False, 'error': 'Note does not belong to this user'}), 400
+    
+    # Only allow deletion by the admin who created the note or super admin
+    if note.admin_id != current_user.id and not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'You can only delete your own notes'}), 403
+    
+    db.session.delete(note)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Note deleted successfully'})
+
+
+@bp.route('/user-roles')
+@login_required
+@admin_required
+def get_user_roles():
+    """Get available user roles for dropdowns"""
+    roles = [{'value': role.value, 'name': role.value.replace('_', ' ').title()} for role in UserRoles]
+    return jsonify({'roles': roles})
+
+
+@bp.route('/properties-list')
+@login_required
+@admin_required
+def get_properties_list():
+    """Get list of all properties for assignment dropdowns"""
+    from app.models import Property
+    properties = Property.query.all()
+    properties_data = []
+    for prop in properties:
+        properties_data.append({
+            'id': prop.id,
+            'name': prop.name or f"Property #{prop.id}",
+            'address': prop.address or "No address"
+        })
+    return jsonify({'properties': properties_data})
+
+
+@bp.route('/property-managers')
+@login_required
+@admin_required
+def get_property_managers():
+    """Get list of property managers for assignment dropdowns"""
+    managers = User.query.filter_by(role=UserRoles.PROPERTY_MANAGER.value).all()
+    managers_data = []
+    for manager in managers:
+        managers_data.append({
+            'id': manager.id,
+            'name': manager.get_full_name(),
+            'email': manager.email
+        })
+    return jsonify({'managers': managers_data})
+
+
+@bp.route('/property-owners')
+@login_required
+@admin_required
+def get_property_owners():
+    """Get list of property owners for assignment dropdowns"""
+    owners = User.query.filter_by(role=UserRoles.PROPERTY_OWNER.value).all()
+    owners_data = []
+    for owner in owners:
+        owners_data.append({
+            'id': owner.id,
+            'name': owner.get_full_name(),
+            'email': owner.email
+        })
+    return jsonify({'owners': owners_data}) 

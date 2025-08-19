@@ -64,10 +64,23 @@ def bootstrap_database():
                         two_factor_enabled BOOLEAN DEFAULT FALSE,
                         two_factor_method VARCHAR(20),
                         last_password_change TIMESTAMP,
+                        failed_login_attempts INTEGER DEFAULT 0,
+                        locked_until TIMESTAMP,
+                        last_failed_login TIMESTAMP,
                         google_calendar_connected BOOLEAN DEFAULT FALSE,
                         google_calendar_token TEXT,
                         twilio_phone_verified BOOLEAN DEFAULT FALSE,
-                        slack_workspace_id VARCHAR(100)
+                        slack_workspace_id VARCHAR(100),
+                        invitation_code_id INTEGER,
+                        guest_preferences TEXT,
+                        last_check_in TIMESTAMP,
+                        guest_rating FLOAT,
+                        guest_notes TEXT,
+                        marketing_emails_consent BOOLEAN DEFAULT FALSE,
+                        booking_reminders_consent BOOLEAN DEFAULT TRUE,
+                        email_verified BOOLEAN DEFAULT FALSE,
+                        email_verification_token VARCHAR(64),
+                        email_verification_sent_at TIMESTAMP
                     )
                 """))
                 print("Users table created successfully")
@@ -94,13 +107,26 @@ def bootstrap_database():
                         ('two_factor_enabled', 'BOOLEAN DEFAULT FALSE'),
                         ('two_factor_method', 'VARCHAR(20)'),
                         ('last_password_change', 'TIMESTAMP'),
+                        ('failed_login_attempts', 'INTEGER DEFAULT 0'),
+                        ('locked_until', 'TIMESTAMP'),
+                        ('last_failed_login', 'TIMESTAMP'),
                         ('google_calendar_connected', 'BOOLEAN DEFAULT FALSE'),
                         ('google_calendar_token', 'TEXT'),
                         ('twilio_phone_verified', 'BOOLEAN DEFAULT FALSE'),
                         ('slack_workspace_id', 'VARCHAR(100)'),
                         ('authentik_id', 'VARCHAR(64)'),
                         ('signal_identity', 'VARCHAR(64)'),
-                        ('attributes', 'JSONB')
+                        ('attributes', 'JSONB'),
+                        ('invitation_code_id', 'INTEGER'),
+                        ('guest_preferences', 'TEXT'),
+                        ('last_check_in', 'TIMESTAMP'),
+                        ('guest_rating', 'FLOAT'),
+                        ('guest_notes', 'TEXT'),
+                        ('marketing_emails_consent', 'BOOLEAN DEFAULT FALSE'),
+                        ('booking_reminders_consent', 'BOOLEAN DEFAULT TRUE'),
+                        ('email_verified', 'BOOLEAN DEFAULT FALSE'),
+                        ('email_verification_token', 'VARCHAR(64)'),
+                        ('email_verification_sent_at', 'TIMESTAMP')
                     ]
                     
                     for column_name, column_type in required_columns:
@@ -121,8 +147,11 @@ def bootstrap_database():
                         value TEXT,
                         description VARCHAR(255),
                         visible BOOLEAN DEFAULT TRUE,
+                        category VARCHAR(32),
+                        config_type VARCHAR(16),
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_by_id INTEGER
                     )
                 """))
                 

@@ -217,12 +217,39 @@
                     <h6><i class="fas fa-home"></i> My Properties</h6>
                 </div>
                 <div class="card-body">
+                    {% set gradients = [
+                        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                        'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+                    ] %}
+                    {% set property_icons = {
+                        'house': 'fa-home',
+                        'apartment': 'fa-building',
+                        'condo': 'fa-building',
+                        'townhouse': 'fa-home',
+                        'villa': 'fa-home',
+                        'cottage': 'fa-home',
+                        'studio': 'fa-door-open',
+                        'loft': 'fa-building'
+                    } %}
                     {% for property in properties %}
                     <div class="d-flex align-items-center mb-2">
-                        <img src="{{ property.image_url or '/static/img/default-property.jpg' }}" 
+                        {% if property.image_url %}
+                        <img src="{{ property.image_url }}" 
                              class="rounded me-2" 
                              width="40" height="40" 
                              style="object-fit: cover;">
+                        {% else %}
+                        {% set icon_class = property_icons.get(property.property_type, 'fa-home') %}
+                        {% set gradient = gradients[property.id % gradients|length] %}
+                        <div class="rounded me-2 d-flex align-items-center justify-content-center" 
+                             style="width: 40px; height: 40px; background: {{ gradient }};">
+                            <i class="fas {{ icon_class }} text-white" style="font-size: 1.2rem;"></i>
+                        </div>
+                        {% endif %}
                         <div class="flex-grow-1">
                             <div class="fw-bold small">{{ property.name }}</div>
                             <div class="text-muted small">{{ property.city }}, {{ property.state }}</div>

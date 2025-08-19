@@ -87,10 +87,40 @@
                     <div class="card h-100 shadow-sm">
                         <!-- Property Image -->
                         <div class="position-relative">
-                            <img src="{{ property.image_url }}" 
+                            {% if property.get_primary_image_url() and property.get_primary_image_url() != "/static/img/default-property.jpg" %}
+                            <img src="{{ property.get_primary_image_url() }}" 
                                  class="card-img-top" 
                                  alt="{{ property.name }}"
                                  style="height: 200px; object-fit: cover;">
+                            {% else %}
+                            {% set gradients = [
+                                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                                'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+                            ] %}
+                            {% set property_icons = {
+                                'house': 'bi-house-door',
+                                'apartment': 'bi-building',
+                                'condo': 'bi-building',
+                                'townhouse': 'bi-house',
+                                'villa': 'bi-house-heart',
+                                'cottage': 'bi-house',
+                                'studio': 'bi-door-open',
+                                'loft': 'bi-building'
+                            } %}
+                            {% set icon_class = property_icons.get(property.property_type, 'bi-house-door') %}
+                            {% set gradient = gradients[property.id % gradients|length] %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center" 
+                                 style="height: 200px; background: {{ gradient }};">
+                                <div class="text-center text-white">
+                                    <i class="bi {{ icon_class }}" style="font-size: 4rem;"></i>
+                                    <div class="mt-2" style="font-size: 0.9rem; opacity: 0.9;">{{ property.property_type|capitalize }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
                             
                             <!-- Property Type Badge -->
                             <span class="badge bg-primary position-absolute top-0 end-0 m-2">

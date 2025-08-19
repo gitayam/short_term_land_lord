@@ -25,9 +25,9 @@ class UserRoles(enum.Enum):
     PROPERTY_GUEST = "property_guest"
 
 class TaskStatus(enum.Enum):
-    PENDING = 'PENDING'
-    IN_PROGRESS = 'IN_PROGRESS'
-    COMPLETED = 'COMPLETED'
+    PENDING = 'pending'
+    IN_PROGRESS = 'in_progress'
+    COMPLETED = 'completed'
 
 class TaskPriority(enum.Enum):
     LOW = "low"
@@ -554,9 +554,10 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         db.session.commit()
     
-    def is_active(self):
-        """Override UserMixin's is_active to check suspension status"""
-        return not self.is_suspended
+    def is_authenticated_and_active(self):
+        """Check if user is both authenticated and active (not disabled and not suspended)"""
+        # User must be both active (not disabled by admin) AND not suspended
+        return self.is_active and not self.is_suspended
     
     @property
     def visible_properties(self):
@@ -669,6 +670,166 @@ class User(UserMixin, db.Model):
                 properties.append(prop)
         
         return properties
+    
+    # Admin management methods
+    def disable_account(self, admin_user, reason=None):
+        """Disable user account (admin action)"""
+        if self.is_active:
+            self.is_active = False
+            
+            # Record the action
+            action = UserAccountAction(
+                user_id=self.id,
+                admin_id=admin_user.id,
+                action_type='disable',
+                old_value='active',
+                new_value='inactive',
+                reason=reason
+            )
+            
+            # Add both the user and action to the session
+            db.session.add(self)
+            db.session.add(action)
+            db.session.commit()
+            return True
+        return False
+    
+    def enable_account(self, admin_user, reason=None):
+        """Enable user account (admin action)"""
+        if not self.is_active:
+            self.is_active = True
+            
+            # Record the action
+            action = UserAccountAction(
+                user_id=self.id,
+                admin_id=admin_user.id,
+                action_type='enable',
+                old_value='inactive',
+                new_value='active',
+                reason=reason
+            )
+            
+            # Add both the user and action to the session
+            db.session.add(self)
+            db.session.add(action)
+            db.session.commit()
+            return True
+        return False
+    
+    def change_role(self, new_role, admin_user, reason=None):
+        """Change user role (admin action)"""
+        old_role = self.role
+        if old_role != new_role:
+            self.role = new_role
+            
+            # Update admin flag if changing to/from admin role
+            if new_role == UserRoles.ADMIN.value:
+                self._is_admin = True
+            elif old_role == UserRoles.ADMIN.value:
+                self._is_admin = False
+            
+            # Record the action
+            action = UserAccountAction(
+                user_id=self.id,
+                admin_id=admin_user.id,
+                action_type='role_change',
+                old_value=old_role,
+                new_value=new_role,
+                reason=reason
+            )
+            
+            # Add both the user and action to the session
+            db.session.add(self)
+            db.session.add(action)
+            db.session.commit()
+            return True
+        return False
+    
+    def reset_password_admin(self, admin_user, new_password, reason=None):
+        """Reset user password (admin action)"""
+        from werkzeug.security import generate_password_hash
+        
+        self.password_hash = generate_password_hash(new_password)
+        
+        # Record the action (don't store the actual password)
+        action = UserAccountAction(
+            user_id=self.id,
+            admin_id=admin_user.id,
+            action_type='password_reset',
+            old_value=None,
+            new_value='password_reset',
+            reason=reason
+        )
+        
+        # Add both the user and action to the session
+        db.session.add(self)
+        db.session.add(action)
+        db.session.commit()
+        return True
+    
+    def add_admin_note(self, admin_user, content, note_type='general', is_important=False):
+        """Add an admin note to this user"""
+        note = UserNote(
+            user_id=self.id,
+            admin_id=admin_user.id,
+            note_type=note_type,
+            content=content,
+            is_important=is_important
+        )
+        db.session.add(note)
+        db.session.commit()
+        return note
+    
+    def get_recent_notes(self, limit=10):
+        """Get recent admin notes for this user"""
+        return UserNote.query.filter_by(user_id=self.id)\
+                            .order_by(UserNote.created_at.desc())\
+                            .limit(limit).all()
+    
+    def get_recent_actions(self, limit=10):
+        """Get recent admin actions on this user"""
+        return UserAccountAction.query.filter_by(user_id=self.id)\
+                                     .order_by(UserAccountAction.created_at.desc())\
+                                     .limit(limit).all()
+    
+    @property
+    def account_status(self):
+        """Get comprehensive account status"""
+        status = {
+            'is_active': self.is_active,
+            'is_suspended': self.is_suspended,
+            'failed_logins': self.failed_login_attempts,
+            'last_login': self.last_login,
+            'created_at': self.created_at,
+            'role': self.role,
+            'is_admin': self.is_admin
+        }
+        return status
+    
+    @property
+    def status_badge_class(self):
+        """Get Bootstrap badge class for user status"""
+        if not self.is_active:
+            return 'bg-danger'
+        elif self.is_suspended:
+            return 'bg-warning text-dark'
+        elif self.failed_login_attempts > 3:
+            return 'bg-warning text-dark'
+        else:
+            return 'bg-success'
+    
+    @property
+    def status_text(self):
+        """Get human-readable status text"""
+        if not self.is_active:
+            return 'Disabled'
+        elif self.is_suspended:
+            return 'Suspended'
+        elif self.failed_login_attempts > 3:
+            return 'Locked'
+        else:
+            return 'Active'
+
 
 class Property(db.Model):
     """
@@ -707,6 +868,10 @@ class Property(db.Model):
     state = db.Column(db.String(64), nullable=True)
     zip_code = db.Column(db.String(16), nullable=True)
     country = db.Column(db.String(64), nullable=True)
+    
+    # Geographic coordinates for mapping
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     
     # Property details
     bedrooms = db.Column(db.Integer, nullable=True)
@@ -831,6 +996,45 @@ class Property(db.Model):
         
         # If no components are available, fall back to the address field
         return self.address
+    
+    def get_anonymized_address(self):
+        """Return an anonymized address hiding house numbers for privacy"""
+        if not (self.street_address or self.city or self.state):
+            return "Address not available"
+        
+        parts = []
+        
+        if self.street_address:
+            # Remove house numbers but keep street names
+            # Split by space and remove parts that are purely numeric or start with numeric
+            street_parts = self.street_address.split()
+            filtered_parts = []
+            
+            for i, part in enumerate(street_parts):
+                # Skip if it's purely numeric (house number)
+                if part.isdigit():
+                    continue
+                # Skip if it starts with digits and is likely an address number
+                if i == 0 and any(char.isdigit() for char in part[:3]):
+                    continue
+                # Keep everything else (street names, directions, etc.)
+                filtered_parts.append(part)
+            
+            if filtered_parts:
+                # Add "Near" to indicate approximate location
+                street_name = " ".join(filtered_parts)
+                parts.append(f"Near {street_name}")
+        
+        # Always include city and state for general location
+        city_state_zip = []
+        if self.city:
+            city_state_zip.append(self.city)
+        if self.state:
+            city_state_zip.append(self.state)
+        if city_state_zip:
+            parts.append(", ".join(city_state_zip))
+        
+        return ", ".join(parts) if parts else "General area location"
     
     def generate_guest_access_token(self):
         """Generate a unique token for guest access"""
@@ -3010,3 +3214,248 @@ class GuestBooking(db.Model):
         db.session.add(booking)
         db.session.commit()
         return booking
+
+
+class UserNote(db.Model):
+    """Model for admin notes about users"""
+    __tablename__ = 'user_notes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    note_type = db.Column(db.String(50), nullable=False, default='general')  # general, warning, account_action, etc.
+    content = db.Column(db.Text, nullable=False)
+    is_important = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='admin_notes')
+    admin = db.relationship('User', foreign_keys=[admin_id], backref='created_notes')
+    
+    def __repr__(self):
+        return f'<UserNote {self.id}: {self.note_type} for user {self.user_id}>'
+    
+    @property
+    def admin_name(self):
+        """Get the name of the admin who created this note"""
+        return self.admin.get_full_name() if self.admin else 'Unknown Admin'
+
+
+class UserAccountAction(db.Model):
+    """Model for tracking admin actions on user accounts"""
+    __tablename__ = 'user_account_actions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    action_type = db.Column(db.String(50), nullable=False)  # disable, enable, role_change, password_reset, etc.
+    old_value = db.Column(db.String(255), nullable=True)  # Previous value (for role changes, etc.)
+    new_value = db.Column(db.String(255), nullable=True)  # New value
+    reason = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='account_actions')
+    admin = db.relationship('User', foreign_keys=[admin_id], backref='performed_actions')
+    
+    def __repr__(self):
+        return f'<UserAccountAction {self.id}: {self.action_type} on user {self.user_id}>'
+    
+    @property
+    def admin_name(self):
+        """Get the name of the admin who performed this action"""
+        return self.admin.get_full_name() if self.admin else 'Unknown Admin'
+
+
+class PropertyAssignment(db.Model):
+    """Model for assigning users to properties (property managers and service staff)"""
+    __tablename__ = 'property_assignments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    assigned_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    role = db.Column(db.String(50), nullable=False)  # property_manager, service_staff
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='property_assignments')
+    property = db.relationship('Property', foreign_keys=[property_id], backref='assigned_users')
+    admin = db.relationship('User', foreign_keys=[assigned_by], backref='created_assignments')
+    
+    def __repr__(self):
+        return f'<PropertyAssignment {self.user_id} -> {self.property_id} as {self.role}>'
+
+
+class UserManagerAssignment(db.Model):
+    """Model for assigning service staff to property managers"""
+    __tablename__ = 'user_manager_assignments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # service staff
+    manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # property manager
+    assigned_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # admin
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='manager_assignments')
+    manager = db.relationship('User', foreign_keys=[manager_id], backref='managed_users')
+    admin = db.relationship('User', foreign_keys=[assigned_by], backref='created_manager_assignments')
+    
+    def __repr__(self):
+        return f'<UserManagerAssignment {self.user_id} -> manager {self.manager_id}>'
+
+
+class UserOwnerAssignment(db.Model):
+    """Model for assigning property managers to property owners"""
+    __tablename__ = 'user_owner_assignments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # property manager
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # property owner
+    assigned_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # admin
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    
+    # Relationships
+    manager = db.relationship('User', foreign_keys=[manager_id], backref='owner_assignments')
+    owner = db.relationship('User', foreign_keys=[owner_id], backref='assigned_managers')
+    admin = db.relationship('User', foreign_keys=[assigned_by], backref='created_owner_assignments')
+    
+    def __repr__(self):
+        return f'<UserOwnerAssignment manager {self.manager_id} -> owner {self.owner_id}>'
+
+
+class BookingRequestStatus(enum.Enum):
+    """Status for booking requests"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
+class BookingRequest(db.Model):
+    """Model for guest booking requests before approval"""
+    __tablename__ = 'booking_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Guest Information
+    guest_name = db.Column(db.String(255), nullable=False)
+    guest_email = db.Column(db.String(255), nullable=False)
+    guest_phone = db.Column(db.String(50), nullable=True)
+    
+    # Booking Details
+    check_in_date = db.Column(db.Date, nullable=False)
+    check_out_date = db.Column(db.Date, nullable=False)
+    number_of_guests = db.Column(db.Integer, default=1, nullable=False)
+    
+    # Previous Stay Information
+    previous_stay_property = db.Column(db.String(255), nullable=True)
+    previous_stay_dates = db.Column(db.String(255), nullable=True)
+    
+    # Additional Information
+    notes = db.Column(db.Text, nullable=True)
+    special_requests = db.Column(db.Text, nullable=True)
+    
+    # Status and Tracking
+    status = db.Column(db.Enum(BookingRequestStatus), default=BookingRequestStatus.PENDING, nullable=False)
+    request_token = db.Column(db.String(100), unique=True, nullable=False, default=lambda: secrets.token_urlsafe(32))
+    
+    # User Account (if they have one or after creation)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Approval Information
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    property_ref = db.relationship('Property', backref='booking_requests')
+    user = db.relationship('User', foreign_keys=[user_id], backref='booking_requests')
+    approver = db.relationship('User', foreign_keys=[approved_by], backref='approved_bookings')
+    
+    def __repr__(self):
+        return f'<BookingRequest {self.id}: {self.guest_name} for {self.property_id}>'
+    
+    @property
+    def total_nights(self):
+        """Calculate total nights of the stay"""
+        if self.check_in_date and self.check_out_date:
+            return (self.check_out_date - self.check_in_date).days
+        return 0
+    
+    @property
+    def is_expired(self):
+        """Check if the request has expired"""
+        if self.expires_at:
+            return datetime.utcnow() > self.expires_at
+        return False
+    
+    def approve(self, admin_user):
+        """Approve the booking request"""
+        self.status = BookingRequestStatus.APPROVED
+        self.approved_by = admin_user.id
+        self.approved_at = datetime.utcnow()
+        
+    def reject(self, admin_user, reason=None):
+        """Reject the booking request"""
+        self.status = BookingRequestStatus.REJECTED
+        self.approved_by = admin_user.id
+        self.approved_at = datetime.utcnow()
+        self.rejection_reason = reason
+
+
+class GuestAccountRequest(db.Model):
+    """Model for guest account creation requests"""
+    __tablename__ = 'guest_account_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Guest Information
+    full_name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    phone = db.Column(db.String(50), nullable=True)
+    
+    # Associated Booking Request
+    booking_request_id = db.Column(db.Integer, db.ForeignKey('booking_requests.id'), nullable=True)
+    
+    # Verification
+    verification_token = db.Column(db.String(100), unique=True, nullable=False, default=lambda: secrets.token_urlsafe(32))
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Status
+    is_approved = db.Column(db.Boolean, default=False, nullable=False)
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    
+    # User Account (after creation)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    booking_request = db.relationship('BookingRequest', backref='guest_account_request')
+    approver = db.relationship('User', foreign_keys=[approved_by], backref='approved_guest_accounts')
+    user = db.relationship('User', foreign_keys=[user_id], backref='guest_account_request')
+    
+    def __repr__(self):
+        return f'<GuestAccountRequest {self.id}: {self.email}>'
+    
+    def approve(self, admin_user):
+        """Approve the guest account request"""
+        self.is_approved = True
+        self.approved_by = admin_user.id
+        self.approved_at = datetime.utcnow()

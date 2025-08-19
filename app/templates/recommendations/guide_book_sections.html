@@ -147,7 +147,7 @@
                    class="app-btn app-btn-ghost">
                     <i class="bi bi-arrow-left"></i> Back to Guide Book
                 </a>
-                {% if guide_book.is_public %}
+                {% if guide_book.is_public and guide_book.access_token %}
                 <a href="{{ url_for('recommendations.public_guide_book', token=guide_book.access_token) }}" 
                    target="_blank"
                    class="app-btn app-btn-success">
