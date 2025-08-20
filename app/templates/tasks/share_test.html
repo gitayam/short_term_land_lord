@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Share Functionality Test Page</h1>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Test Share Button</h5>
+            <p>Click the button below to test the share modal:</p>
+            <button type="button" class="btn btn-primary" onclick="testShareModal()">
+                <i class="bi bi-share"></i> Test Share Modal
+            </button>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Debug Information</h5>
+            <div id="debug-info">
+                <p>CSRF Token Available: <span id="csrf-status"></span></p>
+                <p>Bootstrap Modal Available: <span id="bootstrap-status"></span></p>
+                <p>jQuery Available: <span id="jquery-status"></span></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Console Output</h5>
+            <pre id="console-output" style="background: #f4f4f4; padding: 10px; min-height: 200px;"></pre>
+        </div>
+    </div>
+</div>
+
+<!-- Share Modal (copied from tasks/index.html) -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shareModalLabel">
+                    <i class="bi bi-share me-2"></i>
+                    Share Task
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="shareForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Share Type</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="shareType" id="publicShare" value="public" checked>
+                            <label class="btn btn-outline-primary" for="publicShare">
+                                <i class="bi bi-globe me-1"></i>
+                                Public Link
+                            </label>
+                            <input type="radio" class="btn-check" name="shareType" id="passwordShare" value="password">
+                            <label class="btn btn-outline-primary" for="passwordShare">
+                                <i class="bi bi-lock me-1"></i>
+                                Password Protected
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="passwordField" style="display: none;">
+                        <label for="sharePassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="sharePassword" placeholder="Enter password for protected access">
+                        <div class="form-text">Anyone with the link will need this password to view the task.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="expiration" class="form-label">Link Expiration</label>
+                        <select class="form-select" id="expiration">
+                            <option value="24h">24 Hours</option>
+                            <option value="7d" selected>7 Days</option>
+                            <option value="30d">30 Days</option>
+                            <option value="never">Never Expires</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="shareNotes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="shareNotes" rows="2" placeholder="Add notes about who this is shared with or why..."></textarea>
+                    </div>
+                    
+                    <div id="shareResult" style="display: none;">
+                        <div class="alert alert-success">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <strong>Share link created!</strong>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-success" onclick="copyShareLink()">
+                                    <i class="bi bi-clipboard me-1"></i>
+                                    Copy Link
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <input type="text" class="form-control form-control-sm" id="shareUrl" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="createShareBtn" onclick="testCreateShare()">
+                    <i class="bi bi-share me-1"></i>
+                    Test Create Share
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Debug logging function
+function log(message) {
+    const output = document.getElementById('console-output');
+    const timestamp = new Date().toLocaleTimeString();
+    output.innerHTML += `[${timestamp}] ${message}\n`;
+    console.log(message);
+}
+
+// Check environment on page load
+document.addEventListener('DOMContentLoaded', function() {
+    log('Page loaded - running diagnostics...');
+    
+    // Check CSRF token
+    const csrfStatus = document.getElementById('csrf-status');
+    if (window.CSRF_TOKEN) {
+        csrfStatus.innerHTML = '<span class="text-success">✓ Available</span>';
+        log('CSRF Token found: ' + window.CSRF_TOKEN.substring(0, 10) + '...');
+    } else {
+        csrfStatus.innerHTML = '<span class="text-danger">✗ Not found</span>';
+        log('ERROR: CSRF Token not found!');
+    }
+    
+    // Check Bootstrap
+    const bootstrapStatus = document.getElementById('bootstrap-status');
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        bootstrapStatus.innerHTML = '<span class="text-success">✓ Available</span>';
+        log('Bootstrap Modal class available');
+    } else {
+        bootstrapStatus.innerHTML = '<span class="text-danger">✗ Not found</span>';
+        log('ERROR: Bootstrap Modal not available!');
+    }
+    
+    // Check jQuery
+    const jqueryStatus = document.getElementById('jquery-status');
+    if (typeof $ !== 'undefined' || typeof jQuery !== 'undefined') {
+        jqueryStatus.innerHTML = '<span class="text-success">✓ Available</span>';
+        log('jQuery available');
+    } else {
+        jqueryStatus.innerHTML = '<span class="text-warning">⚠ Not loaded (optional)</span>';
+        log('jQuery not loaded (optional)');
+    }
+    
+    // Set up password field toggle
+    document.querySelectorAll('input[name="shareType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const passwordField = document.getElementById('passwordField');
+            if (this.value === 'password') {
+                passwordField.style.display = 'block';
+                log('Password field shown');
+            } else {
+                passwordField.style.display = 'none';
+                log('Password field hidden');
+            }
+        });
+    });
+    
+    log('Diagnostics complete');
+});
+
+// Test modal opening
+function testShareModal() {
+    log('Testing share modal...');
+    
+    try {
+        // Check if modal element exists
+        const modalElement = document.getElementById('shareModal');
+        if (!modalElement) {
+            log('ERROR: Modal element not found in DOM!');
+            return;
+        }
+        log('Modal element found in DOM');
+        
+        // Try to create Bootstrap modal instance
+        const modal = new bootstrap.Modal(modalElement);
+        log('Bootstrap Modal instance created');
+        
+        // Show the modal
+        modal.show();
+        log('Modal.show() called - modal should be visible');
+        
+    } catch (error) {
+        log('ERROR: ' + error.message);
+        console.error(error);
+    }
+}
+
+// Test share creation
+function testCreateShare() {
+    log('Testing share creation...');
+    
+    const shareType = document.querySelector('input[name="shareType"]:checked').value;
+    const password = shareType === 'password' ? document.getElementById('sharePassword').value : null;
+    const expiration = document.getElementById('expiration').value;
+    const notes = document.getElementById('shareNotes').value;
+    
+    log('Share type: ' + shareType);
+    log('Expiration: ' + expiration);
+    if (password) log('Password provided: yes');
+    
+    // Test API call
+    const testTaskId = 1; // Using a test ID
+    log('Making API call to /share/api/repair/' + testTaskId + '/share');
+    
+    fetch(`/share/api/repair/${testTaskId}/share`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': window.CSRF_TOKEN || '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            password: password,
+            expiration: expiration,
+            notes: notes
+        })
+    })
+    .then(response => {
+        log('Response status: ' + response.status);
+        return response.json();
+    })
+    .then(data => {
+        log('Response data: ' + JSON.stringify(data));
+        
+        if (data.success) {
+            document.getElementById('shareUrl').value = data.share.share_url;
+            document.getElementById('shareResult').style.display = 'block';
+            document.getElementById('createShareBtn').style.display = 'none';
+            log('Share created successfully!');
+        } else {
+            log('ERROR: ' + (data.error || 'Unknown error'));
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        log('FETCH ERROR: ' + error.message);
+        console.error(error);
+    });
+}
+
+// Copy share link
+function copyShareLink() {
+    const shareUrl = document.getElementById('shareUrl');
+    shareUrl.select();
+    shareUrl.setSelectionRange(0, 99999);
+    
+    navigator.clipboard.writeText(shareUrl.value).then(function() {
+        log('Share link copied to clipboard');
+        alert('Link copied!');
+    }).catch(function(err) {
+        log('ERROR copying to clipboard: ' + err);
+        // Fallback
+        document.execCommand('copy');
+    });
+}
+</script>
+{% endblock %}

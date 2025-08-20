@@ -47,6 +47,12 @@ def service_staff_required(f):
     return decorated_function
 
 
+@bp.route('/share-test')
+@login_required
+def share_test():
+    """Test page for share functionality"""
+    return render_template('tasks/share_test.html')
+
 @bp.route('/')
 @login_required
 def index():
