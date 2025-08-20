@@ -146,30 +146,26 @@
                             </td>
                             
                             <td>
-                                <div class="btn-group">
-                                    <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-outline-primary" title="View Details">
-                                        <i class="fas fa-eye"></i>
+                                <div class="app-btn-group">
+                                    <a href="{{ url_for('tasks.view', id=task.id) }}" class="app-btn app-btn-primary app-btn-sm" title="View Details">
+                                        <i class="bi bi-eye"></i>
                                     </a>
                                     
-                                    <a href="{{ url_for('tasks.edit', id=task.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    
-                                    <a href="{{ url_for('tasks.assign', id=task.id) }}" class="btn btn-sm btn-outline-dark" title="Assign">
-                                        <i class="fas fa-user-plus"></i>
+                                    <a href="{{ url_for('tasks.edit', id=task.id) }}" class="app-btn app-btn-ghost app-btn-sm" title="Edit">
+                                        <i class="bi bi-pencil"></i>
                                     </a>
                                     
                                     {% if task.status != TaskStatus.COMPLETED %}
                                     <form class="d-inline" method="post" action="{{ url_for('tasks.complete', id=task.id) }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Mark Complete">
-                                            <i class="fas fa-check"></i>
+                                        <button type="submit" class="app-btn app-btn-success app-btn-sm" title="Mark Complete">
+                                            <i class="bi bi-check"></i>
                                         </button>
                                     </form>
                                     {% endif %}
                                     
                                     {% if current_user.is_property_owner or task.creator_id == current_user.id %}
-                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="openShareModal({{ task.id }}, {{ task.title|tojson }})" title="Share Repair Request">
-                                        <i class="fas fa-share"></i>
+                                    <button type="button" class="app-btn app-btn-info app-btn-sm" onclick="openShareModal({{ task.id }}, {{ task.title|tojson }})" title="Share Repair Request">
+                                        <i class="bi bi-share"></i>
                                     </button>
                                     {% endif %}
                                 </div>
@@ -251,76 +247,81 @@
 </div>
 
 <script>
-let currentTaskId = null;
-
-function openShareModal(taskId, taskTitle) {
-    currentTaskId = taskId;
-    document.getElementById('shareModalLabel').textContent = `Share: ${taskTitle}`;
-    document.getElementById('shareForm').style.display = 'block';
-    document.getElementById('shareResult').style.display = 'none';
-    document.getElementById('createShareBtn').style.display = 'block';
+document.addEventListener('DOMContentLoaded', function() {
+    let currentTaskId = null;
     
-    // Reset form
-    document.getElementById('shareForm').reset();
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
-    modal.show();
-}
+    window.openShareModal = function(taskId, taskTitle) {
+        currentTaskId = taskId;
+        document.getElementById('shareModalLabel').textContent = 'Share: ' + taskTitle;
+        document.getElementById('shareForm').style.display = 'block';
+        document.getElementById('shareResult').style.display = 'none';
+        document.getElementById('createShareBtn').style.display = 'block';
+        
+        // Reset form
+        document.getElementById('shareForm').reset();
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+        modal.show();
+        
+        // Store currentTaskId globally for createShare function
+        window.currentTaskId = currentTaskId;
+    };
 
-function createShare() {
-    const formData = {
-        expiration: document.getElementById('expiration').value,
-        password: document.getElementById('password').value,
-        notes: document.getElementById('notes').value
+    window.createShare = function() {
+        const formData = {
+            expiration: document.getElementById('expiration').value,
+            password: document.getElementById('password').value,
+            notes: document.getElementById('notes').value
+        };
+        
+        fetch('/share/api/repair/' + window.currentTaskId + '/share', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Hide form and show result
+                document.getElementById('shareForm').style.display = 'none';
+                document.getElementById('shareResult').style.display = 'block';
+                document.getElementById('createShareBtn').style.display = 'none';
+                
+                // Set the share link
+                const baseUrl = window.location.origin;
+                const shareUrl = baseUrl + '/share/repair/' + data.share.share_token;
+                document.getElementById('shareLink').value = shareUrl;
+            } else {
+                alert('Error creating share: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            alert('Error creating share: ' + error);
+        });
     };
     
-    fetch(`/share/api/repair/${currentTaskId}/share`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Hide form and show result
-            document.getElementById('shareForm').style.display = 'none';
-            document.getElementById('shareResult').style.display = 'block';
-            document.getElementById('createShareBtn').style.display = 'none';
-            
-            // Set the share link
-            const baseUrl = window.location.origin;
-            const shareUrl = `${baseUrl}/share/repair/${data.share.share_token}`;
-            document.getElementById('shareLink').value = shareUrl;
-        } else {
-            alert('Error creating share: ' + (data.error || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        alert('Error creating share: ' + error);
-    });
-}
-
-function copyShareLink() {
-    const linkInput = document.getElementById('shareLink');
-    linkInput.select();
-    document.execCommand('copy');
-    
-    // Show feedback
-    const btn = event.target.closest('button');
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-    btn.classList.remove('btn-outline-secondary');
-    btn.classList.add('btn-success');
-    
-    setTimeout(() => {
-        btn.innerHTML = originalHTML;
-        btn.classList.remove('btn-success');
-        btn.classList.add('btn-outline-secondary');
-    }, 2000);
-}
+    window.copyShareLink = function() {
+        const linkInput = document.getElementById('shareLink');
+        linkInput.select();
+        document.execCommand('copy');
+        
+        // Show feedback
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-success');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+        }, 2000);
+    };
+});
 </script>
 {% endblock %}
 
