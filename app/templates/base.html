@@ -20,11 +20,23 @@
     <style>
     /* Modern Navigation System */
     .app-nav {
-        background: linear-gradient(135deg, var(--app-primary) 0%, #1a365d 100%) !important;
+        background: linear-gradient(135deg, #2563eb 0%, #1a365d 100%) !important;
         box-shadow: 0 2px 20px rgba(0,0,0,0.1);
         border-bottom: 1px solid rgba(255,255,255,0.1);
         backdrop-filter: blur(10px);
         padding: 0.5rem 0;
+    }
+    
+    /* Force white text on navigation */
+    .app-nav .nav-link,
+    .app-nav .navbar-brand,
+    .app-nav .dropdown-toggle {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+    
+    .app-nav .nav-link:hover,
+    .app-nav .nav-link:focus {
+        color: white !important;
     }
     
     .app-nav-brand {
@@ -52,6 +64,7 @@
         justify-content: center;
         margin-right: 0.75rem;
         font-size: 1.25rem;
+        color: white;
     }
     
     .app-nav-brand-text {
@@ -93,7 +106,7 @@
     
     .app-nav-link {
         position: relative;
-        color: rgba(255,255,255,0.9) !important;
+        color: rgba(255,255,255,0.95) !important;
         font-weight: 500;
         padding: 0.75rem 1rem !important;
         border-radius: 8px;
@@ -101,6 +114,25 @@
         transition: all 0.2s ease;
         display: flex;
         align-items: center;
+    }
+    
+    /* Ensure dropdown arrows are visible */
+    .app-nav .dropdown-toggle::after {
+        border-top-color: rgba(255,255,255,0.9);
+    }
+    
+    /* Fix dropdown item colors */
+    .app-nav .dropdown-menu {
+        background-color: var(--app-surface, #ffffff);
+    }
+    
+    .app-nav .dropdown-item {
+        color: var(--app-text-primary, #212529) !important;
+    }
+    
+    .app-nav .dropdown-item:hover {
+        background-color: var(--app-surface-hover, #f8f9fa);
+        color: var(--app-primary, #2563eb) !important;
     }
     
     .app-nav-link:hover {
@@ -243,6 +275,35 @@
         color: var(--app-danger) !important;
     }
     
+    /* Bootstrap Override - Ensure text visibility */
+    .navbar-dark .navbar-nav .nav-link {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+    
+    .navbar-dark .navbar-nav .nav-link:hover,
+    .navbar-dark .navbar-nav .nav-link:focus {
+        color: white !important;
+    }
+    
+    .navbar-dark .navbar-nav .nav-link.disabled {
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    .navbar-dark .navbar-nav .show > .nav-link,
+    .navbar-dark .navbar-nav .nav-link.active {
+        color: white !important;
+    }
+    
+    .navbar-dark .navbar-text {
+        color: rgba(255, 255, 255, 0.95) !important;
+    }
+    
+    .navbar-dark .navbar-text a,
+    .navbar-dark .navbar-text a:hover,
+    .navbar-dark .navbar-text a:focus {
+        color: white !important;
+    }
+    
     @media (max-width: 992px) {
         .app-nav-link {
             margin: 0.25rem 0;
@@ -261,6 +322,11 @@
             border-radius: 12px;
             margin-top: 1rem;
             padding: 1rem;
+        }
+        
+        /* Mobile menu text visibility */
+        .navbar-dark .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.95) !important;
         }
     }
     
@@ -447,7 +513,7 @@
     </style>
 </head>
 <body data-bs-theme="{{ user_theme }}">
-    <nav class="app-nav navbar navbar-expand-lg" id="mainNav">
+    <nav class="app-nav navbar navbar-expand-lg navbar-dark" id="mainNav">
         <div class="container">
             <a class="app-nav-brand navbar-brand" href="{{ url_for('main.index') }}">
                 <div class="app-nav-brand-icon">
