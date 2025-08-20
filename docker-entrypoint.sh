@@ -69,9 +69,14 @@ fi
 
 # Run site settings and other fixes
 echo -e "${BLUE}Running database fixes...${NC}"
-# Temporarily skip database fixes to test Flask app startup
-echo -e "${YELLOW}Skipping database fixes for now to test Flask app startup...${NC}"
-# python migrations/consolidated_db_fixes.py
+
+# Fix enum values in database
+if [ -f /app/migrations/fix_enum_values.py ]; then
+    echo -e "${BLUE}Fixing enum values...${NC}"
+    python /app/migrations/fix_enum_values.py || echo -e "${YELLOW}Enum fixes completed (some may have failed)${NC}"
+else
+    echo -e "${RED}Warning: fix_enum_values.py not found at /app/migrations/fix_enum_values.py${NC}"
+fi
 
 # Always continue regardless of database fixes result
 echo -e "${YELLOW}Database fixes completed (some may have failed, but continuing)...${NC}"
