@@ -21,13 +21,21 @@
             urgency: "Urgency",
             status: "Current Status",
             due_date: "Due Date",
+            scheduled_date: "Scheduled Date",
             attachments: "Attachments",
             contact: "Need to discuss this repair?",
             contact_msg: "Please contact the property management for additional details or to schedule service.",
             expires: "This share link expires on",
             submitted: "Submitted",
             property: "Property",
-            address: "Address"
+            address: "Address",
+            service_type: "Service Type",
+            pending: "Pending",
+            in_progress: "In Progress",
+            completed: "Completed",
+            high: "HIGH",
+            medium: "MEDIUM",
+            low: "LOW"
         },
         es: {
             language: "Idioma",
@@ -39,13 +47,21 @@
             urgency: "Urgencia",
             status: "Estado Actual",
             due_date: "Fecha de Vencimiento",
+            scheduled_date: "Fecha Programada",
             attachments: "Archivos Adjuntos",
             contact: "¿Necesita discutir esta reparación?",
             contact_msg: "Por favor contacte a la administración de la propiedad para detalles adicionales o para programar el servicio.",
             expires: "Este enlace expira el",
             submitted: "Enviado",
             property: "Propiedad",
-            address: "Dirección"
+            address: "Dirección",
+            service_type: "Tipo de Servicio",
+            pending: "Pendiente",
+            in_progress: "En Progreso",
+            completed: "Completado",
+            high: "ALTA",
+            medium: "MEDIA",
+            low: "BAJA"
         },
         zh: {
             language: "语言",
@@ -57,13 +73,21 @@
             urgency: "紧急程度",
             status: "当前状态",
             due_date: "截止日期",
+            scheduled_date: "预定日期",
             attachments: "附件",
             contact: "需要讨论此维修吗？",
             contact_msg: "请联系物业管理以获取更多详情或安排服务。",
             expires: "此分享链接将于以下时间过期",
             submitted: "已提交",
             property: "物业",
-            address: "地址"
+            address: "地址",
+            service_type: "服务类型",
+            pending: "待处理",
+            in_progress: "进行中",
+            completed: "已完成",
+            high: "高",
+            medium: "中",
+            low: "低"
         }
     };
     
@@ -449,7 +473,7 @@
                     <div class="translate-container">
                         <span class="translate-label">
                             <i class="bi bi-translate me-1"></i>
-                            Language:
+                            <span data-translate="language">Language:</span>
                         </span>
                         <div id="google_translate_element"></div>
                         
@@ -483,7 +507,7 @@
                 <div class="d-flex align-items-center gap-3 text-white-50">
                     <span>
                         <i class="bi bi-calendar me-1"></i>
-                        Submitted {{ repair_request.created_at.strftime('%B %d, %Y') }}
+                        <span data-translate="submitted">Submitted</span> {{ repair_request.created_at.strftime('%B %d, %Y') }}
                     </span>
                     <span class="status-badge status-{{ repair_request.status|lower|replace('_', '-') }}">
                         {{ repair_request.status|replace('_', ' ')|title }}
@@ -495,7 +519,7 @@
             {% if share.expires_at %}
             <div class="share-meta">
                 <i class="bi bi-info-circle me-1"></i>
-                This share link expires on {{ share.expires_at.strftime('%B %d, %Y at %I:%M %p') }}
+                <span data-translate="expires">This share link expires on</span> {{ share.expires_at.strftime('%B %d, %Y at %I:%M %p') }}
             </div>
             {% endif %}
 
@@ -505,7 +529,7 @@
                 <div class="mb-4">
                     <h5 class="text-muted mb-3">
                         <i class="bi bi-card-text me-2"></i>
-                        Description
+                        <span data-translate="description">Description</span>
                     </h5>
                     <div class="bg-light p-3 rounded">
                         {{ repair_request.description|nl2br|safe }}
@@ -516,16 +540,16 @@
                 <div class="mb-4">
                     <h5 class="text-muted mb-3">
                         <i class="bi bi-house me-2"></i>
-                        Property Information
+                        <span data-translate="property_info">Property Information</span>
                     </h5>
                     <div class="bg-white border rounded p-3">
                         {% if repair_request.property %}
                         <div class="info-row">
-                            <span class="info-label">Property:</span>
+                            <span class="info-label" data-translate="property">Property:</span>
                             <span class="info-value">{{ repair_request.property.name }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Address:</span>
+                            <span class="info-label" data-translate="address">Address:</span>
                             <div class="info-value">
                                 <div class="full-address">
                                     <i class="bi bi-geo-alt me-2"></i>
@@ -558,7 +582,7 @@
                             <span class="info-value">{{ first_property.property.name }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Address:</span>
+                            <span class="info-label" data-translate="address">Address:</span>
                             <div class="info-value">
                                 <div class="full-address">
                                     <i class="bi bi-geo-alt me-2"></i>
@@ -587,7 +611,7 @@
                         {% endif %}
                         {% if repair_request.location %}
                         <div class="info-row">
-                            <span class="info-label">Specific Location:</span>
+                            <span class="info-label" data-translate="location">Specific Location:</span>
                             <span class="info-value">{{ repair_request.location }}</span>
                         </div>
                         {% endif %}
@@ -598,17 +622,17 @@
                 <div class="mb-4">
                     <h5 class="text-muted mb-3">
                         <i class="bi bi-wrench me-2"></i>
-                        Service Details
+                        <span data-translate="service_details">Service Details</span>
                     </h5>
                     <div class="bg-white border rounded p-3">
                         {% if repair_request.service_type %}
                         <div class="info-row">
-                            <span class="info-label">Service Type:</span>
+                            <span class="info-label" data-translate="service_type">Service Type:</span>
                             <span class="info-value">{{ repair_request.service_type|replace('_', ' ')|title }}</span>
                         </div>
                         {% endif %}
                         <div class="info-row">
-                            <span class="info-label">Urgency:</span>
+                            <span class="info-label" data-translate="urgency">Urgency:</span>
                             <span class="info-value">
                                 <span class="priority-badge priority-{{ repair_request.priority.value|lower if repair_request.priority.value else repair_request.priority|lower }}">
                                     {{ repair_request.priority.value|title if repair_request.priority.value else repair_request.priority|title }}
@@ -616,7 +640,7 @@
                             </span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Current Status:</span>
+                            <span class="info-label" data-translate="status">Current Status:</span>
                             <span class="info-value">
                                 <span class="status-badge status-{{ repair_request.status.value|lower|replace('_', '-') if repair_request.status.value else repair_request.status|lower|replace('_', '-') }}">
                                     {{ repair_request.status.value|replace('_', ' ')|title if repair_request.status.value else repair_request.status|replace('_', ' ')|title }}
@@ -625,14 +649,14 @@
                         </div>
                         {% if repair_request.scheduled_date %}
                         <div class="info-row">
-                            <span class="info-label">Scheduled Date:</span>
+                            <span class="info-label" data-translate="scheduled_date">Scheduled Date:</span>
                             <span class="info-value">
                                 {{ repair_request.scheduled_date.strftime('%B %d, %Y') }}
                             </span>
                         </div>
                         {% elif repair_request.due_date %}
                         <div class="info-row">
-                            <span class="info-label">Due Date:</span>
+                            <span class="info-label" data-translate="due_date">Due Date:</span>
                             <span class="info-value">
                                 {{ repair_request.due_date.strftime('%B %d, %Y') }}
                             </span>
@@ -647,7 +671,7 @@
                 <div class="mb-4">
                     <h5 class="text-muted mb-3">
                         <i class="bi bi-paperclip me-2"></i>
-                        Attachments
+                        <span data-translate="attachments">Attachments</span>
                     </h5>
                     <div class="attachment-grid">
                         {% for media in media_items %}
@@ -666,9 +690,9 @@
                 <!-- Contact Information (Limited) -->
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle me-2"></i>
-                    <strong>Need to discuss this repair?</strong>
+                    <strong data-translate="contact">Need to discuss this repair?</strong>
                     <br>
-                    Please contact the property management for additional details or to schedule service.
+                    <span data-translate="contact_msg">Please contact the property management for additional details or to schedule service.</span>
                 </div>
             </div>
 
