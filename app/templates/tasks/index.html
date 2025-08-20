@@ -200,8 +200,8 @@
                                         </button>
                                     </form>
                                     {% endif %}
-                                    {% if task.tags and 'repair_request' in task.tags and (current_user.is_property_owner or task.creator_id == current_user.id) %}
-                                    <button type="button" class="app-btn app-btn-info app-btn-sm" onclick="openShareModal({{ task.id }}, {{ task.title|tojson }})" title="Share Repair Request">
+                                    {% if current_user.is_property_owner or task.creator_id == current_user.id or current_user.is_admin %}
+                                    <button type="button" class="app-btn app-btn-info app-btn-sm" onclick="openShareModal({{ task.id }}, {{ task.title|tojson }})" title="Share Task">
                                         <i class="bi bi-share"></i>
                                     </button>
                                     {% endif %}
@@ -231,7 +231,7 @@
             <div class="modal-header">
                 <h5 class="modal-title" id="shareModalLabel">
                     <i class="bi bi-share me-2"></i>
-                    Share Repair Request
+                    Share Task
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
