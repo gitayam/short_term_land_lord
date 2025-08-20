@@ -492,6 +492,37 @@
   color: var(--info-dark);
 }
 
+/* Dark theme badge improvements */
+[data-bs-theme="dark"] .app-badge-primary {
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+
+[data-bs-theme="dark"] .app-badge-secondary {
+  background: var(--bg-quaternary);
+  color: var(--text-primary);
+}
+
+[data-bs-theme="dark"] .app-badge-success {
+  background: var(--success);
+  color: var(--text-inverse);
+}
+
+[data-bs-theme="dark"] .app-badge-warning {
+  background: var(--warning);
+  color: var(--text-inverse);
+}
+
+[data-bs-theme="dark"] .app-badge-danger {
+  background: var(--danger);
+  color: var(--text-inverse);
+}
+
+[data-bs-theme="dark"] .app-badge-info {
+  background: var(--info);
+  color: var(--text-inverse);
+}
+
 /* ===== MODAL COMPONENTS ===== */
 
 .app-modal .modal-content {

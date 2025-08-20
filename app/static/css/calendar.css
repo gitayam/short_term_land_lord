@@ -15,40 +15,45 @@ table.calendar {
 
 table.calendar th,
 table.calendar td {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color, #ddd);
   padding: 4px;
   text-align: center;
   min-width: 32px;
+  color: var(--text-primary);
 }
 
 table.calendar th {
-  background-color: #f0f0f0;
+  background-color: var(--bg-tertiary, #f0f0f0);
   font-weight: normal;
+  color: var(--text-primary);
 }
 
 .listing-name {
   text-align: left;
   white-space: nowrap;
-  background: #fff;
+  background: var(--bg-primary, #fff);
   font-weight: bold;
   min-width: 250px;
+  color: var(--text-primary);
 }
 
 /* cell backgrounds */
 td.available {
-  background: #fff;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary);
 }
 td.booked {
-  background: teal;
+  background: var(--success, teal);
+  color: var(--text-inverse, white);
   border-radius: 4px;
 }
 
 /* month headers */
 .month-header {
-  background-color: #e9ecef;
+  background-color: var(--bg-secondary, #e9ecef);
   font-weight: bold;
-  color: #495057;
-  border-bottom: 2px solid #dee2e6;
+  color: var(--text-primary, #495057);
+  border-bottom: 2px solid var(--border-color, #dee2e6);
 }
 
 /* outer gridlines */
@@ -59,11 +64,11 @@ table.calendar th {
 }
 table.calendar thead th,
 table.calendar tbody tr:first-child td {
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--border-color, #ddd);
 }
 table.calendar tbody tr td:first-child,
 table.calendar thead th:first-child {
-  border-left: 1px solid #ddd;
+  border-left: 1px solid var(--border-color, #ddd);
 }
 
 .legend {
@@ -77,6 +82,7 @@ table.calendar thead th:first-child {
   display: flex;
   align-items: center;
   gap: 5px;
+  color: var(--text-primary);
 }
 
 .legend-color {
@@ -86,10 +92,10 @@ table.calendar thead th:first-child {
 }
 
 .legend-color.booked {
-  background-color: teal;
+  background-color: var(--success, teal);
 }
 
 .legend-color.available {
-  background-color: #fff;
-  border: 1px solid #ddd;
+  background-color: var(--bg-primary, #fff);
+  border: 1px solid var(--border-color, #ddd);
 } 

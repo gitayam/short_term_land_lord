@@ -143,15 +143,15 @@
   --bg-tertiary: #334155;
   --bg-quaternary: #475569;
   
-  /* Text Colors */
+  /* Text Colors - Improved contrast for accessibility */
   --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-tertiary: #94a3b8;
+  --text-secondary: #e2e8f0;  /* Brighter from #cbd5e1 for better contrast */
+  --text-tertiary: #cbd5e1;   /* Brighter from #94a3b8 for better readability */
   --text-inverse: #0f172a;
   
-  /* Border Colors */
-  --border-color: #334155;
-  --border-color-hover: #475569;
+  /* Border Colors - Enhanced visibility */
+  --border-color: #475569;     /* Lighter from #334155 for better visibility */
+  --border-color-hover: #64748b;  /* Lighter from #475569 for clear hover states */
   --border-color-focus: var(--primary);
   
   /* Adjust shadows for dark theme */
