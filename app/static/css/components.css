@@ -559,6 +559,89 @@
   gap: var(--space-3);
 }
 
+/* Dark mode modal improvements - Bootstrap overrides */
+[data-bs-theme="dark"] .modal-content {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+[data-bs-theme="dark"] .modal-header {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-bottom-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .modal-title {
+  color: var(--text-primary);
+}
+
+[data-bs-theme="dark"] .modal-body {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+[data-bs-theme="dark"] .modal-footer {
+  background: var(--bg-tertiary);
+  border-top-color: var(--border-color);
+}
+
+/* Ensure all text in modals is visible */
+[data-bs-theme="dark"] .modal-content h1,
+[data-bs-theme="dark"] .modal-content h2,
+[data-bs-theme="dark"] .modal-content h3,
+[data-bs-theme="dark"] .modal-content h4,
+[data-bs-theme="dark"] .modal-content h5,
+[data-bs-theme="dark"] .modal-content h6 {
+  color: var(--text-primary) !important;
+}
+
+[data-bs-theme="dark"] .modal-content p,
+[data-bs-theme="dark"] .modal-content span,
+[data-bs-theme="dark"] .modal-content div,
+[data-bs-theme="dark"] .modal-content label,
+[data-bs-theme="dark"] .modal-content small,
+[data-bs-theme="dark"] .modal-content strong {
+  color: var(--text-secondary);
+}
+
+/* Force text visibility for any missed elements */
+[data-bs-theme="dark"] .modal-content * {
+  color: inherit;
+}
+
+[data-bs-theme="dark"] .modal-content .form-control,
+[data-bs-theme="dark"] .modal-content .form-select {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .modal-content .form-control:focus,
+[data-bs-theme="dark"] .modal-content .form-select:focus {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--primary);
+}
+
+/* Modal close button visibility */
+[data-bs-theme="dark"] .modal-header .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Improve button contrast in modals */
+[data-bs-theme="dark"] .modal-footer .btn-secondary {
+  background: var(--bg-quaternary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .modal-footer .btn-primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
 /* ===== ALERT COMPONENTS ===== */
 
 .app-alert {
