@@ -201,7 +201,7 @@
                                     </form>
                                     {% endif %}
                                     {% if task.tags and 'repair_request' in task.tags and (current_user.is_property_owner or task.creator_id == current_user.id) %}
-                                    <button type="button" class="app-btn app-btn-info app-btn-sm" onclick="openShareModal({{ task.id }}, '{{ task.title }}')" title="Share Repair Request">
+                                    <button type="button" class="app-btn app-btn-info app-btn-sm" onclick="openShareModal({{ task.id }}, {{ task.title|tojson }})" title="Share Repair Request">
                                         <i class="bi bi-share"></i>
                                     </button>
                                     {% endif %}
