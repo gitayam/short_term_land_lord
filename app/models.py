@@ -1036,6 +1036,49 @@ class Property(db.Model):
         
         return ", ".join(parts) if parts else "General area location"
     
+    def get_full_address_for_maps(self):
+        """Return the full address for map integration purposes"""
+        if not (self.street_address or self.city or self.state):
+            return None
+        
+        parts = []
+        
+        # Add street address if available
+        if self.street_address:
+            parts.append(self.street_address)
+        
+        # Add city, state, zip
+        city_state_zip = []
+        if self.city:
+            city_state_zip.append(self.city)
+        if self.state:
+            city_state_zip.append(self.state)
+        if self.zip_code:
+            city_state_zip.append(self.zip_code)
+        
+        if city_state_zip:
+            parts.append(", ".join(city_state_zip))
+        
+        return ", ".join(parts) if parts else None
+    
+    def get_maps_url_apple(self):
+        """Generate Apple Maps URL for this property"""
+        address = self.get_full_address_for_maps()
+        if not address:
+            return None
+        
+        from urllib.parse import quote_plus
+        return f"https://maps.apple.com/?q={quote_plus(address)}"
+    
+    def get_maps_url_google(self):
+        """Generate Google Maps URL for this property"""
+        address = self.get_full_address_for_maps()
+        if not address:
+            return None
+        
+        from urllib.parse import quote_plus
+        return f"https://www.google.com/maps/search/{quote_plus(address)}"
+    
     def generate_guest_access_token(self):
         """Generate a unique token for guest access"""
         self.guest_access_token = secrets.token_urlsafe(32)
@@ -3459,3 +3502,134 @@ class GuestAccountRequest(db.Model):
         self.is_approved = True
         self.approved_by = admin_user.id
         self.approved_at = datetime.utcnow()
+
+
+# Sharing functionality models
+class ShareType(enum.Enum):
+    PUBLIC = 'public'
+    PASSWORD = 'password'
+
+
+class RepairRequestShare(db.Model):
+    """Model for shared repair request links"""
+    __tablename__ = 'repair_request_shares'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    repair_request_id = db.Column(db.Integer, db.ForeignKey('repair_request.id', ondelete='CASCADE'), nullable=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id', ondelete='CASCADE'), nullable=True)
+    share_token = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    password_hash = db.Column(db.String(255), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    view_count = db.Column(db.Integer, default=0)
+    last_viewed_at = db.Column(db.DateTime, nullable=True)
+    share_type = db.Column(db.String(20), default='public')
+    notes = db.Column(db.Text, nullable=True)
+    
+    # Relationships
+    repair_request = db.relationship('RepairRequest', backref='shares', lazy='select')
+    task = db.relationship('Task', backref='shares', lazy='select')
+    creator = db.relationship('User', backref='created_shares', lazy='select')
+    access_logs = db.relationship('ShareAccessLog', backref='share', lazy='dynamic', cascade='all, delete-orphan')
+    
+    @property
+    def shared_item(self):
+        """Get the shared item (either repair request or task)"""
+        return self.repair_request or self.task
+    
+    @property
+    def item_type(self):
+        """Get the type of shared item"""
+        if self.repair_request:
+            return 'repair_request'
+        elif self.task:
+            return 'task'
+        return None
+    
+    def set_password(self, password):
+        """Set password for protected share"""
+        if password:
+            self.password_hash = generate_password_hash(password)
+            self.share_type = 'password'
+        else:
+            self.password_hash = None
+            self.share_type = 'public'
+    
+    def check_password(self, password):
+        """Check if provided password is correct"""
+        if not self.password_hash:
+            return True
+        return check_password_hash(self.password_hash, password)
+    
+    def is_expired(self):
+        """Check if share link has expired"""
+        if not self.expires_at:
+            return False
+        return datetime.utcnow() > self.expires_at
+    
+    def is_valid(self):
+        """Check if share link is valid (active and not expired)"""
+        return self.is_active and not self.is_expired()
+    
+    def increment_view_count(self):
+        """Increment view count and update last viewed timestamp"""
+        self.view_count += 1
+        self.last_viewed_at = datetime.utcnow()
+        db.session.commit()
+    
+    def revoke(self):
+        """Revoke the share link"""
+        self.is_active = False
+        db.session.commit()
+    
+    @property
+    def share_url(self):
+        """Generate the full share URL"""
+        from flask import url_for
+        return url_for('share.view_repair_request', share_token=self.share_token, _external=True)
+    
+    def to_dict(self):
+        """Convert to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'share_token': self.share_token,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'is_active': self.is_active,
+            'view_count': self.view_count,
+            'last_viewed_at': self.last_viewed_at.isoformat() if self.last_viewed_at else None,
+            'share_type': self.share_type if self.share_type else 'public',
+            'notes': self.notes,
+            'share_url': self.share_url
+        }
+
+
+class ShareAccessLog(db.Model):
+    """Model for tracking access to shared links"""
+    __tablename__ = 'share_access_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    share_id = db.Column(db.Integer, db.ForeignKey('repair_request_shares.id', ondelete='CASCADE'), nullable=False)
+    accessed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.Text, nullable=True)
+    access_granted = db.Column(db.Boolean, default=True)
+    failure_reason = db.Column(db.String(100), nullable=True)
+    
+    @classmethod
+    def log_access(cls, share_id, ip_address=None, user_agent=None, access_granted=True, failure_reason=None):
+        """Log an access attempt to a shared link"""
+        log = cls(
+            share_id=share_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            access_granted=access_granted,
+            failure_reason=failure_reason
+        )
+        db.session.add(log)
+        db.session.commit()
+        return log
+
+

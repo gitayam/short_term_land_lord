@@ -632,6 +632,141 @@
   100% { background-position: -200% 0; }
 }
 
+/* ===== DROPDOWN COMPONENTS ===== */
+
+/* Global dropdown z-index fix - ensures all dropdowns appear above other content */
+.dropdown-menu {
+  z-index: 9999 !important;
+  position: absolute !important;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  background: var(--bg-primary);
+  padding: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+/* Additional specificity for Bootstrap dropdowns */
+.dropdown-menu.show {
+  z-index: 9999 !important;
+  display: block !important;
+}
+
+/* Ensure dropdown toggles and containers have proper positioning */
+.dropdown {
+  position: relative;
+}
+
+.btn-group {
+  position: relative;
+  z-index: 1; /* Base z-index for button groups */
+}
+
+/* Fix for navigation dropdowns specifically */
+.app-nav .dropdown-menu,
+.app-nav-dropdown {
+  z-index: 9999 !important;
+  position: absolute !important;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+}
+
+/* User dropdown in navigation */
+.app-nav-user-dropdown {
+  z-index: 9999 !important;
+  position: absolute !important;
+}
+
+/* Navbar specific dropdown fixes */
+.navbar .dropdown-menu {
+  z-index: 9999 !important;
+  position: absolute !important;
+}
+
+.navbar-nav .dropdown-menu {
+  z-index: 9999 !important;
+  position: absolute !important;
+}
+
+/* Dropdown items styling */
+.dropdown-item {
+  color: var(--text-primary);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
+  font-size: var(--font-size-sm);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: var(--bg-secondary);
+  color: var(--primary);
+}
+
+.dropdown-item:active {
+  background-color: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+/* Dropdown dividers */
+.dropdown-divider {
+  border-color: var(--border-color);
+  margin: var(--space-2) 0;
+}
+
+/* Fix for dropdowns in tables and cards */
+.app-table .dropdown-menu,
+.app-card .dropdown-menu {
+  z-index: 9999 !important;
+  position: absolute !important;
+}
+
+/* Ensure parent containers don't clip dropdowns */
+.navbar {
+  position: relative;
+  z-index: 1000;
+}
+
+.navbar-nav {
+  position: relative;
+}
+
+.dropdown {
+  position: relative;
+}
+
+/* Override any Bootstrap defaults */
+.dropdown-menu[data-bs-popper] {
+  z-index: 9999 !important;
+}
+
+/* Global fix for ALL dropdowns including third-party */
+select,
+.select2-dropdown,
+.goog-te-menu2,
+.goog-te-menu-frame,
+.ui-autocomplete,
+.ui-menu,
+.ui-widget.ui-widget-content {
+  z-index: 99999 !important;
+}
+
+/* Ensure all dropdown-like elements are above other content */
+[role="listbox"],
+[role="menu"],
+[aria-expanded="true"] + * {
+  z-index: 99999 !important;
+}
+
+/* Mobile dropdown improvements */
+@media (max-width: 768px) {
+  .dropdown-menu {
+    min-width: 200px;
+    max-width: 90vw;
+  }
+}
+
 /* ===== UTILITY COMPONENTS ===== */
 
 .app-divider {

@@ -200,6 +200,11 @@
                                         </button>
                                     </form>
                                     {% endif %}
+                                    {% if task.tags and 'repair_request' in task.tags and (current_user.is_property_owner or task.creator_id == current_user.id) %}
+                                    <button type="button" class="app-btn app-btn-info app-btn-sm" onclick="openShareModal({{ task.id }}, '{{ task.title }}')" title="Share Repair Request">
+                                        <i class="bi bi-share"></i>
+                                    </button>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -218,4 +223,199 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shareModalLabel">
+                    <i class="bi bi-share me-2"></i>
+                    Share Repair Request
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="shareForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Share Type</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="shareType" id="publicShare" value="public" checked>
+                            <label class="btn btn-outline-primary" for="publicShare">
+                                <i class="bi bi-globe me-1"></i>
+                                Public Link
+                            </label>
+                            <input type="radio" class="btn-check" name="shareType" id="passwordShare" value="password">
+                            <label class="btn btn-outline-primary" for="passwordShare">
+                                <i class="bi bi-lock me-1"></i>
+                                Password Protected
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="passwordField" style="display: none;">
+                        <label for="sharePassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="sharePassword" placeholder="Enter password for protected access">
+                        <div class="form-text">Anyone with the link will need this password to view the repair request.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="expiration" class="form-label">Link Expiration</label>
+                        <select class="form-select" id="expiration">
+                            <option value="24h">24 Hours</option>
+                            <option value="7d" selected>7 Days</option>
+                            <option value="30d">30 Days</option>
+                            <option value="never">Never Expires</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="shareNotes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="shareNotes" rows="2" placeholder="Add notes about who this is shared with or why..."></textarea>
+                    </div>
+                    
+                    <div id="shareResult" style="display: none;">
+                        <div class="alert alert-success">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <strong>Share link created!</strong>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-success" onclick="copyShareLink()">
+                                    <i class="bi bi-clipboard me-1"></i>
+                                    Copy Link
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <input type="text" class="form-control form-control-sm" id="shareUrl" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="createShareBtn" onclick="createShare()">
+                    <i class="bi bi-share me-1"></i>
+                    Create Share Link
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTaskId = null;
+
+// Show/hide password field based on share type
+document.querySelectorAll('input[name="shareType"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const passwordField = document.getElementById('passwordField');
+        if (this.value === 'password') {
+            passwordField.style.display = 'block';
+        } else {
+            passwordField.style.display = 'none';
+        }
+    });
+});
+
+function openShareModal(taskId, taskTitle) {
+    currentTaskId = taskId;
+    document.getElementById('shareModalLabel').innerHTML = `
+        <i class="bi bi-share me-2"></i>
+        Share: ${taskTitle}
+    `;
+    
+    // Reset form
+    document.getElementById('shareForm').reset();
+    document.getElementById('publicShare').checked = true;
+    document.getElementById('passwordField').style.display = 'none';
+    document.getElementById('shareResult').style.display = 'none';
+    document.getElementById('createShareBtn').style.display = 'inline-block';
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
+}
+
+function createShare() {
+    if (!currentTaskId) return;
+    
+    const shareType = document.querySelector('input[name="shareType"]:checked').value;
+    const password = shareType === 'password' ? document.getElementById('sharePassword').value : null;
+    const expiration = document.getElementById('expiration').value;
+    const notes = document.getElementById('shareNotes').value;
+    
+    // Validate password if required
+    if (shareType === 'password' && (!password || password.length < 4)) {
+        alert('Please enter a password with at least 4 characters.');
+        return;
+    }
+    
+    // Disable button
+    const btn = document.getElementById('createShareBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Creating...';
+    
+    // Make API call
+    fetch(`/share/api/repair/${currentTaskId}/share`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+        },
+        body: JSON.stringify({
+            password: password,
+            expiration: expiration,
+            notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success result
+            document.getElementById('shareUrl').value = data.share.share_url;
+            document.getElementById('shareResult').style.display = 'block';
+            document.getElementById('createShareBtn').style.display = 'none';
+        } else {
+            alert('Error creating share link: ' + (data.error || 'Unknown error'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-share me-1"></i> Create Share Link';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating share link. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-share me-1"></i> Create Share Link';
+    });
+}
+
+function copyShareLink() {
+    const shareUrl = document.getElementById('shareUrl');
+    shareUrl.select();
+    shareUrl.setSelectionRange(0, 99999); // For mobile devices
+    
+    navigator.clipboard.writeText(shareUrl.value).then(function() {
+        // Show success feedback
+        const btn = event.target.closest('button');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check me-1"></i> Copied!';
+        btn.classList.remove('btn-outline-success');
+        btn.classList.add('btn-success');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-success');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+        // Fallback for older browsers
+        shareUrl.select();
+        document.execCommand('copy');
+        alert('Share link copied to clipboard!');
+    });
+}
+</script>
 {% endblock %}

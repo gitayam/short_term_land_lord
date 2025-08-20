@@ -168,6 +168,9 @@ def create_app(config_class=Config):
     from app.routes.recommendation_routes import bp as recommendations_bp
     app.register_blueprint(recommendations_bp, url_prefix='/recommendations')
     
+    from app.share import bp as share_bp
+    app.register_blueprint(share_bp)
+    
     from app.routes.property_routes import bp as property_routes_bp
     app.register_blueprint(property_routes_bp)
     

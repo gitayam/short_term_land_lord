@@ -121,9 +121,19 @@
         border-top-color: rgba(255,255,255,0.9);
     }
     
-    /* Fix dropdown item colors */
+    /* Fix dropdown item colors and z-index */
     .app-nav .dropdown-menu {
         background-color: var(--app-surface, #ffffff);
+        z-index: 9999 !important;
+        position: absolute !important;
+    }
+    
+    .navbar .dropdown-menu {
+        z-index: 9999 !important;
+    }
+    
+    .dropdown-menu.show {
+        z-index: 9999 !important;
     }
     
     .app-nav .dropdown-item {
@@ -509,6 +519,70 @@
         .app-toast-message {
             font-size: 0.875rem;
         }
+    }
+    
+    /* CRITICAL DROPDOWN Z-INDEX FIX - Must be last to override all other styles */
+    .dropdown-menu {
+        z-index: 99999 !important;
+        position: absolute !important;
+    }
+    
+    .dropdown-menu.show {
+        z-index: 99999 !important;
+        display: block !important;
+        position: absolute !important;
+    }
+    
+    /* Keep dropdowns properly positioned relative to their parent */
+    .navbar-collapse {
+        position: relative;
+    }
+    
+    .navbar-nav .dropdown {
+        position: relative;
+    }
+    
+    /* Bootstrap popper dropdown specific */
+    .dropdown-menu[data-bs-popper] {
+        z-index: 99999 !important;
+        position: absolute !important;
+    }
+    
+    /* Navigation specific dropdowns */
+    #tasksDropdown + .dropdown-menu,
+    #analyticsDropdown + .dropdown-menu,
+    #inventoryDropdown + .dropdown-menu {
+        z-index: 99999 !important;
+        position: absolute !important;
+    }
+    
+    /* Fix for ALL select elements and third-party dropdowns */
+    select,
+    select:focus,
+    .select2-container,
+    .select2-dropdown,
+    .goog-te-menu2,
+    .goog-te-menu-frame,
+    .ui-autocomplete,
+    .ui-menu,
+    .ui-widget.ui-widget-content,
+    .choices__list--dropdown,
+    .vs__dropdown-menu {
+        z-index: 99999 !important;
+    }
+    
+    /* Ensure form controls don't create stacking issues */
+    .form-control:focus,
+    .form-select:focus {
+        z-index: auto !important;
+    }
+    
+    /* Fix for any dynamically created dropdowns */
+    body > .dropdown-menu,
+    body > [role="listbox"],
+    body > [role="menu"],
+    body > .ui-widget {
+        z-index: 99999 !important;
     }
     </style>
 </head>
