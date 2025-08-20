@@ -932,29 +932,24 @@
                 
                 const icon = iconMap[type] || iconMap.info;
                 
-                toast.innerHTML = `
-                    <div class="app-toast-content">
-                        <div class="app-toast-icon">
-                            <i class="bi bi-${icon}"></i>
-                        </div>
-                        <div class="app-toast-message">
-                            ${message}
-                        </div>
-                        ${config.action ? `
-                            <div class="app-toast-action">
-                                <button class="app-btn app-btn-sm app-btn-ghost" onclick="${config.action.handler}">
-                                    ${config.action.text}
-                                </button>
-                            </div>
-                        ` : ''}
-                        ${config.dismissible ? `
-                            <button class="app-toast-close" onclick="window.toastManager.dismiss(this.closest('.app-toast'))" aria-label="Close">
-                                <i class="bi bi-x"></i>
-                            </button>
-                        ` : ''}
-                    </div>
-                    <div class="app-toast-progress"></div>
-                `;
+                let toastHTML = '<div class="app-toast-content">';
+                toastHTML += '<div class="app-toast-icon"><i class="bi bi-' + icon + '"></i></div>';
+                toastHTML += '<div class="app-toast-message">' + message + '</div>';
+                
+                if (config.action && config.action.handler && config.action.text) {
+                    toastHTML += '<div class="app-toast-action">';
+                    toastHTML += '<button class="app-btn app-btn-sm app-btn-ghost" onclick="' + config.action.handler + '">';
+                    toastHTML += config.action.text;
+                    toastHTML += '</button></div>';
+                }
+                
+                if (config.dismissible !== false) {
+                    toastHTML += '<button class="app-toast-close" onclick="window.toastManager.dismiss(this.closest(\'.app-toast\'))" aria-label="Close">';
+                    toastHTML += '<i class="bi bi-x"></i></button>';
+                }
+                
+                toastHTML += '</div><div class="app-toast-progress"></div>';
+                toast.innerHTML = toastHTML;
                 
                 // Animate progress bar
                 if (!config.persistent && config.duration > 0) {
