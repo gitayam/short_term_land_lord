@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">All Tasks</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Due Date</th>
+                            <th>Assignees</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr>
+                            <td>
+                                <strong>{{ task.title }}</strong>
+                                <div class="small text-muted">{{ task.description[:50] }}...</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning">Pending</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ task.priority or 'Medium' }}</span>
+                            </td>
+                            <td>
+                                {% if task.due_date %}
+                                {{ task.due_date.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                No due date
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="text-muted">Unassigned</span>
+                            </td>
+                            <td>
+                                <div class="app-btn-group">
+                                    <a href="#" class="app-btn app-btn-primary app-btn-sm">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button type="button" class="app-btn app-btn-info app-btn-sm" onclick="openShareModal({{ task.id }}, {{ task.title|tojson }})" title="Share Task">
+                                        <i class="bi bi-share"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TEST: Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shareModalLabel">Share Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>TEST: Modal is working!</p>
+                <div id="shareResult" style="display: none;">
+                    <div class="alert alert-success">
+                        Share link created successfully!
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="testShare()">Create Share Link</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openShareModal(taskId, taskTitle) {
+    console.log('openShareModal called with:', taskId, taskTitle);
+    alert('Share modal called for task: ' + taskTitle);
+    
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
+}
+
+function testShare() {
+    document.getElementById('shareResult').style.display = 'block';
+    alert('Test share function called!');
+}
+</script>
+{% endblock %}

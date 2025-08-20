@@ -320,58 +320,22 @@ document.querySelectorAll('input[name="shareType"]').forEach(radio => {
 });
 
 function openShareModal(taskId, taskTitle) {
-    console.log('openShareModal called with:', taskId, taskTitle);
+    currentTaskId = taskId;
+    document.getElementById('shareModalLabel').innerHTML = `
+        <i class="bi bi-share me-2"></i>
+        Share: ${taskTitle}
+    `;
     
-    try {
-        currentTaskId = taskId;
-        
-        const modalLabel = document.getElementById('shareModalLabel');
-        if (!modalLabel) {
-            console.error('shareModalLabel element not found');
-            return;
-        }
-        
-        modalLabel.innerHTML = '<i class="bi bi-share me-2"></i>Share: ' + taskTitle;
-        
-        const shareForm = document.getElementById('shareForm');
-        if (shareForm) {
-            shareForm.reset();
-        }
-        
-        const publicShare = document.getElementById('publicShare');
-        if (publicShare) {
-            publicShare.checked = true;
-        }
-        
-        const passwordField = document.getElementById('passwordField');
-        if (passwordField) {
-            passwordField.style.display = 'none';
-        }
-        
-        const shareResult = document.getElementById('shareResult');
-        if (shareResult) {
-            shareResult.style.display = 'none';
-        }
-        
-        const createShareBtn = document.getElementById('createShareBtn');
-        if (createShareBtn) {
-            createShareBtn.style.display = 'inline-block';
-        }
-        
-        const modalElement = document.getElementById('shareModal');
-        if (!modalElement) {
-            console.error('shareModal element not found');
-            return;
-        }
-        
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
-        
-        console.log('Modal should be visible now');
-    } catch (error) {
-        console.error('Error in openShareModal:', error);
-        alert('Error opening share modal: ' + error.message);
-    }
+    // Reset form
+    document.getElementById('shareForm').reset();
+    document.getElementById('publicShare').checked = true;
+    document.getElementById('passwordField').style.display = 'none';
+    document.getElementById('shareResult').style.display = 'none';
+    document.getElementById('createShareBtn').style.display = 'inline-block';
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
 }
 
 function createShare() {
@@ -453,14 +417,5 @@ function copyShareLink() {
         alert('Share link copied to clipboard!');
     });
 }
-
-// Debug: Test modal existence
-setTimeout(function() {
-    const modal = document.getElementById('shareModal');
-    console.log('Share modal check:', modal ? 'FOUND' : 'NOT FOUND');
-    
-    const buttons = document.querySelectorAll('[onclick*="openShareModal"]');
-    console.log('Share buttons found:', buttons.length);
-}, 1000);
 </script>
 {% endblock %}
