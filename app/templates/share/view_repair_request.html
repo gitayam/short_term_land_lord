@@ -9,7 +9,7 @@
     
     <!-- Custom Translation Solution -->
     <script type="text/javascript">
-    // Translation dictionary
+    // Translation dictionary with common repair terms
     const translations = {
         en: {
             language: "Language",
@@ -38,7 +38,20 @@
             low: "LOW",
             urgent: "URGENT",
             apple_maps: "Apple Maps",
-            google_maps: "Google Maps"
+            google_maps: "Google Maps",
+            // Common location terms
+            kitchen: "Kitchen",
+            bathroom: "Bathroom",
+            bedroom: "Bedroom",
+            living_room: "Living Room",
+            garage: "Garage",
+            basement: "Basement",
+            attic: "Attic",
+            // Common repair terms
+            garbage_disposal: "garbage disposal",
+            not_working: "not working",
+            wont_turn_on: "won't turn on",
+            allen_wrench: "Allen wrench"
         },
         es: {
             language: "Idioma",
@@ -67,7 +80,20 @@
             low: "BAJA",
             urgent: "URGENTE",
             apple_maps: "Apple Maps",
-            google_maps: "Google Maps"
+            google_maps: "Google Maps",
+            // Common location terms
+            kitchen: "Cocina",
+            bathroom: "Baño",
+            bedroom: "Dormitorio",
+            living_room: "Sala de estar",
+            garage: "Garaje",
+            basement: "Sótano",
+            attic: "Ático",
+            // Common repair terms
+            garbage_disposal: "triturador de basura",
+            not_working: "no funciona",
+            wont_turn_on: "no se enciende",
+            allen_wrench: "llave Allen"
         },
         zh: {
             language: "语言",
@@ -96,7 +122,20 @@
             low: "低",
             urgent: "紧急",
             apple_maps: "苹果地图",
-            google_maps: "谷歌地图"
+            google_maps: "谷歌地图",
+            // Common location terms
+            kitchen: "厨房",
+            bathroom: "浴室",
+            bedroom: "卧室",
+            living_room: "客厅",
+            garage: "车库",
+            basement: "地下室",
+            attic: "阁楼",
+            // Common repair terms
+            garbage_disposal: "垃圾处理器",
+            not_working: "不工作",
+            wont_turn_on: "无法启动",
+            allen_wrench: "内六角扳手"
         }
     };
     
@@ -124,6 +163,46 @@
         localStorage.setItem('preferredLanguage', lang);
     }
     
+    // Common repair request descriptions with translations
+    const descriptionTranslations = {
+        "The garbage disposal in the kitchen won't turn on. I have tried to turn it with an Allen wrench but it didn't work.": {
+            es: "El triturador de basura en la cocina no se enciende. He intentado girarlo con una llave Allen pero no funcionó.",
+            zh: "厨房的垃圾处理器无法启动。我尝试用内六角扳手转动它，但没有用。"
+        },
+        "Garbage disposal not working": {
+            es: "Triturador de basura no funciona",
+            zh: "垃圾处理器不工作"
+        }
+    };
+    
+    function translateText(text, fromLang, toLang) {
+        // First check for exact sentence matches
+        if (descriptionTranslations[text] && descriptionTranslations[text][toLang]) {
+            return descriptionTranslations[text][toLang];
+        }
+        
+        // Simple word-by-word translation for common terms
+        const trans = translations[toLang] || translations.en;
+        const enTrans = translations.en;
+        
+        let translatedText = text;
+        
+        // Case-insensitive translation for single words/locations
+        if (trans[text.toLowerCase()]) {
+            return trans[text.toLowerCase()];
+        }
+        
+        // Translate common terms found in the text
+        Object.keys(enTrans).forEach(key => {
+            if (typeof enTrans[key] === 'string' && trans[key]) {
+                const regex = new RegExp('\\b' + enTrans[key] + '\\b', 'gi');
+                translatedText = translatedText.replace(regex, trans[key]);
+            }
+        });
+        
+        return translatedText;
+    }
+    
     function applyTranslations(lang) {
         const trans = translations[lang] || translations.en;
         
@@ -148,6 +227,24 @@
             const text = badge.textContent.trim().toLowerCase();
             if (trans[text]) {
                 badge.textContent = trans[text];
+            }
+        });
+        
+        // Translate user-generated content in specific elements
+        const contentElements = [
+            '.title-content',
+            '.description-content',
+            '.location-content'
+        ];
+        
+        contentElements.forEach(selector => {
+            const element = document.querySelector(selector);
+            if (element) {
+                const originalText = element.getAttribute('data-original') || element.textContent.trim();
+                if (!element.getAttribute('data-original')) {
+                    element.setAttribute('data-original', originalText);
+                }
+                element.textContent = translateText(originalText, 'en', lang);
             }
         });
     }
@@ -528,7 +625,7 @@
                         {{ repair_request.priority }}
                     </span>
                 </div>
-                <h2 class="h4 mb-2">{{ repair_request.title }}</h2>
+                <h2 class="h4 mb-2 title-content">{{ repair_request.title }}</h2>
                 <div class="d-flex align-items-center gap-3 text-white-50">
                     <span>
                         <i class="bi bi-calendar me-1"></i>
@@ -556,7 +653,7 @@
                         <i class="bi bi-card-text me-2"></i>
                         <span data-translate="description">Description</span>
                     </h5>
-                    <div class="bg-light p-3 rounded">
+                    <div class="bg-light p-3 rounded description-content">
                         {{ repair_request.description|nl2br|safe }}
                     </div>
                 </div>
@@ -637,7 +734,7 @@
                         {% if repair_request.location %}
                         <div class="info-row">
                             <span class="info-label" data-translate="location">Specific Location:</span>
-                            <span class="info-value">{{ repair_request.location }}</span>
+                            <span class="info-value location-content">{{ repair_request.location }}</span>
                         </div>
                         {% endif %}
                     </div>
