@@ -166,6 +166,12 @@
                                         </button>
                                     </form>
                                     {% endif %}
+                                    
+                                    {% if current_user.is_property_owner or task.creator_id == current_user.id %}
+                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="openShareModal({{ task.id }}, {{ task.title|tojson }})" title="Share Repair Request">
+                                        <i class="fas fa-share"></i>
+                                    </button>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -195,5 +201,126 @@
         </div>
     </div>
 </div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shareModalLabel">Share Repair Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="shareForm">
+                    <div class="mb-3">
+                        <label for="expiration" class="form-label">Expiration</label>
+                        <select class="form-select" id="expiration" name="expiration">
+                            <option value="24h">24 hours</option>
+                            <option value="7d" selected>7 days</option>
+                            <option value="30d">30 days</option>
+                            <option value="never">Never expires</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password Protection (optional)</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Leave blank for public access">
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (optional)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Add any notes about this share..."></textarea>
+                    </div>
+                </form>
+                <div id="shareResult" style="display: none;">
+                    <div class="alert alert-success">
+                        <h6>Share link created!</h6>
+                        <div class="input-group mt-2">
+                            <input type="text" class="form-control" id="shareLink" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyShareLink()">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="createShareBtn" onclick="createShare()">Create Share Link</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTaskId = null;
+
+function openShareModal(taskId, taskTitle) {
+    currentTaskId = taskId;
+    document.getElementById('shareModalLabel').textContent = `Share: ${taskTitle}`;
+    document.getElementById('shareForm').style.display = 'block';
+    document.getElementById('shareResult').style.display = 'none';
+    document.getElementById('createShareBtn').style.display = 'block';
+    
+    // Reset form
+    document.getElementById('shareForm').reset();
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+    modal.show();
+}
+
+function createShare() {
+    const formData = {
+        expiration: document.getElementById('expiration').value,
+        password: document.getElementById('password').value,
+        notes: document.getElementById('notes').value
+    };
+    
+    fetch(`/share/api/repair/${currentTaskId}/share`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Hide form and show result
+            document.getElementById('shareForm').style.display = 'none';
+            document.getElementById('shareResult').style.display = 'block';
+            document.getElementById('createShareBtn').style.display = 'none';
+            
+            // Set the share link
+            const baseUrl = window.location.origin;
+            const shareUrl = `${baseUrl}/share/repair/${data.share.share_token}`;
+            document.getElementById('shareLink').value = shareUrl;
+        } else {
+            alert('Error creating share: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        alert('Error creating share: ' + error);
+    });
+}
+
+function copyShareLink() {
+    const linkInput = document.getElementById('shareLink');
+    linkInput.select();
+    document.execCommand('copy');
+    
+    // Show feedback
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    btn.classList.remove('btn-outline-secondary');
+    btn.classList.add('btn-success');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-secondary');
+    }, 2000);
+}
+</script>
 {% endblock %}
 
