@@ -35,7 +35,10 @@
             completed: "Completed",
             high: "HIGH",
             medium: "MEDIUM",
-            low: "LOW"
+            low: "LOW",
+            urgent: "URGENT",
+            apple_maps: "Apple Maps",
+            google_maps: "Google Maps"
         },
         es: {
             language: "Idioma",
@@ -61,7 +64,10 @@
             completed: "Completado",
             high: "ALTA",
             medium: "MEDIA",
-            low: "BAJA"
+            low: "BAJA",
+            urgent: "URGENTE",
+            apple_maps: "Apple Maps",
+            google_maps: "Google Maps"
         },
         zh: {
             language: "语言",
@@ -87,7 +93,10 @@
             completed: "已完成",
             high: "高",
             medium: "中",
-            low: "低"
+            low: "低",
+            urgent: "紧急",
+            apple_maps: "苹果地图",
+            google_maps: "谷歌地图"
         }
     };
     
@@ -123,6 +132,22 @@
             const key = element.getAttribute('data-translate');
             if (trans[key]) {
                 element.textContent = trans[key];
+            }
+        });
+        
+        // Translate status badges dynamically
+        document.querySelectorAll('.status-badge').forEach(badge => {
+            const text = badge.textContent.trim().toLowerCase().replace(/\s+/g, '_');
+            if (trans[text]) {
+                badge.textContent = trans[text];
+            }
+        });
+        
+        // Translate priority badges dynamically
+        document.querySelectorAll('.priority-badge').forEach(badge => {
+            const text = badge.textContent.trim().toLowerCase();
+            if (trans[text]) {
+                badge.textContent = trans[text];
             }
         });
     }
@@ -561,7 +586,7 @@
                                        target="_blank" 
                                        class="map-btn map-btn-apple">
                                         <i class="bi bi-apple"></i>
-                                        Apple Maps
+                                        <span data-translate="apple_maps">Apple Maps</span>
                                     </a>
                                     {% endif %}
                                     {% if repair_request.property.get_maps_url_google() %}
@@ -569,7 +594,7 @@
                                        target="_blank" 
                                        class="map-btn map-btn-google">
                                         <i class="bi bi-geo-alt"></i>
-                                        Google Maps
+                                        <span data-translate="google_maps">Google Maps</span>
                                     </a>
                                     {% endif %}
                                 </div>
@@ -594,7 +619,7 @@
                                        target="_blank" 
                                        class="map-btn map-btn-apple">
                                         <i class="bi bi-apple"></i>
-                                        Apple Maps
+                                        <span data-translate="apple_maps">Apple Maps</span>
                                     </a>
                                     {% endif %}
                                     {% if first_property.property.get_maps_url_google() %}
@@ -602,7 +627,7 @@
                                        target="_blank" 
                                        class="map-btn map-btn-google">
                                         <i class="bi bi-geo-alt"></i>
-                                        Google Maps
+                                        <span data-translate="google_maps">Google Maps</span>
                                     </a>
                                     {% endif %}
                                 </div>
