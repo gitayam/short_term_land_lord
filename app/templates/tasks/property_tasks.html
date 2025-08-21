@@ -92,7 +92,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if task.assignments|length > 0 %}
+                                {% if task.assignments.count() > 0 %}
                                 {% for assignment in task.assignments %}
                                 {% if assignment.user %}
                                 <span class="badge bg-dark">{{ assignment.user.get_full_name() }}</span>
