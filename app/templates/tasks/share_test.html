@@ -213,8 +213,8 @@ function testCreateShare() {
     log('Expiration: ' + expiration);
     if (password) log('Password provided: yes');
     
-    // Test API call
-    const testTaskId = 1; // Using a test ID
+    // Use task ID 2 which we know exists (or try ID 1 as fallback)
+    const testTaskId = 2; // Using task ID 2 (Garbage disposal not working)
     log('Making API call to /share/api/repair/' + testTaskId + '/share');
     
     fetch(`/share/api/repair/${testTaskId}/share`, {

@@ -102,24 +102,27 @@ def create_share(repair_id):
     """Create a new share link for a repair request or repair task"""
     # First try to find it as a Task (repair requests are stored as tasks with tags)
     task = Task.query.get(repair_id)
-    if task and task.tags and 'repair_request' in task.tags:
-        # This is a task that represents a repair request
+    if task:
+        # Found a task - check if it's a repair request or regular task
+        is_repair_request = task.tags and 'repair_request' in task.tags
         
-        # Check permission via task properties
+        # Check permission via task properties or creator
         has_permission = False
-        if current_user.is_property_owner:
+        if current_user.is_property_owner or current_user.is_admin:
+            has_permission = True  # Property owners and admins can share any task
+        elif task.creator_id == current_user.id:
+            has_permission = True  # Task creator can share their own tasks
+        else:
             # Check if user owns any property associated with this task
             for task_property in task.task_properties:
                 if task_property.property.owner_id == current_user.id:
                     has_permission = True
                     break
-        elif task.creator_id == current_user.id:
-            has_permission = True
         
         if not has_permission:
             return jsonify({'error': 'Unauthorized'}), 403
         
-        # Use the task as the repair request context
+        # Use the task as the context (works for both repair requests and regular tasks)
         repair_context = task
     else:
         # Try to find it as a traditional RepairRequest
