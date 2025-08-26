@@ -14,90 +14,21 @@ from app.models import StorageBackend
 
 def allowed_file(filename, allowed_extensions):
     """Check if a file has an allowed extension"""
-    if not filename or '.' not in filename:
-        return False
-    extension = filename.rsplit('.', 1)[1].lower()
-    return extension in allowed_extensions
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 def get_file_mime_type(file_storage):
     """Get the MIME type of a file using python-magic"""
     if not MAGIC_AVAILABLE:
         return 'application/octet-stream'  # Default fallback
-    
-    # Save current position
-    current_position = file_storage.stream.tell()
-    file_storage.stream.seek(0)
-    
-    try:
-        mime = magic.Magic(mime=True)
-        file_header = file_storage.stream.read(1024)
-        mime_type = mime.from_buffer(file_header)
-        return mime_type
-    finally:
-        # Restore position
-        file_storage.stream.seek(current_position)
+    mime = magic.Magic(mime=True)
+    return mime.from_buffer(file_storage.read(1024))
 
 def generate_unique_filename(original_filename):
-    """Generate a secure unique filename to prevent collisions"""
-    # Sanitize the original filename
-    if not original_filename:
-        original_filename = 'unnamed_file'
-    
+    """Generate a unique filename to prevent collisions"""
     filename = secure_filename(original_filename)
-    
-    # Extract extension safely
-    if '.' in filename:
-        extension = filename.rsplit('.', 1)[1].lower()
-    else:
-        extension = 'bin'  # Default extension
-    
-    # Generate unique filename with only the extension
     unique_id = uuid.uuid4().hex
-    return f"{unique_id}.{extension}"
-
-def validate_file_security(file_storage, allowed_extensions, max_size_mb=10):
-    """Comprehensive file security validation"""
-    if not file_storage or not file_storage.filename:
-        raise ValueError("No file provided")
-    
-    # Check file extension
-    if not allowed_file(file_storage.filename, allowed_extensions):
-        raise ValueError(f"Invalid file extension. Allowed: {', '.join(allowed_extensions)}")
-    
-    # Check file size
-    file_storage.stream.seek(0, 2)  # Seek to end
-    file_size = file_storage.stream.tell()
-    file_storage.stream.seek(0)  # Reset to beginning
-    
-    max_size = max_size_mb * 1024 * 1024  # Convert to bytes
-    if file_size > max_size:
-        raise ValueError(f"File too large. Maximum size: {max_size_mb}MB")
-    
-    # Validate MIME type if magic is available
-    if MAGIC_AVAILABLE:
-        detected_mime = get_file_mime_type(file_storage)
-        
-        # Define allowed MIME types based on extension
-        allowed_mimes = {
-            'jpg': ['image/jpeg'],
-            'jpeg': ['image/jpeg'], 
-            'png': ['image/png'],
-            'gif': ['image/gif'],
-            'mp4': ['video/mp4'],
-            'mov': ['video/quicktime'],
-            'avi': ['video/x-msvideo'],
-            'pdf': ['application/pdf'],
-            'txt': ['text/plain'],
-            'csv': ['text/csv', 'text/plain']
-        }
-        
-        extension = file_storage.filename.rsplit('.', 1)[1].lower()
-        expected_mimes = allowed_mimes.get(extension, [])
-        
-        if expected_mimes and detected_mime not in expected_mimes:
-            raise ValueError(f"File content doesn't match extension. Expected: {expected_mimes}, Got: {detected_mime}")
-    
-    return True
+    return f"{unique_id}_{filename}"
 
 def save_file_to_storage(file_storage, session_id, media_type, is_start_video=None):
     """
