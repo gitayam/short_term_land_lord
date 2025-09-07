@@ -69,6 +69,13 @@ The application has reached **commercial viability** with all core business func
 **Priority**: 🎯 **CRITICAL** - Market Competitiveness & Security
 
 ### 🎨 UI/UX Revolution (Weeks 1-4) - *Applying MUSECO 85% Conversion Patterns*
+- [ ] **Enhanced Property Data Collection** (Week 1 - HIGH PRIORITY)
+  - **CRITICAL ISSUE**: Current Zillow scraper failing with 403 Forbidden errors
+  - Implement Playwright + ScraperAPI hybrid solution for reliable property data extraction
+  - Replace `app/utils/zillow_scraper.py` with modern anti-bot detection bypass
+  - Add support for extracting: price, bedrooms, bathrooms, square footage, year built, images
+  - **Expected Impact**: Automated property onboarding, reduced manual data entry
+
 - [ ] **Guest-First Experience** (Week 1 - CRITICAL)
   - Implement Amazon/Eventbrite booking model - payment first, account optional
   - Remove auth barriers from property viewing and booking flows
@@ -315,6 +322,84 @@ app/
 ```
 
 ### **Immediate Development Priorities**
+
+#### **Week 1: Enhanced Property Data Collection (CRITICAL)**
+1. **Implement Modern Zillow Scraper**:
+   ```python
+   # app/utils/zillow_scraper_v2.py - Playwright + ScraperAPI solution
+   from playwright.sync_api import sync_playwright
+   from playwright_stealth import stealth_sync
+   import requests
+   import concurrent.futures
+   
+   class ZillowScraperV2:
+       def __init__(self, use_scraperapi=False, api_key=None):
+           self.use_scraperapi = use_scraperapi
+           self.api_key = api_key
+       
+       def scrape_property_playwright(self, url):
+           with sync_playwright() as p:
+               browser = p.chromium.launch(
+                   headless=True,
+                   args=['--no-sandbox', '--disable-blink-features=AutomationControlled']
+               )
+               context = browser.new_context(
+                   user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                   viewport={'width': 1366, 'height': 768}
+               )
+               page = context.new_page()
+               stealth_sync(page)  # Apply stealth patches
+               
+               # Human-like behavior simulation
+               page.goto(url, wait_until='networkidle')
+               page.wait_for_timeout(random.randint(2000, 4000))
+               
+               return self.extract_property_data(page)
+       
+       def scrape_property_scraperapi(self, url):
+           payload = {
+               'api_key': self.api_key,
+               'url': url,
+               'render': 'true',
+               'country_code': 'us',
+               'device_type': 'desktop'
+           }
+           response = requests.get('http://api.scraperapi.com', params=payload)
+           return self.parse_html_content(response.text)
+   ```
+
+2. **Add Required Dependencies**:
+   ```txt
+   # Add to requirements.txt
+   playwright==1.40.0
+   playwright-stealth==1.0.6
+   undetected-playwright==1.0.0
+   requests-html==0.10.0
+   selenium-stealth==1.0.6
+   ```
+
+3. **Implement Fallback Strategy**:
+   ```python
+   # app/services/property_data_service.py
+   class PropertyDataService:
+       def __init__(self):
+           self.scrapers = [
+               ZillowScraperV2(use_scraperapi=False),  # Primary: Playwright
+               ZillowScraperV2(use_scraperapi=True, api_key=os.getenv('SCRAPERAPI_KEY')),  # Fallback: ScraperAPI
+               RentCastAPIService(),  # Alternative: Official API
+           ]
+       
+       def get_property_data(self, address_or_url):
+           for scraper in self.scrapers:
+               try:
+                   data = scraper.fetch_property_details(address_or_url)
+                   if data and data.get('price'):
+                       return data
+               except Exception as e:
+                   logger.warning(f"Scraper {scraper.__class__.__name__} failed: {e}")
+                   continue
+           raise RuntimeError("All property data sources failed")
+   ```
 
 #### **Week 1: Guest-First Conversion Optimization**
 1. **Modify Authentication Flow**:

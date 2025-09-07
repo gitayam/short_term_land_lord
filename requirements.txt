@@ -24,3 +24,10 @@ recurring-ical-events>=2.1.0
 marshmallow>=3.19.0
 bleach>=6.0.0
 Flask-Caching>=2.0.0
+
+# Enhanced Zillow Scraper Dependencies
+playwright==1.40.0
+playwright-stealth==1.0.6
+undetected-chromedriver==3.5.4
+selenium==4.15.2
+requests-html==0.10.0
