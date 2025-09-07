@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Task Prices</h1>
+        <a href="{{ url_for('invoicing.create_price') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Price
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if prices %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Service Type</th>
+                            <th>Property</th>
+                            <th>Pricing Model</th>
+                            <th>Fixed Price</th>
+                            <th>Hourly Rate</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for price in prices %}
+                        <tr>
+                            <td>{{ price.service_type.value.replace('_', ' ').title() }}</td>
+                            <td>{{ price.property.name if price.property else 'All Properties' }}</td>
+                            <td>{{ price.pricing_model.value.title() }}</td>
+                            <td>
+                                {% if price.pricing_model.value == 'fixed' %}
+                                ${{ "%.2f"|format(price.fixed_price) }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if price.pricing_model.value == 'hourly' %}
+                                ${{ "%.2f"|format(price.hourly_rate) }}/hr
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('invoicing.edit_price', id=price.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            data-toggle="modal" data-target="#deleteModal{{ price.id }}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                                
+                                <!-- Delete Confirmation Modal -->
+                                <div class="modal fade" id="deleteModal{{ price.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Are you sure you want to delete this price?
+                                                <p class="mt-2">
+                                                    <strong>Service Type:</strong> {{ price.service_type.value.replace('_', ' ').title() }}<br>
+                                                    <strong>Property:</strong> {{ price.property.name if price.property else 'All Properties' }}<br>
+                                                    <strong>Pricing Model:</strong> {{ price.pricing_model.value.title() }}
+                                                </p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                                <form action="{{ url_for('invoicing.delete_price', id=price.id) }}" method="post">
+                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No prices have been set up yet. Click the "Add New Price" button to create your first price.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

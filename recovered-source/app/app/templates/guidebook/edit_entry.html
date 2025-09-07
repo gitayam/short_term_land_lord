@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>{{ title }}</h2>
+                    <p class="text-muted">{{ property.name }}</p>
+                </div>
+                <a href="{{ url_for('guidebook.property_guidebook', property_id=property.id) }}" 
+                   class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Guidebook
+                </a>
+            </div>
+
+            <!-- Form -->
+            <form method="POST" enctype="multipart/form-data" id="guidebookEntryForm">
+                {{ form.hidden_tag() }}
+                
+                <div class="row">
+                    <!-- Left Column -->
+                    <div class="col-md-8">
+                        <!-- Basic Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Basic Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    {{ form.title.label(class="form-label") }} <span class="text-danger">*</span>
+                                    {{ form.title(class="form-control") }}
+                                    {% for error in form.title.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.category.label(class="form-label") }} <span class="text-danger">*</span>
+                                    {{ form.category(class="form-select") }}
+                                    {% for error in form.category.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.description.label(class="form-label") }} <span class="text-danger">*</span>
+                                    {{ form.description(class="form-control", rows="4", placeholder="Describe this place and what makes it special...") }}
+                                    {% for error in form.description.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">This description will be visible to guests.</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.host_tip.label(class="form-label") }}
+                                    {{ form.host_tip(class="form-control", placeholder="Share a special tip or recommendation...") }}
+                                    {% for error in form.host_tip.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">{{ form.host_tip.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-map-marker-alt"></i> Location</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    {{ form.address.label(class="form-label") }}
+                                    {{ form.address(class="form-control", placeholder="123 Main St, City, State") }}
+                                    {% for error in form.address.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.latitude.label(class="form-label") }}
+                                            {{ form.latitude(class="form-control", step="any", placeholder="40.7128") }}
+                                            {% for error in form.latitude.errors %}
+                                            <div class="text-danger small">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.longitude.label(class="form-label") }}
+                                            {{ form.longitude(class="form-control", step="any", placeholder="-74.0060") }}
+                                            {% for error in form.longitude.errors %}
+                                            <div class="text-danger small">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>Pro Tip:</strong> Adding coordinates allows this location to appear on the interactive map for guests.
+                                    You can use <a href="https://www.google.com/maps" target="_blank">Google Maps</a> to find coordinates.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact & Details -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-phone"></i> Contact & Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.website_url.label(class="form-label") }}
+                                            {{ form.website_url(class="form-control", placeholder="https://example.com") }}
+                                            {% for error in form.website_url.errors %}
+                                            <div class="text-danger small">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.phone_number.label(class="form-label") }}
+                                            {{ form.phone_number(class="form-control", placeholder="+1 (555) 123-4567") }}
+                                            {% for error in form.phone_number.errors %}
+                                            <div class="text-danger small">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.price_range.label(class="form-label") }}
+                                            {{ form.price_range(class="form-select") }}
+                                            {% for error in form.price_range.errors %}
+                                            <div class="text-danger small">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.recommended_for.label(class="form-label") }}
+                                            {{ form.recommended_for(class="form-control", placeholder="families, couples, business travelers") }}
+                                            {% for error in form.recommended_for.errors %}
+                                            <div class="text-danger small">{{ error }}</div>
+                                            {% endfor %}
+                                            <div class="form-text">{{ form.recommended_for.description }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.opening_hours_text.label(class="form-label") }}
+                                    {{ form.opening_hours_text(class="form-control", rows="3") }}
+                                    {% for error in form.opening_hours_text.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">{{ form.opening_hours_text.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-md-4">
+                        <!-- Image Upload -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-image"></i> Image</h6>
+                            </div>
+                            <div class="card-body">
+                                {% if entry and (entry.image_url or entry.image_path) %}
+                                <div class="mb-3">
+                                    <img src="{{ entry.image_url or url_for('guidebook.serve_image', filename=entry.image_path) }}" 
+                                         class="img-fluid rounded" 
+                                         alt="Current image"
+                                         style="max-height: 200px;">
+                                    <p class="small text-muted mt-1">Current image</p>
+                                </div>
+                                {% endif %}
+
+                                <div class="mb-3">
+                                    {{ form.image.label(class="form-label") }}
+                                    {{ form.image(class="form-control", accept="image/*") }}
+                                    {% for error in form.image.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                                <div class="text-center mb-3">
+                                    <small class="text-muted">OR</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.image_url.label(class="form-label") }}
+                                    {{ form.image_url(class="form-control", placeholder="https://example.com/image.jpg") }}
+                                    {% for error in form.image_url.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">{{ form.image_url.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status & Options -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-cog"></i> Options</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        {{ form.is_featured(class="form-check-input") }}
+                                        {{ form.is_featured.label(class="form-check-label") }}
+                                    </div>
+                                    <div class="form-text">{{ form.is_featured.description }}</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        {{ form.is_active(class="form-check-input") }}
+                                        {{ form.is_active.label(class="form-check-label") }}
+                                    </div>
+                                    <div class="form-text">{{ form.is_active.description }}</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.sort_order.label(class="form-label") }}
+                                    {{ form.sort_order(class="form-control") }}
+                                    {% for error in form.sort_order.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">{{ form.sort_order.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Host Notes -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-sticky-note"></i> Private Notes</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    {{ form.host_notes.label(class="form-label") }}
+                                    {{ form.host_notes(class="form-control", rows="4", placeholder="Private notes for your reference...") }}
+                                    {% for error in form.host_notes.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">{{ form.host_notes.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('guidebook.property_guidebook', property_id=property.id) }}" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {{ form.submit.label.text }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.getElementById('guidebookEntryForm');
+    const titleField = document.getElementById('title');
+    const descriptionField = document.getElementById('description');
+    const categoryField = document.getElementById('category');
+
+    // Real-time character count for description
+    if (descriptionField) {
+        const maxLength = 2000;
+        const counterElement = document.createElement('div');
+        counterElement.className = 'form-text';
+        descriptionField.parentNode.appendChild(counterElement);
+
+        function updateCounter() {
+            const remaining = maxLength - descriptionField.value.length;
+            counterElement.textContent = `${descriptionField.value.length}/${maxLength} characters`;
+            counterElement.className = remaining < 100 ? 'form-text text-warning' : 'form-text';
+        }
+
+        descriptionField.addEventListener('input', updateCounter);
+        updateCounter();
+    }
+
+    // Image preview
+    const imageField = document.getElementById('image');
+    if (imageField) {
+        imageField.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Create or update preview
+                    let preview = document.getElementById('imagePreview');
+                    if (!preview) {
+                        preview = document.createElement('img');
+                        preview.id = 'imagePreview';
+                        preview.className = 'img-fluid rounded mt-2';
+                        preview.style.maxHeight = '200px';
+                        imageField.parentNode.appendChild(preview);
+                    }
+                    preview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Clear image URL when file is selected
+    if (imageField && document.getElementById('image_url')) {
+        imageField.addEventListener('change', function() {
+            if (this.files[0]) {
+                document.getElementById('image_url').value = '';
+            }
+        });
+
+        document.getElementById('image_url').addEventListener('input', function() {
+            if (this.value) {
+                imageField.value = '';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

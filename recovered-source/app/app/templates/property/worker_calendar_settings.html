@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-calendar-alt me-2"></i>Worker Calendar Access</h2>
+                    <p class="text-muted">{{ property.name }}</p>
+                </div>
+                <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Property
+                </a>
+            </div>
+
+            <!-- Worker Calendar Settings -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users me-2"></i>
+                        Worker Calendar Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Generate a secure link for cleaning staff and workers to view cleaning schedules. 
+                        The calendar shows checkout times, booking periods, and essential property information without sensitive details.
+                    </p>
+
+                    {% if property.worker_calendar_token %}
+                        <!-- Token Exists -->
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle me-1"></i>Worker Calendar Access Enabled</h6>
+                            <p class="mb-3">Workers can access the cleaning schedule using the link below.</p>
+                            
+                            <!-- Calendar URL -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Worker Calendar URL:</label>
+                                <div class="input-group">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           value="{{ worker_calendar_url }}" 
+                                           readonly
+                                           id="workerCalendarUrl">
+                                    <button class="btn btn-outline-secondary" 
+                                            type="button" 
+                                            onclick="copyToClipboard('workerCalendarUrl')">
+                                        <i class="fas fa-copy me-1"></i>Copy
+                                    </button>
+                                    <a href="{{ worker_calendar_url }}" 
+                                       target="_blank" 
+                                       class="btn btn-outline-primary">
+                                        <i class="fas fa-external-link-alt me-1"></i>Preview
+                                    </a>
+                                </div>
+                                <div class="form-text">Share this URL with cleaning staff and workers. No login required.</div>
+                            </div>
+
+                            <!-- QR Code Option -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">QR Code:</label>
+                                <div>
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ worker_calendar_url|urlencode }}" 
+                                         alt="QR Code for Worker Calendar" 
+                                         class="border rounded p-2">
+                                    <div class="form-text">Workers can scan this QR code to quickly access the calendar on their mobile devices.</div>
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="d-flex gap-2 flex-wrap">
+                                <form method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="action" value="regenerate_token">
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="fas fa-sync-alt me-1"></i>Regenerate URL
+                                    </button>
+                                </form>
+                                <form method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to revoke worker calendar access? The current URL will stop working.')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="action" value="revoke_token">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-times me-1"></i>Revoke Access
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- No Token -->
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-1"></i>Worker Calendar Access Disabled</h6>
+                            <p class="mb-3">Generate a secure link to allow cleaning staff to view the cleaning schedule.</p>
+                            
+                            <form method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="generate_token">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-plus me-1"></i>Enable Worker Calendar Access
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+
+                    <!-- Features Overview -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-eye me-1 text-success"></i>What Workers Can See:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-1"></i> Property name and address</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Booking periods (check-in/checkout dates)</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Checkout times clearly marked</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Cleaning supply locations</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Basic entry instructions</li>
+                                <li><i class="fas fa-check text-success me-1"></i> 4-week calendar view</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-eye-slash me-1 text-danger"></i>What Workers Cannot See:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-times text-danger me-1"></i> Guest names or contact info</li>
+                                <li><i class="fas fa-times text-danger me-1"></i> Booking prices or financial data</li>
+                                <li><i class="fas fa-times text-danger me-1"></i> Detailed guest instructions</li>
+                                <li><i class="fas fa-times text-danger me-1"></i> Property management tools</li>
+                                <li><i class="fas fa-times text-danger me-1"></i> Other sensitive information</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Security Information -->
+                    <div class="alert alert-warning mt-4">
+                        <h6><i class="fas fa-shield-alt me-1"></i>Security Notes</h6>
+                        <ul class="mb-0">
+                            <li>The URL contains a secure token that cannot be guessed</li>
+                            <li>You can regenerate the URL at any time to revoke old links</li>
+                            <li>No login or account creation is required for workers</li>
+                            <li>The calendar updates automatically when your property calendars sync</li>
+                            <li>Only essential cleaning-related information is displayed</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Integration Status -->
+            {% if property.calendars %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-calendar-sync me-1"></i>
+                        Connected Calendars
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for calendar in property.calendars %}
+                        <div class="col-md-6 mb-3">
+                            <div class="border rounded p-3">
+                                <h6 class="mb-2">
+                                    {{ calendar.name }}
+                                    {% if calendar.sync_status == 'Success' %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Error</span>
+                                    {% endif %}
+                                </h6>
+                                <p class="small text-muted mb-1">
+                                    <strong>Platform:</strong> {{ calendar.get_service_display() }}
+                                </p>
+                                {% if calendar.last_synced %}
+                                <p class="small text-muted mb-0">
+                                    <strong>Last Updated:</strong> {{ calendar.last_synced.strftime('%Y-%m-%d %H:%M') }}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Worker calendar shows data from all connected calendars above.
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card mt-4">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-times fa-2x text-muted mb-3"></i>
+                    <h6>No Calendars Connected</h6>
+                    <p class="text-muted mb-3">Connect property calendars to show booking data in the worker calendar.</p>
+                    <a href="{{ url_for('property.manage_calendars', id=property.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-plus me-1"></i>Add Calendar
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    element.setSelectionRange(0, 99999);
+    
+    navigator.clipboard.writeText(element.value).then(function() {
+        // Show success feedback
+        const button = element.nextElementSibling;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    }).catch(function(err) {
+        alert('Failed to copy to clipboard');
+    });
+}
+</script>
+{% endblock %}

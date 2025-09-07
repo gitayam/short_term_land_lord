@@ -1,0 +1,353 @@
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/google/auth/_default.py:76: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+Environment variable SECRET_KEY_PATH not set, using fallback
+Environment variable ADMIN_EMAIL_PATH not set, using fallback
+Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+WARNING:app.utils.cache_service:Cache object is None, caching disabled
+INFO:app:User model using static table name 'users'
+WARNING:app:Users table does not exist in the database - it will be created if migrations are run
+WARNING:app:Could not initialize site settings: (sqlite3.OperationalError) no such table: site_settings
+[SQL: SELECT site_settings."key" AS site_settings_key, site_settings.value AS site_settings_value, site_settings.description AS site_settings_description, site_settings.visible AS site_settings_visible, site_settings.created_at AS site_settings_created_at, site_settings.updated_at AS site_settings_updated_at 
+FROM site_settings 
+WHERE site_settings."key" = ?]
+[parameters: ('guest_reviews_enabled',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:app:You may need to run 'flask db upgrade' if this is a new installation
+INFO:app:Creating database tables...
+INFO:app:Database tables successfully created
+INFO:app:Users table exists in the database
+INFO:app:User model patched: tablename=users
+INFO:app:User loader patched to use consistent table name
+WARNING:app:Twilio configuration issue: SMS notifications are disabled
+WARNING:app:SMS functionality may not work properly
+INFO:app:✅ Full Short Term Landlord application loaded successfully
+INFO:app:✅ Database persistence initialized
+INFO:app:✅ Database tables created
+WARNING:app.utils.secrets:Environment variable SECRET_KEY_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_EMAIL_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+INFO:app.utils.secrets:✅ Application secrets loaded successfully
+INFO:app:🔧 Ensuring admin user exists: issac@alfaren.xyz
+INFO:app:🆕 Creating new admin user: issac@alfaren.xyz
+INFO:app:🔑 Admin password updated
+INFO:app:✅ Admin user ready: issac@alfaren.xyz
+INFO:app:✅ Models imported successfully
+ * Serving Flask app 'app'
+ * Debug mode: on
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:8080
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/google/auth/_default.py:76: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+Environment variable SECRET_KEY_PATH not set, using fallback
+Environment variable ADMIN_EMAIL_PATH not set, using fallback
+Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+WARNING:app.utils.cache_service:Cache object is None, caching disabled
+INFO:app:User model using static table name 'users'
+WARNING:app:Users table does not exist in the database - it will be created if migrations are run
+WARNING:app:Could not initialize site settings: (sqlite3.OperationalError) no such table: site_settings
+[SQL: SELECT site_settings."key" AS site_settings_key, site_settings.value AS site_settings_value, site_settings.description AS site_settings_description, site_settings.visible AS site_settings_visible, site_settings.created_at AS site_settings_created_at, site_settings.updated_at AS site_settings_updated_at 
+FROM site_settings 
+WHERE site_settings."key" = ?]
+[parameters: ('guest_reviews_enabled',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:app:You may need to run 'flask db upgrade' if this is a new installation
+INFO:app:Creating database tables...
+INFO:app:Database tables successfully created
+INFO:app:Users table exists in the database
+INFO:app:User model patched: tablename=users
+INFO:app:User loader patched to use consistent table name
+WARNING:app:Twilio configuration issue: SMS notifications are disabled
+WARNING:app:SMS functionality may not work properly
+INFO:app:✅ Full Short Term Landlord application loaded successfully
+INFO:app:✅ Database persistence initialized
+INFO:app:✅ Database tables created
+WARNING:app.utils.secrets:Environment variable SECRET_KEY_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_EMAIL_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+INFO:app.utils.secrets:✅ Application secrets loaded successfully
+INFO:app:🔧 Ensuring admin user exists: issac@alfaren.xyz
+INFO:app:🆕 Creating new admin user: issac@alfaren.xyz
+INFO:app:🔑 Admin password updated
+INFO:app:✅ Admin user ready: issac@alfaren.xyz
+INFO:app:✅ Models imported successfully
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 116-602-001
+INFO:app:Request started: HEAD /
+INFO:app:Request completed: 200
+INFO:werkzeug:127.0.0.1 - - [08/Aug/2025 08:23:02] "HEAD / HTTP/1.1" 200 -
+INFO:app:Request started: GET /
+INFO:app:Request completed: 200
+INFO:werkzeug:127.0.0.1 - - [08/Aug/2025 08:23:16] "GET / HTTP/1.1" 200 -
+INFO:app:Request started: GET /favicon.ico
+INFO:app:Request completed: 404
+INFO:werkzeug:127.0.0.1 - - [08/Aug/2025 08:23:18] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+INFO:app:Request started: GET /auth/login
+INFO:app:Request completed: 200
+INFO:werkzeug:127.0.0.1 - - [08/Aug/2025 08:23:20] "GET /auth/login HTTP/1.1" 200 -
+INFO:app:Request started: POST /auth/login
+INFO:app:Request completed: 200
+INFO:werkzeug:127.0.0.1 - - [08/Aug/2025 08:23:22] "POST /auth/login HTTP/1.1" 200 -
+INFO:app:Request started: GET /apple-touch-icon-precomposed.png
+INFO:app:Request completed: 404
+INFO:werkzeug:127.0.0.1 - - [08/Aug/2025 08:23:22] "[33mGET /apple-touch-icon-precomposed.png HTTP/1.1[0m" 404 -
+INFO:app:Request started: GET /apple-touch-icon.png
+INFO:app:Request completed: 404
+INFO:werkzeug:127.0.0.1 - - [08/Aug/2025 08:23:22] "[33mGET /apple-touch-icon.png HTTP/1.1[0m" 404 -
+INFO:app:Request started: POST /auth/login
+INFO:app:Request completed: 200
+INFO:werkzeug:127.0.0.1 - - [08/Aug/2025 08:23:29] "POST /auth/login HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in '/Users/admin/Documents/Documents - Admin’s MacBook Pro/Git/short_term_land_lord/app/utils/health_checks.py', reloading
+INFO:werkzeug: * Restarting with stat
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/google/auth/_default.py:76: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+Environment variable SECRET_KEY_PATH not set, using fallback
+Environment variable ADMIN_EMAIL_PATH not set, using fallback
+Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+WARNING:app.utils.cache_service:Cache object is None, caching disabled
+INFO:app:User model using static table name 'users'
+WARNING:app:Users table does not exist in the database - it will be created if migrations are run
+WARNING:app:Could not initialize site settings: (sqlite3.OperationalError) no such table: site_settings
+[SQL: SELECT site_settings."key" AS site_settings_key, site_settings.value AS site_settings_value, site_settings.description AS site_settings_description, site_settings.visible AS site_settings_visible, site_settings.created_at AS site_settings_created_at, site_settings.updated_at AS site_settings_updated_at 
+FROM site_settings 
+WHERE site_settings."key" = ?]
+[parameters: ('guest_reviews_enabled',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:app:You may need to run 'flask db upgrade' if this is a new installation
+INFO:app:Creating database tables...
+INFO:app:Database tables successfully created
+INFO:app:Users table exists in the database
+INFO:app:User model patched: tablename=users
+INFO:app:User loader patched to use consistent table name
+WARNING:app:Twilio configuration issue: SMS notifications are disabled
+WARNING:app:SMS functionality may not work properly
+INFO:app:✅ Full Short Term Landlord application loaded successfully
+INFO:app:✅ Database persistence initialized
+INFO:app:✅ Database tables created
+WARNING:app.utils.secrets:Environment variable SECRET_KEY_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_EMAIL_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+INFO:app.utils.secrets:✅ Application secrets loaded successfully
+INFO:app:🔧 Ensuring admin user exists: issac@alfaren.xyz
+INFO:app:🆕 Creating new admin user: issac@alfaren.xyz
+INFO:app:🔑 Admin password updated
+INFO:app:✅ Admin user ready: issac@alfaren.xyz
+INFO:app:✅ Models imported successfully
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 116-602-001
+INFO:werkzeug: * Detected change in '/Users/admin/Documents/Documents - Admin’s MacBook Pro/Git/short_term_land_lord/app/utils/health_checks.py', reloading
+INFO:werkzeug: * Restarting with stat
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/google/auth/_default.py:76: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+Environment variable SECRET_KEY_PATH not set, using fallback
+Environment variable ADMIN_EMAIL_PATH not set, using fallback
+Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+WARNING:app.utils.cache_service:Cache object is None, caching disabled
+INFO:app:User model using static table name 'users'
+WARNING:app:Users table does not exist in the database - it will be created if migrations are run
+WARNING:app:Could not initialize site settings: (sqlite3.OperationalError) no such table: site_settings
+[SQL: SELECT site_settings."key" AS site_settings_key, site_settings.value AS site_settings_value, site_settings.description AS site_settings_description, site_settings.visible AS site_settings_visible, site_settings.created_at AS site_settings_created_at, site_settings.updated_at AS site_settings_updated_at 
+FROM site_settings 
+WHERE site_settings."key" = ?]
+[parameters: ('guest_reviews_enabled',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:app:You may need to run 'flask db upgrade' if this is a new installation
+INFO:app:Creating database tables...
+INFO:app:Database tables successfully created
+INFO:app:Users table exists in the database
+INFO:app:User model patched: tablename=users
+INFO:app:User loader patched to use consistent table name
+WARNING:app:Twilio configuration issue: SMS notifications are disabled
+WARNING:app:SMS functionality may not work properly
+INFO:app:✅ Full Short Term Landlord application loaded successfully
+INFO:app:✅ Database persistence initialized
+INFO:app:✅ Database tables created
+WARNING:app.utils.secrets:Environment variable SECRET_KEY_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_EMAIL_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+INFO:app.utils.secrets:✅ Application secrets loaded successfully
+INFO:app:🔧 Ensuring admin user exists: issac@alfaren.xyz
+INFO:app:🆕 Creating new admin user: issac@alfaren.xyz
+INFO:app:🔑 Admin password updated
+INFO:app:✅ Admin user ready: issac@alfaren.xyz
+INFO:app:✅ Models imported successfully
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 116-602-001
+INFO:werkzeug: * Detected change in '/Users/admin/Documents/Documents - Admin’s MacBook Pro/Git/short_term_land_lord/app/utils/health_checks.py', reloading
+INFO:werkzeug: * Restarting with stat
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/google/auth/_default.py:76: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+Environment variable SECRET_KEY_PATH not set, using fallback
+Environment variable ADMIN_EMAIL_PATH not set, using fallback
+Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+WARNING:app.utils.cache_service:Cache object is None, caching disabled
+INFO:app:User model using static table name 'users'
+WARNING:app:Users table does not exist in the database - it will be created if migrations are run
+WARNING:app:Could not initialize site settings: (sqlite3.OperationalError) no such table: site_settings
+[SQL: SELECT site_settings."key" AS site_settings_key, site_settings.value AS site_settings_value, site_settings.description AS site_settings_description, site_settings.visible AS site_settings_visible, site_settings.created_at AS site_settings_created_at, site_settings.updated_at AS site_settings_updated_at 
+FROM site_settings 
+WHERE site_settings."key" = ?]
+[parameters: ('guest_reviews_enabled',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:app:You may need to run 'flask db upgrade' if this is a new installation
+INFO:app:Creating database tables...
+INFO:app:Database tables successfully created
+INFO:app:Users table exists in the database
+INFO:app:User model patched: tablename=users
+INFO:app:User loader patched to use consistent table name
+WARNING:app:Twilio configuration issue: SMS notifications are disabled
+WARNING:app:SMS functionality may not work properly
+INFO:app:✅ Full Short Term Landlord application loaded successfully
+INFO:app:✅ Database persistence initialized
+INFO:app:✅ Database tables created
+WARNING:app.utils.secrets:Environment variable SECRET_KEY_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_EMAIL_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+INFO:app.utils.secrets:✅ Application secrets loaded successfully
+INFO:app:🔧 Ensuring admin user exists: issac@alfaren.xyz
+INFO:app:🆕 Creating new admin user: issac@alfaren.xyz
+INFO:app:🔑 Admin password updated
+INFO:app:✅ Admin user ready: issac@alfaren.xyz
+INFO:app:✅ Models imported successfully
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 116-602-001
+INFO:app:Request started: HEAD /
+INFO:app:Request completed: 200
+INFO:werkzeug:127.0.0.1 - - [08/Aug/2025 17:29:17] "HEAD / HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in '/Users/admin/Documents/Documents - Admin’s MacBook Pro/Git/short_term_land_lord/app/utils/cache_service.py', reloading
+INFO:werkzeug: * Restarting with stat
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/google/auth/_default.py:76: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+Environment variable SECRET_KEY_PATH not set, using fallback
+Environment variable ADMIN_EMAIL_PATH not set, using fallback
+Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+[2025-08-08 17:33:23,695] ERROR in main: ❌ Failed to load full application: invalid syntax (cache_service.py, line 274)
+ERROR:main:❌ Failed to load full application: invalid syntax (cache_service.py, line 274)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 116-602-001
+INFO:werkzeug: * Detected change in '/Users/admin/Documents/Documents - Admin’s MacBook Pro/Git/short_term_land_lord/app/utils/cache_service.py', reloading
+INFO:werkzeug: * Restarting with stat
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/google/auth/_default.py:76: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+Environment variable SECRET_KEY_PATH not set, using fallback
+Environment variable ADMIN_EMAIL_PATH not set, using fallback
+Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+WARNING:app.utils.cache_service:Cache object is None, caching disabled
+INFO:app:User model using static table name 'users'
+WARNING:app:Users table does not exist in the database - it will be created if migrations are run
+WARNING:app:Could not initialize site settings: (sqlite3.OperationalError) no such table: site_settings
+[SQL: SELECT site_settings."key" AS site_settings_key, site_settings.value AS site_settings_value, site_settings.description AS site_settings_description, site_settings.visible AS site_settings_visible, site_settings.created_at AS site_settings_created_at, site_settings.updated_at AS site_settings_updated_at 
+FROM site_settings 
+WHERE site_settings."key" = ?]
+[parameters: ('guest_reviews_enabled',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:app:You may need to run 'flask db upgrade' if this is a new installation
+INFO:app:Creating database tables...
+INFO:app:Database tables successfully created
+INFO:app:Users table exists in the database
+INFO:app:User model patched: tablename=users
+INFO:app:User loader patched to use consistent table name
+WARNING:app:Twilio configuration issue: SMS notifications are disabled
+WARNING:app:SMS functionality may not work properly
+INFO:app:✅ Full Short Term Landlord application loaded successfully
+INFO:app:✅ Database persistence initialized
+INFO:app:✅ Database tables created
+WARNING:app.utils.secrets:Environment variable SECRET_KEY_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_EMAIL_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+INFO:app.utils.secrets:✅ Application secrets loaded successfully
+INFO:app:🔧 Ensuring admin user exists: issac@alfaren.xyz
+INFO:app:🆕 Creating new admin user: issac@alfaren.xyz
+INFO:app:🔑 Admin password updated
+INFO:app:✅ Admin user ready: issac@alfaren.xyz
+INFO:app:✅ Models imported successfully
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 116-602-001
+INFO:werkzeug: * Detected change in '/Users/admin/Documents/Documents - Admin’s MacBook Pro/Git/short_term_land_lord/app/utils/cache_service.py', reloading
+INFO:werkzeug: * Restarting with stat
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/google/auth/_default.py:76: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+Environment variable SECRET_KEY_PATH not set, using fallback
+Environment variable ADMIN_EMAIL_PATH not set, using fallback
+Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+[2025-08-08 17:33:41,972] ERROR in main: ❌ Failed to load full application: expected 'except' or 'finally' block (cache_service.py, line 322)
+ERROR:main:❌ Failed to load full application: expected 'except' or 'finally' block (cache_service.py, line 322)
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 116-602-001
+INFO:werkzeug: * Detected change in '/Users/admin/Documents/Documents - Admin’s MacBook Pro/Git/short_term_land_lord/app/utils/cache_service.py', reloading
+INFO:werkzeug: * Restarting with stat
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/google/auth/_default.py:76: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+Environment variable SECRET_KEY_PATH not set, using fallback
+Environment variable ADMIN_EMAIL_PATH not set, using fallback
+Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+WARNING:app.utils.cache_service:Cache object is None, caching disabled
+INFO:app:User model using static table name 'users'
+WARNING:app:Users table does not exist in the database - it will be created if migrations are run
+WARNING:app:Could not initialize site settings: (sqlite3.OperationalError) no such table: site_settings
+[SQL: SELECT site_settings."key" AS site_settings_key, site_settings.value AS site_settings_value, site_settings.description AS site_settings_description, site_settings.visible AS site_settings_visible, site_settings.created_at AS site_settings_created_at, site_settings.updated_at AS site_settings_updated_at 
+FROM site_settings 
+WHERE site_settings."key" = ?]
+[parameters: ('guest_reviews_enabled',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:app:You may need to run 'flask db upgrade' if this is a new installation
+INFO:app:Creating database tables...
+INFO:app:Database tables successfully created
+INFO:app:Users table exists in the database
+INFO:app:User model patched: tablename=users
+INFO:app:User loader patched to use consistent table name
+WARNING:app:Twilio configuration issue: SMS notifications are disabled
+WARNING:app:SMS functionality may not work properly
+INFO:app:✅ Full Short Term Landlord application loaded successfully
+INFO:app:✅ Database persistence initialized
+INFO:app:✅ Database tables created
+WARNING:app.utils.secrets:Environment variable SECRET_KEY_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_EMAIL_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+INFO:app.utils.secrets:✅ Application secrets loaded successfully
+INFO:app:🔧 Ensuring admin user exists: issac@alfaren.xyz
+INFO:app:🆕 Creating new admin user: issac@alfaren.xyz
+INFO:app:🔑 Admin password updated
+INFO:app:✅ Admin user ready: issac@alfaren.xyz
+INFO:app:✅ Models imported successfully
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 116-602-001
+INFO:werkzeug: * Detected change in '/Users/admin/Documents/Documents - Admin’s MacBook Pro/Git/short_term_land_lord/app/utils/cache_service.py', reloading
+INFO:werkzeug: * Restarting with stat
+/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/google/auth/_default.py:76: UserWarning: Your application has authenticated using end user credentials from Google Cloud SDK without a quota project. You might receive a "quota exceeded" or "API not enabled" error. See the following page for troubleshooting: https://cloud.google.com/docs/authentication/adc-troubleshooting/user-creds. 
+  warnings.warn(_CLOUD_SDK_CREDENTIALS_WARNING)
+Environment variable SECRET_KEY_PATH not set, using fallback
+Environment variable ADMIN_EMAIL_PATH not set, using fallback
+Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+WARNING:app.utils.cache_service:Cache object is None, caching disabled
+INFO:app:User model using static table name 'users'
+WARNING:app:Users table does not exist in the database - it will be created if migrations are run
+WARNING:app:Could not initialize site settings: (sqlite3.OperationalError) no such table: site_settings
+[SQL: SELECT site_settings."key" AS site_settings_key, site_settings.value AS site_settings_value, site_settings.description AS site_settings_description, site_settings.visible AS site_settings_visible, site_settings.created_at AS site_settings_created_at, site_settings.updated_at AS site_settings_updated_at 
+FROM site_settings 
+WHERE site_settings."key" = ?]
+[parameters: ('guest_reviews_enabled',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+INFO:app:You may need to run 'flask db upgrade' if this is a new installation
+INFO:app:Creating database tables...
+INFO:app:Database tables successfully created
+INFO:app:Users table exists in the database
+INFO:app:User model patched: tablename=users
+INFO:app:User loader patched to use consistent table name
+WARNING:app:Twilio configuration issue: SMS notifications are disabled
+WARNING:app:SMS functionality may not work properly
+INFO:app:✅ Full Short Term Landlord application loaded successfully
+INFO:app:✅ Database persistence initialized
+INFO:app:✅ Database tables created
+WARNING:app.utils.secrets:Environment variable SECRET_KEY_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_EMAIL_PATH not set, using fallback
+WARNING:app.utils.secrets:Environment variable ADMIN_PASSWORD_PATH not set, using fallback
+INFO:app.utils.secrets:✅ Application secrets loaded successfully
+INFO:app:🔧 Ensuring admin user exists: issac@alfaren.xyz
+INFO:app:🆕 Creating new admin user: issac@alfaren.xyz
+INFO:app:🔑 Admin password updated
+INFO:app:✅ Admin user ready: issac@alfaren.xyz
+INFO:app:✅ Models imported successfully
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 116-602-001

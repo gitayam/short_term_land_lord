@@ -1,0 +1,802 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+{# Use FullCalendar v6 with scheduler #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
+
+<style>
+    body {
+        background-color: #f8f9fa; /* Light background */
+        color: #212529; /* Standard text color */
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .calendar-container {
+        margin-top: 20px;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        width: 100vw;
+        max-width: 100vw;
+        min-width: 95vw;
+    }
+
+    /* FullCalendar Timeline Customizations */
+    .fc {
+        max-width: 100vw;
+    }
+
+    /* Header Toolbar Styling */
+    .fc .fc-toolbar.fc-header-toolbar {
+        margin-bottom: 1.5em;
+        padding-bottom: 1em;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 1.5em;
+        font-weight: 600;
+    }
+
+    .fc .fc-button {
+        background-color: #fff;
+        border: 1px solid #ced4da;
+        color: #495057;
+        text-transform: capitalize;
+        box-shadow: none;
+        transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+    }
+    .fc .fc-button:hover {
+        background-color: #e9ecef;
+    }
+
+    .fc .fc-button-primary:not(:disabled).fc-button-active,
+    .fc .fc-button-primary:not(:disabled):active {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: #fff;
+    }
+    
+    .fc .fc-today-button {
+        /* Optionally highlight today button */
+    }
+
+    /* Resource Area (Left Property List) Styling */
+    .fc .fc-resource-area-header, .fc .fc-resource-timeline-divider, .fc .fc-resource-area-cushion {
+        display: none !important;
+    }
+    
+    .fc .fc-timeline-lane-frame {
+        border-left: none !important;
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+    }
+
+    .fc .fc-timeline-header-row-0 {
+        display: none !important;
+    }
+
+    .fc .fc-col-header, .fc .fc-timeline-header {
+        display: table-header-group !important;
+        background: #f8f9fa;
+        z-index: 2;
+    }
+
+    /* Timeline Area Styling */
+    .fc .fc-timeline-slot-label { /* Day numbers / labels */
+        font-size: 0.85em;
+        color: #6c757d;
+    }
+    
+    .fc .fc-timeline-slot { /* Vertical day dividers */
+       border-right: 1px solid #eee;
+    }
+
+    /* Event Styling */
+    .fc-timeline-event {
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        margin-top: 2px;
+        margin-bottom: 2px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        color: #fff; /* Default text color for events */
+        border: none;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .fc-timeline-event:hover {
+       opacity: 0.85;
+    }
+
+    /* Source-specific event colors */
+    .fc-timeline-event.airbnb-event {
+        background-color: #FF5A5F; /* Airbnb Red */
+    }
+    
+    .fc-timeline-event.vrbo-event {
+        background-color: #3D67FF; /* VRBO Blue */
+    }
+    
+    .fc-timeline-event.booking-event { /* Added example for Booking.com */
+       background-color: #003580; /* Booking.com Blue */
+    }
+    
+    .fc-timeline-event.direct-event {
+        background-color: #34C759; /* Green */
+    }
+    
+    .fc-timeline-event.blocked-event {
+        background-color: #8E8E93; /* Grey */
+    }
+    
+    .fc-timeline-event.other-event {
+        background-color: #767676; /* Darker Grey */
+    }
+
+    /* Remove default event border color */
+    .fc-event {
+        border-color: transparent !important;
+    }
+    
+    /* Ensure good contrast for event text */
+    .fc-event-title {
+        color: #fff;
+    }
+
+    /* Adjusting height - remove fixed height if content should dictate */
+    #calendar {
+        width: 98vw;
+        min-width: 95vw;
+        max-width: 100vw;
+        margin: 0 auto;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        height: auto;
+        min-height: 600px;
+    }
+    
+    /* Make timeline rows taller to better display booking information */
+    .fc .fc-timeline-lane {
+        height: 60px !important;
+        min-height: 60px !important;
+    }
+    
+    .fc .fc-timeline-lane-frame {
+        height: 60px !important;
+        min-height: 60px !important;
+    }
+    
+    /* Resource (property) row styling */
+    .fc .fc-resource {
+        height: 60px !important;
+        min-height: 60px !important;
+        padding: 8px 12px !important;
+        border-bottom: 2px solid #e9ecef !important;
+    }
+    
+    /* Better event spacing within taller rows */
+    .fc-timeline-event {
+        margin-top: 4px !important;
+        margin-bottom: 4px !important;
+        height: 48px !important;
+        line-height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    /* Timeline styles */
+    .fc-timeline-slot {
+        border: 1px solid #f0f0f0;
+    }
+    .fc-timeline-slot-minor {
+        border-style: dotted;
+    }
+    
+    /* Highlight for selected resource */
+    .fc-resource-cell.highlighted {
+        background-color: rgba(66, 139, 202, 0.15) !important;
+        font-weight: bold;
+    }
+    
+    /* Sidebar active state */
+    .property-list-item.active {
+        background-color: rgba(66, 139, 202, 0.15);
+        border-left: 3px solid #007bff;
+    }
+
+    /* Mobile-responsive sidebar */
+    @media (max-width: 992px) {
+        .sidebar-property-list { 
+            display: none !important; 
+        }
+        
+        .main-calendar-area {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
+        /* Mobile-friendly navigation */
+        .top-nav {
+            padding: 0.5rem 1rem;
+        }
+        
+        .top-nav-links a {
+            padding: 0.5rem;
+            font-size: 0.9em;
+        }
+        
+        .top-nav-brand {
+            font-size: 1.1em;
+        }
+    }
+    
+    /* Desktop: Show sidebar */
+    @media (min-width: 993px) {
+        .sidebar-property-list { 
+            display: block !important; 
+        }
+    }
+
+    .property-color-dot {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+
+    /* Mobile-First Responsive Design */
+    @media (max-width: 768px) {
+        .calendar-container {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 6px;
+        }
+        
+        /* Mobile calendar optimization */
+        #calendar {
+            width: 100vw;
+            min-width: 95vw;
+            font-size: 0.85em;
+        }
+        
+        /* Adjust FullCalendar for mobile */
+        .fc .fc-toolbar {
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .fc .fc-toolbar-title {
+            font-size: 1.25em;
+            margin: 0.5em 0;
+        }
+        
+        .fc .fc-button-group {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .fc .fc-button {
+            font-size: 0.8em;
+            padding: 0.4em 0.6em;
+        }
+        
+        /* Timeline optimization for mobile */
+        .fc .fc-timeline-lane {
+            height: 50px !important;
+            min-height: 50px !important;
+        }
+        
+        .fc .fc-timeline-lane-frame {
+            height: 50px !important;
+            min-height: 50px !important;
+        }
+        
+        .fc .fc-resource {
+            height: 50px !important;
+            min-height: 50px !important;
+            padding: 6px 8px !important;
+            font-size: 0.85em;
+        }
+        
+        .fc-timeline-event {
+            height: 38px !important;
+            line-height: 38px !important;
+            font-size: 0.8em;
+            margin-top: 3px !important;
+            margin-bottom: 3px !important;
+        }
+        
+        /* Hide detailed info on very small screens */
+        .event-content .event-details {
+            display: none;
+        }
+        
+        /* Improve touch targets */
+        .fc .fc-event {
+            min-height: 36px;
+            cursor: pointer;
+        }
+        
+        /* Optimize timeline header for mobile */
+        .fc .fc-timeline-header th {
+            min-width: 80px;
+            font-size: 0.75em;
+        }
+    }
+    
+    /* Large mobile / Small tablet */
+    @media (min-width: 576px) and (max-width: 992px) {
+        .calendar-container {
+            padding: 15px;
+        }
+        
+        .fc .fc-toolbar {
+            flex-direction: row;
+        }
+        
+        .fc .fc-button {
+            font-size: 0.9em;
+        }
+        
+        .fc .fc-timeline-lane {
+            height: 55px !important;
+        }
+        
+        .fc-timeline-event {
+            height: 42px !important;
+            line-height: 42px !important;
+        }
+    }
+    
+    /* Touch-friendly improvements */
+    @media (hover: none) and (pointer: coarse) {
+        .fc .fc-button {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        .fc .fc-event {
+            min-height: 44px;
+        }
+        
+        .fc .fc-daygrid-event {
+            padding: 4px 6px;
+        }
+    }
+    .event-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+        border-radius: 20px;
+        color: #fff;
+        min-width: 120px;
+        font-size: 1em;
+        font-weight: 500;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .event-title {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .status-pill {
+        background: #fff;
+        color: #222;
+        border-radius: 10px;
+        padding: 1px 8px;
+        font-size: 0.8em;
+        font-weight: 600;
+        display: inline-block;
+        white-space: nowrap;
+        margin-left: 4px;
+    }
+    .checkout-date {
+        font-size: 0.8em;
+        font-weight: 600;
+        background: #fff;
+        color: #222;
+        border-radius: 10px;
+        padding: 1px 8px;
+        margin-left: 4px;
+    }
+    .fc-event-content, .event-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+    }
+    .fc-event-content .event-title, .event-content .event-title {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .fc-event-content .status-pill, .event-content .status-pill {
+        background: #fff;
+        color: #222;
+        border-radius: 10px;
+        padding: 1px 8px;
+        font-size: 0.8em;
+        font-weight: 600;
+        display: inline-block;
+        white-space: nowrap;
+        margin-left: 4px;
+    }
+    .fc-event-content .checkout-date, .event-content .checkout-date {
+        font-size: 0.8em;
+        font-weight: 600;
+        background: #fff;
+        color: #222;
+        border-radius: 10px;
+        padding: 1px 8px;
+        margin-left: 4px;
+    }
+    .fc-timeline-event, .fc-event {
+        border-radius: 20px !important;
+        font-size: 1em !important;
+        font-weight: 500;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        border: none !important;
+        display: flex;
+        align-items: center;
+        min-width: 120px;
+        position: relative;
+        background: var(--event-bg, #008489) !important;
+        color: #fff !important;
+        padding: 6px 16px !important;
+        gap: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# Simple top navigation bar like the image #}
+<nav class="top-nav">
+    <div class="top-nav-brand">OpenBnB</div> {# Placeholder brand name #}
+    <div class="top-nav-links">
+        <a href="#">Today</a>
+        <a href="#" class="active">Calendar</a>
+        <a href="#">Tasks</a>
+        <a href="#">Work Orders</a>
+        <a href="#">Messages</a>
+        {# Add more links as needed #}
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar: Property List -->
+        <div class="col-lg-3 d-none d-lg-block sidebar-property-list" style="background:#fff; border-right:1px solid #eee; min-height:700px; padding:0;">
+            <div class="p-3 border-bottom">
+                <input type="text" class="form-control" id="propertySearch" placeholder="Search listings...">
+            </div>
+            <div id="propertyList" class="list-group list-group-flush">
+                {% for resource in resources %}
+                <a href="#" class="list-group-item list-group-item-action d-flex align-items-center property-list-item" data-resource-id="{{ resource.id }}">
+                    <span class="property-color-dot" style="background: {{ resource.color }};"></span>
+                    <img src="{{ resource.image_url }}" alt="{{ resource.title }}" class="rounded me-2" style="width:40px; height:40px; object-fit:cover;">
+                    <div>
+                        <div class="fw-bold">{{ resource.title }}</div>
+                        <div class="text-muted small">{{ resource.city }}, {{ resource.state }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        <!-- Main Calendar Area -->
+        <div class="col-lg-9 col-12 main-calendar-area">
+            <div class="calendar-container">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalLabel">Booking Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="fw-bold">Property:</label>
+                    <span id="property-name"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Guest:</label>
+                    <span id="guest-summary"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Dates:</label>
+                    <span id="date-range"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Source:</label>
+                    <span id="source"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a id="assign-task-btn" href="#" class="btn btn-primary">Assign Task</a>
+                <a id="repair-request-btn" href="#" class="btn btn-warning">Repair Request</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{# Include FullCalendar v5 with scheduler - using more reliable CDN #}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource@6.1.10/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.10/index.global.min.js"></script>
+{# Include Bootstrap JS for modal #}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+var resources = {{ resources|tojson|safe }} || [];
+var rawEvents = {{ events|tojson|safe }} || [];
+
+console.log('Resources loaded:', resources.length);
+console.log('Events loaded:', rawEvents.length);
+
+document.addEventListener('DOMContentLoaded', function() {
+    var uniqueEvents = {};
+    var deduplicatedEvents = [];
+    rawEvents.forEach(function(event) {
+        if (!event || !event.start) return;
+        if (!event.resourceId && event.extendedProps && event.extendedProps.property_id) {
+            event.resourceId = String(event.extendedProps.property_id);
+        }
+        var uniqueId = event.external_id || event.id;
+        if (!uniqueEvents[uniqueId]) {
+            uniqueEvents[uniqueId] = event;
+            deduplicatedEvents.push(event);
+        }
+    });
+
+    var calendarEl = document.getElementById('calendar');
+    console.log('Calendar element found:', !!calendarEl);
+    console.log('FullCalendar available:', typeof FullCalendar);
+    
+    if (!calendarEl) {
+        console.error('Calendar element not found');
+        return;
+    }
+    
+    if (typeof FullCalendar === 'undefined') {
+        console.error('FullCalendar library not loaded');
+        return;
+    }
+    
+    // Detect mobile device for responsive configuration
+    var isMobile = window.innerWidth <= 768;
+    var isTablet = window.innerWidth > 768 && window.innerWidth <= 992;
+    
+    // Mobile-first responsive calendar configuration
+    var calendarConfig = {
+        height: isMobile ? 'auto' : 'auto',
+        aspectRatio: isMobile ? 1.0 : 1.35,
+        navLinks: true,
+        selectable: true,
+        editable: false,
+        nowIndicator: true,
+        events: deduplicatedEvents,
+        headerToolbar: isMobile ? {
+            left: 'prev,next',
+            center: 'title',
+            right: 'today'
+        } : {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listWeek'
+        },
+        footerToolbar: isMobile ? {
+            center: 'dayGridMonth,listWeek'
+        } : false,
+        initialView: isMobile ? 'listWeek' : 'dayGridMonth',
+        eventDisplay: 'block',
+        // Mobile-specific event sizing
+        eventMinHeight: isMobile ? 30 : 20,
+        eventShortHeight: isMobile ? 25 : 20,
+        // Handle window resize for responsiveness
+        windowResizeDelay: 100,
+        eventContent: function(arg) {
+            var content = document.createElement('div');
+            content.classList.add('event-content');
+            content.style.display = 'flex';
+            content.style.alignItems = 'center';
+            content.style.justifyContent = 'space-between';
+            content.style.padding = '4px 8px';
+            content.style.height = '100%';
+            content.style.overflow = 'hidden';
+            
+            // Set background color from resource
+            var resource = resources.find(r => r.id == arg.event.getResources()[0]?.id || arg.event.extendedProps.property_id);
+            var bgColor = resource && resource.color ? resource.color : '#008489';
+            content.style.background = bgColor;
+            content.style.borderRadius = '4px';
+            content.style.color = '#fff';
+            
+            // Left side: Guest name and platform
+            var leftDiv = document.createElement('div');
+            leftDiv.style.flex = '1';
+            leftDiv.style.minWidth = '0'; // Allow text truncation
+            
+            var titleEl = document.createElement('div');
+            titleEl.style.fontWeight = 'bold';
+            titleEl.style.fontSize = '13px';
+            titleEl.style.whiteSpace = 'nowrap';
+            titleEl.style.overflow = 'hidden';
+            titleEl.style.textOverflow = 'ellipsis';
+            titleEl.innerHTML = arg.event.title;
+            leftDiv.appendChild(titleEl);
+            
+            if (arg.event.extendedProps.platform) {
+                var platformEl = document.createElement('div');
+                platformEl.style.fontSize = '11px';
+                platformEl.style.opacity = '0.9';
+                platformEl.innerHTML = arg.event.extendedProps.platform;
+                leftDiv.appendChild(platformEl);
+            }
+            
+            content.appendChild(leftDiv);
+            
+            // Right side: Status and amount
+            var rightDiv = document.createElement('div');
+            rightDiv.style.display = 'flex';
+            rightDiv.style.flexDirection = 'column';
+            rightDiv.style.alignItems = 'flex-end';
+            rightDiv.style.marginLeft = '8px';
+            
+            if (arg.event.extendedProps.amount) {
+                var amountEl = document.createElement('div');
+                amountEl.style.fontSize = '12px';
+                amountEl.style.fontWeight = 'bold';
+                amountEl.innerHTML = '$' + arg.event.extendedProps.amount;
+                rightDiv.appendChild(amountEl);
+            }
+            
+            if (arg.event.extendedProps.status) {
+                var statusEl = document.createElement('div');
+                statusEl.style.fontSize = '10px';
+                statusEl.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                statusEl.style.padding = '1px 4px';
+                statusEl.style.borderRadius = '8px';
+                statusEl.style.marginTop = '2px';
+                statusEl.innerHTML = arg.event.extendedProps.status;
+                rightDiv.appendChild(statusEl);
+            }
+            
+            content.appendChild(rightDiv);
+            
+            return { domNodes: [content] };
+        },
+        eventDidMount: function(info) {
+            try {
+                new bootstrap.Tooltip(info.el, {
+                    title: function() {
+                        return `
+                            <div>
+                                <p><strong>${info.event.extendedProps.property_name || 'Property'}</strong></p>
+                                <p>${info.event.title}</p>
+                                <p>${new Date(info.event.start).toLocaleDateString()} - ${new Date(info.event.end).toLocaleDateString()}</p>
+                                <p>${info.event.extendedProps.service || 'Direct'}</p>
+                            </div>
+                        `;
+                    },
+                    html: true,
+                    placement: 'top'
+                });
+            } catch (e) {}
+        },
+        eventClick: function(info) {
+            showEventModal(info.event);
+        },
+        select: function(info) {
+            console.log('Selected:', info);
+        }
+    };
+    
+    // Try to add resource timeline if available
+    if (typeof FullCalendar !== 'undefined' && FullCalendar.resourceTimelinePlugin) {
+        console.log('Resource timeline available, using advanced view');
+        calendarConfig.initialView = 'resourceTimelineMonth';
+        calendarConfig.schedulerLicenseKey = 'GPL-My-Project-Is-Open-Source';
+        calendarConfig.resources = resources;
+        calendarConfig.resourceAreaWidth = '25%';
+        calendarConfig.headerToolbar.right = 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth';
+    } else {
+        console.log('Resource timeline not available, using standard month view');
+    }
+    
+    var calendar = new FullCalendar.Calendar(calendarEl, calendarConfig);
+    
+    try {
+        calendar.render();
+        console.log('Calendar rendered successfully');
+    } catch (error) {
+        console.error('Error rendering calendar:', error);
+        // Show error message to user
+        document.getElementById('calendar').innerHTML = '<div class="alert alert-warning">Calendar could not be loaded. Please refresh the page.</div>';
+    }
+
+    function showEventModal(event) {
+        try {
+            var modal = new bootstrap.Modal(document.getElementById('eventModal'));
+            document.getElementById('property-name').textContent = event.extendedProps.property_name || 'Unknown Property';
+            
+            // Enhanced guest information
+            var guestInfo = event.title || 'No guest information';
+            if (event.extendedProps.guest_count) {
+                guestInfo += ` (${event.extendedProps.guest_count} guests)`;
+            }
+            if (event.extendedProps.amount) {
+                guestInfo += ` - $${event.extendedProps.amount}`;
+            }
+            document.getElementById('guest-summary').textContent = guestInfo;
+            
+            var startDate = new Date(event.start).toLocaleDateString();
+            var endDate = startDate;
+            if (event.end) {
+                var end = new Date(event.end);
+                end.setDate(end.getDate() - 1);
+                endDate = end.toLocaleDateString();
+            }
+            document.getElementById('date-range').textContent = startDate + ' to ' + endDate;
+            
+            // Show platform and status
+            var sourceText = event.extendedProps.platform || 'Direct Booking';
+            if (event.extendedProps.status) {
+                sourceText += ` (${event.extendedProps.status})`;
+            }
+            document.getElementById('source').textContent = sourceText;
+            
+            var bookingId = event.id;
+            var assignTaskBtn = document.getElementById('assign-task-btn');
+            if (assignTaskBtn) assignTaskBtn.href = '/tasks/create?booking_id=' + bookingId;
+            var repairRequestBtn = document.getElementById('repair-request-btn');
+            if (repairRequestBtn) repairRequestBtn.href = '/tasks/repair_requests/create?property_id=' + event.extendedProps.property_id;
+            modal.show();
+        } catch (e) {
+            console.error('Error showing event modal:', e);
+        }
+    }
+
+    // Sidebar search logic
+    document.getElementById('propertySearch').addEventListener('input', function() {
+        var val = this.value.toLowerCase();
+        document.querySelectorAll('.property-list-item').forEach(function(item) {
+            var name = item.querySelector('.fw-bold').textContent.toLowerCase();
+            item.style.display = name.includes(val) ? '' : 'none';
+        });
+    });
+
+    // Sidebar click logic
+    document.querySelectorAll('.property-list-item').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            var resourceId = this.getAttribute('data-resource-id');
+            document.querySelectorAll('.property-list-item').forEach(function(p) { p.classList.remove('active'); });
+            this.classList.add('active');
+            try {
+                calendar.scrollToResource(resourceId);
+            } catch (e) {}
+        });
+    });
+});
+</script>
+{% endblock %}

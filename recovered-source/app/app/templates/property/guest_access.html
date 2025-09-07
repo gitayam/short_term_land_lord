@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Guest Access Settings for {{ property.name }}</h4>
+                <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Property
+                </a>
+            </div>
+            
+            <div class="card-body">
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="form-check form-switch mb-4">
+                        {{ form.guest_access_enabled(class="form-check-input") }}
+                        {{ form.guest_access_enabled.label(class="form-check-label") }}
+                        <div class="form-text">Enable or disable guest access to this property information</div>
+                    </div>
+                    
+                    {% if property.guest_access_token and property.guest_access_enabled %}
+                    <div class="alert alert-success mb-4">
+                        <h5 class="alert-heading">Guest Access Link</h5>
+                        <p>Share this link with your guests to give them access to property information:</p>
+                        <div class="input-group">
+                            <input type="text" class="form-control" value="{{ guest_url }}" id="guest-url" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyGuestUrl()">
+                                <i class="bi bi-clipboard"></i> Copy
+                            </button>
+                        </div>
+                        <div class="form-check mt-3">
+                            {{ form.regenerate_token(class="form-check-input") }}
+                            {{ form.regenerate_token.label(class="form-check-label") }}
+                            <div class="form-text text-warning">Warning: This will invalidate the current link</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        {{ form.guest_rules.label(class="form-label") }}
+                        {{ form.guest_rules(class="form-control", rows=4) }}
+                        <div class="form-text">{{ form.guest_rules.description }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.guest_checkin_instructions.label(class="form-label") }}
+                        {{ form.guest_checkin_instructions(class="form-control", rows=4) }}
+                        <div class="form-text">{{ form.guest_checkin_instructions.description }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.guest_checkout_instructions.label(class="form-label") }}
+                        {{ form.guest_checkout_instructions(class="form-control", rows=4) }}
+                        <div class="form-text">{{ form.guest_checkout_instructions.description }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.guest_wifi_instructions.label(class="form-label") }}
+                        {{ form.guest_wifi_instructions(class="form-control", rows=3) }}
+                        <div class="form-text">{{ form.guest_wifi_instructions.description }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.local_attractions.label(class="form-label") }}
+                        {{ form.local_attractions(class="form-control", rows=5) }}
+                        <div class="form-text">{{ form.local_attractions.description }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.emergency_contact.label(class="form-label") }}
+                        {{ form.emergency_contact(class="form-control") }}
+                        <div class="form-text">{{ form.emergency_contact.description }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.guest_faq.label(class="form-label") }}
+                        {{ form.guest_faq(class="form-control", rows=5) }}
+                        <div class="form-text">{{ form.guest_faq.description }}</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function copyGuestUrl() {
+        const guestUrlInput = document.getElementById('guest-url');
+        const copyBtn = guestUrlInput.nextElementSibling;
+        const originalText = copyBtn.innerHTML;
+        
+        // Use modern clipboard API
+        navigator.clipboard.writeText(guestUrlInput.value)
+            .then(() => {
+                // Show success message
+                copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
+            })
+            .catch(err => {
+                // Fallback to the old method if clipboard API fails
+                guestUrlInput.select();
+                document.execCommand('copy');
+                copyBtn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
+            });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,629 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
+<style>
+    .room-title {
+        font-weight: bold;
+    }
+    .delete-room-checkbox:checked + label {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .room-form {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+    .room-form.marked-for-deletion {
+        opacity: 0.5;
+        background-color: #ffdddd;
+    }
+    .flatpickr-time {
+        height: auto !important;
+        padding: 8px;
+    }
+    .flatpickr-time input {
+        height: 32px !important;
+        font-size: 16px;
+    }
+    .flatpickr-calendar {
+        width: auto !important;
+    }
+    .time-picker-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+    .time-picker-wrapper .time-picker-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #6c757d;
+        pointer-events: none;
+    }
+    .time-picker-input {
+        padding-right: 30px !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">✏️ Edit {{ property.name }}</h4>
+                    <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-sm btn-outline-secondary">Back to Property</a>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <h5 class="mt-0 mb-3">🏠 Address Information</h5>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form.street_address.label(class="form-label") }}
+                                    {{ form.street_address(class="form-control") }}
+                                    {% for error in form.street_address.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    {{ form.city.label(class="form-label") }}
+                                    {{ form.city(class="form-control") }}
+                                    {% for error in form.city.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.state.label(class="form-label") }}
+                                    {{ form.state(class="form-control") }}
+                                    {% for error in form.state.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    {{ form.zip_code.label(class="form-label") }}
+                                    {{ form.zip_code(class="form-control") }}
+                                    {% for error in form.zip_code.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    {{ form.country.label(class="form-label") }}
+                                    {{ form.country(class="form-control") }}
+                                    {% for error in form.country.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3">📋 Basic Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.name.label(class="form-label") }}
+                                    {{ form.name(class="form-control") }}
+                                    {% for error in form.name.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.property_type.label(class="form-label") }}
+                                    {{ form.property_type(class="form-select") }}
+                                    {% for error in form.property_type.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows=3) }}
+                            {% for error in form.description.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3">📆 Calendar Integration</h5>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    {{ form.ical_url.label(class="form-label") }}
+                                    {{ form.ical_url(class="form-control") }}
+                                    {% for error in form.ical_url.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text">
+                                        Adding a calendar URL here will automatically create a main calendar for this property. For multiple calendars, use the <a href="{{ url_for('property.manage_calendars', id=property.id) }}">Calendar Management</a> page.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3">⏰ Guest Check-in/Check-out</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.checkin_time.label(class="form-label") }}
+                                    <div class="time-picker-wrapper">
+                                        {{ form.checkin_time(class="form-control time-picker", placeholder="15:00") }}
+                                        <i class="fas fa-clock time-picker-icon"></i>
+                                    </div>
+                                    {% for error in form.checkin_time.errors %}
+                                    <div class="text-danger" role="alert">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text" id="checkin-help">Standard check-in time (e.g., "15:00")</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.checkout_time.label(class="form-label") }}
+                                    <div class="time-picker-wrapper">
+                                        {{ form.checkout_time(class="form-control time-picker", placeholder="11:00") }}
+                                        <i class="fas fa-clock time-picker-icon"></i>
+                                    </div>
+                                    {% for error in form.checkout_time.errors %}
+                                    <div class="text-danger" role="alert">{{ error }}</div>
+                                    {% endfor %}
+                                    <div class="form-text" id="checkout-help">Standard check-out time (e.g., "11:00")</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section" role="region" aria-labelledby="waste-heading">
+                            <h5 id="waste-heading" class="mt-4 mb-3" tabindex="-1">🗑️ Waste Collection Schedule</h5>
+                            
+                            <!-- Trash Collection -->
+                            <div class="mb-4">
+                                <h6 class="mb-3">Trash Collection 🗑️</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.trash_schedule_type.label(class="form-label") }}
+                                            {{ form.trash_schedule_type(class="form-select select2-enable", aria_required="true", tabindex="12") }}
+                                            {% for error in form.trash_schedule_type.errors %}
+                                            <div class="text-danger" role="alert">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3 trash-day-field">
+                                            {{ form.trash_day.label(class="form-label") }}
+                                            {{ form.trash_day(class="form-select select2-enable", aria_required="true", tabindex="13") }}
+                                            {% for error in form.trash_day.errors %}
+                                            <div class="text-danger" role="alert">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="trash-schedule-details" style="display: none;">
+                                    <div class="mb-3">
+                                        {{ form.trash_schedule_details.label(class="form-label") }}
+                                        {{ form.trash_schedule_details(class="form-control", rows=2, tabindex="14") }}
+                                        {% for error in form.trash_schedule_details.errors %}
+                                        <div class="text-danger" role="alert">{{ error }}</div>
+                                        {% endfor %}
+                                        <div class="form-text">
+                                            For biweekly schedules: Specify which weeks (e.g., "1st and 3rd Monday")<br>
+                                            For monthly schedules: Specify which day of the month (e.g., "1st Monday" or "15th of each month")<br>
+                                            For custom schedules: Describe the schedule in detail
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Recycling Collection -->
+                            <div class="mb-4">
+                                <h6 class="mb-3">Recycling Collection ♻️</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.recycling_schedule_type.label(class="form-label") }}
+                                            {{ form.recycling_schedule_type(class="form-select select2-enable", aria_required="true", tabindex="15") }}
+                                            {% for error in form.recycling_schedule_type.errors %}
+                                            <div class="text-danger" role="alert">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3 recycling-day-field">
+                                            {{ form.recycling_day.label(class="form-label") }}
+                                            {{ form.recycling_day(class="form-select select2-enable", aria_required="true", tabindex="16") }}
+                                            {% for error in form.recycling_day.errors %}
+                                            <div class="text-danger" role="alert">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="recycling-schedule-details" style="display: none;">
+                                    <div class="mb-3">
+                                        {{ form.recycling_schedule_details.label(class="form-label") }}
+                                        {{ form.recycling_schedule_details(class="form-control", rows=2, tabindex="17") }}
+                                        {% for error in form.recycling_schedule_details.errors %}
+                                        <div class="text-danger" role="alert">{{ error }}</div>
+                                        {% endfor %}
+                                        <div class="form-text">
+                                            For biweekly schedules: Specify which weeks (e.g., "1st and 3rd Monday")<br>
+                                            For monthly schedules: Specify which day of the month (e.g., "1st Monday" or "15th of each month")<br>
+                                            For custom schedules: Describe the schedule in detail
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Recycling Notes -->
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        {{ form.recycling_notes.label(class="form-label") }}
+                                        {{ form.recycling_notes(class="form-control", rows=3, tabindex="18") }}
+                                        {% for error in form.recycling_notes.errors %}
+                                        <div class="text-danger" role="alert">{{ error }}</div>
+                                        {% endfor %}
+                                        <div class="form-text">
+                                            Please include special instructions for recycling (e.g., no plastic bags, acceptable items, etc.)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if current_user.is_property_owner or current_user.is_admin %}
+                        <h5 class="mt-4 mb-3">🔌 Utility Information</h5>
+                        <div class="accordion mb-3" id="utilitiesAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="internetHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#internetCollapse" aria-expanded="false" aria-controls="internetCollapse">
+                                        🌐 Internet Service
+                                    </button>
+                                </h2>
+                                <div id="internetCollapse" class="accordion-collapse collapse" aria-labelledby="internetHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.internet_provider.label(class="form-label") }}
+                                                    {{ form.internet_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.internet_account.label(class="form-label") }}
+                                                    {{ form.internet_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.internet_contact.label(class="form-label") }}
+                                                    {{ form.internet_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="electricityHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#electricityCollapse" aria-expanded="false" aria-controls="electricityCollapse">
+                                        ⚡ Electricity Service
+                                    </button>
+                                </h2>
+                                <div id="electricityCollapse" class="accordion-collapse collapse" aria-labelledby="electricityHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.electric_provider.label(class="form-label") }}
+                                                    {{ form.electric_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.electric_account.label(class="form-label") }}
+                                                    {{ form.electric_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.electric_contact.label(class="form-label") }}
+                                                    {{ form.electric_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="waterHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#waterCollapse" aria-expanded="false" aria-controls="waterCollapse">
+                                        💧 Water Service
+                                    </button>
+                                </h2>
+                                <div id="waterCollapse" class="accordion-collapse collapse" aria-labelledby="waterHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.water_provider.label(class="form-label") }}
+                                                    {{ form.water_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.water_account.label(class="form-label") }}
+                                                    {{ form.water_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.water_contact.label(class="form-label") }}
+                                                    {{ form.water_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="trashHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#trashCollapse" aria-expanded="false" aria-controls="trashCollapse">
+                                        🗑️ Trash Service
+                                    </button>
+                                </h2>
+                                <div id="trashCollapse" class="accordion-collapse collapse" aria-labelledby="trashHeading" 
+                                     data-bs-parent="#utilitiesAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.trash_provider.label(class="form-label") }}
+                                                    {{ form.trash_provider(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.trash_account.label(class="form-label") }}
+                                                    {{ form.trash_account(class="form-control") }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mb-3">
+                                                    {{ form.trash_contact.label(class="form-label") }}
+                                                    {{ form.trash_contact(class="form-control") }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <h5 class="mt-4 mb-3">🔑 Property Access Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.wifi_network.label(class="form-label") }}
+                                    {{ form.wifi_network(class="form-control") }}
+                                    {% for error in form.wifi_network.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.wifi_password.label(class="form-label") }}
+                                    {{ form.wifi_password(class="form-control") }}
+                                    {% for error in form.wifi_password.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.entry_instructions.label(class="form-label") }}
+                            {{ form.entry_instructions(class="form-control", rows=2) }}
+                            {% for error in form.entry_instructions.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3">🧹 Cleaning Information</h5>
+                        <div class="mb-3">
+                            {{ form.cleaning_supplies_location.label(class="form-label") }}
+                            {{ form.cleaning_supplies_location(class="form-control", rows=2) }}
+                            {% for error in form.cleaning_supplies_location.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.special_instructions.label(class="form-label") }}
+                            {{ form.special_instructions(class="form-control", rows=3) }}
+                            {% for error in form.special_instructions.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <h5 class="mt-4 mb-3" id="rooms-section">🛏️ Rooms and Amenities</h5>
+                        <p class="mb-3">Add rooms to your property with their amenities. This helps cleaners know what to expect at each property.</p>
+                        
+                        <div id="rooms-container">
+                            {% for room_id, room_form in rooms %}
+                                {% with index=loop.index0 %}
+                                    {% include 'property/_room_form.html' %}
+                                {% endwith %}
+                            {% endfor %}
+                        </div>
+                        
+                        <button type="button" id="add-room" class="btn btn-outline-primary mb-4">
+                            <i class="bi bi-plus-circle"></i> Add Room 🏠
+                        </button>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-secondary">Cancel</a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add this hidden element with a data attribute to store the room count -->
+<div id="room-counter-data" data-room-count="{{ rooms|length }}" style="display: none;"></div>
+
+<!-- Template for adding new furniture items (hidden) -->
+<template id="furniture-item-template">
+    <div class="furniture-item card mb-2">
+        <div class="card-body p-3">
+            <div class="row">
+                <div class="col-md-4">
+                    <select class="form-select furniture-type" name="furniture_type_ROOM_ID[]">
+                        <option value="">Select Type</option>
+                        <option value="bed">🛏️ Bed</option>
+                        <option value="couch">🛋️ Couch</option>
+                        <option value="chair">🪑 Office Chair</option>
+                        <option value="desk">🖥️ Desk</option>
+                        <option value="table">🪓 Table</option>
+                        <option value="dresser">🗄️ Dresser</option>
+                        <option value="other">📦 Other</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control furniture-details" 
+                           name="furniture_details_ROOM_ID[]" 
+                           placeholder="Details (size, color, etc.)">
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control furniture-quantity" 
+                           name="furniture_quantity_ROOM_ID[]" 
+                           placeholder="Qty" min="1" value="1">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-sm btn-danger remove-furniture">Remove</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2-enable').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Select an option',
+        allowClear: true
+    });
+
+    // Initialize time pickers
+    const timeInputs = document.querySelectorAll('.time-picker');
+    timeInputs.forEach(input => {
+        flatpickr(input, {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true,
+            minuteIncrement: 15,
+            defaultHour: 12,
+            defaultMinute: 0,
+            allowInput: true,
+            clickOpens: true,
+            static: true,
+            
+            // Ensure the time picker opens above the input if there's not enough space below
+            position: "auto",
+            
+            // Callbacks
+            onOpen: function(selectedDates, dateStr, instance) {
+                instance.element.parentNode.classList.add('is-active');
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                instance.element.parentNode.classList.remove('is-active');
+            },
+            onChange: function(selectedDates, dateStr, instance) {
+                if (dateStr) {
+                    instance.element.classList.add('has-value');
+                } else {
+                    instance.element.classList.remove('has-value');
+                }
+            }
+        });
+    });
+
+    // Handle trash and recycling schedule type changes
+    function updateScheduleFields(type) {
+        const scheduleType = document.getElementById(`${type}_schedule_type`).value;
+        const dayField = document.querySelector(`.${type}-day-field`);
+        const detailsField = document.querySelector(`.${type}-schedule-details`);
+        
+        if (scheduleType === 'weekly') {
+            dayField.style.display = 'block';
+            detailsField.style.display = 'none';
+        } else if (scheduleType === 'biweekly' || scheduleType === 'monthly' || scheduleType === 'custom') {
+            dayField.style.display = 'none';
+            detailsField.style.display = 'block';
+        } else {
+            dayField.style.display = 'none';
+            detailsField.style.display = 'none';
+        }
+    }
+
+    // Initialize and handle schedule type changes
+    ['trash', 'recycling'].forEach(type => {
+        const select = document.getElementById(`${type}_schedule_type`);
+        if (select) {
+            select.addEventListener('change', () => updateScheduleFields(type));
+            updateScheduleFields(type); // Initialize on page load
+        }
+    });
+
+    // Handle room deletion marking
+    $('.delete-room-checkbox').change(function() {
+        $(this).closest('.room-form').toggleClass('marked-for-deletion', this.checked);
+    });
+});
+</script>
+{% endblock %}

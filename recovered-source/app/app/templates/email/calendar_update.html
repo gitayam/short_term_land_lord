@@ -1,0 +1,27 @@
+<p>Hello {{ user.first_name }},</p>
+
+<p>A calendar event related to one of your tasks has been updated:</p>
+
+<div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
+    <h2 style="color: #333; margin-top: 0;">{{ task.title }}</h2>
+    
+    <p><strong>Due Date:</strong> {% if task.due_date %}{{ task.due_date.strftime('%Y-%m-%d %H:%M') }}{% else %}No due date{% endif %}</p>
+    
+    <p><strong>Priority:</strong> {{ task.priority.value|capitalize }}</p>
+    
+    <p><strong>Properties:</strong><br>
+    {% for property in properties %}
+        {{ property.name }} - {{ property.get_full_address() }}<br>
+    {% endfor %}
+    </p>
+    
+    {% if task.description %}
+    <p><strong>Description:</strong><br>
+    {{ task.description }}</p>
+    {% endif %}
+</div>
+
+<p>Please log in to the system to view the updated details for this task.</p>
+
+<p>Thank you,<br>
+Property Management System</p>

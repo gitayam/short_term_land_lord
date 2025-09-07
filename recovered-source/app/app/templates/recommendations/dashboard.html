@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>Recommendation Dashboard</h1>
+            <p class="text-muted">Manage your property recommendations and view guest feedback</p>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Most Popular Recommendations</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Votes</th>
+                                    <th>Staff Pick</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for recommendation in recommendations %}
+                                <tr>
+                                    <td>{{ recommendation.title }}</td>
+                                    <td><span class="badge bg-primary">{{ recommendation.category }}</span></td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-thumbs-up"></i> {{ recommendation.vote_count }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm {% if recommendation.staff_pick %}btn-success{% else %}btn-outline-success{% endif %}"
+                                                onclick="toggleStaffPick(this, '{{ recommendation.id }}')"
+                                                title="Toggle Staff Pick status">
+                                            <i class="fas fa-star"></i>
+                                            {% if recommendation.staff_pick %}
+                                            Staff Pick
+                                            {% else %}
+                                            Mark as Staff Pick
+                                            {% endif %}
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('recommendations.edit_recommendation', id=recommendation.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function toggleStaffPick(button, recommendationId) {
+    fetch(`/api/recommendations/${recommendationId}/staff-pick`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.staff_pick) {
+            button.classList.remove('btn-outline-success');
+            button.classList.add('btn-success');
+            button.innerHTML = '<i class="fas fa-star"></i> Staff Pick';
+        } else {
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-success');
+            button.innerHTML = '<i class="fas fa-star"></i> Mark as Staff Pick';
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+</script>
+{% endblock %}
+{% endblock %} 

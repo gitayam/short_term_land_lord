@@ -1,0 +1,37 @@
+# service: short-term-landlord  # Deploy as default service first
+runtime: python311
+
+env_variables:
+  SECRET_KEY: "ys-UAwX9cpR15q61xQMvDsv03KUvigYnLyv5rkOQZsg"
+  DATABASE_URL: "sqlite:///landlord_production.db"
+  GOOGLE_CLOUD_PROJECT_ID: "serverless-test-12345"
+  FLASK_ENV: "production"
+  WTF_CSRF_TIME_LIMIT: "3600"
+  PERMANENT_SESSION_LIFETIME: "1800"
+  MAX_CONTENT_LENGTH: "16777216"
+  HEALTH_CHECK_ENABLED: "true"
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 8
+  target_cpu_utilization: 0.7
+
+resources:
+  cpu: 1
+  memory_gb: 2
+  disk_size_gb: 10
+
+handlers:
+- url: /health
+  script: auto
+  secure: always
+
+- url: /service-info
+  script: auto
+  secure: always
+
+- url: /.*
+  script: auto
+  secure: always
+
+entrypoint: gunicorn main_production:app --bind :$PORT --workers 2 --timeout 120

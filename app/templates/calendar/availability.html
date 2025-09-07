@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link href="{{ url_for('static', filename='css/calendar.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-md-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Availability Calendar</li>
+        </ol>
+      </nav>
+      <h1 class="mb-4">Property Availability Calendar</h1>
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col-md-12">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          {% if use_mock_data %}
+          <span class="badge bg-warning me-2">Using mock data</span>
+          <a href="{{ url_for('calendar.availability_calendar', mock='false') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-sync"></i> Use real data
+          </a>
+          {% else %}
+          <a href="{{ url_for('calendar.availability_calendar', mock='true') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-vial"></i> Use mock data
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="legend">
+            <div class="legend-item">
+              <div class="legend-color available"></div>
+              <span>Available</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color booked"></div>
+              <span>Booked</span>
+            </div>
+          </div>
+          
+          <div class="calendar-container">
+            <table class="calendar">
+              <thead>
+                <tr>
+                  <th>Property</th>
+                  {% set last_month = None %}
+                  {% for date in calendar_dates %}
+                    {% if last_month != date.month %}
+                      {% set colspan = 0 %}
+                      {% for d in calendar_dates %}
+                        {% if d.month == date.month %}
+                          {% set colspan = colspan + 1 %}
+                        {% endif %}
+                      {% endfor %}
+                      <th colspan="{{ colspan }}" class="month-header">{{ date.strftime('%B %Y') }}</th>
+                      {% set last_month = date.month %}
+                    {% endif %}
+                  {% endfor %}
+                </tr>
+                <tr>
+                  <th></th>
+                  {% for date in calendar_dates %}
+                    <th>{{ date.day }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for property in properties %}
+                  <tr>
+                    <td class="listing-name">{{ property.name }}</td>
+                    {% for date in calendar_dates %}
+                      {% set booked = False %}
+                      {% if str(property.id) in bookings_by_property %}
+                        {% for booking in bookings_by_property[str(property.id)]['bookings'] %}
+                          {% if booking.start <= date and date < booking.end %}
+                            {% set booked = True %}
+                          {% endif %}
+                        {% endfor %}
+                      {% endif %}
+                      <td class="{{ 'booked' if booked else 'available' }}"></td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

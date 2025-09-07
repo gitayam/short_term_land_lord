@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-tools mr-2"></i> Repair Request Details
+                    </h4>
+                    <div>
+                        {% if repair_request.status.value == 'pending_status' %}
+                        <span class="badge badge-warning">Pending</span>
+                        {% elif repair_request.status.value == 'approved_status' %}
+                        <span class="badge badge-success">Approved</span>
+                        {% elif repair_request.status.value == 'rejected_status' %}
+                        <span class="badge badge-danger">Rejected</span>
+                        {% elif repair_request.status.value == 'converted_to_task_status' %}
+                        <span class="badge badge-info">Converted to Task</span>
+                        {% endif %}
+                        
+                        {% if repair_request.severity.value == 'urgent_severity' %}
+                        <span class="badge badge-danger">Urgent</span>
+                        {% elif repair_request.severity.value == 'high_severity' %}
+                        <span class="badge badge-warning">High</span>
+                        {% elif repair_request.severity.value == 'medium_severity' %}
+                        <span class="badge badge-info">Medium</span>
+                        {% elif repair_request.severity.value == 'low_severity' %}
+                        <span class="badge badge-secondary">Low</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ repair_request.title }}</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Property:</strong> {{ repair_request.associated_property.name }}</p>
+                            <p class="mb-1"><strong>Location:</strong> {{ repair_request.location }}</p>
+                            <p class="mb-1"><strong>Reported by:</strong> {{ repair_request.reporter.get_full_name() }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Date Reported:</strong> {{ repair_request.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p class="mb-1"><strong>Last Updated:</strong> {{ repair_request.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            {% if repair_request.task_id %}
+                            <p class="mb-1">
+                                <strong>Associated Task:</strong> 
+                                <a href="{{ url_for('tasks.view', id=repair_request.task_id) }}">View Task</a>
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Description</h6>
+                        </div>
+                        <div class="card-body">
+                            <p>{{ repair_request.description }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if repair_request.additional_notes %}
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">Additional Notes</h6>
+                        </div>
+                        <div class="card-body">
+                            <p>{{ repair_request.additional_notes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('tasks.repair_requests') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left mr-1"></i> Back to Requests
+                        </a>
+                        
+                        {% if repair_request.status.value == 'pending_status' and current_user.is_property_owner and current_user.id == repair_request.associated_property.owner_id %}
+                        <div class="btn-group">
+                            <a href="{{ url_for('tasks.convert_to_task', id=repair_request.id) }}" class="btn btn-success">
+                                <i class="fas fa-exchange-alt mr-1"></i> Convert to Task
+                            </a>
+                            <form action="{{ url_for('tasks.approve_repair_request', id=repair_request.id) }}" method="POST" class="d-inline ml-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-success">
+                                    <i class="fas fa-check mr-1"></i> Approve
+                                </button>
+                            </form>
+                            <form action="{{ url_for('tasks.reject_repair_request', id=repair_request.id) }}" method="POST" class="d-inline ml-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-danger">
+                                    <i class="fas fa-times mr-1"></i> Reject
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                        
+                        {% if current_user.has_admin_role or (current_user.is_property_owner and current_user.id == repair_request.associated_property.owner_id) %}
+                        <div class="btn-group">
+                            <a href="{{ url_for('tasks.edit_repair_request', id=repair_request.id) }}" class="btn btn-primary">
+                                <i class="fas fa-edit mr-1"></i> Edit Request
+                            </a>
+                            
+                            {% if repair_request.status.value == 'pending_status' and not (current_user.is_property_owner and current_user.id == repair_request.associated_property.owner_id) %}
+                            <a href="{{ url_for('tasks.convert_to_task', id=repair_request.id) }}" class="btn btn-success ml-2">
+                                <i class="fas fa-exchange-alt mr-1"></i> Convert to Task
+                            </a>
+                            <form action="{{ url_for('tasks.approve_repair_request', id=repair_request.id) }}" method="POST" class="d-inline ml-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-success">
+                                    <i class="fas fa-check mr-1"></i> Approve
+                                </button>
+                            </form>
+                            <form action="{{ url_for('tasks.reject_repair_request', id=repair_request.id) }}" method="POST" class="d-inline ml-2">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-danger">
+                                    <i class="fas fa-times mr-1"></i> Reject
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Photos</h5>
+                </div>
+                <div class="card-body">
+                    {% if repair_request.media %}
+                    <div class="row">
+                        {% for media in repair_request.media %}
+                        <div class="col-6 mb-3">
+                            <a href="{{ media.get_url() }}" target="_blank" class="d-block">
+                                <img src="{{ media.get_url() }}" alt="Repair photo" class="img-fluid rounded">
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                        <p>No photos available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

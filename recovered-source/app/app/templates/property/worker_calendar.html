@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ property.name }} - Cleaning Schedule</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 0;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .calendar-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .week-header {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            padding: 1rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #495057;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #e9ecef;
+        }
+        
+        .day-header {
+            background: #6c757d;
+            color: white;
+            padding: 0.75rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .day-cell {
+            background: white;
+            min-height: 120px;
+            padding: 0.5rem;
+            position: relative;
+        }
+        
+        .day-number {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .day-cell.today .day-number {
+            background: #007bff;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+        
+        .day-cell.other-month .day-number {
+            color: #adb5bd;
+        }
+        
+        .day-cell.other-month {
+            background: #f8f9fa;
+        }
+        
+        .booking-event {
+            background: #dc3545;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            position: relative;
+        }
+        
+        .checkout-marker {
+            position: absolute;
+            right: 2px;
+            top: 2px;
+            background: #ffc107;
+            color: #212529;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            font-weight: bold;
+        }
+        
+        .service-airbnb { background: #ff5a5f; }
+        .service-vrbo { background: #0077cc; }
+        .service-booking { background: #003580; }
+        .service-direct { background: #28a745; }
+        .service-blocked { background: #6c757d; }
+        .service-other { background: #6f42c1; }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            font-size: 0.85rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+        
+        .week-navigation {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .info-panel {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .checkout-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .calendar-grid {
+                font-size: 0.8rem;
+            }
+            
+            .day-cell {
+                min-height: 100px;
+                padding: 0.25rem;
+            }
+            
+            .booking-event {
+                font-size: 0.7rem;
+                padding: 0.15rem 0.3rem;
+            }
+            
+            .legend {
+                font-size: 0.75rem;
+                gap: 0.5rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+        
+        .refresh-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            border-radius: 50px;
+            padding: 12px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        {{ property.name }}
+                    </h1>
+                    <p class="mb-0 opacity-75">Cleaning Schedule & Checkout Times</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="checkout-info">
+                        <h6 class="mb-1">
+                            <i class="fas fa-clock me-1"></i>
+                            Standard Checkout Time
+                        </h6>
+                        <span class="fw-bold">{{ property.checkout_time or '11:00 AM' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Important Information -->
+        <div class="info-panel">
+            <h6 class="mb-2">
+                <i class="fas fa-info-circle me-1"></i>
+                Important Information for Cleaning Staff
+            </h6>
+            <ul class="mb-0">
+                <li><strong>Checkout Time:</strong> Most guests checkout by {{ property.checkout_time or '11:00 AM' }}</li>
+                <li><strong>Yellow Circle:</strong> Indicates checkout day - start cleaning after checkout time</li>
+                <li><strong>Red Blocks:</strong> Guest stay periods - property is occupied</li>
+                <li><strong>Check-in Time:</strong> New guests typically arrive after {{ property.checkin_time or '3:00 PM' }}</li>
+            </ul>
+        </div>
+
+        <!-- Calendar Weeks -->
+        {% for week in weeks %}
+        <div class="calendar-container">
+            <div class="week-header">
+                <i class="fas fa-calendar-week me-2"></i>
+                {{ week.label }}
+            </div>
+            
+            <!-- Day Headers -->
+            <div class="calendar-grid">
+                {% for day_name in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                <div class="day-header">{{ day_name[:3] }}</div>
+                {% endfor %}
+                
+                <!-- Calendar Days -->
+                {% set week_start = week.start %}
+                {% for day_offset in range(7) %}
+                    {% set current_day = week_start + timedelta(days=day_offset) %}
+                    {% set is_today = current_day == today %}
+                    {% set day_events = [] %}
+                    
+                    {# Find events for this day #}
+                    {% for event in events %}
+                        {% if event.start <= current_day <= event.end %}
+                            {% set _ = day_events.append(event) %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <div class="day-cell {% if is_today %}today{% endif %}">
+                        <div class="day-number">{{ current_day.day }}</div>
+                        
+                        {% for event in day_events %}
+                            <div class="booking-event service-{{ event.service.lower().replace(' ', '-').replace('.', '') }}">
+                                {{ event.summary[:15] }}{% if event.summary|length > 15 %}...{% endif %}
+                                
+                                {# Add checkout marker if this is the checkout day #}
+                                {% if current_day == event.end %}
+                                    <div class="checkout-marker" title="Checkout Day - Clean After {{ property.checkout_time or '11:00 AM' }}">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Legend for this week -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color service-airbnb"></div>
+                    <span>Airbnb</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color service-vrbo"></div>
+                    <span>VRBO</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color service-booking"></div>
+                    <span>Booking.com</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color service-direct"></div>
+                    <span>Direct Booking</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color service-blocked"></div>
+                    <span>Blocked</span>
+                </div>
+                <div class="legend-item">
+                    <div class="checkout-marker" style="position: static;">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                    <span>Checkout Day</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- No Events Message -->
+        {% if not events %}
+        <div class="text-center py-5">
+            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+            <h4>No Bookings Found</h4>
+            <p class="text-muted">There are currently no bookings scheduled for the next 4 weeks.</p>
+        </div>
+        {% endif %}
+
+        <!-- Footer Information -->
+        <div class="row mt-4 mb-5">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            Property Information
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-1"><strong>Address:</strong> {{ property.get_full_address() }}</p>
+                        {% if property.entry_instructions %}
+                        <p class="mb-1"><strong>Entry Instructions:</strong></p>
+                        <small class="text-muted">{{ property.entry_instructions[:100] }}{% if property.entry_instructions|length > 100 %}...{% endif %}</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-broom me-1"></i>
+                            Cleaning Details
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if property.cleaning_supplies_location %}
+                        <p class="mb-1"><strong>Supplies Location:</strong></p>
+                        <small class="text-muted">{{ property.cleaning_supplies_location }}</small>
+                        {% endif %}
+                        {% if property.special_instructions %}
+                        <p class="mb-1 mt-2"><strong>Special Instructions:</strong></p>
+                        <small class="text-muted">{{ property.special_instructions[:100] }}{% if property.special_instructions|length > 100 %}...{% endif %}</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refresh Button -->
+    <button class="btn btn-primary refresh-btn" onclick="location.reload()">
+        <i class="fas fa-sync-alt me-1"></i>
+        Refresh
+    </button>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Auto-refresh every 30 minutes
+        setTimeout(function() {
+            location.reload();
+        }, 30 * 60 * 1000);
+        
+        // Add click handlers for events to show more details
+        document.querySelectorAll('.booking-event').forEach(function(event) {
+            event.style.cursor = 'pointer';
+            event.title = 'Click for details';
+            
+            event.addEventListener('click', function() {
+                const summary = this.textContent.trim();
+                const service = this.className.split(' ').find(c => c.startsWith('service-')).replace('service-', '').replace('-', ' ');
+                alert(`Booking: ${summary}\nPlatform: ${service}\n\nNote: Clean after checkout time ({{ property.checkout_time or '11:00 AM' }}) on checkout days marked with yellow circles.`);
+            });
+        });
+        
+        // Highlight today's column
+        const today = new Date('{{ today }}');
+        const dayHeaders = document.querySelectorAll('.day-header');
+        const todayIndex = (today.getDay() + 6) % 7; // Convert Sunday=0 to Monday=0
+        
+        if (dayHeaders[todayIndex]) {
+            dayHeaders[todayIndex].style.background = '#007bff';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Messages</h1>
+                <div>
+                    <a href="{{ url_for('messages.new_message') }}" class="btn btn-success me-2">
+                        <i class="fas fa-plus"></i> New Message
+                    </a>
+                    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+
+            {% if messages and messages|length > 0 %}
+                <div class="list-group">
+                    {% for msg in messages %}
+                        <a href="{{ url_for('messages.view_message', msg_type=msg.type, msg_id=msg.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                {% if msg.type == 'sms' %}
+                                    <i class="fas fa-sms fa-fw text-primary me-2"></i>
+                                {% elif msg.type == 'notification' %}
+                                    <i class="fas fa-bell fa-fw text-warning me-2"></i>
+                                {% elif msg.type == 'direct' %}
+                                    <i class="fas fa-envelope fa-fw text-success me-2"></i>
+                                {% else %}
+                                    <i class="fas fa-comment fa-fw text-secondary me-2"></i>
+                                {% endif %}
+                                <div>
+                                    <div class="fw-bold">{{ msg.sender }}</div>
+                                    <div class="text-muted small">{{ msg.content[:60] }}{% if msg.content|length > 60 %}...{% endif %}</div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="small text-muted">{{ msg.timestamp.strftime('%b %d, %Y %I:%M %p') }}</div>
+                                {% if not msg.read %}
+                                    <span class="badge bg-primary">New</span>
+                                {% endif %}
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center my-5">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <h4 class="mb-2">No Messages</h4>
+                    <p class="text-muted">You haven't had any messages yet.<br>Messages will appear here when you receive or send SMS, notifications, or direct messages.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

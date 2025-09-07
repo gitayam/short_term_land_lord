@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .header-image {
+            height: 300px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        .property-name {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .amenity-icon {
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+        }
+        .tab-content {
+            padding: 20px;
+            background-color: white;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .sticky-sidebar {
+            top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-image" style="background-image: url('{{ property.get_primary_image_url() }}');">
+        <div class="property-name">
+            <div class="container">
+                <h1>{{ property.name }}</h1>
+                <p class="mb-0">{{ property.city }}, {{ property.state }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <ul class="nav nav-pills mb-3" id="propertyTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
+                            <i class="bi bi-house"></i> Overview
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="access-tab" data-bs-toggle="pill" data-bs-target="#access" type="button" role="tab" aria-controls="access" aria-selected="false">
+                            <i class="bi bi-key"></i> Access
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="rules-tab" data-bs-toggle="pill" data-bs-target="#rules" type="button" role="tab" aria-controls="rules" aria-selected="false">
+                            <i class="bi bi-clipboard-check"></i> Rules
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="local-tab" data-bs-toggle="pill" data-bs-target="#local" type="button" role="tab" aria-controls="local" aria-selected="false">
+                            <i class="bi bi-geo-alt"></i> Local Info
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="propertyTabContent">
+                    <!-- Overview Tab -->
+                    <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+                        <div class="section">
+                            <h3>About This Property</h3>
+                            <p>{{ property.description or 'No description provided.' }}</p>
+                        </div>
+                        
+                        <!-- Property Details Section -->
+                        <div class="card mb-4 shadow">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-home me-2"></i>Property Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% if property.bedrooms %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-bed fa-2x text-primary me-2"></i>
+                                            <div>
+                                                <p class="mb-0 text-muted">Bedrooms</p>
+                                                <h5 class="mb-0">{{ property.bedrooms }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if property.bathrooms %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-bath fa-2x text-primary me-2"></i>
+                                            <div>
+                                                <p class="mb-0 text-muted">Bathrooms</p>
+                                                <h5 class="mb-0">{{ property.bathrooms }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if property.square_feet %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-ruler-combined fa-2x text-primary me-2"></i>
+                                            <div>
+                                                <p class="mb-0 text-muted">Square Feet</p>
+                                                <h5 class="mb-0">{{ property.square_feet }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if property.tvs %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-tv fa-2x text-primary me-2"></i>
+                                            <div>
+                                                <p class="mb-0 text-muted">TVs</p>
+                                                <h5 class="mb-0">{{ property.tvs }}</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Important Times & Schedules Section -->
+                        {% if property.checkin_time or property.checkout_time or property.trash_day or property.recycling_day %}
+                        <div class="section">
+                            <h4>Important Times & Schedules</h4>
+                            <div class="row">
+                                {% if property.checkin_time or property.checkout_time %}
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header bg-primary text-white">
+                                            <h5 class="mb-0"><i class="bi bi-clock"></i> Check-in/Check-out</h5>
+                                        </div>
+                                        <ul class="list-group list-group-flush">
+                                            {% if property.checkin_time %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><i class="bi bi-box-arrow-in-right amenity-icon"></i> Check-in</span>
+                                                <span class="badge bg-primary rounded-pill">{{ property.checkin_time }}</span>
+                                            </li>
+                                            {% endif %}
+                                            {% if property.checkout_time %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><i class="bi bi-box-arrow-right amenity-icon"></i> Check-out</span>
+                                                <span class="badge bg-info rounded-pill">{{ property.checkout_time }}</span>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if property.trash_day or property.recycling_day %}
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header bg-success text-white">
+                                            <h5 class="mb-0"><i class="bi bi-trash"></i> Service Schedule</h5>
+                                        </div>
+                                        <ul class="list-group list-group-flush">
+                                            {% if property.trash_day %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><i class="bi bi-trash amenity-icon"></i> Trash Collection</span>
+                                                <span class="badge bg-dark rounded-pill">{{ property.trash_day|title }}</span>
+                                            </li>
+                                            {% endif %}
+                                            {% if property.recycling_day %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><i class="bi bi-recycle amenity-icon"></i> Recycling</span>
+                                                <span class="badge bg-success rounded-pill">{{ property.recycling_day|title }}</span>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Room Details Section -->
+                        {% if rooms %}
+                        <div class="section">
+                            <h4>Room Details</h4>
+                            <div class="accordion" id="roomsAccordion">
+                                {% for room in rooms %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="room-heading-{{ room.id }}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                data-bs-target="#room-collapse-{{ room.id }}" aria-expanded="false" 
+                                                aria-controls="room-collapse-{{ room.id }}">
+                                            {% if room.room_type == 'bedroom' %}🛏️
+                                            {% elif room.room_type == 'bathroom' %}🚿
+                                            {% elif room.room_type == 'living_room' %}🛋️
+                                            {% elif room.room_type == 'kitchen' %}🍳
+                                            {% elif room.room_type == 'dining_room' %}🍽️
+                                            {% elif room.room_type == 'office' %}💼
+                                            {% else %}📦
+                                            {% endif %}
+                                            {{ room.name }} ({{ room.room_type|replace('_', ' ')|title }})
+                                        </button>
+                                    </h2>
+                                    <div id="room-collapse-{{ room.id }}" class="accordion-collapse collapse" 
+                                         aria-labelledby="room-heading-{{ room.id }}" data-bs-parent="#roomsAccordion">
+                                        <div class="accordion-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <p><strong>Room Type:</strong> 
+                                                        {% if room.room_type == 'bedroom' %}🛏️ Bedroom
+                                                        {% elif room.room_type == 'bathroom' %}🚿 Bathroom
+                                                        {% elif room.room_type == 'living_room' %}🛋️ Living Room
+                                                        {% elif room.room_type == 'kitchen' %}🍳 Kitchen
+                                                        {% elif room.room_type == 'dining_room' %}🍽️ Dining Room
+                                                        {% elif room.room_type == 'office' %}💼 Office
+                                                        {% else %}📦 {{ room.room_type|title }}
+                                                        {% endif %}
+                                                    </p>
+                                                    {% if room.square_feet %}
+                                                    <p><strong>Size:</strong> 📏 {{ room.square_feet }} sq ft</p>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="col-md-6">
+                                                    {% if room.room_type == 'bedroom' and room.bed_type %}
+                                                    <p>
+                                                        <strong>Bed Type:</strong> 
+                                                        {% if room.bed_type == 'king' %}👑 King
+                                                        {% elif room.bed_type == 'queen' %}👸 Queen
+                                                        {% elif room.bed_type == 'full' %}🛌 Full/Double
+                                                        {% elif room.bed_type == 'twin' %}🛏️ Twin
+                                                        {% elif room.bed_type == 'bunk' %}🏗️ Bunk Bed
+                                                        {% elif room.bed_type == 'sofa' %}🛋️ Sofa Bed
+                                                        {% elif room.bed_type == 'air' %}💨 Air Mattress
+                                                        {% elif room.bed_type == 'crib' %}👶 Crib
+                                                        {% else %}🛏️ {{ room.bed_type|title }}
+                                                        {% endif %}
+                                                    </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if room.has_tv %}
+                                                    <p>
+                                                        <strong>TV:</strong> 📺 Yes
+                                                        {% if room.tv_details %} ({{ room.tv_details }}){% endif %}
+                                                    </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if room.room_type == 'bathroom' %}
+                                                    <p>
+                                                        <strong>Facilities:</strong>
+                                                        {% if room.has_shower %}🚿 Shower{% endif %}
+                                                        {% if room.has_shower and room.has_tub %}, {% endif %}
+                                                        {% if room.has_tub %}🛁 Bathtub{% endif %}
+                                                        {% if not room.has_shower and not room.has_tub %}None specified{% endif %}
+                                                    </p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {# FAQ Section #}
+                        {% if property.guest_faq %}
+                        <div class="card mb-4 shadow">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Frequently Asked Questions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="faq-content">
+                                    {{ property.guest_faq|nl2br }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Access Tab -->
+                    <div class="tab-pane fade" id="access" role="tabpanel" aria-labelledby="access-tab">
+                        <div class="section">
+                            <h3>Access Information</h3>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="bi bi-clock"></i> Check-in & Check-out Times</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="p-2 bg-primary rounded-circle text-white me-3">
+                                                    <i class="bi bi-box-arrow-in-right"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Check-in Time</h6>
+                                                    <p class="mb-0 fs-4">{{ property.checkin_time or 'Contact host' }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="p-2 bg-info rounded-circle text-white me-3">
+                                                    <i class="bi bi-box-arrow-right"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Check-out Time</h6>
+                                                    <p class="mb-0 fs-4">{{ property.checkout_time or 'Contact host' }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="bi bi-door-open"></i> Check-in Instructions</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if property.guest_checkin_instructions %}
+                                        {{ property.guest_checkin_instructions|nl2br }}
+                                    {% else %}
+                                        <p>No check-in instructions provided.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0"><i class="bi bi-door-closed"></i> Check-out Instructions</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if property.guest_checkout_instructions %}
+                                        {{ property.guest_checkout_instructions|nl2br }}
+                                    {% else %}
+                                        <p>No check-out instructions provided.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0"><i class="bi bi-wifi"></i> WiFi Information</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Network Name:</strong> {{ property.wifi_network or 'Not provided' }}</p>
+                                            <p><strong>Password:</strong> {{ property.wifi_password or 'Not provided' }}</p>
+                                            
+                                            {% if property.guest_wifi_instructions %}
+                                            <div class="mt-3">
+                                                <strong>Additional Instructions:</strong>
+                                                <p>{{ property.guest_wifi_instructions|nl2br }}</p>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-6 text-center">
+                                            {% if property.wifi_network and property.wifi_password %}
+                                            <div id="wifi-qrcode" class="mx-auto" style="width: 150px; height: 150px;"></div>
+                                            <p class="small text-muted mt-1">Scan with your phone camera to connect to WiFi</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if property.trash_day or property.recycling_day %}
+                            <div class="card mb-4">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="mb-0"><i class="bi bi-trash"></i> Waste Collection Schedule</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% if property.trash_day %}
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="p-2 bg-dark rounded-circle text-white me-3">
+                                                    <i class="bi bi-trash"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Trash Day</h6>
+                                                    <p class="mb-0">{{ property.trash_day|title }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if property.recycling_day %}
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="p-2 bg-success rounded-circle text-white me-3">
+                                                    <i class="bi bi-recycle"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Recycling Day</h6>
+                                                    <p class="mb-0">{{ property.recycling_day|title }}</p>
+                                                </div>
+                                            </div>
+                                            {% if property.recycling_notes %}
+                                            <div class="mt-3 p-3 bg-light rounded">
+                                                <h6 class="text-success"><i class="bi bi-info-circle"></i> Recycling Guidelines:</h6>
+                                                <p class="small mb-0">{{ property.recycling_notes|nl2br }}</p>
+                                                <div class="alert alert-warning mt-2 small">
+                                                    <i class="bi bi-exclamation-triangle"></i> <strong>Important:</strong> Please recycle only acceptable products. 
+                                                    No plastic bags or "wishful recycling" as it causes more trouble for recycling centers.
+                                                </div>
+                                            </div>
+                                            {% else %}
+                                            <div class="mt-3 p-3 bg-light rounded">
+                                                <h6 class="text-success"><i class="bi bi-info-circle"></i> Recycling Guidelines:</h6>
+                                                <div class="alert alert-warning mt-2 small">
+                                                    <i class="bi bi-exclamation-triangle"></i> <strong>Important:</strong> Please recycle only acceptable products. 
+                                                    No plastic bags or "wishful recycling" as it causes more trouble for recycling centers.
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if property.entry_instructions %}
+                            <div class="card mb-4">
+                                <div class="card-header bg-warning text-dark">
+                                    <h5 class="mb-0"><i class="bi bi-key"></i> Entry Instructions</h5>
+                                </div>
+                                <div class="card-body">
+                                    {{ property.entry_instructions|nl2br }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Rules Tab -->
+                    <div class="tab-pane fade" id="rules" role="tabpanel" aria-labelledby="rules-tab">
+                        <div class="section">
+                            <h3>House Rules</h3>
+                            {% if property.guest_rules %}
+                                {{ property.guest_rules|nl2br }}
+                            {% else %}
+                                <p>No specific house rules have been provided.</p>
+                            {% endif %}
+                        </div>
+                        
+                        {% if property.emergency_contact %}
+                        <div class="section">
+                            <div class="card bg-danger text-white">
+                                <div class="card-header">
+                                    <h4 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Emergency Contact</h4>
+                                </div>
+                                <div class="card-body">
+                                    {{ property.emergency_contact|nl2br }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Local Info Tab -->
+                    <div class="tab-pane fade" id="local" role="tabpanel" aria-labelledby="local-tab">
+                        <div class="section">
+                            <h3>Local Information</h3>
+                            
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Property Location</h5>
+                                </div>
+                                <div class="card-body">
+                                    <address>
+                                        {{ property.street_address }}<br>
+                                        {{ property.city }}, {{ property.state }} {{ property.zip_code }}<br>
+                                        {{ property.country }}
+                                    </address>
+                                    
+                                    <div class="mt-3">
+                                        <div class="d-grid gap-2">
+                                            <a href="https://www.google.com/maps/search/?api=1&amp;query={{ property.get_full_address()|replace(' ', '+') }}"
+                                               class="btn btn-primary btn-lg"
+                                               target="_blank"
+                                               rel="noopener">
+                                               <i class="bi bi-geo-alt-fill"></i> Open in Google Maps
+                                            </a>
+                                            <a href="https://maps.apple.com/?q={{ property.get_full_address()|replace(' ', '+') }}"
+                                               class="btn btn-secondary btn-lg"
+                                               target="_blank"
+                                               rel="noopener">
+                                               <i class="bi bi-apple"></i> Open in Apple Maps
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Local Attractions & Recommendations</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if property.local_attractions %}
+                                        {{ property.local_attractions|nl2br }}
+                                    {% else %}
+                                        <p>No local information has been provided.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card sticky-top sticky-sidebar">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">Quick Access</h5>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="#overview" class="list-group-item list-group-item-action" data-bs-toggle="pill" data-bs-target="#overview">
+                            <i class="bi bi-house-door"></i> Property Overview
+                        </a>
+                        <a href="#access" class="list-group-item list-group-item-action" data-bs-toggle="pill" data-bs-target="#access">
+                            <i class="bi bi-key"></i> Access Information
+                        </a>
+                        <a href="#rules" class="list-group-item list-group-item-action" data-bs-toggle="pill" data-bs-target="#rules">
+                            <i class="bi bi-clipboard-check"></i> House Rules
+                        </a>
+                        <a href="#local" class="list-group-item list-group-item-action" data-bs-toggle="pill" data-bs-target="#local">
+                            <i class="bi bi-geo-alt"></i> Local Information
+                        </a>
+                    </div>
+                    
+                    <!-- Quick Access Map Buttons -->
+                    <div class="card-header bg-primary text-white mt-3">
+                        <h5 class="mb-0"><i class="bi bi-map"></i> Maps</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="https://www.google.com/maps/search/?api=1&amp;query={{ property.get_full_address()|urlencode }}" 
+                               class="btn btn-primary" target="_blank" rel="noopener">
+                               <i class="bi bi-geo-alt-fill"></i> Google Maps
+                            </a>
+                            <a href="https://maps.apple.com/?q={{ property.get_full_address()|urlencode }}" 
+                               class="btn btn-secondary" target="_blank" rel="noopener">
+                               <i class="bi bi-apple"></i> Apple Maps
+                            </a>
+                        </div>
+                    </div>
+                    
+                    {% if property.images|length > 1 %}
+                    <div class="card-header bg-dark text-white mt-3">
+                        <h5 class="mb-0">Property Images</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="propertyCarousel" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-inner">
+                                {% for image in property.images %}
+                                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                    <img src="{{ image.image_path }}" class="d-block w-100 rounded" alt="{{ image.caption or property.name }}">
+                                    {% if image.caption %}
+                                    <div class="carousel-caption d-none d-md-block">
+                                        <p>{{ image.caption }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#propertyCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#propertyCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Repair Request Section for Guests -->
+                    <div class="card-header bg-warning text-dark mt-3">
+                        <h5 class="mb-0">Report an Issue</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Found something that needs repair or maintenance?</p>
+                        <a href="{{ url_for('tasks.repair_requests', property_id=property.id) }}" class="btn btn-warning w-100">
+                            <i class="bi bi-tools"></i> Submit Repair Request
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <p class="text-muted mb-0">Welcome to {{ property.name }} - We hope you enjoy your stay!</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if property.wifi_network and property.wifi_password %}
+            // Generate WiFi QR Code
+            const wifiQRContainer = document.getElementById('wifi-qrcode');
+            if (wifiQRContainer) {
+                // Properly escape the SSID and password for QR code
+                const ssid = "{{ property.wifi_network|replace('"', '\\"')|safe }}";
+                const password = "{{ property.wifi_password|replace('"', '\\"')|safe }}";
+                
+                // Create WiFi network string in format: WIFI:S:<SSID>;T:<WPA|WEP|>;P:<password>;;
+                const wifiString = "WIFI:S:" + ssid + ";T:WPA;P:" + password + ";;";
+                
+                try {
+                    // Generate QR code
+                    const qr = qrcode(0, 'M');
+                    qr.addData(wifiString);
+                    qr.make();
+                    
+                    // Render QR code
+                    wifiQRContainer.innerHTML = qr.createImgTag(4);
+                    
+                    // Add title for better UX
+                    const img = wifiQRContainer.querySelector('img');
+                    if (img) {
+                        img.title = `Connect to ${ssid} WiFi`;
+                        img.alt = `QR code for ${ssid} WiFi network`;
+                        img.style.width = '100%';
+                        img.style.height = 'auto';
+                    }
+                } catch (error) {
+                    console.error("Error generating QR code:", error);
+                    wifiQRContainer.innerHTML = '<p class="text-danger">Error generating WiFi QR code</p>';
+                }
+            }
+            {% endif %}
+        });
+    </script>
+</body>
+</html>

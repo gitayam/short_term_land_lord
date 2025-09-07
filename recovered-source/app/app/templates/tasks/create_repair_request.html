@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">Create Repair Request</h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.csrf_token }}
+                        
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else "")) }}
+                            {% for error in form.title.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">A clear, concise title for the issue</small>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.property.label(class="form-label") }}
+                            {{ form.property(class="form-select" + (" is-invalid" if form.property.errors else "")) }}
+                            {% for error in form.property.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.location.label(class="form-label") }}
+                            {{ form.location(class="form-control" + (" is-invalid" if form.location.errors else "")) }}
+                            {% for error in form.location.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">Example: "Master bathroom sink", "Kitchen countertop"</small>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows=4) }}
+                            {% for error in form.description.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">Clearly describe what the issue is and what needs to be repaired</small>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.priority.label(class="form-label") }}
+                            {{ form.priority(class="form-select" + (" is-invalid" if form.priority.errors else "")) }}
+                            {% for error in form.priority.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.severity.label(class="form-label") }}
+                            {{ form.severity(class="form-select" + (" is-invalid" if form.severity.errors else "")) }}
+                            {% for error in form.severity.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.due_date.label(class="form-label") }}
+                            {{ form.due_date(class="form-control" + (" is-invalid" if form.due_date.errors else ""), type="date") }}
+                            {% for error in form.due_date.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">Optional: When this repair should be completed by</small>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.additional_notes.label(class="form-label") }}
+                            {{ form.additional_notes(class="form-control" + (" is-invalid" if form.additional_notes.errors else ""), rows=3) }}
+                            {% for error in form.additional_notes.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">Any additional information that might help with the repair</small>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.photos.label(class="form-label") }}
+                            {{ form.photos(class="form-control" + (" is-invalid" if form.photos.errors else ""), multiple=True) }}
+                            {% for error in form.photos.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">Upload photos of the issue (optional but recommended)</small>
+                            <div id="photo-preview" class="row mt-3"></div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{{ url_for('tasks.repair_requests') }}" class="btn btn-secondary me-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Submit Repair Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Photo preview functionality
+    document.getElementById('photos').addEventListener('change', function(e) {
+        var previewContainer = document.getElementById('photo-preview');
+        previewContainer.innerHTML = ''; // Clear existing previews
+        
+        var files = e.target.files;
+        
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            if (file.type.match('image.*')) {
+                var reader = new FileReader();
+                
+                reader.onload = (function(theFile) {
+                    return function(e) {
+                        var col = document.createElement('div');
+                        col.className = 'col-md-4 col-6 mb-3';
+                        
+                        var card = document.createElement('div');
+                        card.className = 'card h-100';
+                        
+                        var img = document.createElement('img');
+                        img.className = 'card-img-top';
+                        img.src = e.target.result;
+                        img.alt = 'Photo preview';
+                        img.style.height = '150px';
+                        img.style.objectFit = 'cover';
+                        
+                        var cardBody = document.createElement('div');
+                        cardBody.className = 'card-body p-2';
+                        
+                        var fileName = document.createElement('p');
+                        fileName.className = 'card-text small text-truncate mb-0';
+                        fileName.textContent = theFile.name;
+                        
+                        cardBody.appendChild(fileName);
+                        card.appendChild(img);
+                        card.appendChild(cardBody);
+                        col.appendChild(card);
+                        previewContainer.appendChild(col);
+                    };
+                })(file);
+                
+                reader.readAsDataURL(file);
+            }
+        }
+    });
+</script>
+{% endblock %} 

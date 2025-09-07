@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">My Profile</h1>
+    
+    <!-- Personal Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Personal Information</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('profile.update_personal_info') }}" method="POST" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-6">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ current_user.first_name }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ current_user.last_name }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ current_user.phone }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="timezone" class="form-label">Timezone</label>
+                    <select class="form-select" id="timezone" name="timezone">
+                        <option value="UTC" {% if current_user.timezone == 'UTC' %}selected{% endif %}>UTC</option>
+                        <option value="America/New_York" {% if current_user.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time</option>
+                        <option value="America/Chicago" {% if current_user.timezone == 'America/Chicago' %}selected{% endif %}>Central Time</option>
+                        <option value="America/Denver" {% if current_user.timezone == 'America/Denver' %}selected{% endif %}>Mountain Time</option>
+                        <option value="America/Los_Angeles" {% if current_user.timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="language" class="form-label">Language</label>
+                    <select class="form-select" id="language" name="language">
+                        <option value="en" {% if current_user.language == 'en' %}selected{% endif %}>English</option>
+                        <option value="es" {% if current_user.language == 'es' %}selected{% endif %}>Spanish</option>
+                        <option value="fr" {% if current_user.language == 'fr' %}selected{% endif %}>French</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Save Personal Information</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Preferences -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Preferences</h5>
+        </div>
+        <div class="card-body">
+            <form id="preferencesForm" method="POST" action="{{ url_for('profile.update_preferences') }}">
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    <label for="theme_preference" class="form-label">Theme</label>
+                    {{ form.theme_preference(class="form-select") }}
+                </div>
+                <div class="mb-3">
+                    <label for="default_dashboard_view" class="form-label">Default Dashboard View</label>
+                    {{ form.default_dashboard_view(class="form-select") }}
+                </div>
+                <div class="mb-3">
+                    <label for="default_calendar_view" class="form-label">Default Calendar View</label>
+                    {{ form.default_calendar_view(class="form-select") }}
+                </div>
+                <div class="mb-3">
+                    <label for="default_task_sort" class="form-label">Default Task Sort</label>
+                    {{ form.default_task_sort(class="form-select") }}
+                </div>
+                <button type="submit" class="btn btn-primary">Save Preferences</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Notification Settings</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('profile.update_notifications') }}" method="POST" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" 
+                               {% if current_user.email_notifications %}checked{% endif %}>
+                        <label class="form-check-label" for="email_notifications">Email Notifications</label>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="sms_notifications" name="sms_notifications"
+                               {% if current_user.sms_notifications %}checked{% endif %}>
+                        <label class="form-check-label" for="sms_notifications">SMS Notifications</label>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="in_app_notifications" name="in_app_notifications"
+                               {% if current_user.in_app_notifications %}checked{% endif %}>
+                        <label class="form-check-label" for="in_app_notifications">In-App Notifications</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label for="notification_frequency" class="form-label">Notification Frequency</label>
+                    <select class="form-select" id="notification_frequency" name="notification_frequency">
+                        <option value="immediate" {% if current_user.notification_frequency == 'immediate' %}selected{% endif %}>Immediate</option>
+                        <option value="hourly" {% if current_user.notification_frequency == 'hourly' %}selected{% endif %}>Hourly Digest</option>
+                        <option value="daily" {% if current_user.notification_frequency == 'daily' %}selected{% endif %}>Daily Digest</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Save Notification Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Security -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Security Settings</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('profile.change_password') }}" method="POST" class="row g-3 mb-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="col-md-12">
+                    <h6>Change Password</h6>
+                </div>
+                <div class="col-md-4">
+                    <label for="current_password" class="form-label">Current Password</label>
+                    <input type="password" class="form-control" id="current_password" name="current_password" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="new_password" class="form-label">New Password</label>
+                    <input type="password" class="form-control" id="new_password" name="new_password" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="confirm_password" class="form-label">Confirm New Password</label>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </div>
+            </form>
+
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <h6>Two-Factor Authentication</h6>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="twoFactorToggle" 
+                               {% if current_user.two_factor_enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="twoFactorToggle">
+                            Enable Two-Factor Authentication
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">
+                        Current status: {{ 'Enabled' if current_user.two_factor_enabled else 'Disabled' }}
+                        {% if current_user.two_factor_enabled and current_user.two_factor_method %}
+                            ({{ current_user.two_factor_method.upper() }})
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connected Services -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Connected Services</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6>Google Calendar</h6>
+                            <p class="text-muted mb-0">{{ 'Connected' if current_user.google_calendar_connected else 'Not Connected' }}</p>
+                        </div>
+                        <form action="{{ url_for('profile.connect_service') }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="service" value="google_calendar">
+                            <button type="submit" class="btn btn-{{ 'danger' if current_user.google_calendar_connected else 'success' }}">
+                                {{ 'Disconnect' if current_user.google_calendar_connected else 'Connect' }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6>Phone Verification</h6>
+                            <p class="text-muted mb-0">{{ 'Verified' if current_user.twilio_phone_verified else 'Not Verified' }}</p>
+                        </div>
+                        <form action="{{ url_for('profile.connect_service') }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="service" value="phone">
+                            <button type="submit" class="btn btn-{{ 'danger' if current_user.twilio_phone_verified else 'success' }}">
+                                {{ 'Remove' if current_user.twilio_phone_verified else 'Verify' }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6>Slack Integration</h6>
+                            <p class="text-muted mb-0">{{ 'Connected' if current_user.slack_workspace_id else 'Not Connected' }}</p>
+                        </div>
+                        <form action="{{ url_for('profile.connect_service') }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="service" value="slack">
+                            <button type="submit" class="btn btn-{{ 'danger' if current_user.slack_workspace_id else 'success' }}">
+                                {{ 'Disconnect' if current_user.slack_workspace_id else 'Connect' }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Function to show flash messages
+function flashMessage(message, type) {
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    // Create new alert
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insert at the top of the main content
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+document.getElementById('preferencesForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            flashMessage(data.message, 'success');
+            // Apply theme immediately
+            if (data.theme) {
+                applyTheme(data.theme);
+            }
+        } else {
+            flashMessage(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        flashMessage('An error occurred while updating preferences', 'error');
+    });
+});
+
+// Handle 2FA toggle
+document.getElementById('twoFactorToggle').addEventListener('change', function() {
+    const enabled = this.checked;
+    const method = 'sms'; // Default method
+    
+    fetch('{{ url_for("profile.toggle_2fa") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        },
+        body: JSON.stringify({
+            enabled: enabled,
+            method: method
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            flashMessage(data.message, 'success');
+            // Update status text
+            const statusText = document.querySelector('.form-text.text-muted');
+            if (statusText) {
+                statusText.innerHTML = enabled ? 
+                    'Current status: Enabled (SMS)' : 
+                    'Current status: Disabled';
+            }
+        } else {
+            flashMessage(data.error || 'Failed to update 2FA settings', 'error');
+            // Revert toggle state
+            this.checked = !enabled;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        flashMessage('An error occurred while updating 2FA settings', 'error');
+        // Revert toggle state
+        this.checked = !enabled;
+    });
+});
+
+// Function to apply theme
+function applyTheme(theme) {
+    if (theme === 'system') {
+        // Check system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.body.setAttribute('data-bs-theme', 'dark');
+        } else {
+            document.body.setAttribute('data-bs-theme', 'light');
+        }
+    } else {
+        document.body.setAttribute('data-bs-theme', theme);
+    }
+}
+
+// Listen for system theme changes if user has system preference
+if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        const currentTheme = '{{ user_theme }}';
+        if (currentTheme === 'system') {
+            applyTheme('system');
+        }
+    });
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,19 @@
+{
+  "tests/test_guide_book.py::test_guide_book_filter": true,
+  "tests/test_guide_book.py::test_guide_book_toggle": true,
+  "tests/test_guide_book.py::test_guide_book_categories": true,
+  "tests/test_guide_book.py::test_guide_book_search": true,
+  "tests/test_guide_book.py::test_bulk_guide_book_update": true,
+  "tests/test_recommendations.py::test_create_recommendation": true,
+  "tests/test_recommendations.py::test_edit_recommendation": true,
+  "tests/test_recommendations.py::test_delete_recommendation": true,
+  "tests/test_recommendations.py::test_admin_access": true,
+  "tests/test_recommendations.py::test_unauthorized_access": true,
+  "tests/test_repair_request_routes.py::TestRepairRequestRoutes::test_repair_request_notification": true,
+  "tests/test_repair_request_routes.py::TestRepairRequestRoutes::test_repair_request_photo_validation": true,
+  "tests/test_repair_request_routes.py::TestRepairRequestRoutes::test_repair_request_submission": true,
+  "tests/test_workforce.py::TestWorkforceRoutes::test_invite_worker": true,
+  "tests/test_repair_request_routes.py::TestRepairRequestRoutes::test_repair_request_create_route_missing_property_id": true,
+  "tests/test_repair_request_routes.py::TestRepairRequestRoutes::test_repair_request_create_route_success": true,
+  "tests/test_repair_request_routes.py::TestRepairRequestRoutes::test_repair_request_create_route_validation_error": true
+}

@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<style>
+/* Mobile-first responsive task management */
+@media (max-width: 768px) {
+    /* Hide table headers on mobile */
+    .table thead {
+        display: none;
+    }
+    
+    /* Convert table rows to cards on mobile */
+    .table tbody tr {
+        display: block;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    /* Stack table cells vertically */
+    .table tbody td {
+        display: block;
+        text-align: left !important;
+        border: none;
+        padding: 0.25rem 0;
+        position: relative;
+        padding-left: 30%;
+    }
+    
+    /* Add labels before content on mobile */
+    .table tbody td:nth-child(1)::before { content: "Task: "; }
+    .table tbody td:nth-child(2)::before { content: "Status: "; }
+    .table tbody td:nth-child(3)::before { content: "Priority: "; }
+    .table tbody td:nth-child(4)::before { content: "Due Date: "; }
+    .table tbody td:nth-child(5)::before { content: "Assigned: "; }
+    .table tbody td:nth-child(6)::before { content: "Actions: "; }
+    
+    .table tbody td::before {
+        position: absolute;
+        left: 0;
+        font-weight: bold;
+        color: #495057;
+    }
+    
+    /* Make action buttons touch-friendly */
+    .btn-group {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-start;
+    }
+    
+    .btn-sm {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.5rem;
+    }
+    
+    /* Optimize badges for mobile */
+    .badge {
+        font-size: 0.8em;
+        padding: 0.4em 0.8em;
+    }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        min-height: 44px;
+    }
+    
+    .btn-group .btn {
+        margin: 0 0.2rem;
+    }
+}
+
+/* Improved mobile header */
+@media (max-width: 576px) {
+    .d-flex.justify-content-end {
+        justify-content: center !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .btn-primary {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.1em;
+    }
+    
+    h1 {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-header h5 {
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1>Tasks</h1>
+        
+        {% if current_user.is_property_owner or current_user.has_admin_role or current_user.is_property_manager %}
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{{ url_for('tasks.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Task
+            </a>
+        </div>
+        {% endif %}
+        
+        <!-- Tasks List -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">All Tasks</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if tasks %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Due Date</th>
+                                <th>Assignees</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                            <tr class="align-middle {% if task.is_overdue() %}table-danger{% elif task.status == 'COMPLETED' %}table-success{% endif %}">
+                                <td>
+                                    <strong>{{ task.title }}</strong>
+                                    <div class="small text-muted">{{ task.description|truncate(50) }}</div>
+                                </td>
+                                
+                                <td>
+                                    <span class="badge {% if task.status == 'PENDING' %}bg-warning{% elif task.status == 'IN_PROGRESS' %}bg-info{% elif task.status == 'COMPLETED' %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ task.get_status_display() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {% if task.priority == 'HIGH' %}bg-danger{% elif task.priority == 'MEDIUM' %}bg-warning{% else %}bg-info{% endif %}">
+                                        {{ task.get_priority_display() }}
+                                    </span>
+                                </td>
+                                <td class="{% if task.is_overdue() %}text-danger fw-bold{% endif %}">
+                                    {{ task.due_date.strftime('%Y-%m-%d') if task.due_date }}
+                                </td>
+                                <td class="text-center">
+                                    {% if task.assignments.all()|length > 0 %}
+                                        {% for assignment in task.assignments.all() %}
+                                            {% if assignment.user %}
+                                                <span class="badge bg-primary">{{ assignment.user.get_full_name() }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">External: {{ assignment.external_name or 'None' }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="badge bg-warning">Unassigned</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if current_user.is_property_owner or can_edit_task(task, current_user) %}
+                                        <a href="{{ url_for('tasks.edit', id=task.id) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if can_complete_task(task, current_user) and task.status != 'COMPLETED' %}
+                                        <form class="d-inline" method="post" action="{{ url_for('tasks.complete', id=task.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info m-3">
+                    No tasks found. {% if current_user.is_property_owner or current_user.has_admin_role or current_user.is_property_manager %}<a href="{{ url_for('tasks.create') }}">Create a new task</a>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exchange-alt mr-2"></i> Convert Repair Request to Task
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p><strong>Converting this repair request to a task will:</strong></p>
+                        <ul>
+                            <li>Create a new task with the information you provide below</li>
+                            <li>Mark this repair request as "Converted to Task"</li>
+                            <li>Link the repair request to the new task for reference</li>
+                            <li>Allow you to assign the task to maintenance personnel</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Original Repair Request</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>{{ repair_request.title }}</h6>
+                            <p><strong>Location:</strong> {{ repair_request.location }}</p>
+                            <p><strong>Severity:</strong> {{ repair_request.severity.name.title() }}</p>
+                            <p><strong>Description:</strong> {{ repair_request.description }}</p>
+                        </div>
+                    </div>
+                    
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-group">
+                            {{ form.title.label(class="form-control-label font-weight-bold") }}
+                            {{ form.title(class="form-control") }}
+                            {% if form.title.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.title.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.description.label(class="form-control-label font-weight-bold") }}
+                            {{ form.description(class="form-control", rows=3) }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.description.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.due_date.label(class="form-control-label font-weight-bold") }}
+                                    {{ form.due_date(class="form-control", type="datetime-local") }}
+                                    {% if form.due_date.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.due_date.errors %}
+                                                <span>{{ error }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.priority.label(class="form-control-label font-weight-bold") }}
+                                    {{ form.priority(class="form-control") }}
+                                    {% if form.priority.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.priority.errors %}
+                                                <span>{{ error }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.notes.label(class="form-control-label font-weight-bold") }}
+                            {{ form.notes(class="form-control", rows=2) }}
+                            {% if form.notes.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.notes.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Additional notes for the maintenance personnel.
+                            </small>
+                        </div>
+                        
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">Recurrence Options</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check mb-3">
+                                    {{ form.is_recurring(class="form-check-input") }}
+                                    {{ form.is_recurring.label(class="form-check-label") }}
+                                </div>
+                                
+                                <div id="recurrenceOptions" class="ml-4 {% if not form.is_recurring.data %}d-none{% endif %}">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                {{ form.recurrence_pattern.label(class="form-control-label") }}
+                                                {{ form.recurrence_pattern(class="form-control") }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                {{ form.recurrence_interval.label(class="form-control-label") }}
+                                                {{ form.recurrence_interval(class="form-control", type="number", min=1) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        {{ form.recurrence_end_date.label(class="form-control-label") }}
+                                        {{ form.recurrence_end_date(class="form-control", type="date") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            {{ form.assign_to_next_cleaner(class="form-check-input") }}
+                            {{ form.assign_to_next_cleaner.label(class="form-check-label") }}
+                            <small class="form-text text-muted">
+                                If checked, this task will be automatically assigned to the next cleaner who starts a cleaning session at this property.
+                            </small>
+                        </div>
+                        
+                        <div class="form-group mt-4">
+                            {{ form.submit(class="btn btn-primary btn-lg btn-block") }}
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('tasks.view_repair_request', id=repair_request.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left mr-1"></i> Back to Repair Request
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Show/hide recurrence options based on checkbox
+    document.getElementById('is_recurring').addEventListener('change', function() {
+        var recurrenceOptions = document.getElementById('recurrenceOptions');
+        if (this.checked) {
+            recurrenceOptions.classList.remove('d-none');
+        } else {
+            recurrenceOptions.classList.add('d-none');
+        }
+    });
+</script>
+{% endblock %}

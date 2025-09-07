@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ property.name }} - Interactive Map</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .map-container {
+            height: 100vh;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .map-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            z-index: 1000;
+            padding: 1rem;
+        }
+        
+        .sidebar {
+            position: absolute;
+            left: -400px;
+            top: 0;
+            bottom: 0;
+            width: 400px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 1001;
+            transition: left 0.3s ease-in-out;
+            overflow-y: auto;
+        }
+        
+        .sidebar.open {
+            left: 0;
+        }
+        
+        .sidebar-toggle {
+            position: absolute;
+            top: 50%;
+            right: -40px;
+            transform: translateY(-50%);
+            background: white;
+            border: 1px solid #ddd;
+            border-left: none;
+            border-radius: 0 5px 5px 0;
+            padding: 10px 8px;
+            cursor: pointer;
+            z-index: 1002;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .entry-card {
+            border: none;
+            border-bottom: 1px solid #eee;
+            border-radius: 0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .entry-card:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .entry-card.active {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .map-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .filter-controls {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            z-index: 1000;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1rem;
+            max-width: 300px;
+        }
+        
+        .category-filter {
+            margin-bottom: 0.5rem;
+        }
+        
+        .custom-popup {
+            max-width: 300px;
+        }
+        
+        .popup-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .featured-marker {
+            background-color: #ffd700;
+            border: 3px solid #ff8f00;
+        }
+        
+        .category-Restaurant { background-color: #ff6b6b; }
+        .category-Café { background-color: #4ecdc4; }
+        .category-Bar { background-color: #ffe66d; }
+        .category-Attraction { background-color: #ff8b94; }
+        .category-Shopping { background-color: #95e1d3; }
+        .category-Outdoor-Activity { background-color: #a8e6cf; }
+        .category-Transportation { background-color: #88d8c0; }
+        .category-Services { background-color: #6c5ce7; }
+        .category-Emergency { background-color: #fd79a8; }
+        .category-Grocery { background-color: #fdcb6e; }
+        .category-Entertainment { background-color: #fd79a8; }
+        .category-Other { background-color: #74b9ff; }
+    </style>
+</head>
+<body>
+    <div class="map-container">
+        <!-- Header -->
+        <div class="map-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-0">
+                        <i class="fas fa-map-marked-alt me-2"></i>
+                        {{ property.name }} - Interactive Map
+                    </h4>
+                    <small class="text-muted">{{ entries_with_coordinates }} locations</small>
+                </div>
+                <div class="btn-group">
+                    <a href="{{ url_for('property.guest_guidebook', property_id=property.id, token=token) }}" 
+                       class="btn btn-outline-primary">
+                        <i class="fas fa-list me-1"></i>List View
+                    </a>
+                    <button class="btn btn-primary" id="toggleSidebar">
+                        <i class="fas fa-bars me-1"></i>Locations
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div id="map"></div>
+
+        <!-- Filter Controls -->
+        <div class="filter-controls">
+            <h6 class="mb-3">Filter by Category</h6>
+            <div class="form-check category-filter">
+                <input class="form-check-input" type="checkbox" id="filter-all" checked>
+                <label class="form-check-label" for="filter-all">
+                    <strong>Show All</strong>
+                </label>
+            </div>
+            {% for category in categories %}
+            <div class="form-check category-filter">
+                <input class="form-check-input category-checkbox" type="checkbox" 
+                       id="filter-{{ category|replace(' ', '-') }}" 
+                       data-category="{{ category }}" checked>
+                <label class="form-check-label" for="filter-{{ category|replace(' ', '-') }}">
+                    <i class="fas fa-{{ get_category_icon(category) }} me-1"></i>
+                    {{ category }}
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-right" id="sidebarIcon"></i>
+            </div>
+            
+            <div class="p-3">
+                <h5 class="mb-3">Recommendations</h5>
+                
+                {% for entry in entries_with_coords %}
+                <div class="card entry-card" data-entry-id="{{ entry.id }}" onclick="focusEntry({{ entry.id }})">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-start">
+                            {% if entry.image_url or entry.image_path %}
+                            <img src="{{ entry.image_url or url_for('guidebook.serve_image', filename=entry.image_path) }}" 
+                                 class="rounded me-3" 
+                                 style="width: 60px; height: 60px; object-fit: cover;"
+                                 alt="{{ entry.title }}">
+                            {% else %}
+                            <div class="bg-primary rounded me-3 d-flex align-items-center justify-content-center text-white"
+                                 style="width: 60px; height: 60px; min-width: 60px;">
+                                <i class="fas fa-{{ get_category_icon(entry.category) }}"></i>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    {{ entry.title }}
+                                    {% if entry.is_featured %}
+                                    <i class="fas fa-star text-warning ms-1"></i>
+                                    {% endif %}
+                                </h6>
+                                <small class="text-muted d-block mb-1">
+                                    <i class="fas fa-tag me-1"></i>{{ entry.category }}
+                                </small>
+                                {% if entry.address %}
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-map-marker-alt me-1"></i>{{ entry.address[:40] }}{% if entry.address|length > 40 %}...{% endif %}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if entry.host_tip %}
+                        <div class="mt-2 p-2 bg-light rounded">
+                            <small class="text-primary">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                <strong>Host Tip:</strong> {{ entry.host_tip[:60] }}{% if entry.host_tip|length > 60 %}...{% endif %}
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Map Controls -->
+        <div class="map-controls">
+            <div class="btn-group-vertical">
+                <button class="btn btn-white border" onclick="resetView()" title="Reset View">
+                    <i class="fas fa-home"></i>
+                </button>
+                <button class="btn btn-white border" onclick="toggleFullscreen()" title="Fullscreen">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <script>
+        // Map data from server
+        const entries = {{ entries_json|safe }};
+        const propertyCoords = [{{ property.latitude or 40.7128 }}, {{ property.longitude or -74.0060 }}];
+        
+        // Initialize map
+        let map = L.map('map').setView(propertyCoords, 13);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Store markers for filtering
+        let markers = {};
+        let markerGroup = L.layerGroup().addTo(map);
+        
+        // Category icon mapping
+        const categoryIcons = {
+            'Restaurant': 'utensils',
+            'Café': 'coffee',
+            'Bar': 'wine-glass-alt',
+            'Attraction': 'landmark',
+            'Shopping': 'shopping-bag',
+            'Outdoor Activity': 'mountain',
+            'Transportation': 'bus',
+            'Services': 'concierge-bell',
+            'Emergency': 'exclamation-triangle',
+            'Grocery': 'shopping-cart',
+            'Entertainment': 'theater-masks',
+            'Other': 'map-marker-alt'
+        };
+
+        function get_category_icon(category) {
+            return categoryIcons[category] || 'map-marker-alt';
+        }
+        
+        // Create custom marker icons
+        function createMarkerIcon(entry) {
+            const categoryClass = 'category-' + entry.category.replace(/\s+/g, '-');
+            const featuredClass = entry.is_featured ? ' featured-marker' : '';
+            
+            return L.divIcon({
+                className: 'custom-marker ' + categoryClass + featuredClass,
+                html: `<div style="background-color: inherit; width: 30px; height: 30px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+                        <i class="fas fa-${get_category_icon(entry.category)} text-white" style="font-size: 12px;"></i>
+                       </div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+                popupAnchor: [0, -15]
+            });
+        }
+        
+        // Add markers for entries
+        entries.forEach(entry => {
+            if (entry.latitude && entry.longitude) {
+                const marker = L.marker([entry.latitude, entry.longitude], {
+                    icon: createMarkerIcon(entry)
+                });
+                
+                // Create popup content
+                let popupContent = `
+                    <div class="custom-popup">
+                        ${entry.image_url || entry.image_path ? 
+                            `<img src="${entry.image_url || '/guidebook/images/' + entry.image_path}" class="popup-image" alt="${entry.title}">` : 
+                            ''}
+                        <h6 class="mb-2">
+                            ${entry.title}
+                            ${entry.is_featured ? '<i class="fas fa-star text-warning ms-1"></i>' : ''}
+                        </h6>
+                        <p class="small text-muted mb-2">${entry.description}</p>
+                        ${entry.address ? `<p class="small mb-1"><i class="fas fa-map-marker-alt me-1"></i>${entry.address}</p>` : ''}
+                        ${entry.phone_number ? `<p class="small mb-1"><i class="fas fa-phone me-1"></i><a href="tel:${entry.phone_number}">${entry.phone_number}</a></p>` : ''}
+                        ${entry.website_url ? `<p class="small mb-1"><i class="fas fa-globe me-1"></i><a href="${entry.website_url}" target="_blank">Visit Website</a></p>` : ''}
+                        ${entry.host_tip ? `<div class="mt-2 p-2 bg-light rounded"><small class="text-primary"><i class="fas fa-lightbulb me-1"></i><strong>Host Tip:</strong> ${entry.host_tip}</small></div>` : ''}
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                marker.addTo(markerGroup);
+                
+                // Store marker reference
+                markers[entry.id] = marker;
+                
+                // Add click handler to highlight sidebar entry
+                marker.on('click', function() {
+                    highlightSidebarEntry(entry.id);
+                });
+            }
+        });
+        
+        // Add property marker
+        const propertyIcon = L.divIcon({
+            className: 'property-marker',
+            html: `<div style="background-color: #e74c3c; width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0,0,0,0.3);">
+                    <i class="fas fa-home text-white" style="font-size: 16px;"></i>
+                   </div>`,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+        });
+        
+        L.marker(propertyCoords, { icon: propertyIcon })
+            .bindPopup(`<div class="text-center"><h6>${'{{ property.name }}'}</h6><p class="small text-muted">Your accommodation</p></div>`)
+            .addTo(map);
+        
+        // Fit map to show all markers
+        if (entries.length > 0) {
+            const group = new L.featureGroup(Object.values(markers));
+            group.addLayer(L.marker(propertyCoords));
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+        
+        // Sidebar functionality
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const icon = document.getElementById('sidebarIcon');
+            const button = document.getElementById('toggleSidebar');
+            
+            sidebar.classList.toggle('open');
+            
+            if (sidebar.classList.contains('open')) {
+                icon.className = 'fas fa-chevron-left';
+                button.innerHTML = '<i class="fas fa-times me-1"></i>Close';
+            } else {
+                icon.className = 'fas fa-chevron-right';
+                button.innerHTML = '<i class="fas fa-bars me-1"></i>Locations';
+            }
+        }
+        
+        function focusEntry(entryId) {
+            const marker = markers[entryId];
+            if (marker) {
+                map.setView(marker.getLatLng(), 16);
+                marker.openPopup();
+                highlightSidebarEntry(entryId);
+            }
+        }
+        
+        function highlightSidebarEntry(entryId) {
+            // Remove previous highlights
+            document.querySelectorAll('.entry-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Highlight current entry
+            const card = document.querySelector(`[data-entry-id="${entryId}"]`);
+            if (card) {
+                card.classList.add('active');
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        
+        // Category filtering
+        function updateMarkerVisibility() {
+            const checkboxes = document.querySelectorAll('.category-checkbox');
+            const showAllCheckbox = document.getElementById('filter-all');
+            const visibleCategories = [];
+            
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    visibleCategories.push(checkbox.dataset.category);
+                }
+            });
+            
+            // Update "Show All" checkbox
+            showAllCheckbox.checked = visibleCategories.length === checkboxes.length;
+            
+            // Show/hide markers
+            entries.forEach(entry => {
+                const marker = markers[entry.id];
+                if (marker) {
+                    if (visibleCategories.includes(entry.category)) {
+                        markerGroup.addLayer(marker);
+                    } else {
+                        markerGroup.removeLayer(marker);
+                    }
+                }
+            });
+            
+            // Show/hide sidebar entries
+            document.querySelectorAll('.entry-card').forEach(card => {
+                const entryId = parseInt(card.dataset.entryId);
+                const entry = entries.find(e => e.id === entryId);
+                if (entry && visibleCategories.includes(entry.category)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        // Event listeners for category filters
+        document.querySelectorAll('.category-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateMarkerVisibility);
+        });
+        
+        document.getElementById('filter-all').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.category-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateMarkerVisibility();
+        });
+        
+        // Map controls
+        function resetView() {
+            if (entries.length > 0) {
+                const group = new L.featureGroup(Object.values(markers));
+                group.addLayer(L.marker(propertyCoords));
+                map.fitBounds(group.getBounds().pad(0.1));
+            } else {
+                map.setView(propertyCoords, 13);
+            }
+        }
+        
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        
+        // Handle URL hash for direct entry linking
+        function handleHash() {
+            const hash = window.location.hash;
+            if (hash.startsWith('#entry-')) {
+                const entryId = parseInt(hash.replace('#entry-', ''));
+                focusEntry(entryId);
+                // Open sidebar to show the entry
+                document.getElementById('sidebar').classList.add('open');
+                document.getElementById('sidebarIcon').className = 'fas fa-chevron-left';
+                document.getElementById('toggleSidebar').innerHTML = '<i class="fas fa-times me-1"></i>Close';
+            }
+        }
+        
+        // Handle hash on page load and hash changes
+        window.addEventListener('load', handleHash);
+        window.addEventListener('hashchange', handleHash);
+        
+        // Responsive map resize
+        window.addEventListener('resize', function() {
+            map.invalidateSize();
+        });
+    </script>
+</body>
+</html>

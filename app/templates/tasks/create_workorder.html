@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Create New Work Order</h1>
+        <a href="{{ url_for('tasks.workorders') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Work Orders
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Work Order Details</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {{ form.hidden_tag() }}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control") }}
+                            {% for error in form.title.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.due_date.label(class="form-label") }}
+                            {{ form.due_date(class="form-control", type="datetime-local") }}
+                            {% for error in form.due_date.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.status.label(class="form-label") }}
+                            {{ form.status(class="form-control") }}
+                            {% for error in form.status.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.priority.label(class="form-label") }}
+                            {{ form.priority(class="form-control") }}
+                            {% for error in form.priority.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.properties.label(class="form-label") }}
+                    {{ form.properties(class="form-control") }}
+                    {% for error in form.properties.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                    <small class="form-text text-muted">Select one or more properties this work order applies to. Hold Ctrl/Cmd to select multiple.</small>
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-control", rows=3) }}
+                    {% for error in form.description.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.tags.label(class="form-label") }}
+                    {{ form.tags(class="form-control", placeholder="workorder, maintenance, repair, etc.") }}
+                    {% for error in form.tags.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                    <small class="form-text text-muted">
+                        The "workorder" tag will be automatically added. Add additional tags separated by commas.
+                    </small>
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.notes.label(class="form-label") }}
+                    {{ form.notes(class="form-control", rows=2) }}
+                    {% for error in form.notes.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="accordion mb-4" id="additionalOptions">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="recurrenceHeading">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#recurrenceOptions" aria-expanded="false" aria-controls="recurrenceOptions">
+                                Recurrence Options
+                            </button>
+                        </h2>
+                        <div id="recurrenceOptions" class="accordion-collapse collapse" aria-labelledby="recurrenceHeading" data-bs-parent="#additionalOptions">
+                            <div class="accordion-body">
+                                <div class="form-check mb-3">
+                                    {{ form.is_recurring(class="form-check-input") }}
+                                    {{ form.is_recurring.label(class="form-check-label") }}
+                                </div>
+                                
+                                <div class="row recurrence-options" id="recurrenceFields">
+                                    <div class="col-md-4 mb-3">
+                                        {{ form.recurrence_pattern.label(class="form-label") }}
+                                        {{ form.recurrence_pattern(class="form-control") }}
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        {{ form.recurrence_interval.label(class="form-label") }}
+                                        {{ form.recurrence_interval(class="form-control", type="number", min=1) }}
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        {{ form.recurrence_end_date.label(class="form-label") }}
+                                        {{ form.recurrence_end_date(class="form-control", type="date") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="assignmentHeading">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#assignmentOptions" aria-expanded="false" aria-controls="assignmentOptions">
+                                Assignment Options
+                            </button>
+                        </h2>
+                        <div id="assignmentOptions" class="accordion-collapse collapse" aria-labelledby="assignmentHeading" data-bs-parent="#additionalOptions">
+                            <div class="accordion-body">
+                                <div class="form-check mb-3">
+                                    {{ form.assign_to_next_cleaner(class="form-check-input") }}
+                                    {{ form.assign_to_next_cleaner.label(class="form-check-label") }}
+                                    <small class="form-text text-muted d-block">
+                                        If checked, this work order will be automatically assigned to the next cleaner scheduled for this property.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('tasks.workorders') }}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle recurrence fields visibility based on is_recurring checkbox
+    const isRecurringCheckbox = document.getElementById('is_recurring');
+    const recurrenceFields = document.getElementById('recurrenceFields');
+    
+    function updateRecurrenceFieldsVisibility() {
+        if (isRecurringCheckbox.checked) {
+            recurrenceFields.style.display = 'flex';
+        } else {
+            recurrenceFields.style.display = 'none';
+        }
+    }
+    
+    // Initialize on page load
+    updateRecurrenceFieldsVisibility();
+    
+    // Update when checkbox changes
+    isRecurringCheckbox.addEventListener('change', updateRecurrenceFieldsVisibility);
+});
+</script>
+{% endblock %}
+{% endblock %} 

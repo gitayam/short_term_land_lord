@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <a href="{{ url_for('messages.threads') }}" class="btn btn-outline-secondary mb-3">
+                <i class="fas fa-arrow-left"></i> Back to Messages
+            </a>
+            {% if msg_type == 'sms' and thread and messages %}
+                <h2>SMS Conversation</h2>
+                <div class="card mb-4">
+                    <div class="card-header">With {{ thread.participant_phone }}</div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        {% for msg in messages %}
+                            <div class="mb-3">
+                                <div class="fw-bold">{{ msg.phone_number }} <span class="text-muted small">{{ msg.created_at.strftime('%b %d, %Y %I:%M %p') }}</span></div>
+                                <div>{{ msg.content }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="reply" class="form-label">Reply</label>
+                        <textarea class="form-control" id="reply" name="reply" rows="2" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Reply</button>
+                </form>
+            {% elif msg_type == 'notification' and notification %}
+                <h2>Notification</h2>
+                <div class="card">
+                    <div class="card-header">From System</div>
+                    <div class="card-body">
+                        <div class="fw-bold mb-2">{{ notification.created_at.strftime('%b %d, %Y %I:%M %p') }}</div>
+                        <div>{{ notification.message }}</div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-warning">Message not found or unsupported type.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

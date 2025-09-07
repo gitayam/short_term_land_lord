@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="text-align: center; padding: 4rem 0;">
+    <h1 style="font-size: 3rem; margin-bottom: 1rem; color: #1a202c;">Welcome to Short Term Landlord</h1>
+    <p style="font-size: 1.2rem; color: #718096; margin-bottom: 2rem;">Complete property management solution for short-term rentals</p>
+    
+    <div style="margin-bottom: 3rem;">
+        <a href="{{ url_for('register') }}" class="btn" style="margin-right: 1rem;">Get Started</a>
+        <a href="{{ url_for('login') }}" class="btn btn-secondary">Sign In</a>
+    </div>
+
+    <div class="grid" style="text-align: left; margin-top: 4rem;">
+        <div class="card">
+            <h3 style="color: #667eea; margin-bottom: 1rem;">🏡 Property Management</h3>
+            <p>Manage all your short-term rental properties in one place. Track bookings, maintenance, and guest information.</p>
+        </div>
+        
+        <div class="card">
+            <h3 style="color: #667eea; margin-bottom: 1rem;">📅 Worker Calendar</h3>
+            <p>Share cleaning schedules with your team. Workers can access checkout times and property details via secure links.</p>
+        </div>
+        
+        <div class="card">
+            <h3 style="color: #667eea; margin-bottom: 1rem;">📖 Guest Guidebooks</h3>
+            <p>Create interactive digital guidebooks with local recommendations, maps, and essential property information for guests.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

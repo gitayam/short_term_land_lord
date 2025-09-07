@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-video mr-2"></i> Upload Cleaning Video
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p><strong>Instructions:</strong></p>
+                        <ul>
+                            <li>Upload a <strong>start video</strong> when you begin cleaning to document the initial state of the property.</li>
+                            <li>Upload an <strong>end video</strong> when you finish cleaning to document the final state of the property.</li>
+                            <li>Videos should be brief (1-2 minutes) but should show the key areas of the property.</li>
+                            <li>Supported formats: MP4, MOV, AVI, WEBM</li>
+                            <li>Maximum file size: 50MB</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-group">
+                            {{ form.video_type.label(class="form-control-label font-weight-bold") }}
+                            <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
+                                <label class="btn btn-outline-primary">
+                                    <input type="radio" name="video_type" value="start" id="video_type-0" autocomplete="off" {% if form.video_type.data == 'start' %}checked{% endif %}> 
+                                    <i class="fas fa-play-circle mr-1"></i> Start of Cleaning
+                                </label>
+                                <label class="btn btn-outline-success">
+                                    <input type="radio" name="video_type" value="end" id="video_type-1" autocomplete="off" {% if form.video_type.data == 'end' %}checked{% endif %}> 
+                                    <i class="fas fa-check-circle mr-1"></i> End of Cleaning
+                                </label>
+                            </div>
+                            {% if form.video_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.video_type.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group mt-4">
+                            {{ form.video.label(class="form-control-label font-weight-bold") }}
+                            <div class="custom-file">
+                                {{ form.video(class="custom-file-input", id="videoUpload") }}
+                                <label class="custom-file-label" for="videoUpload">Choose file...</label>
+                            </div>
+                            {% if form.video.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.video.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Maximum file size: 50MB
+                            </small>
+                        </div>
+                        
+                        <div class="progress mt-3 d-none" id="uploadProgress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                        </div>
+                        
+                        <div class="form-group mt-4">
+                            {{ form.submit(class="btn btn-primary btn-lg btn-block") }}
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('tasks.view', id=session.task_id) }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left mr-1"></i> Back to Task
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Update file input label with selected filename
+    document.querySelector('.custom-file-input').addEventListener('change', function(e) {
+        var fileName = e.target.files[0].name;
+        var nextSibling = e.target.nextElementSibling;
+        nextSibling.innerText = fileName;
+    });
+    
+    // Show progress bar on form submission
+    document.querySelector('form').addEventListener('submit', function() {
+        document.getElementById('uploadProgress').classList.remove('d-none');
+        // Simulate progress (in a real app, you'd use AJAX to track actual upload progress)
+        var progressBar = document.querySelector('.progress-bar');
+        var width = 0;
+        var interval = setInterval(function() {
+            if (width >= 90) {
+                clearInterval(interval);
+            } else {
+                width += 5;
+                progressBar.style.width = width + '%';
+                progressBar.setAttribute('aria-valuenow', width);
+            }
+        }, 300);
+    });
+</script>
+{% endblock %}

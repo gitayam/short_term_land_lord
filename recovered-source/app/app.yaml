@@ -1,0 +1,11 @@
+runtime: python311
+
+env_variables:
+  SECRET_KEY: "ys-UAwX9cpR15q61xQMvDsv03KUvigYnLyv5rkOQZsg"
+  DATABASE_URL: "sqlite:///:memory:"
+  GOOGLE_CLOUD_PROJECT_ID: "serverless-test-12345"
+
+entrypoint: gunicorn main:app --bind :$PORT
+
+automatic_scaling:
+  max_instances: 10

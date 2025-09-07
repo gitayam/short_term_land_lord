@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Reorder Tasks for {{ property.name }}</h1>
+        <div>
+            <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-secondary">
+                Back to Tasks
+            </a>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Drag and drop tasks to reorder them. Service staff will see tasks in this order during cleaning.
+    </div>
+
+    {% if tasks %}
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Task Order</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" id="reorderForm">
+                <ul class="list-group" id="sortable-tasks">
+                    {% for task in tasks %}
+                    <li class="list-group-item" data-id="{{ task.id }}">
+                        <div class="d-flex align-items-center">
+                            <div class="drag-handle me-3">
+                                <i class="fas fa-grip-vertical text-muted"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-1">{{ task.title }}</h5>
+                                    <span>
+                                        {% if task.status.value == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% elif task.status.value == 'in_progress' %}
+                                        <span class="badge bg-primary">In Progress</span>
+                                        {% elif task.status.value == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div>
+                                    {% if task.priority.value == 'low' %}
+                                    <span class="badge bg-secondary">Low</span>
+                                    {% elif task.priority.value == 'medium' %}
+                                    <span class="badge bg-info">Medium</span>
+                                    {% elif task.priority.value == 'high' %}
+                                    <span class="badge bg-warning">High</span>
+                                    {% elif task.priority.value == 'urgent' %}
+                                    <span class="badge bg-danger">Urgent</span>
+                                    {% endif %}
+                                    
+                                    {% if task.due_date %}
+                                    <span class="text-muted ms-2">Due: {{ task.due_date.strftime('%Y-%m-%d') }}</span>
+                                    {% endif %}
+                                </div>
+                                <input type="hidden" name="task_order[]" value="{{ task.id }}">
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Save Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> No tasks found for this property.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tasksList = document.getElementById('sortable-tasks');
+        if (tasksList) {
+            new Sortable(tasksList, {
+                animation: 150,
+                handle: '.drag-handle',
+                onSort: function(evt) {
+                    // Update the hidden input values in the form
+                    const items = tasksList.querySelectorAll('li');
+                    items.forEach(function(item, index) {
+                        const taskId = item.getAttribute('data-id');
+                        const hiddenInput = item.querySelector('input[name="task_order[]"]');
+                        if (hiddenInput) {
+                            hiddenInput.value = taskId;
+                        }
+                    });
+                }
+            });
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Staff Invitation</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; line-height: 1.6; color: #333333; background-color: #f4f4f4;">
+    <!-- Email Container -->
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f4f4;">
+        <tr>
+            <td style="padding: 20px 0;">
+                <!-- Email Content -->
+                <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 20px; text-align: center; background-color: #007bff; border-radius: 8px 8px 0 0;">
+                            <img src="{{ url_for('static', filename='img/logo.png', _external=True) }}" alt="Company Logo" style="max-width: 200px; height: auto;">
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 30px;">
+                            <h1 style="margin: 0 0 20px 0; color: #333333; font-size: 24px;">Welcome to Our Platform</h1>
+                            
+                            <p style="margin: 0 0 20px 0;">Dear {{ user.first_name }} {{ user.last_name }},</p>
+                            
+                            <p style="margin: 0 0 20px 0;">You have been invited by {{ inviter.first_name }} {{ inviter.last_name }} to join our platform as a {{ service_type_display }} staff member.</p>
+                            
+                            {% if message %}
+                            <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #007bff;">
+                                <p style="margin: 0 0 10px 0; font-weight: bold;">Personal message from {{ inviter.first_name }}:</p>
+                                <p style="margin: 0;">{{ message }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            <p style="margin: 0 0 20px 0;">Your login credentials are:</p>
+                            <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 0 20px 0; width: 100%;">
+                                <tr>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border: 1px solid #dee2e6;">
+                                        <strong>Email:</strong> {{ user.email }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 10px; background-color: #f8f9fa; border: 1px solid #dee2e6;">
+                                        <strong>Password:</strong> {{ password }}
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="margin: 0 0 20px 0;">To complete your registration, please click the button below:</p>
+                            
+                            <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 0 20px 0;">
+                                <tr>
+                                    <td align="center" style="padding: 10px 0;">
+                                        <a href="{{ url_for('auth.register', _external=True) }}" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: #ffffff; text-decoration: none; border-radius: 4px; font-weight: bold;">Complete Registration</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="margin: 0 0 20px 0;">If you did not expect this invitation, please ignore this email.</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px; text-align: center; background-color: #f8f9fa; border-top: 1px solid #dee2e6; border-radius: 0 0 8px 8px;">
+                            <p style="margin: 0 0 10px 0; font-size: 14px; color: #6c757d;">© {{ now.year }} Short Term Landlord. All rights reserved.</p>
+                            <p style="margin: 0; font-size: 14px; color: #6c757d;">
+                                <a href="{{ url_for('main.index', _external=True) }}" style="color: #007bff; text-decoration: none;">Home</a> |
+                                <a href="mailto:support@shorttermlandlord.com" style="color: #007bff; text-decoration: none;">Contact Support</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html> 

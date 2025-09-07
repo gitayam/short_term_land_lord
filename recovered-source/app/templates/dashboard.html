@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>Dashboard</h1>
+        <a href="{{ url_for('new_property') }}" class="btn">Add New Property</a>
+    </div>
+
+    {% if properties %}
+    <div class="grid">
+        {% for property in properties %}
+        <div class="card">
+            <h3 style="color: #667eea; margin-bottom: 0.5rem;">{{ property.name }}</h3>
+            <p style="color: #718096; margin-bottom: 1rem;">{{ property.address }}</p>
+            
+            <div style="margin-bottom: 1rem;">
+                <span style="background: #e2e8f0; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin-right: 0.5rem;">
+                    {{ property.bedrooms }} bed
+                </span>
+                <span style="background: #e2e8f0; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
+                    {{ property.bathrooms }} bath
+                </span>
+            </div>
+            
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 1rem; margin-top: 1rem;">
+                <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <strong>Worker Calendar:</strong><br>
+                    <a href="{{ url_for('worker_calendar', token=property.worker_calendar_token) }}" 
+                       style="color: #667eea; word-break: break-all; font-size: 0.8rem;">
+                        {{ request.host_url }}worker-calendar/{{ property.worker_calendar_token }}
+                    </a>
+                </div>
+                
+                <div style="font-size: 0.9rem;">
+                    <strong>Guest Guidebook:</strong><br>
+                    <a href="{{ url_for('guest_guidebook', property_id=property.id, token=property.guest_access_token) }}" 
+                       style="color: #667eea; word-break: break-all; font-size: 0.8rem;">
+                        {{ request.host_url }}guest/{{ property.id }}/guidebook?token={{ property.guest_access_token }}
+                    </a>
+                </div>
+            </div>
+            
+            <div style="margin-top: 1rem; text-align: right;">
+                <a href="{{ url_for('view_property', property_id=property.id) }}" class="btn" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                    View Details
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <h3 style="color: #718096; margin-bottom: 1rem;">No properties yet</h3>
+        <p style="margin-bottom: 2rem;">Add your first property to start managing your short-term rentals.</p>
+        <a href="{{ url_for('new_property') }}" class="btn">Add Your First Property</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>My Assigned Properties</h1>
+                <a href="{{ url_for('workforce.index') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% if assigned_properties %}
+            {% for property in assigned_properties %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="row g-0">
+                        <div class="col-md-4">
+                            <img src="{{ property.get_primary_image_url() }}" class="img-fluid rounded-start h-100" alt="{{ property.name }}" style="object-fit: cover;">
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ property.name }}</h5>
+                                <p class="card-text">{{ property.get_full_address() }}</p>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        {{ property.bedrooms }} bed{% if property.bedrooms != 1 %}s{% endif %}, 
+                                        {{ property.bathrooms }} bath{% if property.bathrooms != 1 %}s{% endif %}
+                                        {% if property.square_feet %}, {{ property.square_feet }} sq ft{% endif %}
+                                    </small>
+                                </p>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-primary">
+                                        <i class="fas fa-eye"></i> View Property
+                                    </a>
+                                    <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-tasks"></i> View Tasks
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> You are not currently assigned to any properties.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

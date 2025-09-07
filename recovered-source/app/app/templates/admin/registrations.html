@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">{{ title }}</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item active">Registration Requests</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('admin.registrations', status='pending') }}" 
+                   class="btn btn-outline-primary {{ 'active' if current_status == 'pending' }}">
+                    Pending
+                </a>
+                <a href="{{ url_for('admin.registrations', status='approved') }}"
+                   class="btn btn-outline-success {{ 'active' if current_status == 'approved' }}">
+                    Approved
+                </a>
+                <a href="{{ url_for('admin.registrations', status='rejected') }}"
+                   class="btn btn-outline-danger {{ 'active' if current_status == 'rejected' }}">
+                    Rejected
+                </a>
+                <a href="{{ url_for('admin.registrations', status='all') }}"
+                   class="btn btn-outline-secondary {{ 'active' if current_status == 'all' }}">
+                    All Requests
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    {% if requests %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Property</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in requests %}
+                                <tr>
+                                    <td>{{ request.first_name }} {{ request.last_name }}</td>
+                                    <td>{{ request.email }}</td>
+                                    <td>
+                                        {% if request.role == 'property_owner' %}
+                                        <span class="badge badge-primary">Property Owner</span>
+                                        {% elif request.role == 'property_manager' %}
+                                        <span class="badge badge-info">Property Manager</span>
+                                        {% elif request.role == 'service_staff' %}
+                                        <span class="badge badge-secondary">Service Staff</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ request.created_at.strftime('%b %d, %Y') }}</td>
+                                    <td>
+                                        {% if request.status.value == 'pending' %}
+                                        <span class="badge badge-warning">Pending</span>
+                                        {% elif request.status.value == 'approved' %}
+                                        <span class="badge badge-success">Approved</span>
+                                        {% elif request.status.value == 'rejected' %}
+                                        <span class="badge badge-danger">Rejected</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if request.property_name %}
+                                        {{ request.property_name }}
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if request.status.value == 'pending' %}
+                                        <a href="{{ url_for('admin.review_registration', id=request.id) }}" class="btn btn-sm btn-primary">
+                                            Review
+                                        </a>
+                                        {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-toggle="modal" data-target="#notesModal{{ request.id }}">
+                                            Details
+                                        </button>
+                                        
+                                        <!-- Notes Modal -->
+                                        <div class="modal fade" id="notesModal{{ request.id }}" tabindex="-1" role="dialog" aria-labelledby="notesModalLabel{{ request.id }}" aria-hidden="true">
+                                            <div class="modal-dialog" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="notesModalLabel{{ request.id }}">Request Details</h5>
+                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <h6>Admin Notes:</h6>
+                                                        <p>{{ request.admin_notes|default('No admin notes available.', true) }}</p>
+                                                        
+                                                        <h6>User Message:</h6>
+                                                        <p>{{ request.message|default('No message provided.', true) }}</p>
+                                                        
+                                                        {% if request.property_name %}
+                                                        <h6>Property Information:</h6>
+                                                        <p><strong>Name:</strong> {{ request.property_name }}</p>
+                                                        <p><strong>Address:</strong> {{ request.property_address }}</p>
+                                                        <p><strong>Description:</strong> {{ request.property_description }}</p>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <h4 class="alert-heading">No Requests Found</h4>
+                        <p>There are no registration requests with the selected status.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

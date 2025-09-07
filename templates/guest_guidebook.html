@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Guidebook - {{ property.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; text-align: center; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+        .property-info { background: white; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .categories { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+        .category-btn { background: #e2e8f0; color: #4a5568; padding: 0.5rem 1rem; border: none; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
+        .category-btn.active { background: #667eea; color: white; }
+        .entries { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+        .entry { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .entry-title { font-weight: bold; color: #2d3748; margin-bottom: 0.5rem; }
+        .entry-category { background: #e2e8f0; color: #4a5568; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.8rem; margin-bottom: 0.5rem; display: inline-block; }
+        .entry-description { color: #718096; margin-bottom: 1rem; line-height: 1.5; }
+        .entry-details { font-size: 0.9rem; color: #4a5568; }
+        .no-entries { text-align: center; padding: 3rem; color: #718096; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📖 Local Guidebook</h1>
+        <p>{{ property.name }}</p>
+        <p style="font-size: 0.9rem; opacity: 0.9;">{{ property.address }}</p>
+    </div>
+
+    <div class="container">
+        <div class="property-info">
+            <h3 style="color: #667eea; margin-bottom: 1rem;">Welcome to {{ property.name }}!</h3>
+            {% if property.description %}
+                <p style="margin-bottom: 1rem;">{{ property.description }}</p>
+            {% endif %}
+            <div style="display: flex; gap: 2rem; font-size: 0.9rem; color: #4a5568;">
+                <span><strong>Check-in:</strong> {{ property.checkin_time }}</span>
+                <span><strong>Check-out:</strong> {{ property.checkout_time }}</span>
+            </div>
+        </div>
+
+        {% if categories %}
+        <div class="categories">
+            <button class="category-btn active" onclick="filterEntries('all')">All</button>
+            {% for category in categories %}
+            <button class="category-btn" onclick="filterEntries('{{ category }}')">{{ category|title }}</button>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="entries" id="entries">
+            {% if entries %}
+                {% for entry in entries %}
+                <div class="entry" data-category="{{ entry.category }}">
+                    <div class="entry-title">{{ entry.title }}</div>
+                    <div class="entry-category">{{ entry.category|title }}</div>
+                    {% if entry.description %}
+                    <div class="entry-description">{{ entry.description }}</div>
+                    {% endif %}
+                    <div class="entry-details">
+                        {% if entry.address %}
+                        <div>📍 {{ entry.address }}</div>
+                        {% endif %}
+                        {% if entry.phone %}
+                        <div>📞 {{ entry.phone }}</div>
+                        {% endif %}
+                        {% if entry.website %}
+                        <div>🌐 <a href="{{ entry.website }}" target="_blank" style="color: #667eea;">Website</a></div>
+                        {% endif %}
+                        {% if entry.hours %}
+                        <div>🕒 {{ entry.hours }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-entries">
+                    <h4>Guidebook Coming Soon</h4>
+                    <p>Your host is working on adding local recommendations for you.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function filterEntries(category) {
+            const entries = document.querySelectorAll('.entry');
+            const buttons = document.querySelectorAll('.category-btn');
+            
+            // Update button states
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show/hide entries
+            entries.forEach(entry => {
+                if (category === 'all' || entry.dataset.category === category) {
+                    entry.style.display = 'block';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

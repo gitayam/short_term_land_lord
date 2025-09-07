@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">Review Registration Request</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.registrations') }}">Registration Requests</a></li>
+                    <li class="breadcrumb-item active">Review Request</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-7">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Applicant Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Name:</strong> {{ request.first_name }} {{ request.last_name }}</p>
+                            <p><strong>Email:</strong> {{ request.email }}</p>
+                            <p><strong>Role:</strong> 
+                                {% if request.role == 'property_owner' %}
+                                <span class="badge badge-primary">Property Owner</span>
+                                {% elif request.role == 'property_manager' %}
+                                <span class="badge badge-info">Property Manager</span>
+                                {% elif request.role == 'service_staff' %}
+                                <span class="badge badge-secondary">Service Staff</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Date Requested:</strong> {{ request.created_at.strftime('%b %d, %Y %H:%M') }}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge badge-warning">Pending Review</span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {% if request.message %}
+                    <div class="mt-3">
+                        <h6>Applicant Message:</h6>
+                        <div class="p-3 bg-light rounded">
+                            {{ request.message|nl2br }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if request.property_name %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Property Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Property Name:</strong> {{ request.property_name }}</p>
+                    <p><strong>Address:</strong> {{ request.property_address }}</p>
+                    
+                    {% if request.property_description %}
+                    <h6 class="mt-3">Property Description:</h6>
+                    <div class="p-3 bg-light rounded">
+                        {{ request.property_description|nl2br }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Review Decision</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('admin.review_registration', id=request.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-group">
+                            {{ form.notes.label }}
+                            {{ form.notes(class="form-control", rows=3) }}
+                            <small class="form-text text-muted">{{ form.notes.description }}</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.action.label }}
+                            {{ form.action(class="form-control") }}
+                        </div>
+                        
+                        <div class="form-group rejection-reason-group" style="display: none;">
+                            {{ form.rejection_reason.label }}
+                            {{ form.rejection_reason(class="form-control", rows=3) }}
+                            <small class="form-text text-muted">{{ form.rejection_reason.description }}</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.submit(class="btn btn-primary btn-block") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        // Show/hide rejection reason based on action selection
+        $('#action').change(function() {
+            if ($(this).val() === 'reject') {
+                $('.rejection-reason-group').show();
+            } else {
+                $('.rejection-reason-group').hide();
+            }
+        });
+        
+        // Initial state
+        $('#action').trigger('change');
+    });
+</script>
+{% endblock %} 

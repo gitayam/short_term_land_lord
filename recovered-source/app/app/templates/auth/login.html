@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="h3 mb-0">Login</h1>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+                    
+                    {% if use_local and local_form %}
+                    <form method="POST" action="{{ url_for('auth.login') }}">
+                        {{ local_form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ local_form.email.label(class="form-label") }}
+                            {{ local_form.email(class="form-control") }}
+                            {% for error in local_form.email.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ local_form.password.label(class="form-label") }}
+                            {{ local_form.password(class="form-control") }}
+                            {% for error in local_form.password.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            {{ local_form.remember_me(class="form-check-input") }}
+                            {{ local_form.remember_me.label(class="form-check-label") }}
+                        </div>
+                        
+                        <div class="d-grid">
+                            {{ local_form.submit(class="btn btn-primary") }}
+                        </div>
+                        
+                        {% if config.get('ENABLE_PASSWORD_RESET', False) %}
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('auth.reset_password_request') }}">Forgot your password?</a>
+                        </div>
+                        {% endif %}
+                    </form>
+                    {% endif %}
+                    
+                    {% if use_sso and sso_form %}
+                    <div class="mt-4">
+                        <hr>
+                        <h5 class="text-center">OR</h5>
+                        <form method="POST" action="{{ url_for('auth.login') }}">
+                            {{ sso_form.hidden_tag() }}
+                            <div class="d-grid">
+                                {{ sso_form.submit(class="btn btn-secondary") }}
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer text-center">
+                    <p class="mb-0">Don't have an account? <a href="{{ url_for('auth.register') }}">Register</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Assign Task: {{ task.title }}</h1>
+        <a href="{{ url_for('tasks.view', id=task.id) }}" class="btn btn-secondary">Back to Task</a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Current Assignments</h5>
+                </div>
+                <div class="card-body">
+                    {% if assignments %}
+                    <ul class="list-group">
+                        {% for assignment in assignments %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {% if assignment.user %}
+                            <div>
+                                <strong>{{ assignment.user.get_full_name() }}</strong>
+                                <div class="text-muted">{{ assignment.user.email }}</div>
+                                <div class="badge bg-info">{{ assignment.user.role.value }}</div>
+                            </div>
+                            {% else %}
+                            <div>
+                                <strong>{{ assignment.external_name }}</strong>
+                                {% if assignment.external_phone %}
+                                <div class="text-muted">📞 {{ assignment.external_phone }}</div>
+                                {% endif %}
+                                {% if assignment.external_email %}
+                                <div class="text-muted">📧 {{ assignment.external_email }}</div>
+                                {% endif %}
+                                <div class="badge bg-secondary">External</div>
+                            </div>
+                            {% endif %}
+                            
+                            <form method="post" action="{{ url_for('tasks.remove_assignment', task_id=task.id, assignment_id=assignment.id) }}" onsubmit="return confirm('Are you sure you want to remove this assignment?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="alert alert-info">
+                        This task is not assigned to anyone yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Add Assignment</h5>
+                </div>
+                <div class="card-body">
+                    {% if has_service_staff %}
+                    <form method="post" action="{{ url_for('tasks.assign', id=task.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-check mb-3">
+                            {{ form.assign_to_user(class="form-check-input") }}
+                            {{ form.assign_to_user.label(class="form-check-label") }}
+                        </div>
+                        
+                        <div id="user-assignment">
+                            <div class="form-group mb-3">
+                                {{ form.user.label(class="form-label") }}
+                                {{ form.user(class="form-control") }}
+                                {% for error in form.user.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                {{ form.service_type.label(class="form-label") }}
+                                {{ form.service_type(class="form-select") }}
+                                {% for error in form.service_type.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div id="external-assignment">
+                            <div class="form-group mb-3">
+                                {{ form.external_name.label(class="form-label") }}
+                                {{ form.external_name(class="form-control") }}
+                                {% for error in form.external_name.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                {{ form.external_phone.label(class="form-label") }}
+                                {{ form.external_phone(class="form-control") }}
+                                <div class="form-text">Enter phone number to send SMS notifications</div>
+                                {% for error in form.external_phone.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                {{ form.external_email.label(class="form-label") }}
+                                {{ form.external_email(class="form-control") }}
+                                <div class="form-text">Enter email to send email notifications or find existing users</div>
+                                {% for error in form.external_email.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="form-group mb-3">
+                                {{ form.service_type.label(class="form-label") }}
+                                {{ form.service_type(class="form-select") }}
+                                {% for error in form.service_type.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="text-end">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <h5>No Service Staff Available</h5>
+                        <p>There are currently no service staff members in the system. You can:</p>
+                        <ul>
+                            <li>Invite service staff using the button below</li>
+                            <li>Assign to an external person using the form below</li>
+                        </ul>
+                        <a href="{{ url_for('workforce.invite_worker') }}" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Invite Service Staff
+                        </a>
+                    </div>
+                    
+                    <hr>
+                    
+                    <form method="post" action="{{ url_for('tasks.assign', id=task.id) }}">
+                        {{ form.hidden_tag() }}
+                        {{ form.assign_to_user(value="0", style="display: none;") }}
+                        
+                        <div class="form-group mb-3">
+                            {{ form.external_name.label(class="form-label") }}
+                            {{ form.external_name(class="form-control") }}
+                            {% for error in form.external_name.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.external_phone.label(class="form-label") }}
+                            {{ form.external_phone(class="form-control") }}
+                            <div class="form-text">Enter phone number to send SMS notifications</div>
+                            {% for error in form.external_phone.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.external_email.label(class="form-label") }}
+                            {{ form.external_email(class="form-control") }}
+                            <div class="form-text">Enter email to send email notifications</div>
+                            {% for error in form.external_email.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            {{ form.service_type.label(class="form-label") }}
+                            {{ form.service_type(class="form-select") }}
+                            {% for error in form.service_type.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="text-end">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const assignToUserCheckbox = document.getElementById('assign_to_user');
+        const userAssignment = document.getElementById('user-assignment');
+        const externalAssignment = document.getElementById('external-assignment');
+        
+        function toggleAssignmentType() {
+            if (userAssignment && externalAssignment) {  // Only toggle if elements exist
+                userAssignment.style.display = assignToUserCheckbox.checked ? 'block' : 'none';
+                externalAssignment.style.display = assignToUserCheckbox.checked ? 'none' : 'block';
+            }
+        }
+        
+        // Initial state
+        if (assignToUserCheckbox) {  // Only setup if checkbox exists
+            toggleAssignmentType();
+            // Listen for changes
+            assignToUserCheckbox.addEventListener('change', toggleAssignmentType);
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

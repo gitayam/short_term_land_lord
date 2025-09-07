@@ -64,49 +64,74 @@ The application has reached **commercial viability** with all core business func
 
 ---
 
-## Phase 2: Platform Enhancement (Current Phase)
-**Target**: Next 4-6 weeks  
-**Priority**: 🎯 **HIGH** - Market Competitiveness
+## Phase 2: Modern UX & Security Transformation (Current Phase)
+**Target**: Next 6 weeks  
+**Priority**: 🎯 **CRITICAL** - Market Competitiveness & Security
 
-### 📱 User Experience Polish (Weeks 1-2)
-- [ ] **Mobile Touch Optimization** 
-  - Fix calendar touch scrolling and event selection
-  - Optimize task management interface for mobile workers
-  - Improve form inputs for smartphone usage
+### 🎨 UI/UX Revolution (Weeks 1-4) - *Applying MUSECO 85% Conversion Patterns*
+- [ ] **Guest-First Experience** (Week 1 - CRITICAL)
+  - Implement Amazon/Eventbrite booking model - payment first, account optional
+  - Remove auth barriers from property viewing and booking flows
+  - Create `templates/property/book.html` for guest booking
+  - Modify `app/auth/routes.py` to enable guest flows
+  - **Expected Impact**: 85% conversion improvement
   
-- [ ] **User Onboarding System**
-  - Create role-specific tutorial flows
-  - Add sample data setup wizard for new users
-  - Implement contextual help system
+- [ ] **Mobile-First Responsive Overhaul** (Weeks 1-2)
+  - Create touch-optimized navigation system
+  - Implement swipe gestures for property galleries
+  - Optimize form inputs for mobile booking
+  - Add `app/static/css/mobile-first.css` with touch interactions
+  - **Target**: <3s load time on 3G connections
 
-- [ ] **Performance Optimization**
-  - Lazy loading for large property lists
-  - Optimize calendar event loading for mobile
-  - Add pagination for task lists
+- [ ] **Component Architecture Modernization** (Weeks 2-3)
+  - Build reusable UI components: BookingFlow, PropertyCard, TaskAssignment
+  - Create `app/static/js/components/` directory structure
+  - Implement real-time status updates for properties and tasks
+  - Add unified modal system for all interactions
 
-### 🔗 Communication Activation (Weeks 2-3)
-- [ ] **SMS Notifications** (Framework Ready)
-  - Complete Twilio configuration setup
-  - Activate task assignment notifications
-  - Emergency repair request alerts
-  - Guest arrival/departure notifications
+- [ ] **Interactive Dashboard Enhancement** (Weeks 3-4)
+  - Real-time property status with WebSocket integration
+  - Drag-drop task management interface
+  - Visual property performance metrics
+  - Live calendar sync status indicators
 
-- [ ] **Email System Activation** (Framework Ready)
-  - Implement automated invoice delivery
-  - Task assignment notifications
-  - Weekly summary reports for property owners
+### 🔐 Security Hardening (Weeks 2-3) - *CLAUDE.md Security Standards*
+- [ ] **Authentication & OAuth Enhancement** (Week 2 - HIGH PRIORITY)
+  - Implement MUSECO OAuth account linking solution
+  - Add support for Google/Apple sign-in with proper account linking
+  - Create `app/auth/oauth.py` for provider management
+  - Resolve OAuthAccountNotLinked errors with manual account creation
 
-### 📊 Analytics & Reporting (Weeks 3-4)
-- [ ] **Business Intelligence Dashboard**
-  - Property performance metrics
-  - Revenue tracking and forecasting  
-  - Staff efficiency reporting
-  - Guest satisfaction analytics
+- [ ] **API Security Implementation** (Week 2-3)
+  - Add Marshmallow input validation to all endpoints
+  - Implement rate limiting for booking and registration
+  - Create `app/utils/validation.py` with comprehensive schemas
+  - Add security middleware with CSRF, XSS, and injection protection
 
-- [ ] **Financial Reporting Enhancement**
-  - Profit/loss statements per property
-  - Maintenance cost tracking and trends
-  - ROI analysis for property improvements
+- [ ] **Database Security** (Week 3)
+  - Implement row-level security for multi-tenant data
+  - Add audit logging for all property and booking operations  
+  - Encrypt PII fields (email, phone, addresses)
+  - Create security-focused database migrations
+
+### 🚀 Performance Optimization (Weeks 3-5) - *Target: Sub-2s Response Times*
+- [ ] **Caching Strategy Implementation** (Week 3 - HIGH IMPACT)
+  - Implement Redis caching for property availability
+  - Cache dashboard aggregations and search results
+  - Create `app/cache/redis_cache.py` with smart invalidation
+  - **Target**: Reduce 7s → <2s response times
+
+- [ ] **Database Query Optimization** (Week 4)
+  - Add performance indexes for property and booking queries
+  - Implement eager loading to prevent N+1 query problems
+  - Create `app/utils/queries.py` for optimized query patterns
+  - Profile and optimize calendar sync operations
+
+- [ ] **Asset & Bundle Optimization** (Week 4-5)
+  - Implement lazy loading for property images and components
+  - Create critical path CSS for above-fold content
+  - Add `webpack.config.js` for asset bundling and minification
+  - Implement CDN strategy for static assets
 
 ---
 
@@ -264,6 +289,228 @@ The application has reached **commercial viability** with all core business func
 - **Strengths**: Easy calendar integration, comprehensive feature set, production-ready infrastructure
 - **Differentiators**: Real-time calendar sync, integrated workforce management, mobile-optimized design
 - **Competitive Advantage**: Faster deployment, better user experience, lower learning curve than established competitors
+
+---
+
+## 🛠️ Technical Implementation Details
+
+### **Source Code Recovery Success** ✅
+- **Docker extraction completed**: Full Flask application recovered from Cloud Run container
+- **Codebase analysis**: 97KB models.py with 27+ database entities, comprehensive feature set
+- **Architecture discovered**: Proper Flask structure with blueprints, templates, static assets
+- **Current capabilities**: 6-role system, property management, task coordination, calendar sync
+
+### **Key Files & Directories Identified**
+```
+app/
+├── auth/                 # Authentication system (needs OAuth enhancement)
+├── property/             # Property management (needs guest-first booking)
+├── tasks/               # Task management (needs real-time updates)  
+├── calendar/            # Calendar integration (working, needs optimization)
+├── inventory/           # Inventory tracking (production-ready)
+├── invoicing/           # Financial system (working)
+├── models.py           # 97KB model file with all entities
+├── static/             # CSS/JS assets (needs modernization)
+└── templates/          # 18 template directories (needs mobile optimization)
+```
+
+### **Immediate Development Priorities**
+
+#### **Week 1: Guest-First Conversion Optimization**
+1. **Modify Authentication Flow**:
+   ```python
+   # app/auth/routes.py - Remove login requirements
+   @app.route('/property/<id>/book', methods=['GET', 'POST'])
+   def book_property(id):
+       # Allow booking without authentication
+       if request.method == 'POST':
+           booking_data = process_guest_booking(request.form, property_id=id)
+           if booking_data['create_account']:
+               create_account_from_booking(booking_data)
+           return redirect(url_for('booking.confirmation', id=booking_data['id']))
+   ```
+
+2. **Create Guest Booking Templates**:
+   - `templates/property/guest-book.html` - Guest booking form
+   - `templates/booking/confirmation.html` - Booking success page
+   - `templates/components/account-creation.html` - Optional account signup
+
+#### **Week 2: Mobile-First UI Overhaul**
+1. **Touch-Optimized Navigation**:
+   ```css
+   /* app/static/css/mobile-first.css */
+   .property-card {
+     min-height: 44px; /* iOS touch target minimum */
+     padding: 12px;
+     margin: 8px 0;
+   }
+   
+   .booking-button {
+     font-size: 18px;
+     padding: 15px 30px;
+     border-radius: 8px;
+   }
+   ```
+
+2. **Swipe Gestures for Property Gallery**:
+   ```javascript
+   // app/static/js/mobile-interactions.js
+   class PropertyGallery {
+     constructor(element) {
+       this.element = element;
+       this.initSwipeGestures();
+     }
+     
+     initSwipeGestures() {
+       let startX = null;
+       this.element.addEventListener('touchstart', (e) => {
+         startX = e.touches[0].clientX;
+       });
+       
+       this.element.addEventListener('touchend', (e) => {
+         if (!startX) return;
+         let endX = e.changedTouches[0].clientX;
+         let diff = startX - endX;
+         
+         if (Math.abs(diff) > 50) { // Minimum swipe distance
+           if (diff > 0) {
+             this.nextImage();
+           } else {
+             this.prevImage();
+           }
+         }
+         startX = null;
+       });
+     }
+   }
+   ```
+
+#### **Week 3: Security & Performance Foundation**
+1. **OAuth Account Linking** (MUSECO pattern):
+   ```python
+   # app/auth/oauth.py
+   from flask import session, request, redirect, url_for
+   from app.models import User, Account
+   
+   class OAuthHandler:
+       def handle_google_callback(self, userinfo):
+           existing_user = User.query.filter_by(email=userinfo['email']).first()
+           
+           if not existing_user:
+               user = User(
+                   email=userinfo['email'],
+                   name=userinfo['name'],
+                   role=UserRoles.TENANT,
+                   email_verified=True
+               )
+               db.session.add(user)
+               db.session.flush()
+           else:
+               user = existing_user
+           
+           # Manual account linking
+           existing_account = Account.query.filter_by(
+               user_id=user.id,
+               provider='google'
+           ).first()
+           
+           if not existing_account:
+               account = Account(
+                   user_id=user.id,
+                   provider='google',
+                   provider_account_id=userinfo['sub'],
+                   access_token=request.oauth_token['access_token']
+               )
+               db.session.add(account)
+           
+           db.session.commit()
+           login_user(user)
+   ```
+
+2. **Redis Caching Implementation**:
+   ```python
+   # app/cache/redis_cache.py
+   from flask_caching import Cache
+   from functools import wraps
+   
+   cache = Cache()
+   
+   def cache_property_availability(timeout=300):
+       def decorator(f):
+           @wraps(f)
+           def decorated_function(*args, **kwargs):
+               cache_key = f"availability_{args[0]}_{kwargs.get('start_date')}_{kwargs.get('end_date')}"
+               result = cache.get(cache_key)
+               if result is None:
+                   result = f(*args, **kwargs)
+                   cache.set(cache_key, result, timeout=timeout)
+               return result
+           return decorated_function
+       return decorator
+   
+   @cache_property_availability()
+   def get_property_availability(property_id, start_date, end_date):
+       # Expensive calendar sync operation
+       return sync_external_calendars(property_id, start_date, end_date)
+   ```
+
+### **Development Environment Setup** 
+```bash
+# 1. Set up local environment
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+
+# 2. Database setup
+export DATABASE_URL="sqlite:///local_development.db"
+flask db upgrade
+
+# 3. Create admin user
+python create_admin.py
+
+# 4. Install Redis for caching
+docker run -d -p 6379:6379 --name redis-cache redis:7-alpine
+
+# 5. Environment variables
+cp .env.production.example .env
+# Edit .env with local development values
+```
+
+### **Testing Strategy**
+Following CLAUDE.md standards:
+```python
+# tests/test_guest_booking.py
+def test_guest_booking_without_account():
+    """Test that guests can book properties without creating accounts"""
+    response = client.post('/property/1/book', data={
+        'check_in': '2025-10-15',
+        'check_out': '2025-10-17', 
+        'guest_email': 'test@example.com',
+        'guest_name': 'Test Guest',
+        'create_account': False
+    })
+    
+    assert response.status_code == 302  # Redirect to confirmation
+    booking = Booking.query.filter_by(guest_email='test@example.com').first()
+    assert booking is not None
+    assert booking.user_id is None  # No account created
+
+def test_guest_booking_with_account_creation():
+    """Test optional account creation after booking"""
+    response = client.post('/property/1/book', data={
+        'check_in': '2025-10-15',
+        'check_out': '2025-10-17',
+        'guest_email': 'test@example.com', 
+        'guest_name': 'Test Guest',
+        'create_account': True,
+        'password': 'testpass123'
+    })
+    
+    assert response.status_code == 302
+    user = User.query.filter_by(email='test@example.com').first()
+    assert user is not None
+    assert user.role == UserRoles.TENANT
+```
 
 ---
 

@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Edit Invoice: {{ invoice.invoice_number }}</h1>
+        <div>
+            <a href="{{ url_for('invoicing.view_invoice', id=invoice.id) }}" class="btn btn-secondary">
+                <i class="fas fa-eye"></i> View Invoice
+            </a>
+            <button class="btn btn-outline-info ml-2" id="previewInvoiceBtn"><i class="fas fa-search"></i> Preview</button>
+            <button class="btn btn-outline-secondary ml-2" id="duplicateInvoiceBtn"><i class="fas fa-copy"></i> Duplicate</button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Invoice Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-group">
+                            {{ form.title.label }}
+                            {{ form.title(class="form-control") }}
+                            {% for error in form.title.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.property.label }}
+                            {{ form.property(class="form-control") }}
+                            {% for error in form.property.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.description.label }}
+                            {{ form.description(class="form-control", rows=3) }}
+                            {% for error in form.description.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.date_from.label }}
+                                    {{ form.date_from(class="form-control", type="date") }}
+                                    {% for error in form.date_from.errors %}
+                                    <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.date_to.label }}
+                                    {{ form.date_to(class="form-control", type="date") }}
+                                    {% for error in form.date_to.errors %}
+                                    <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.tax_rate.label }}
+                                    <div class="input-group">
+                                        {{ form.tax_rate(class="form-control") }}
+                                        <div class="input-group-append">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </div>
+                                    {% for error in form.tax_rate.errors %}
+                                    <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.due_date.label }}
+                                    {{ form.due_date(class="form-control", type="date") }}
+                                    {% for error in form.due_date.errors %}
+                                    <span class="text-danger">{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.payment_notes.label }}
+                            {{ form.payment_notes(class="form-control", rows=2) }}
+                            {% for error in form.payment_notes.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="sticky-top" style="top: 90px; z-index: 10;">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Add Invoice Item</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-success mb-2" data-toggle="modal" data-target="#addItemModal"><i class="fas fa-plus"></i> Add Item</button>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Invoice Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Subtotal:</strong></p>
+                                <p><strong>Tax ({{ "%.1f"|format(invoice.tax_rate * 100) }}%):</strong></p>
+                                <p><strong>Total:</strong></p>
+                            </div>
+                            <div class="col-md-6 text-right">
+                                <p>${{ "%.2f"|format(invoice.subtotal) }}</p>
+                                <p>${{ "%.2f"|format(invoice.tax_amount) }}</p>
+                                <p class="h5">${{ "%.2f"|format(invoice.total) }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <form action="{{ url_for('invoicing.send_invoice', id=invoice.id) }}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-primary" onclick="return confirm('Are you sure you want to mark this invoice as sent? You will not be able to edit it after this.')">
+                                    <i class="fas fa-paper-plane"></i> Mark as Sent
+                                </button>
+                            </form>
+                            
+                            <form action="{{ url_for('invoicing.delete_invoice', id=invoice.id) }}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this invoice? This action cannot be undone.')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5>Invoice Items</h5>
+        </div>
+        <div class="card-body">
+            {% if items %}
+            <div class="table-responsive">
+                <table class="table table-striped" id="invoiceItemsTable">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Amount</th>
+                            <th>Service Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr data-item-id="{{ item.id }}">
+                            <td class="editable" data-field="description">{{ item.description }}</td>
+                            <td class="editable" data-field="quantity">{{ item.quantity }}</td>
+                            <td class="editable" data-field="unit_price">${{ "%.2f"|format(item.unit_price) }}</td>
+                            <td>${{ "%.2f"|format(item.amount) }}</td>
+                            <td>
+                                {% if item.service_type %}
+                                <span title="{{ item.service_type.value.replace('_', ' ').title() }}">
+                                    {% if item.service_type.value == 'cleaning' %}<i class="fas fa-broom"></i>{% endif %}
+                                    {% if item.service_type.value == 'handyman' %}<i class="fas fa-tools"></i>{% endif %}
+                                    {% if item.service_type.value == 'lawn_care' %}<i class="fas fa-seedling"></i>{% endif %}
+                                    {% if item.service_type.value == 'pool_maintenance' %}<i class="fas fa-swimmer"></i>{% endif %}
+                                    {% if item.service_type.value == 'general_maintenance' %}<i class="fas fa-hammer"></i>{% endif %}
+                                    {{ item.service_type.value.replace('_', ' ').title() }}
+                                </span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                <form action="{{ url_for('invoicing.remove_invoice_item', invoice_id=invoice.id, item_id=item.id) }}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to remove this item?')">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-right font-weight-bold">Total:</td>
+                            <td colspan="3" class="font-weight-bold">${{ "%.2f"|format(invoice.total) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No items on this invoice yet. Use "Add Item" to get started.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if tasks or cleaning_sessions %}
+    <div class="row mt-4">
+        {% if tasks %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Available Tasks</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Completed</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                <tr>
+                                    <td>{{ task.title }}</td>
+                                    <td>{{ task.completed_at.strftime('%b %d, %Y') if task.completed_at else '-' }}</td>
+                                    <td>
+                                        <a href="{{ url_for('invoicing.add_task_to_invoice', invoice_id=invoice.id, task_id=task.id) }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-plus"></i> Add
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if cleaning_sessions %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Available Cleaning Sessions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Duration</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in cleaning_sessions %}
+                                <tr>
+                                    <td>{{ session.start_time.strftime('%b %d, %Y') }}</td>
+                                    <td>{{ session.get_duration_display() }}</td>
+                                    <td>
+                                        <a href="{{ url_for('invoicing.add_session_to_invoice', invoice_id=invoice.id, session_id=session.id) }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-plus"></i> Add
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add/Edit Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1" role="dialog" aria-labelledby="addItemModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addItemModalLabel">Add Invoice Item</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="addItemForm" method="post" action="{{ url_for('invoicing.add_invoice_item', id=invoice.id) }}">
+            {{ item_form.hidden_tag() }}
+            <div class="form-group">
+                {{ item_form.description.label }}
+                {{ item_form.description(class="form-control") }}
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ item_form.quantity.label }}
+                        {{ item_form.quantity(class="form-control") }}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {{ item_form.unit_price.label }}
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">$</span>
+                            </div>
+                            {{ item_form.unit_price(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                {{ item_form.service_type.label }}
+                {{ item_form.service_type(class="form-control") }}
+            </div>
+            {{ item_form.task_id() }}
+            {{ item_form.cleaning_session_id() }}
+            <div class="form-group">
+                {{ item_form.submit(class="btn btn-success") }}
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewInvoiceModal" tabindex="-1" role="dialog" aria-labelledby="previewInvoiceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewInvoiceModalLabel">Invoice Preview</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Render a printable preview here (could use an iframe or partial template) -->
+        <iframe src="{{ url_for('invoicing.view_invoice', id=invoice.id) }}" style="width:100%;height:70vh;border:none;"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Sticky summary sidebar
+$(function () {
+    // Bootstrap tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+});
+// Preview modal
+$('#previewInvoiceBtn').on('click', function() {
+    $('#previewInvoiceModal').modal('show');
+});
+// Duplicate invoice (simple redirect for now)
+$('#duplicateInvoiceBtn').on('click', function() {
+    if(confirm('Duplicate this invoice?')) {
+        window.location.href = '{{ url_for('invoicing.create_invoice') }}?duplicate_id={{ invoice.id }}';
+    }
+});
+// Toasts for actions
+function showToast(message, type) {
+    var toast = $('<div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="3000">' +
+        '<div class="toast-header bg-' + type + ' text-white">' +
+        '<strong class="mr-auto">' + (type === 'success' ? 'Success' : 'Error') + '</strong>' +
+        '<button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">' +
+        '<span aria-hidden="true">&times;</span>' +
+        '</button></div>' +
+        '<div class="toast-body">' + message + '</div></div>');
+    $("body").append(toast);
+    toast.toast('show');
+    toast.on('hidden.bs.toast', function () { $(this).remove(); });
+}
+// Inline editing for invoice items (demo only, needs backend for full support)
+$('#invoiceItemsTable').on('click', '.editable', function() {
+    var $cell = $(this);
+    var oldValue = $cell.text();
+    var field = $cell.data('field');
+    var $input = $('<input type="text" class="form-control form-control-sm" value="' + oldValue.replace('$','') + '" />');
+    $cell.html($input);
+    $input.focus();
+    $input.on('blur', function() {
+        var newValue = $input.val();
+        if(newValue !== oldValue) {
+            // TODO: AJAX call to update item
+            showToast('Inline editing is a demo. Backend update needed.', 'info');
+        }
+        $cell.text(newValue);
+    });
+});
+// Responsive table
+$(window).on('resize', function() {
+    if($(window).width() < 600) {
+        $('#invoiceItemsTable').addClass('table-sm');
+    } else {
+        $('#invoiceItemsTable').removeClass('table-sm');
+    }
+}).trigger('resize');
+</script>
+{% endblock %}

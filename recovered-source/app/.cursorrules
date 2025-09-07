@@ -1,0 +1,365 @@
+# Cursor Rules for Short Term Landlord Property Management System
+
+## Project Overview
+This is a Flask-based property management system for short-term rentals with features including:
+- User authentication and role-based access control
+- Property management with calendar integration
+- Task management and assignment
+- Inventory tracking
+- Guest reviews and recommendations
+- Workforce management
+- Admin dashboard
+
+## Architecture Patterns
+
+### Flask Application Structure
+- **Blueprint-based organization**: Each feature module has its own blueprint (`auth`, `property`, `tasks`, `admin`, etc.)
+- **Factory pattern**: Use `create_app()` function for application creation
+- **Configuration management**: Environment-based config with `.env` file
+- **Database**: SQLAlchemy ORM with PostgreSQL/SQLite support
+
+### Code Organization
+- **Models**: Single `app/models.py` file with all database models
+- **Routes**: Blueprint-specific route files (`routes.py`)
+- **Forms**: Organized in `app/forms/` directory
+- **Templates**: Jinja2 templates in `app/templates/`
+- **Static files**: CSS, JS, images in `app/static/`
+- **Utils**: Utility functions in `app/utils/`
+
+## Critical Rules and Best Practices
+
+### 1. Python Import Management
+**ALWAYS** import modules at the top level of files. Never import within functions unless absolutely necessary.
+
+```python
+# ✅ CORRECT - Top-level imports
+from app.utils.config import Config
+from app.models import User, Property
+
+def my_function():
+    if not Config.SOME_SETTING:
+        return
+    # Use Config directly, no local import needed
+
+# ❌ WRONG - Local imports in functions
+def my_function():
+    from app.utils.config import Config  # This causes UnboundLocalError
+    if not Config.SOME_SETTING:
+        return
+```
+
+### 2. Database Session Management
+**ALWAYS** use try/finally blocks for database sessions to prevent connection leaks.
+
+```python
+# ✅ CORRECT - Proper session management
+db = next(get_db())
+try:
+    # Database operations
+    result = db.query(Model).all()
+    db.commit()
+finally:
+    db.close()
+
+# ❌ WRONG - No cleanup
+db = next(get_db())
+result = db.query(Model).all()
+# Session never closed - connection leak!
+```
+
+### 3. Configuration Factory Pattern
+The `create_app()` function must handle both string and class inputs for configuration.
+
+```python
+# ✅ CORRECT - Flexible config handling
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    
+    if isinstance(config_class, str):
+        if config_class == 'testing':
+            from config import TestConfig
+            app.config.from_object(TestConfig)
+        else:
+            app.config.from_object(config_class)
+    else:
+        app.config.from_object(config_class)
+```
+
+### 4. Model-Form-Test Alignment
+When adding new features, ensure consistency across:
+- **Model fields** in `app/models.py`
+- **Form fields** in `app/forms/`
+- **Route handlers** that process form data
+- **Tests** that verify functionality
+
+### 5. User Model Properties
+Use property decorators for computed user attributes instead of direct database queries.
+
+```python
+# ✅ CORRECT - Property-based access
+@property
+def visible_properties(self):
+    """Get properties that this user can see/manage"""
+    if self.has_admin_role:
+        return Property.query.all()
+    elif self.is_property_owner:
+        return self.properties.all()
+    else:
+        return []
+
+# ❌ WRONG - Direct database queries in properties
+@property
+def visible_properties(self):
+    return Property.query.filter_by(owner_id=self.id).all()  # Inefficient
+```
+
+### 6. Error Handling Strategy
+Use specific exception handling with comprehensive logging.
+
+```python
+# ✅ CORRECT - Detailed error handling
+try:
+    result = await some_operation()
+    if result:
+        logger.info(f"Operation successful: {result}")
+        return result
+    else:
+        logger.warning("Operation returned no result")
+        return None
+except SpecificException as e:
+    logger.error(f"Specific error in operation: {e}")
+    # Handle specific case
+except Exception as e:
+    logger.error(f"Unexpected error in operation: {e}", exc_info=True)
+    # Handle general case
+```
+
+### 7. External Service Dependencies
+Always check for required environment variables before using external services.
+
+```python
+# ✅ CORRECT - Graceful degradation
+def send_sms(message, phone_number):
+    if not current_app.config.get('TWILIO_ACCOUNT_SID'):
+        logger.warning("SMS disabled: TWILIO_ACCOUNT_SID not configured")
+        return False
+    
+    try:
+        # SMS sending logic
+        return True
+    except Exception as e:
+        logger.error(f"SMS sending failed: {e}")
+        return False
+```
+
+### 8. Database Schema Synchronization
+When adding model fields, ensure database schema is updated:
+- Use `flask db migrate` for proper migrations
+- Or use direct SQL: `ALTER TABLE table_name ADD COLUMN IF NOT EXISTS column_name TYPE;`
+- Always test database operations after schema changes
+
+### 9. Enum Case Sensitivity
+PostgreSQL enums are case-sensitive. Always use consistent casing:
+
+```python
+# ✅ CORRECT - Consistent lowercase
+class ServiceType(enum.Enum):
+    CLEANING = "cleaning"
+    HANDYMAN = "handyman"
+    GENERAL_MAINTENANCE = "general_maintenance"  # Use lowercase
+
+# ❌ WRONG - Mixed case causes issues
+class ServiceType(enum.Enum):
+    CLEANING = "cleaning"
+    HANDYMAN = "handyman"
+    GENERAL_MAINTENANCE = "GENERAL_MAINTENANCE"  # Mixed case
+```
+
+### 10. Blueprint Registration
+When moving features between blueprints, update ALL template references:
+
+```python
+# ✅ CORRECT - Update all references
+# Old: url_for('auth.invite_service_staff')
+# New: url_for('workforce.invite_worker')
+
+# Update in templates:
+# - app/templates/admin/dashboard.html
+# - app/templates/workforce/staff_dashboard.html
+# - Any other templates using the old endpoint
+```
+
+## File Structure Conventions
+
+### Blueprint Structure
+Each blueprint should follow this pattern:
+```
+app/blueprint_name/
+├── __init__.py          # Blueprint creation
+├── routes.py            # Route definitions
+├── forms.py             # Form classes (if needed)
+└── filters.py           # Template filters (if needed)
+```
+
+### Template Organization
+```
+app/templates/
+├── base.html            # Base template
+├── blueprint_name/      # Blueprint-specific templates
+│   ├── index.html
+│   ├── create.html
+│   ├── edit.html
+│   └── view.html
+└── errors/              # Error pages
+    ├── 404.html
+    └── 500.html
+```
+
+### Static File Organization
+```
+app/static/
+├── css/
+├── js/
+├── img/
+└── uploads/
+    ├── photo/
+    ├── properties/
+    └── recommendations/
+```
+
+## Testing Guidelines
+
+### Test Structure
+- **Unit tests**: Test individual functions in isolation
+- **Integration tests**: Test with real database and external services
+- **Error condition testing**: Test network failures, permission issues, invalid data
+
+### Test Configuration
+```python
+# Use TestConfig for all tests
+@pytest.fixture(scope='function')
+def app():
+    app = create_app(TestConfig)
+    app.config['WTF_CSRF_ENABLED'] = False
+    with app.app_context():
+        db.create_all()
+        yield app
+        db.drop_all()
+```
+
+## Security Considerations
+
+### Authentication
+- Use Flask-Login for session management
+- Implement proper password hashing with Werkzeug
+- Use CSRF protection for forms
+- Validate user permissions on all routes
+
+### Data Validation
+- Use WTForms for form validation
+- Sanitize user inputs
+- Validate file uploads (type, size, content)
+- Use parameterized queries to prevent SQL injection
+
+### Environment Variables
+- Never commit sensitive data to version control
+- Use `.env` file for local development
+- Use environment variables in production
+- Validate required environment variables at startup
+
+## Performance Guidelines
+
+### Database Optimization
+- Use lazy loading for relationships when appropriate
+- Implement proper indexing on frequently queried fields
+- Use database-agnostic queries when possible
+- Monitor for N+1 query problems
+
+### File Uploads
+- Validate file types and sizes
+- Use secure file naming
+- Implement proper storage backends (local, S3, rclone)
+- Clean up temporary files
+
+## Debugging and Logging
+
+### Logging Strategy
+- Use appropriate log levels (DEBUG, INFO, WARNING, ERROR)
+- Include context in log messages (user IDs, room IDs, etc.)
+- Use `exc_info=True` for detailed stack traces
+- Log all external service interactions
+
+### Debugging Workflow
+1. Check logs for specific error messages
+2. Isolate the failing component
+3. Create minimal reproduction case
+4. Test with simplified inputs
+5. Use debugging scripts to isolate issues
+
+## Migration and Deployment
+
+### Database Migrations
+- Use Flask-Migrate for schema changes
+- Test migrations on development data first
+- Backup production database before migrations
+- Handle enum changes carefully (case sensitivity)
+
+### Environment Setup
+- Use Docker for consistent environments
+- Document all environment variables
+- Provide setup scripts for new developers
+- Use different configs for development, testing, and production
+
+## Code Quality Standards
+
+### Function Design
+- Keep functions focused and single-purpose
+- Use descriptive function names
+- Add docstrings for complex functions
+- Break large functions into smaller, testable units
+
+### Error Handling
+- Use specific exception types
+- Provide meaningful error messages
+- Implement graceful degradation
+- Log errors with sufficient context
+
+### Code Organization
+- Separate UI logic from business logic
+- Use helper functions with leading underscore for internal use
+- Maintain consistent indentation (4 spaces for Python)
+- Follow PEP 8 style guidelines
+
+## Common Pitfalls to Avoid
+
+1. **Import scoping issues**: Never import within functions
+2. **Database session leaks**: Always use try/finally
+3. **Configuration inflexibility**: Handle both string and class config inputs
+4. **Model-form-test mismatches**: Keep all three in sync
+5. **Missing user properties**: Use property decorators for computed attributes
+6. **Enum case sensitivity**: Use consistent casing throughout
+7. **Endpoint reference updates**: Update all templates when moving routes
+8. **External service dependencies**: Always check for required config
+9. **Database schema drift**: Keep models and database in sync
+10. **Silent failures**: Implement proper error handling and logging
+
+## Development Workflow
+
+### Before Making Changes
+1. Test current functionality to establish baseline
+2. Create isolated test scripts for complex features
+3. Check for existing similar implementations
+
+### During Development
+1. Make small, incremental changes
+2. Test each change immediately
+3. Use proper error handling from the start
+4. Log important operations for debugging
+
+### After Making Changes
+1. Test the specific functionality changed
+2. Test related functionality that might be affected
+3. Check logs for any new errors or warnings
+4. Verify imports and syntax with `python -m py_compile`
+
+This document should be updated as new patterns and lessons are learned during continued development. 

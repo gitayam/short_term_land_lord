@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3><i class="fas fa-plus"></i> Quick Add Entry</h3>
+                    <p class="text-muted">{{ property.name }}</p>
+                </div>
+                <a href="{{ url_for('guidebook.property_guidebook', property_id=property.id) }}" 
+                   class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            </div>
+
+            <!-- Quick Add Form -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Add a Local Recommendation</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="quickAddForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }} <span class="text-danger">*</span>
+                            {{ form.title(class="form-control", placeholder="Restaurant name, attraction, etc.") }}
+                            {% for error in form.title.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.category.label(class="form-label") }} <span class="text-danger">*</span>
+                            {{ form.category(class="form-select") }}
+                            {% for error in form.category.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.address.label(class="form-label") }}
+                            {{ form.address(class="form-control", placeholder="123 Main St, City") }}
+                            {% for error in form.address.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.host_tip.label(class="form-label") }}
+                            {{ form.host_tip(class="form-control", placeholder="What makes this place special?") }}
+                            {% for error in form.host_tip.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">{{ form.host_tip.description }}</div>
+                        </div>
+
+                        <div class="mb-4">
+                            {{ form.website_url.label(class="form-label") }}
+                            {{ form.website_url(class="form-control", placeholder="https://example.com") }}
+                            {% for error in form.website_url.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            {{ form.submit(class="btn btn-primary") }}
+                            <a href="{{ url_for('guidebook.add_entry', property_id=property.id) }}" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-plus-circle"></i> Add Detailed Entry Instead
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help Text -->
+            <div class="alert alert-info mt-4">
+                <h6><i class="fas fa-lightbulb"></i> Quick Add Tips</h6>
+                <ul class="mb-0">
+                    <li>Perfect for adding simple recommendations quickly</li>
+                    <li>You can always edit entries later to add more details</li>
+                    <li>Consider adding coordinates and images for better guest experience</li>
+                    <li>Use the detailed form for complete entries with photos and hours</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('quickAddForm');
+    const titleField = document.getElementById('title');
+    const categoryField = document.getElementById('category');
+
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+
+        // Clear previous errors
+        document.querySelectorAll('.is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+        });
+
+        // Validate required fields
+        if (!titleField.value.trim()) {
+            titleField.classList.add('is-invalid');
+            isValid = false;
+        }
+
+        if (!categoryField.value) {
+            categoryField.classList.add('is-invalid');
+            isValid = false;
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+            window.scrollTo(0, 0);
+        }
+    });
+
+    // Real-time validation
+    titleField.addEventListener('input', function() {
+        if (this.value.trim()) {
+            this.classList.remove('is-invalid');
+        }
+    });
+
+    categoryField.addEventListener('change', function() {
+        if (this.value) {
+            this.classList.remove('is-invalid');
+        }
+    });
+});
+</script>
+{% endblock %}

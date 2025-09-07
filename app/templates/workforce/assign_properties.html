@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Assign Properties to Worker</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="assignPropertiesForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.worker.label(class="form-label") }}
+                            {{ form.worker(class="form-select") }}
+                            {% for error in form.worker.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.service_type.label(class="form-label") }}
+                            {{ form.service_type(class="form-select") }}
+                            {% for error in form.service_type.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">The type of service this worker will provide for the selected properties.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.properties.label(class="form-label") }}
+                            {{ form.properties(class="form-select", multiple=true, size=10) }}
+                            {% for error in form.properties.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                            <div class="form-text">Hold Ctrl (or Cmd on Mac) to select multiple properties.</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            {{ form.submit(class="btn btn-primary") }}
+                            <a href="{{ url_for('workforce.index') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('assignPropertiesForm');
+    const workerSelect = document.getElementById('worker');
+    const propertiesSelect = document.getElementById('properties');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    function validateForm() {
+        let isValid = true;
+        const errors = [];
+        
+        // Clear previous error states
+        workerSelect.classList.remove('is-invalid');
+        propertiesSelect.classList.remove('is-invalid');
+        
+        // Remove previous error messages
+        const existingErrors = form.querySelectorAll('.invalid-feedback');
+        existingErrors.forEach(error => error.remove());
+        
+        // Validate worker selection
+        if (!workerSelect.value) {
+            isValid = false;
+            errors.push({field: workerSelect, message: 'Please select a worker'});
+        }
+        
+        // Validate properties selection
+        const selectedProperties = Array.from(propertiesSelect.selectedOptions);
+        if (selectedProperties.length === 0) {
+            isValid = false;
+            errors.push({field: propertiesSelect, message: 'Please select at least one property'});
+        }
+        
+        // Display errors
+        errors.forEach(error => {
+            error.field.classList.add('is-invalid');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback';
+            errorDiv.textContent = error.message;
+            error.field.parentNode.appendChild(errorDiv);
+        });
+        
+        // Update submit button state
+        submitBtn.disabled = !isValid;
+        
+        return isValid;
+    }
+    
+    // Validate on form submission
+    form.addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+        }
+    });
+    
+    // Real-time validation
+    workerSelect.addEventListener('change', validateForm);
+    propertiesSelect.addEventListener('change', validateForm);
+    
+    // Initial validation
+    validateForm();
+});
+</script>
+{% endblock %}
