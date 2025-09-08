@@ -160,24 +160,25 @@
                                 errorDiv.style.display = 'none';
                                 loadingDiv.style.display = 'block';
                                 fetchBtn.disabled = true;
-                                fetch('/api/fetch_zillow', {
+                                fetch('/api/zillow/property-data', {
                                   method: 'POST',
                                   headers: {
                                     'Content-Type': 'application/json',
                                     'X-CSRFToken': csrfToken
                                   },
-                                  body: JSON.stringify({query: input.value})
+                                  body: JSON.stringify({address_or_url: input.value})
                                 })
                                 .then(resp => resp.json())
                                 .then(data => {
                                   loadingDiv.style.display = 'none';
                                   fetchBtn.disabled = false;
-                                  if (data.error) {
-                                    errorDiv.textContent = data.error;
+                                  if (data.error || !data.success) {
+                                    errorDiv.textContent = data.error || 'Failed to fetch property data';
                                     errorDiv.style.display = 'block';
-                                  } else {
-                                    // Populate form fields
-                                    for (const [key, value] of Object.entries(data)) {
+                                  } else if (data.data) {
+                                    // Populate form fields using the data object
+                                    const propertyData = data.data;
+                                    for (const [key, value] of Object.entries(propertyData)) {
                                       const field = document.querySelector(`[name="${key}"]`);
                                       if (field) field.value = value;
                                     }

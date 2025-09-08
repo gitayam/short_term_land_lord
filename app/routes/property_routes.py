@@ -90,18 +90,10 @@ def toggle_staff_pick(recommendation_id):
 
 @bp.route('/api/fetch_zillow', methods=['POST'])
 def fetch_zillow():
-    data = request.get_json()
-    current_app.logger.warning('DEBUG: /api/fetch_zillow request.get_json() = %s', data)
-    current_app.logger.error('DEBUG: /api/fetch_zillow request.get_json() = %s', data)
-    query = data.get('query', '').strip() if data else ''
-    current_app.logger.warning('DEBUG: /api/fetch_zillow query = %s', query)
-    current_app.logger.error('DEBUG: /api/fetch_zillow query = %s', query)
-    if not query:
-        return jsonify({'error': 'No address or URL provided.'}), 400
-    try:
-        details = fetch_zillow_details(query)
-        if not details:
-            return jsonify({'error': 'No data found for the given input.'}), 404
-        return jsonify(details)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500 
+    """
+    Legacy endpoint - redirect to new enhanced Zillow API
+    """
+    return jsonify({
+        'error': 'This endpoint is deprecated. Please use /api/zillow/property-data instead.',
+        'message': 'The Zillow scraper has been enhanced. Update your client to use the new endpoint.'
+    }), 410 
