@@ -153,6 +153,10 @@ def create_app(config_class=Config):
     from app.routes.property_routes import bp as property_routes_bp
     app.register_blueprint(property_routes_bp)
     
+    # Register Zillow API routes
+    from app.routes.zillow_api import zillow_bp
+    app.register_blueprint(zillow_bp)
+    
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
 
