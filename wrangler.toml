@@ -32,6 +32,32 @@ command = "npm run build"
 # Environment variables (non-secret)
 [vars]
 ENVIRONMENT = "development"
+FRONTEND_URL = "http://localhost:5173"  # Update for production
+
+# Email provider configuration
+EMAIL_PROVIDER = "mailgun"  # Options: mailgun, sendgrid, or leave empty for dev mode
+EMAIL_FROM = "noreply@yourdomain.com"
+
+# Secret environment variables (set using: wrangler secret put <KEY>)
+# These should NOT be committed to version control
+#
+# Required secrets:
+# - JWT_SECRET: Secret key for JWT token signing (generate with: openssl rand -base64 32)
+#     wrangler secret put JWT_SECRET
+#
+# Email provider secrets (choose one):
+# For Mailgun:
+# - MAILGUN_API_KEY: Mailgun API key
+#     wrangler secret put MAILGUN_API_KEY
+# - MAILGUN_DOMAIN: Mailgun domain (e.g., mg.yourdomain.com)
+#     wrangler secret put MAILGUN_DOMAIN
+#
+# For SendGrid:
+# - SENDGRID_API_KEY: SendGrid API key
+#     wrangler secret put SENDGRID_API_KEY
+#
+# To list all secrets: wrangler secret list
+# To delete a secret: wrangler secret delete <KEY>
 
 # Pages configuration for frontend
 pages_build_output_dir = "dist"

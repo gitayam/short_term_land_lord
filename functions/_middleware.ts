@@ -4,10 +4,24 @@
  */
 
 export interface Env {
+  // Cloudflare bindings
   DB: D1Database;
   KV: KVNamespace;
   BUCKET: R2Bucket;
+
+  // Environment variables
+  ENVIRONMENT?: string;
+  FRONTEND_URL?: string;
+
+  // Security
   JWT_SECRET?: string;
+
+  // Email configuration
+  EMAIL_PROVIDER?: string;
+  EMAIL_FROM?: string;
+  MAILGUN_API_KEY?: string;
+  MAILGUN_DOMAIN?: string;
+  SENDGRID_API_KEY?: string;
 }
 
 // CORS headers

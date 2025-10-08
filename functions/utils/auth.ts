@@ -170,3 +170,51 @@ export function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
+
+/**
+ * Check if user has required role
+ * Roles hierarchy: admin > property_owner > property_manager > service_staff > tenant > property_guest
+ */
+export function hasRole(userRole: string, requiredRole: string): boolean {
+  const roleHierarchy: { [key: string]: number } = {
+    'admin': 6,
+    'property_owner': 5,
+    'property_manager': 4,
+    'service_staff': 3,
+    'tenant': 2,
+    'property_guest': 1,
+  };
+
+  const userLevel = roleHierarchy[userRole] || 0;
+  const requiredLevel = roleHierarchy[requiredRole] || 0;
+
+  return userLevel >= requiredLevel;
+}
+
+/**
+ * Require specific role middleware
+ * Use this to protect endpoints that need specific roles
+ */
+export async function requireRole(request: Request, env: Env, requiredRole: string): Promise<any> {
+  const user = await requireAuth(request, env);
+
+  if (!hasRole(user.role, requiredRole)) {
+    throw new Error(`Forbidden: ${requiredRole} role required`);
+  }
+
+  return user;
+}
+
+/**
+ * Check if user is admin
+ */
+export async function requireAdmin(request: Request, env: Env): Promise<any> {
+  return await requireRole(request, env, 'admin');
+}
+
+/**
+ * Check if user is property owner or admin
+ */
+export async function requireOwner(request: Request, env: Env): Promise<any> {
+  return await requireRole(request, env, 'property_owner');
+}

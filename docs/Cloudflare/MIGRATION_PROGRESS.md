@@ -4,7 +4,7 @@
 ## Migration Date
 Started: October 8, 2025
 
-## Current Status: Phase 2 - Authentication Complete ✅
+## Current Status: Phase 2 - Core API Development Complete ✅
 
 ### ✅ Completed Tasks
 
@@ -66,7 +66,7 @@ Started: October 8, 2025
 - [x] `package.json` - Node.js dependencies and scripts
 - [x] `tsconfig.json` - TypeScript configuration
 
-## Phase 2: Core Authentication ✅ COMPLETED
+## Phase 2: Core API Development ✅ COMPLETED
 
 ### ✅ Completed Tasks (October 8, 2025)
 
@@ -75,11 +75,12 @@ Started: October 8, 2025
 - [x] Created authentication utilities (`functions/utils/auth.ts`)
   - Password hashing with bcrypt (10 salt rounds)
   - Password verification
-  - Session token generation
-  - Session management (KV + D1)
+  - Session token generation (UUID-based)
+  - Session management (KV primary + D1 fallback)
   - User authentication from token
   - Password strength validation
   - Email format validation
+  - Role-based access control (6-level hierarchy)
 - [x] Updated login endpoint with bcrypt password verification
 - [x] Added POST `/api/auth/register` - New user registration
   - Email validation
@@ -88,28 +89,117 @@ Started: October 8, 2025
   - Automatic session creation on registration
 - [x] Added POST `/api/auth/logout` - Session invalidation
   - Removes session from both KV and D1
-- [x] Refactored all endpoints to use `requireAuth` middleware
-  - Properties endpoints
-  - Tasks endpoints
-  - Cleaner, more maintainable code
+- [x] Added POST `/api/auth/refresh` - Token refresh endpoint
+  - Invalidates old session
+  - Creates new session with fresh user data
+- [x] Added POST `/api/auth/send-verification` - Email verification
+  - Sends verification email with token
+  - Rate limiting (5 minutes cooldown)
+  - 24-hour token expiration
+- [x] Added POST `/api/auth/verify-email` - Verify email with token
+- [x] Added POST `/api/auth/request-password-reset` - Request password reset
+  - Secure token generation
+  - Email with reset link
+  - Rate limiting (15 minutes)
+  - 1-hour token expiration
+- [x] Added POST `/api/auth/reset-password` - Complete password reset
+  - Password strength validation
+  - Session invalidation (force re-login)
+  - Token cleanup
 
-### 📋 Next Steps (Phase 2 Continued)
+#### Role-Based Access Control
+- [x] Implemented hierarchical role system
+  - admin > property_owner > property_manager > service_staff > tenant > property_guest
+- [x] Created role middleware functions
+  - `hasRole()` - Check role hierarchy
+  - `requireRole()` - Require specific role
+  - `requireAdmin()` - Admin-only access
+  - `requireOwner()` - Owner/admin access
+- [x] Applied role checks to all protected endpoints
 
-#### API Development
-- [ ] Add refresh token endpoint
-  - POST `/api/auth/refresh-token`
-- [ ] Add role-based access control middleware
-  - Check user roles for protected endpoints
-- [ ] Create calendar sync endpoints
-  - GET `/api/calendar/events`
-  - POST `/api/calendar/sync`
-- [ ] Create cleaning session endpoints
-  - GET `/api/cleaning/sessions`
-  - POST `/api/cleaning/start`
-  - PUT `/api/cleaning/[id]/complete`
-- [ ] Implement file upload to R2
-  - POST `/api/upload/property-image`
-  - POST `/api/upload/cleaning-photo`
+#### Calendar Integration
+- [x] Added GET `/api/calendar/events` - Retrieve calendar events
+  - Property ownership verification
+  - Date range filtering
+  - KV caching with 5-minute TTL
+  - Support for multiple calendar sources
+- [x] Added POST `/api/calendar/sync` - Manual calendar sync
+  - iCal feed fetching from Airbnb, VRBO, Booking.com
+  - Event parsing and extraction
+  - Guest name/count extraction
+  - Insert/update/delete sync logic
+  - Error handling and status tracking
+  - Cache invalidation
+- [x] Created iCal utilities (`functions/utils/ical.ts`)
+  - iCal.js library integration
+  - Platform-specific parsing (Airbnb, VRBO, Booking.com)
+  - Guest information extraction
+  - Event synchronization with D1
+
+#### File Storage & Upload
+- [x] Created storage utilities (`functions/utils/storage.ts`)
+  - R2 upload/download/delete functions
+  - File key generation with timestamps
+  - Image type validation (JPEG, PNG, GIF, WebP, HEIC)
+  - Video type validation (MP4, MOV, WebM)
+  - File size validation
+  - Multipart form data parsing
+  - Public URL generation
+- [x] Added POST `/api/upload/property-image` - Property image upload
+  - Property ownership verification
+  - File type validation (images only, 10MB max)
+  - Unique key generation
+  - R2 storage with metadata
+  - KV URL caching (30 days)
+
+#### Cleaning Sessions
+- [x] Added GET `/api/cleaning/sessions` - List cleaning sessions
+  - Role-based filtering (cleaners see own, owners see all)
+  - Property/status/date filtering
+  - Session details with property/cleaner info
+- [x] Added POST `/api/cleaning/sessions` - Start cleaning session
+  - Property access verification
+  - Duplicate session prevention
+  - Automatic timestamp tracking
+- [x] Added GET `/api/cleaning/sessions/[id]` - Get session details
+  - Access control (cleaner/owner/admin only)
+  - Media file listing from KV
+- [x] Added PUT `/api/cleaning/sessions/[id]` - Update session
+  - Notes and status updates
+  - Access control
+- [x] Added DELETE `/api/cleaning/sessions/[id]` - Delete session
+  - Admin/owner only
+  - Metadata cleanup
+- [x] Added POST `/api/cleaning/sessions/[id]/complete` - Complete session
+  - End time tracking
+  - Duration calculation
+  - Stats caching in KV (90 days)
+- [x] Added POST/GET/DELETE `/api/cleaning/sessions/[id]/photos` - Media management
+  - Before/after/issue photo support
+  - Image (10MB) and video (100MB) support
+  - R2 storage with metadata
+  - Media list tracking in KV
+  - Photo type categorization
+
+#### Email System
+- [x] Created email utilities (`functions/utils/email.ts`)
+  - Multi-provider support (Mailgun, SendGrid)
+  - HTML email templates
+  - Verification email generation
+  - Password reset email generation
+  - Development mode logging
+
+#### Configuration
+- [x] Updated `wrangler.toml` with environment variables
+  - Email provider configuration
+  - Frontend URL configuration
+  - Secret variables documentation
+- [x] Updated TypeScript environment types
+  - Added all email/frontend variables to Env interface
+- [x] Installed npm dependencies
+  - Added ical.js for calendar parsing
+
+### 📋 Next Steps (Phase 3: Frontend Development)
 
 #### Frontend Migration
 - [ ] Set up Vite + React project
@@ -203,44 +293,43 @@ Started: October 8, 2025
 
 ### 🐛 Known Issues
 
-1. **Password Hashing:** Need to implement bcrypt for password verification
-2. **JWT Signing:** Need to implement proper JWT token signing
-3. **Role-based Access:** Need middleware for role checking
-4. **Error Handling:** Need more robust error handling and logging
-5. **Rate Limiting:** Need to implement rate limiting for API endpoints
+1. **npm audit:** 2 moderate security vulnerabilities in dependencies
+   - Consider running `npm audit fix` (test thoroughly before deployment)
+2. **Email Provider:** Needs configuration of Mailgun or SendGrid credentials
+3. **Public R2 URLs:** Need to configure custom domain or public bucket access
+4. **Error Handling:** Could be enhanced with structured error logging
 
-### 💡 Improvements Needed
+### 💡 Future Improvements
 
-1. **Authentication:**
-   - Implement bcrypt password hashing
-   - Add JWT token signing with secret
-   - Add refresh token support
-   - Add email verification
-   - Add password reset flow
-
-2. **Caching:**
+1. **Caching Enhancements:**
    - Cache property lists in KV
    - Cache task lists in KV
-   - Implement cache invalidation strategy
-   - Add version-based cache keys
+   - Implement version-based cache keys for menu-style data
+   - Add cache warming strategies
 
-3. **File Storage:**
-   - Implement presigned URLs for uploads
-   - Add image optimization
+2. **File Storage Enhancements:**
+   - Implement presigned URLs for direct uploads
+   - Add image optimization/resizing
    - Implement CDN for R2 files
-   - Add file type validation
+   - Add video thumbnail generation
 
-4. **Calendar Sync:**
-   - Implement iCal parsing
+3. **Calendar Sync Enhancements:**
    - Add retry logic for failed syncs
-   - Store sync logs
+   - Store detailed sync logs
    - Add webhook support for real-time updates
+   - Support more booking platforms
+
+4. **Security Enhancements:**
+   - Add CAPTCHA for registration/password reset
+   - Implement two-factor authentication
+   - Add IP-based rate limiting
+   - Implement request signing
 
 5. **Monitoring:**
-   - Add logging to KV or external service
-   - Implement error tracking
-   - Add performance monitoring
-   - Set up alerting
+   - Add structured logging to KV or external service (e.g., Logflare)
+   - Implement error tracking (e.g., Sentry)
+   - Add performance monitoring (e.g., Axiom)
+   - Set up alerting for critical errors
 
 ### 🔗 Resources
 
@@ -258,5 +347,50 @@ Started: October 8, 2025
 
 ---
 
-*Last Updated: October 8, 2025*
+### 📦 API Endpoints Summary
+
+**Total Endpoints Created: 23**
+
+**Authentication (9 endpoints):**
+- POST `/api/auth/login` - User login
+- POST `/api/auth/register` - User registration
+- POST `/api/auth/logout` - Session termination
+- POST `/api/auth/refresh` - Token refresh
+- POST `/api/auth/send-verification` - Send verification email
+- POST `/api/auth/verify-email` - Verify email with token
+- POST `/api/auth/request-password-reset` - Request password reset
+- POST `/api/auth/reset-password` - Complete password reset
+- GET `/api/health` - Health check
+
+**Properties (5 endpoints):**
+- GET `/api/properties` - List properties
+- POST `/api/properties` - Create property
+- GET `/api/properties/[id]` - Get property
+- PUT `/api/properties/[id]` - Update property
+- DELETE `/api/properties/[id]` - Delete property
+
+**Calendar (2 endpoints):**
+- GET `/api/calendar/events` - Get calendar events
+- POST `/api/calendar/sync` - Sync iCal feeds
+
+**Cleaning Sessions (7 endpoints):**
+- GET `/api/cleaning/sessions` - List sessions
+- POST `/api/cleaning/sessions` - Start session
+- GET `/api/cleaning/sessions/[id]` - Get session
+- PUT `/api/cleaning/sessions/[id]` - Update session
+- DELETE `/api/cleaning/sessions/[id]` - Delete session
+- POST `/api/cleaning/sessions/[id]/complete` - Complete session
+- POST/GET/DELETE `/api/cleaning/sessions/[id]/photos` - Media management
+
+**File Upload (1 endpoint):**
+- POST `/api/upload/property-image` - Upload property images
+
+**Tasks (baseline from Phase 1):**
+- GET `/api/tasks` - List tasks
+- POST `/api/tasks` - Create task
+
+---
+
+*Last Updated: October 8, 2025 - Phase 2 Complete ✅*
+*Next Phase: Frontend Development*
 *Next Review: October 15, 2025*
