@@ -61,7 +61,3 @@ EMAIL_FROM = "noreply@yourdomain.com"
 
 # Pages configuration for frontend
 pages_build_output_dir = "dist"
-
-# Site configuration
-[site]
-bucket = ""
