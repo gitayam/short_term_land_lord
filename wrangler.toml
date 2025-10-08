@@ -1,0 +1,41 @@
+name = "short-term-landlord"
+compatibility_date = "2024-09-21"
+main = "functions/_middleware.ts"
+
+# Account ID from wrangler whoami
+account_id = "04eac09ae835290383903273f68c79b0"
+
+# D1 Database bindings
+[[d1_databases]]
+binding = "DB"
+database_name = "short-term-landlord-db"
+database_id = "fb1bde66-9837-4358-8c71-19be2a88cfee"
+
+# KV namespace for caching and sessions
+[[kv_namespaces]]
+binding = "KV"
+id = "48afc9fe53a3425b8757e9dc526c359e"
+
+# R2 bucket for file storage (photos, videos, documents)
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "short-term-landlord-files"
+
+# Cron triggers for calendar sync (every 6 hours)
+[triggers]
+crons = ["0 */6 * * *"]
+
+# Build configuration
+[build]
+command = "npm run build"
+
+# Environment variables (non-secret)
+[vars]
+ENVIRONMENT = "development"
+
+# Pages configuration for frontend
+pages_build_output_dir = "dist"
+
+# Site configuration
+[site]
+bucket = ""

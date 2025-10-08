@@ -1,0 +1,38 @@
+{
+  "name": "short-term-landlord-cloudflare",
+  "version": "1.0.0",
+  "description": "Short Term Land Lord property management system - Cloudflare Workers migration",
+  "main": "functions/_middleware.ts",
+  "scripts": {
+    "dev": "wrangler pages dev",
+    "build": "tsc && vite build",
+    "deploy": "wrangler pages deploy dist",
+    "db:migrate": "wrangler d1 execute short-term-landlord-db --file=./migrations/d1/001_initial_schema.sql --remote",
+    "db:migrate:local": "wrangler d1 execute short-term-landlord-db --file=./migrations/d1/001_initial_schema.sql --local",
+    "db:query": "wrangler d1 execute short-term-landlord-db --remote",
+    "db:list-tables": "wrangler d1 execute short-term-landlord-db --command=\"SELECT name FROM sqlite_master WHERE type='table' ORDER BY name\" --remote",
+    "kv:list": "wrangler kv namespace list",
+    "r2:list": "wrangler r2 bucket list",
+    "test:health": "curl http://localhost:8788/api/health",
+    "logs": "wrangler pages deployment tail"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "pages",
+    "d1",
+    "property-management"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "wrangler": "^3.95.0"
+  },
+  "dependencies": {
+    "@cloudflare/pages-functions-platform": "^0.0.5"
+  }
+}

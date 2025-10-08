@@ -1,15 +1,8 @@
 # Lessons Learned: GPT Integration with Cloudflare Workers
-**Short Term Land Lord - AI Features Integration**
+**Short Term Land Lord Property Management System**
 
 ## Overview
-This document captures critical lessons learned from integrating OpenAI's GPT models with Cloudflare Pages Functions (Workers). These insights apply to AI features for the Short Term Land Lord property management system, such as:
-- AI-powered property descriptions
-- Automated guest communication
-- Smart task recommendations
-- Calendar event summaries
-- Maintenance issue diagnosis
-
-These lessons were gained through real production experience and troubleshooting.
+This document captures critical lessons learned from integrating OpenAI's GPT models with Cloudflare Pages Functions (Workers) for property management automation. These insights were gained through real production experience and troubleshooting, specifically for features like automated property descriptions, guest communication, and booking analysis.
 
 ---
 
@@ -21,7 +14,7 @@ Cloudflare Workers have strict execution time limits:
 - **Paid tier**: 30 seconds CPU time (50ms for subrequests)
 
 ### Impact
-Long-running AI operations (URL scraping + analysis + question generation) would timeout, causing:
+Long-running AI operations (property data analysis + description generation + guest message composition) would timeout, causing:
 - `504 Gateway Timeout` errors
 - Lost work and poor UX
 - Failed deployments
@@ -36,7 +29,7 @@ const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeo
 try {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; ShortTermLandlordBot/1.0)'
+      'User-Agent': 'Mozilla/5.0 (compatible; ResearchToolsBot/1.0)'
     },
     signal: controller.signal
   })
@@ -58,23 +51,23 @@ try {
 
 #### B. Two-Phase Loading Strategy
 Instead of doing everything in one request:
-1. **Phase 1**: Return answered questions immediately
-2. **Phase 2**: Optionally generate follow-up questions (user-triggered)
+1. **Phase 1**: Return basic property analysis immediately
+2. **Phase 2**: Optionally generate detailed descriptions (user-triggered)
 
 ```typescript
-// Phase 1: Fast response with answered questions
-const extractedData = await extractAnsweredQuestions(content)
+// Phase 1: Fast response with property highlights
+const propertyHighlights = await extractPropertyHighlights(content)
 
-// Phase 2: Separate endpoint for follow-up questions
-// POST /api/ai/generate-questions
-const followUpQuestions = await generateFollowUpQuestions(existingData)
+// Phase 2: Separate endpoint for detailed descriptions
+// POST /api/ai/generate-description
+const fullDescription = await generatePropertyDescription(existingData)
 ```
 
 #### C. Optimize AI Requests
 - Reduce `max_completion_tokens` from 2000 → 800
 - Limit content sent to AI: 15KB → 10KB
 - Simplify prompts to reduce processing time
-- Generate fewer questions: 2-3 → 1-2 per category
+- Generate fewer highlights: Focus on top 3-5 key features
 
 ---
 
@@ -284,17 +277,16 @@ const truncatedContent = content.substring(0, 10000) // ~10KB
 #### B. Optimize Prompts
 ```typescript
 // ❌ Verbose prompt
-const prompt = `I want you to carefully analyze this article and extract information
-according to the Starbursting framework. Please identify answers to questions in each
-of the following categories: Who, What, When, Where, Why, and How. For each category,
-please provide detailed answers based on the article content...`
+const prompt = `I want you to carefully analyze this property listing and extract all relevant
+information about the property. Please identify key features, amenities, location details,
+and create a compelling description that highlights what makes this property special...`
 
 // ✅ Concise prompt
-const prompt = `Extract Starbursting analysis from this article. Return ONLY JSON:
+const prompt = `Analyze this property listing. Return ONLY JSON:
 
-Article: ${content.substring(0, 10000)}
+Listing: ${content.substring(0, 10000)}
 
-Format: {"who": [{"q":"Q?","a":"A"}], "what": [{"q":"Q?","a":"A"}], ...}`
+Format: {"highlights": ["feature1", "feature2"], "amenities": [...], "location_perks": [...]}`
 ```
 
 #### C. Set Appropriate Token Limits
@@ -324,24 +316,21 @@ Format: {"who": [{"q":"Q?","a":"A"}], "what": [{"q":"Q?","a":"A"}], ...}`
 
 3. **Request Minimal Output**
    ```typescript
-   // Generate 1-2 questions per category (not 2-3)
-   const prompt = `Generate 1-2 important follow-up questions for each category`
+   // Generate 3-5 key highlights (not 10-15)
+   const prompt = `Generate 3-5 key highlights that make this property stand out`
    ```
 
 4. **Provide Context Efficiently**
    ```typescript
-   // Build context from existing data
-   const existingQuestions = Object.entries(existingData)
-     .map(([category, items]) => {
-       if (Array.isArray(items)) {
-         return `${category}: ${items.map((item: any) =>
-           typeof item === 'object' && item.question ? item.question : item
-         ).join(', ')}`
-       }
-       return ''
-     })
-     .filter(Boolean)
-     .join('\n')
+   // Build context from existing property data
+   const propertyContext = {
+     bedrooms: property.bedrooms,
+     bathrooms: property.bathrooms,
+     type: property.type,
+     amenities: property.amenities.slice(0, 5), // Limit to top 5
+     location: property.city
+   }
+   const prompt = `Property: ${JSON.stringify(propertyContext)}\n\nGenerate description.`
    ```
 
 ---
@@ -352,30 +341,30 @@ Format: {"who": [{"q":"Q?","a":"A"}], "what": [{"q":"Q?","a":"A"}], ...}`
 
 ```typescript
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-  console.log(`[Scrape URL] Starting request for framework: ${framework}`)
+  console.log(`[Property AI] Starting analysis for property: ${propertyId}`)
 
   try {
     // Log important steps
-    console.log(`[Scrape URL] Fetching URL: ${url}`)
-    console.log(`[Scrape URL] Content length: ${content.length} chars`)
-    console.log(`[Scrape URL] Calling OpenAI for ${framework} extraction`)
+    console.log(`[Property AI] Fetching property data`)
+    console.log(`[Property AI] Property data length: ${propertyData.length} chars`)
+    console.log(`[Property AI] Calling OpenAI for description generation`)
 
     // Log AI response
-    console.log(`[Scrape URL] OpenAI response received, choice count: ${extractData.choices?.length}`)
+    console.log(`[Property AI] OpenAI response received, choice count: ${aiResponse.choices?.length}`)
 
     // Log final data
-    console.log(`[Scrape URL] Extracted ${Object.keys(extractedData).length} categories`)
+    console.log(`[Property AI] Generated ${description.length} char description`)
 
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
   } catch (error) {
-    console.error('[Scrape URL] Error:', error)
-    console.error('[Scrape URL] Stack:', error instanceof Error ? error.stack : 'N/A')
+    console.error('[Property AI] Error:', error)
+    console.error('[Property AI] Stack:', error instanceof Error ? error.stack : 'N/A')
 
     return new Response(JSON.stringify({
-      error: 'Scraping failed',
+      error: 'AI generation failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
@@ -682,6 +671,6 @@ try {
 
 ---
 
-*Document created: 2025-10-04*
+*Document created: 2025-10-08*
 *Last updated: 2025-10-08*
-*Project: Short Term Land Lord (Cloudflare Workers Integration)*
+*Project: Short Term Land Lord (Cloudflare Workers Migration)*
