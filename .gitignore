@@ -176,3 +176,6 @@ app/static/uploads/properties/*
 app.db
 .cursor/rules/migration.mdc
 flask_session/
+node_modules/
+.wrangler/
+dist/

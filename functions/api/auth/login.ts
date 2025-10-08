@@ -4,6 +4,7 @@
  */
 
 import { Env } from '../../_middleware';
+import { verifyPassword, createSession, validateEmail } from '../../utils/auth';
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
@@ -11,9 +12,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const { email, password } = await request.json();
 
+    // Validate input
     if (!email || !password) {
       return new Response(
         JSON.stringify({ error: 'Email and password are required' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (!validateEmail(email)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid email format' }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -49,33 +61,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       );
     }
 
-    // TODO: Implement password verification with bcrypt
-    // For now, this is a placeholder
-    // const passwordMatch = await verifyPassword(password, user.password_hash);
+    // Verify password with bcrypt
+    const passwordMatch = await verifyPassword(password, user.password_hash as string);
 
-    // Generate session token (simple UUID for now)
-    const sessionToken = crypto.randomUUID();
+    if (!passwordMatch) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid credentials' }),
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
-    // Store session in KV (expires in 24 hours)
-    const sessionData = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      createdAt: new Date().toISOString(),
-    };
+    // Create session
+    const sessionToken = await createSession(user, env);
 
-    await env.KV.put(`session:${sessionToken}`, JSON.stringify(sessionData), {
-      expirationTtl: 86400, // 24 hours
-    });
-
-    // Also store in D1 for persistence
+    // Update last login
     await env.DB.prepare(
-      `INSERT INTO session_cache (session_token, user_id, user_data, expires_at)
-       VALUES (?, ?, ?, datetime('now', '+1 day'))`
+      'UPDATE users SET last_login = datetime("now") WHERE id = ?'
     )
-      .bind(sessionToken, user.id, JSON.stringify(sessionData))
+      .bind(user.id)
       .run();
 
     return new Response(

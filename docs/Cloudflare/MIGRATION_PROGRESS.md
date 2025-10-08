@@ -4,7 +4,7 @@
 ## Migration Date
 Started: October 8, 2025
 
-## Current Status: Phase 1 Complete ✅
+## Current Status: Phase 2 - Authentication Complete ✅
 
 ### ✅ Completed Tasks
 
@@ -66,15 +66,40 @@ Started: October 8, 2025
 - [x] `package.json` - Node.js dependencies and scripts
 - [x] `tsconfig.json` - TypeScript configuration
 
-### 📋 Next Steps (Phase 2)
+## Phase 2: Core Authentication ✅ COMPLETED
+
+### ✅ Completed Tasks (October 8, 2025)
+
+#### Authentication System
+- [x] Installed bcryptjs for password hashing
+- [x] Created authentication utilities (`functions/utils/auth.ts`)
+  - Password hashing with bcrypt (10 salt rounds)
+  - Password verification
+  - Session token generation
+  - Session management (KV + D1)
+  - User authentication from token
+  - Password strength validation
+  - Email format validation
+- [x] Updated login endpoint with bcrypt password verification
+- [x] Added POST `/api/auth/register` - New user registration
+  - Email validation
+  - Password strength requirements (8+ chars, uppercase, lowercase, numbers)
+  - Duplicate email detection
+  - Automatic session creation on registration
+- [x] Added POST `/api/auth/logout` - Session invalidation
+  - Removes session from both KV and D1
+- [x] Refactored all endpoints to use `requireAuth` middleware
+  - Properties endpoints
+  - Tasks endpoints
+  - Cleaner, more maintainable code
+
+### 📋 Next Steps (Phase 2 Continued)
 
 #### API Development
-- [ ] Add remaining authentication endpoints
-  - POST `/api/auth/logout`
-  - POST `/api/auth/register`
+- [ ] Add refresh token endpoint
   - POST `/api/auth/refresh-token`
-- [ ] Implement password hashing with bcrypt
 - [ ] Add role-based access control middleware
+  - Check user roles for protected endpoints
 - [ ] Create calendar sync endpoints
   - GET `/api/calendar/events`
   - POST `/api/calendar/sync`

@@ -5,45 +5,14 @@
  */
 
 import { Env } from '../../_middleware';
-
-// Helper to get user from session
-async function getUserFromRequest(request: Request, env: Env): Promise<any> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new Error('Unauthorized');
-  }
-
-  const token = authHeader.substring(7);
-
-  // Try KV first (faster)
-  let sessionData = await env.KV.get(`session:${token}`, { type: 'json' });
-
-  // Fallback to D1 if not in KV
-  if (!sessionData) {
-    const session = await env.DB.prepare(
-      'SELECT user_data FROM session_cache WHERE session_token = ? AND datetime(expires_at) > datetime("now")'
-    )
-      .bind(token)
-      .first();
-
-    if (session) {
-      sessionData = JSON.parse(session.user_data as string);
-    }
-  }
-
-  if (!sessionData) {
-    throw new Error('Session expired');
-  }
-
-  return sessionData;
-}
+import { requireAuth } from '../../utils/auth';
 
 // GET /api/properties
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
 
   try {
-    const user = await getUserFromRequest(request, env);
+    const user = await requireAuth(request, env);
 
     // Get properties for this user
     const properties = await env.DB.prepare(
@@ -88,7 +57,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
 
   try {
-    const user = await getUserFromRequest(request, env);
+    const user = await requireAuth(request, env);
     const data = await request.json();
 
     // Validate required fields

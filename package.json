@@ -33,6 +33,6 @@
     "wrangler": "^3.95.0"
   },
   "dependencies": {
-    "@cloudflare/pages-functions-platform": "^0.0.5"
+    "bcryptjs": "^2.4.3"
   }
 }
