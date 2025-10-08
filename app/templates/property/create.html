@@ -122,21 +122,26 @@
                         
                         <div class="form-section" role="region" aria-labelledby="address-heading">
                             <h5 id="address-heading" class="mt-0 mb-3" tabindex="-1">🏠 Address Information</h5>
-                            <!-- Zillow Fetch Button and Modal -->
+                            <!-- Property Data Fetch Button and Modal -->
                             <button type="button" class="btn btn-outline-primary mb-3" data-bs-toggle="modal" data-bs-target="#zillowModal">
-                                <i class="fas fa-magic"></i> Fetch from Zillow
+                                <i class="fas fa-magic"></i> Fetch Property Data
                             </button>
                             <!-- Modal -->
                             <div class="modal fade" id="zillowModal" tabindex="-1" aria-labelledby="zillowModalLabel" aria-hidden="true">
                               <div class="modal-dialog">
                                 <div class="modal-content">
                                   <div class="modal-header">
-                                    <h5 class="modal-title" id="zillowModalLabel">Fetch Property Details from Zillow</h5>
+                                    <h5 class="modal-title" id="zillowModalLabel">Fetch Property Data</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                   </div>
                                   <div class="modal-body">
-                                    <label for="zillowInput" class="form-label">Enter Address or Zillow URL</label>
-                                    <input type="text" id="zillowInput" class="form-control" placeholder="123 Main St, City, State or https://www.zillow.com/..." aria-label="Zillow Address or URL">
+                                    <label for="zillowInput" class="form-label">Enter Property Address</label>
+                                    <input type="text" id="zillowInput" class="form-control" placeholder="824 Carol St, Fayetteville, NC 28303" aria-label="Property Address">
+                                    <div class="form-text mt-2">
+                                      <strong>🏠 RentCast API:</strong> Professional property data source with 140M+ US properties<br>
+                                      <strong>🔄 Fallback:</strong> Enhanced scraper if RentCast data not available<br>
+                                      <strong>✍️ Manual:</strong> Smart form assistance if automated sources fail
+                                    </div>
                                     <div id="zillowError" class="text-danger mt-2" style="display:none;"></div>
                                     <div id="zillowLoading" class="text-center mt-2" style="display:none;">
                                         <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
@@ -160,7 +165,7 @@
                                 errorDiv.style.display = 'none';
                                 loadingDiv.style.display = 'block';
                                 fetchBtn.disabled = true;
-                                fetch('/api/zillow/property-data', {
+                                fetch('/api/property/suggestions', {
                                   method: 'POST',
                                   headers: {
                                     'Content-Type': 'application/json',
@@ -172,19 +177,64 @@
                                 .then(data => {
                                   loadingDiv.style.display = 'none';
                                   fetchBtn.disabled = false;
-                                  if (data.error || !data.success) {
-                                    errorDiv.textContent = data.error || 'Failed to fetch property data';
-                                    errorDiv.style.display = 'block';
-                                  } else if (data.data) {
-                                    // Populate form fields using the data object
+                                  
+                                  if (data.success && data.data) {
+                                    // Success! Populate form fields with fetched data
                                     const propertyData = data.data;
-                                    for (const [key, value] of Object.entries(propertyData)) {
-                                      const field = document.querySelector(`[name="${key}"]`);
-                                      if (field) field.value = value;
+                                    
+                                    // Map API fields to form field names
+                                    const fieldMapping = {
+                                      'address': 'street_address',
+                                      'city': 'city',
+                                      'state': 'state', 
+                                      'zip_code': 'zip_code',
+                                      'property_type': 'property_type',
+                                      'name': 'name',
+                                      'description': 'description'
+                                    };
+                                    
+                                    for (const [apiField, formField] of Object.entries(fieldMapping)) {
+                                      if (propertyData[apiField]) {
+                                        const field = document.querySelector(`[name="${formField}"]`);
+                                        if (field) field.value = propertyData[apiField];
+                                      }
                                     }
-                                    // Close modal
-                                    const modal = bootstrap.Modal.getInstance(document.getElementById('zillowModal'));
-                                    modal.hide();
+                                    
+                                    // Show success message
+                                    errorDiv.innerHTML = `<div class="text-success">✅ Property data fetched successfully from ${data.source}</div>`;
+                                    errorDiv.style.display = 'block';
+                                    
+                                    // Close modal after a short delay
+                                    setTimeout(() => {
+                                      const modal = bootstrap.Modal.getInstance(document.getElementById('zillowModal'));
+                                      modal.hide();
+                                    }, 1500);
+                                    
+                                  } else {
+                                    // No data found - show manual entry assistance
+                                    let errorMessage = data.error || 'Property data not found.';
+                                    
+                                    if (data.manual_entry) {
+                                      const manual = data.manual_entry;
+                                      
+                                      // Pre-fill any parsed address components
+                                      if (manual.parsed_address) {
+                                        const parsed = manual.parsed_address;
+                                        if (parsed.address) document.querySelector('[name="street_address"]').value = parsed.address;
+                                        if (parsed.city) document.querySelector('[name="city"]').value = parsed.city;
+                                        if (parsed.state) document.querySelector('[name="state"]').value = parsed.state;
+                                        if (parsed.zip_code) document.querySelector('[name="zip_code"]').value = parsed.zip_code;
+                                      }
+                                      
+                                      // Show helpful suggestions
+                                      errorMessage += '<br><br><strong>💡 Manual Entry Assistance:</strong><br>';
+                                      errorMessage += `• For 2BR/2BA: Max guests ${manual.suggestions.max_guests_2br}, Cleaning fee $${manual.suggestions.cleaning_fee_2br2ba}<br>`;
+                                      errorMessage += `• For 3BR/2BA: Max guests ${manual.suggestions.max_guests_3br}, Cleaning fee $${manual.suggestions.cleaning_fee_3br2ba}<br>`;
+                                      errorMessage += '<br><em>Address components have been pre-filled where possible.</em>';
+                                    }
+                                    
+                                    errorDiv.innerHTML = errorMessage;
+                                    errorDiv.style.display = 'block';
                                   }
                                 })
                                 .catch(err => {

@@ -1,7 +1,8 @@
 """
 Property Data Service
-Integrates enhanced Zillow scraper with property creation workflow.
-Provides seamless property data collection for the Short Term Landlord application.
+Integrates multiple property data sources with property creation workflow.
+Primary source: RentCast API (reliable, legal alternative to scraping)
+Fallback: Enhanced scraper for edge cases
 """
 
 import logging
@@ -9,6 +10,7 @@ from typing import Dict, Optional, Union
 
 from flask import current_app
 
+from app.services.rentcast_property_service import RentCastPropertyService
 from app.utils.zillow_scraper_v2 import PropertyDataService as BasePropertyDataService
 from app.models import Property, db
 
@@ -16,10 +18,12 @@ from app.models import Property, db
 class PropertyDataIntegrationService:
     """
     Service that integrates property data collection with the application's property management system.
+    Uses RentCast API as primary source with scraper fallback.
     """
     
     def __init__(self):
-        self.data_service = BasePropertyDataService()
+        self.rentcast_service = RentCastPropertyService()
+        self.scraper_service = BasePropertyDataService()  # Keep as fallback
     
     def create_property_from_address(self, address_or_url: str, owner_id: int, **additional_data) -> Property:
         """
@@ -92,6 +96,7 @@ class PropertyDataIntegrationService:
     def get_property_suggestions(self, partial_address: str) -> Dict[str, Union[str, list]]:
         """
         Get property suggestions and preview data for a partial address.
+        Uses RentCast API as primary source with scraper fallback.
         
         Args:
             partial_address: Partial address or search query
@@ -99,24 +104,51 @@ class PropertyDataIntegrationService:
         Returns:
             Dict containing property suggestions and preview data
         """
+        logging.info(f"Getting property data for: {partial_address}")
+        
         try:
-            # For now, just try to get data for the address
-            # In the future, this could return multiple suggestions
-            property_data = self.data_service.get_property_data(partial_address)
+            # Try RentCast API first (primary source)
+            property_data = self.rentcast_service.get_property_data(partial_address)
             
-            return {
-                'suggestions': [property_data],
-                'preview': property_data,
-                'success': True
-            }
+            if property_data:
+                logging.info("✅ Successfully retrieved data from RentCast API")
+                return {
+                    'suggestions': [property_data],
+                    'preview': property_data,
+                    'success': True,
+                    'source': 'RentCast API'
+                }
             
-        except Exception as e:
-            logging.warning(f"Could not get suggestions for address {partial_address}: {str(e)}")
+            # Fallback to scraper if RentCast fails
+            logging.warning("RentCast API returned no data, trying scraper fallback...")
+            try:
+                property_data = self.scraper_service.get_property_data(partial_address)
+                if property_data:
+                    logging.info("✅ Successfully retrieved data from scraper fallback")
+                    return {
+                        'suggestions': [property_data],
+                        'preview': property_data,
+                        'success': True,
+                        'source': 'Scraper (fallback)'
+                    }
+            except Exception as scraper_error:
+                logging.warning(f"Scraper fallback also failed: {scraper_error}")
+            
+            # No data found from any source
             return {
                 'suggestions': [],
                 'preview': None,
                 'success': False,
-                'error': str(e)
+                'error': 'Property not found in RentCast database. Please verify the address or enter details manually.'
+            }
+            
+        except Exception as e:
+            logging.error(f"Error getting property suggestions: {str(e)}")
+            return {
+                'suggestions': [],
+                'preview': None,
+                'success': False,
+                'error': f'Unable to fetch property data: {str(e)}'
             }
     
     def _create_property_from_data(self, data: Dict, owner_id: int) -> Property:

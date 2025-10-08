@@ -164,7 +164,12 @@ class ZillowScraperV2:
             Stealth().apply_stealth_sync(page)
             
             # Human-like navigation
-            page.goto(search_url, wait_until='networkidle', timeout=30000)
+            # Use faster load strategy for search
+            try:
+                page.goto(search_url, wait_until='load', timeout=15000)
+                page.wait_for_timeout(2000)
+            except Exception:
+                page.goto(search_url, wait_until='domcontentloaded', timeout=10000)
             page.wait_for_timeout(random.randint(2000, 5000))
             
             # Sometimes Zillow shows a popup - handle it
@@ -292,7 +297,13 @@ class ZillowScraperV2:
             Stealth().apply_stealth_sync(page)
             
             # Navigate with human-like behavior
-            page.goto(url, wait_until='networkidle', timeout=30000)
+            # Try multiple wait strategies for better reliability
+            try:
+                page.goto(url, wait_until='load', timeout=15000)
+                page.wait_for_timeout(2000)  # Brief pause for dynamic content
+            except Exception:
+                # Fallback to domcontentloaded if load fails
+                page.goto(url, wait_until='domcontentloaded', timeout=10000)
             page.wait_for_timeout(random.randint(3000, 6000))
             
             # Wait for key content to load
