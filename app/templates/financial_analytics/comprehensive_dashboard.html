@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+
+{% block title %}Comprehensive Financial Analytics{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .financial-metric-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        border-left: 4px solid var(--primary);
+    }
+    
+    .financial-metric-card.revenue {
+        border-left-color: var(--success);
+    }
+    
+    .financial-metric-card.expense {
+        border-left-color: var(--danger);
+    }
+    
+    .financial-metric-card.profit {
+        border-left-color: var(--primary);
+    }
+    
+    .financial-metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .metric-value {
+        font-size: 2.25rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+    }
+    
+    .metric-value.positive {
+        color: var(--success);
+    }
+    
+    .metric-value.negative {
+        color: var(--danger);
+    }
+    
+    .metric-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+    }
+    
+    .metric-change {
+        font-size: 0.875rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .metric-change.positive {
+        color: var(--success);
+    }
+    
+    .metric-change.negative {
+        color: var(--danger);
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: 400px;
+        position: relative;
+    }
+    
+    .chart-container canvas {
+        max-height: 320px;
+        width: 100% !important;
+        height: 320px !important;
+    }
+    
+    .expense-category-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--bg-quaternary);
+        transition: background-color 0.2s;
+    }
+    
+    .expense-category-item:hover {
+        background-color: var(--bg-secondary);
+    }
+    
+    .expense-category-item:last-child {
+        border-bottom: none;
+    }
+    
+    .category-name {
+        font-weight: 500;
+        text-transform: capitalize;
+    }
+    
+    .category-amount {
+        font-weight: 600;
+        color: var(--danger);
+    }
+    
+    .category-bar {
+        height: 6px;
+        background: var(--bg-quaternary);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 0.25rem;
+    }
+    
+    .category-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--danger), var(--warning));
+        transition: width 0.3s ease;
+    }
+    
+    .property-performance-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid var(--bg-quaternary);
+        margin-bottom: 0.75rem;
+    }
+    
+    .property-performance-card.top-performer {
+        border-color: var(--success);
+        background: linear-gradient(135deg, rgba(5, 150, 105, 0.05), rgba(5, 150, 105, 0.1));
+    }
+    
+    .upcoming-expense {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-left: 3px solid var(--warning);
+        background: var(--bg-secondary);
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 0.5rem;
+    }
+    
+    .upcoming-expense.overdue {
+        border-left-color: var(--danger);
+        background: rgba(220, 38, 38, 0.05);
+    }
+    
+    .export-section {
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .tax-summary-card {
+        background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+    
+    .period-selector {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-2">
+                    <i class="bi bi-graph-up-arrow"></i> Comprehensive Financial Analytics
+                </h1>
+                <p class="mb-0 opacity-90">Complete financial overview for {{ month_name }} {{ year }}</p>
+                <p class="small mb-0 opacity-75">Tracking {{ financial_summary.properties_count }} properties</p>
+            </div>
+            
+            <div class="period-selector">
+                <select id="monthSelect" class="form-select form-select-sm bg-white" onchange="updatePeriod()">
+                    <option value="1" {% if 1 == month %}selected{% endif %}>January</option>
+                    <option value="2" {% if 2 == month %}selected{% endif %}>February</option>
+                    <option value="3" {% if 3 == month %}selected{% endif %}>March</option>
+                    <option value="4" {% if 4 == month %}selected{% endif %}>April</option>
+                    <option value="5" {% if 5 == month %}selected{% endif %}>May</option>
+                    <option value="6" {% if 6 == month %}selected{% endif %}>June</option>
+                    <option value="7" {% if 7 == month %}selected{% endif %}>July</option>
+                    <option value="8" {% if 8 == month %}selected{% endif %}>August</option>
+                    <option value="9" {% if 9 == month %}selected{% endif %}>September</option>
+                    <option value="10" {% if 10 == month %}selected{% endif %}>October</option>
+                    <option value="11" {% if 11 == month %}selected{% endif %}>November</option>
+                    <option value="12" {% if 12 == month %}selected{% endif %}>December</option>
+                </select>
+                <select id="yearSelect" class="form-select form-select-sm bg-white" onchange="updatePeriod()">
+                    {% for yr in range(year - 2, year + 2) %}
+                    <option value="{{ yr }}" {% if yr == year %}selected{% endif %}>{{ yr }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Performance Indicators -->
+    <div class="kpi-grid">
+        <!-- Revenue Metrics -->
+        <div class="financial-metric-card revenue">
+            <div class="metric-label">Gross Revenue</div>
+            <div class="metric-value positive">${{ "{:,.2f}".format(financial_summary.gross_revenue) }}</div>
+            <div class="metric-change positive">
+                <i class="bi bi-arrow-up"></i> 
+                <span>Booking: ${{ "{:,.0f}".format(financial_summary.booking_revenue) }}</span>
+            </div>
+        </div>
+        
+        <!-- Expense Metrics -->
+        <div class="financial-metric-card expense">
+            <div class="metric-label">Total Expenses</div>
+            <div class="metric-value negative">${{ "{:,.2f}".format(financial_summary.total_expenses) }}</div>
+            <div class="metric-change">
+                <i class="bi bi-pie-chart"></i>
+                <span>{{ financial_summary.properties_count }} properties</span>
+            </div>
+        </div>
+        
+        <!-- Profit Metrics -->
+        <div class="financial-metric-card profit">
+            <div class="metric-label">Net Income</div>
+            <div class="metric-value {% if financial_summary.net_income >= 0 %}positive{% else %}negative{% endif %}">
+                ${{ "{:,.2f}".format(financial_summary.net_income) }}
+            </div>
+            <div class="metric-change {% if financial_summary.profit_margin >= 0 %}positive{% else %}negative{% endif %}">
+                <i class="bi bi-percent"></i>
+                <span>{{ "{:.1f}".format(financial_summary.profit_margin) }}% margin</span>
+            </div>
+        </div>
+        
+        <!-- Cash Flow -->
+        <div class="financial-metric-card">
+            <div class="metric-label">Net Cash Flow</div>
+            <div class="metric-value {% if financial_summary.net_cash_flow >= 0 %}positive{% else %}negative{% endif %}">
+                ${{ "{:,.2f}".format(financial_summary.net_cash_flow) }}
+            </div>
+            <div class="metric-change">
+                <i class="bi bi-arrow-left-right"></i>
+                <span>In: ${{ "{:,.0f}".format(financial_summary.cash_inflow) }} | Out: ${{ "{:,.0f}".format(financial_summary.cash_outflow) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Breakdown Row -->
+    <div class="row mb-4">
+        <!-- Expense Breakdown -->
+        <div class="col-md-4">
+            <div class="chart-container">
+                <h5 class="mb-3">Expense Breakdown</h5>
+                <div class="expense-categories">
+                    {% set max_expense = expense_breakdown.values()|max if expense_breakdown else 1 %}
+                    {% for category, amount in expense_breakdown.items() %}
+                    <div class="expense-category-item">
+                        <div>
+                            <div class="category-name">{{ category.replace('_', ' ').title() }}</div>
+                            <div class="category-bar">
+                                <div class="category-fill" style="width: {{ (amount / max_expense * 100) if max_expense > 0 else 0 }}%"></div>
+                            </div>
+                        </div>
+                        <div class="category-amount">${{ "{:,.0f}".format(amount) }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Detailed Expense Summary -->
+                <div class="mt-3 pt-3 border-top">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="small text-muted">Operating</div>
+                            <div class="fw-bold">${{ "{:,.0f}".format(financial_summary.operating_expenses) }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="small text-muted">Labor</div>
+                            <div class="fw-bold">${{ "{:,.0f}".format(financial_summary.labor_costs) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cash Flow Trend -->
+        <div class="col-md-8">
+            <div class="chart-container">
+                <h5 class="mb-3">12-Month Cash Flow Trend</h5>
+                <div style="position: relative; height: 320px; width: 100%;">
+                    <canvas id="cashFlowChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Property Performance & Upcoming Expenses -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Property Performance Ranking</h5>
+                </div>
+                <div class="card-body">
+                    {% for property in property_performance %}
+                    <div class="property-performance-card {% if loop.index <= 2 %}top-performer{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">{{ property.property_name }}</div>
+                                <div class="small text-muted">
+                                    Revenue: ${{ "{:,.0f}".format(property.revenue) }} | 
+                                    Occupancy: {{ "{:.0f}".format(property.occupancy_rate) }}%
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold {% if property.net_income >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ "{:,.0f}".format(property.net_income) }}
+                                </div>
+                                <div class="small {% if property.profit_margin >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "{:.1f}".format(property.profit_margin) }}% margin
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Upcoming Expenses (Next 30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_expenses %}
+                        {% for expense in upcoming_expenses[:8] %}
+                        <div class="upcoming-expense {% if expense.is_overdue %}overdue{% endif %}">
+                            <div>
+                                <div class="fw-bold">{{ expense.description }}</div>
+                                <div class="small text-muted">
+                                    {{ expense.vendor }} | Due: {{ expense.due_date.strftime('%b %d') }}
+                                    {% if expense.is_overdue %} <span class="text-danger">(OVERDUE)</span>{% endif %}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold">${{ "{:,.2f}".format(expense.amount) }}</div>
+                                <div class="small text-muted">{{ expense.category.replace('_', ' ').title() }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center py-3">No upcoming expenses in the next 30 days</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tax Summary & Export Section -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="tax-summary-card">
+                <h5 class="mb-3">
+                    <i class="bi bi-receipt-cutoff"></i> Tax Summary {{ year }}
+                </h5>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="small opacity-75">Deductible Expenses</div>
+                        <div class="h4 mb-0">${{ "{:,.0f}".format(tax_summary.total_deductible_expenses) }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small opacity-75">Est. Tax Savings</div>
+                        <div class="h4 mb-0">${{ "{:,.0f}".format(tax_summary.estimated_tax_savings) }}</div>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-top border-white border-opacity-25">
+                    <div class="small opacity-75">Based on {{ tax_summary.category_breakdown|length }} expense categories</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="export-section">
+                <h5 class="mb-3">
+                    <i class="bi bi-download"></i> Export Financial Reports
+                </h5>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('financial_analytics.export_profit_loss', year=year) }}" 
+                       class="btn btn-primary">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Profit & Loss Statement
+                    </a>
+                    <a href="{{ url_for('financial_analytics.export_tax_report', year=year) }}" 
+                       class="btn btn-outline-primary">
+                        <i class="bi bi-receipt"></i> Tax-Ready Expense Report
+                    </a>
+                    <button class="btn btn-outline-primary" onclick="generateScheduleE()">
+                        <i class="bi bi-file-earmark-text"></i> Schedule E (Coming Soon)
+                    </button>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> 
+                        All exports are formatted for tax preparation and accounting software
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCashFlowChart();
+});
+
+function initializeCashFlowChart() {
+    // Cash Flow Chart
+    const cashFlowCtx = document.getElementById('cashFlowChart').getContext('2d');
+    const cashFlowChart = new Chart(cashFlowCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for item in cash_flow_data %}'{{ item.month }}'{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Revenue',
+            data: [{% for item in cash_flow_data %}{{ item.revenue }}{% if not loop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(5, 150, 105)',
+            backgroundColor: 'rgba(5, 150, 105, 0.1)',
+            tension: 0.3,
+            fill: false
+        }, {
+            label: 'Expenses',
+            data: [{% for item in cash_flow_data %}{{ item.expenses }}{% if not loop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(220, 38, 38)',
+            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+            tension: 0.3,
+            fill: false
+        }, {
+            label: 'Net Cash Flow',
+            data: [{% for item in cash_flow_data %}{{ item.net_cash_flow }}{% if not loop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(37, 99, 235)',
+            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            tension: 0.3,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    usePointStyle: true,
+                    padding: 20
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: {
+                    display: false
+                }
+            },
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0,0,0,0.1)'
+                },
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toLocaleString();
+                    },
+                    maxTicksLimit: 8
+                }
+            }
+        },
+        elements: {
+            point: {
+                radius: 4,
+                hoverRadius: 6
+            }
+        }
+    }
+    });
+}
+
+function updatePeriod() {
+    const month = document.getElementById('monthSelect').value;
+    const year = document.getElementById('yearSelect').value;
+    window.location.href = `{{ url_for('financial_analytics.comprehensive_dashboard') }}?month=${month}&year=${year}`;
+}
+
+function generateScheduleE() {
+    alert('Schedule E generation coming soon! This will create IRS Schedule E forms automatically.');
+}
+
+// Add hover effects to cards
+document.querySelectorAll('.financial-metric-card').forEach(card => {
+    card.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-4px)';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+    });
+});
+</script>
+{% endblock %}

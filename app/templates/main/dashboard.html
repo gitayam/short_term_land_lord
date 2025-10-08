@@ -4,55 +4,7 @@
 {{ super() }}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
 <style>
-    .card-dashboard {
-        border: none;
-        border-radius: 8px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-        transition: transform 0.2s;
-        margin-bottom: 20px;
-    }
-    
-    .card-dashboard:hover {
-        transform: translateY(-5px);
-    }
-    
-    .card-header-dashboard {
-        background-color: #fff;
-        border-bottom: none;
-        padding: 20px 20px 10px 20px;
-    }
-    
-    .card-body-dashboard {
-        padding: 0 20px 20px 20px;
-    }
-    
-    .dashboard-title {
-        position: relative;
-        padding-bottom: 12px;
-        margin-bottom: 16px;
-    }
-    
-    .dashboard-title:after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 50px;
-        height: 3px;
-        background-color: #0d6efd;
-    }
-    
-    .property-card {
-        border-radius: 8px;
-        overflow: hidden;
-        height: 100%;
-    }
-    
-    .property-card .card-img-top {
-        height: 160px;
-        object-fit: cover;
-    }
-    
+    /* Legacy dashboard styles - will be migrated to use app-card components */
     .calendar-preview {
         min-height: 600px;
         overflow: hidden;
@@ -73,7 +25,7 @@
     .calendar-preview .fc .fc-daygrid-day-top {
         display: flex;
         flex-direction: row-reverse;
-        font-weight: bold;
+        font-weight: var(--font-weight-semibold);
         font-size: 1.2em;
         padding: 4px;
         align-items: flex-start;
@@ -83,21 +35,21 @@
         cursor: pointer;
         margin: 1px 2px;
         padding: 2px 4px;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
         font-size: 0.85em;
         line-height: 1.3;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
-        background-color: #0d6efd;
-        border-color: #0d6efd;
+        background-color: var(--primary);
+        border-color: var(--primary);
         color: white;
     }
     
     .calendar-preview .fc-event:hover {
         opacity: 0.9;
         transform: scale(1.02);
-        transition: all 0.1s ease;
+        transition: var(--transition-fast);
         z-index: 10;
     }
     
@@ -112,19 +64,26 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="dashboard-title">Dashboard</h1>
+<div class="row mb-6">
+    <div class="col-12">
+        <h1 class="h2 mb-0">Dashboard</h1>
+        <p class="text-secondary">Welcome back, {{ current_user.get_full_name() }}</p>
+    </div>
+</div>
 
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <div class="card card-dashboard">
-                <div class="card-header card-header-dashboard">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Calendar Preview</h5>
-                        <a href="{{ url_for('main.combined_calendar') }}" class="btn btn-sm btn-primary">Full Calendar</a>
-                    </div>
+<div class="row mb-6">
+    <div class="col-md-8">
+        <div class="app-card app-card-dashboard">
+            <div class="app-card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">Calendar Preview</h3>
+                    <a href="{{ url_for('main.combined_calendar') }}" class="app-btn app-btn-primary app-btn-sm">
+                        <i class="bi bi-calendar3"></i>
+                        Full Calendar
+                    </a>
                 </div>
-                <div class="card-body card-body-dashboard">
+            </div>
+            <div class="app-card-body">
                     <div class="calendar-preview" id="calendarPreview" onclick="window.location.href='{{ url_for('main.combined_calendar') }}'">
                         <div class="text-center py-5">
                             <div class="spinner-border text-primary" role="status">
@@ -138,41 +97,41 @@
         </div>
         
         <div class="col-md-4">
-            <div class="card card-dashboard h-100">
-                <div class="card-header card-header-dashboard">
-                    <h5 class="mb-0">Quick Actions</h5>
+            <div class="app-card h-100">
+                <div class="app-card-header">
+                    <h3 class="mb-0">Quick Actions</h3>
                 </div>
-                <div class="card-body card-body-dashboard">
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('main.combined_calendar') }}" class="btn btn-lg btn-primary mb-3">
-                            <i class="fas fa-calendar-alt"></i> View Combined Calendar
+                <div class="app-card-body">
+                    <div class="d-grid gap-3">
+                        <a href="{{ url_for('main.combined_calendar') }}" class="app-btn app-btn-primary app-btn-lg">
+                            <i class="bi bi-calendar3"></i> View Combined Calendar
                         </a>
                         
-                        <hr>
+                        <div class="app-divider"></div>
                         
-                        <a href="{{ url_for('property.index') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-home"></i> All Properties
+                        <a href="{{ url_for('property.index') }}" class="app-btn app-btn-secondary">
+                            <i class="bi bi-house"></i> All Properties
                         </a>
                         
                         {% if current_user.is_property_owner %}
-                        <a href="{{ url_for('property.create') }}" class="btn btn-outline-success">
-                            <i class="fas fa-plus"></i> Add New Property
+                        <a href="{{ url_for('property.create') }}" class="app-btn app-btn-success">
+                            <i class="bi bi-plus-circle"></i> Add New Property
                         </a>
                         {% endif %}
                         
-                        <a href="{{ url_for('tasks.index') }}" class="btn btn-outline-info">
-                            <i class="fas fa-tasks"></i> Tasks
+                        <a href="{{ url_for('tasks.index') }}" class="app-btn app-btn-ghost">
+                            <i class="bi bi-list-task"></i> Tasks
                         </a>
                         
                         {% if current_user.is_property_owner or current_user.is_admin %}
-                        <a href="{{ url_for('inventory.catalog_index') }}" class="btn btn-outline-warning">
-                            <i class="fas fa-boxes"></i> Inventory Catalog
+                        <a href="{{ url_for('inventory.catalog_index') }}" class="app-btn app-btn-ghost">
+                            <i class="bi bi-box-seam"></i> Inventory Catalog
                         </a>
                         {% endif %}
                         
                         {% if current_user.is_property_owner or current_user.is_admin %}
-                        <a href="{{ url_for('property.combined_worker_calendar_management') }}" class="btn btn-outline-primary">
-                            <i class="fas fa-users-cog"></i> Combined Worker Calendars
+                        <a href="{{ url_for('property.combined_worker_calendar_management') }}" class="app-btn app-btn-ghost">
+                            <i class="bi bi-people"></i> Worker Calendars
                         </a>
                         {% endif %}
                     </div>
@@ -181,43 +140,81 @@
         </div>
     </div>
 
-    {% if properties %}
-    <div class="row">
-        <div class="col-12">
-            <h4 class="mb-3">Your Properties</h4>
-        </div>
-        
-        {% for property in properties %}
-        <div class="col-md-4 mb-4">
-            <div class="card property-card">
-                <img src="{{ property.get_primary_image_url() }}" class="card-img-top" alt="{{ property.name }}">
-                <div class="card-body">
-                    <h5 class="card-title">{{ property.name }}</h5>
-                    <p class="card-text text-muted">{{ property.city }}, {{ property.state }}</p>
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ url_for('property.view', id=property.id) }}" class="btn btn-sm btn-primary">View</a>
-                        <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-sm btn-outline-primary">Calendar</a>
-                    </div>
+{% if properties %}
+<div class="row mb-6">
+    <div class="col-12">
+        <h2 class="h4 mb-4">Your Properties</h2>
+    </div>
+    
+    {% for property in properties %}
+    <div class="col-md-4 mb-4">
+        <div class="app-card h-100">
+            {% if property.images and property.images|length > 0 %}
+            <img src="{{ property.get_primary_image_url() }}" class="w-100" style="height: 200px; object-fit: cover; border-top-left-radius: var(--radius-lg); border-top-right-radius: var(--radius-lg);" alt="{{ property.name }}">
+            {% else %}
+            {% set gradients = [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+            ] %}
+            {% set property_icons = {
+                'house': 'bi-house-door',
+                'apartment': 'bi-building',
+                'condo': 'bi-building',
+                'townhouse': 'bi-house',
+                'villa': 'bi-house-heart',
+                'cottage': 'bi-house',
+                'studio': 'bi-door-open',
+                'loft': 'bi-building'
+            } %}
+            {% set icon_class = property_icons.get(property.property_type, 'bi-house-door') %}
+            {% set gradient = gradients[property.id % gradients|length] %}
+            <div class="w-100 d-flex align-items-center justify-content-center" style="height: 200px; background: {{ gradient }}; border-top-left-radius: var(--radius-lg); border-top-right-radius: var(--radius-lg);">
+                <div class="text-center text-white">
+                    <i class="bi {{ icon_class }}" style="font-size: 4rem;"></i>
+                    <div class="mt-2" style="font-size: 0.9rem; opacity: 0.9;">{{ property.property_type|capitalize }}</div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="app-card-body">
+                <h5 class="h6 fw-semibold mb-2">{{ property.name }}</h5>
+                <p class="text-secondary mb-4">{{ property.city }}, {{ property.state }}</p>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('property.view', id=property.id) }}" class="app-btn app-btn-primary app-btn-sm flex-grow-1">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                    <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="app-btn app-btn-secondary app-btn-sm">
+                        <i class="bi bi-calendar3"></i>
+                    </a>
                 </div>
             </div>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="row">
-        <div class="col-12">
-            <div class="alert alert-info">
-                <h4 class="alert-heading">Welcome!</h4>
-                <p>You don't have any properties yet.</p>
+    {% endfor %}
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="app-alert app-alert-info">
+            <i class="bi bi-info-circle"></i>
+            <div>
+                <h4 class="h5 mb-2">Welcome!</h4>
+                <p class="mb-0">You don't have any properties yet.</p>
                 {% if current_user.is_property_owner %}
-                <hr>
-                <a href="{{ url_for('property.create') }}" class="btn btn-primary">Add Your First Property</a>
+                <div class="mt-3">
+                    <a href="{{ url_for('property.create') }}" class="app-btn app-btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Your First Property
+                    </a>
+                </div>
                 {% endif %}
             </div>
         </div>
     </div>
-    {% endif %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

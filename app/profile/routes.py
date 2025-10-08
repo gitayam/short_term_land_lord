@@ -4,9 +4,13 @@ from app import db
 from app.profile import bp
 from app.models import User
 from werkzeug.security import check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime
 import json
+import os
+import uuid
 from app.profile.forms import PersonalInfoForm, ChangePasswordForm, PreferencesForm
+from app.utils.storage import allowed_file, validate_file_content
 
 @bp.route('/')
 @login_required
@@ -26,14 +30,29 @@ def profile():
 def update_personal_info():
     """Update personal information"""
     try:
-        current_user.first_name = request.form.get('first_name', current_user.first_name)
-        current_user.last_name = request.form.get('last_name', current_user.last_name)
-        current_user.email = request.form.get('email', current_user.email)
-        current_user.phone = request.form.get('phone', current_user.phone)
-        current_user.timezone = request.form.get('timezone', current_user.timezone)
-        current_user.language = request.form.get('language', current_user.language)
+        current_app.logger.info(f"Personal info update requested by user {current_user.email}")
+        current_app.logger.info(f"Form data: {dict(request.form)}")
         
+        # Get actual user object from database instead of using current_user proxy
+        user = User.query.get(current_user.id)
+        current_app.logger.info(f"Before update - Name: {user.first_name} {user.last_name}")
+        
+        user.first_name = request.form.get('first_name', user.first_name)
+        user.last_name = request.form.get('last_name', user.last_name)
+        user.email = request.form.get('email', user.email)
+        user.phone = request.form.get('phone', user.phone)
+        user.timezone = request.form.get('timezone', user.timezone)
+        user.language = request.form.get('language', user.language)
+        
+        current_app.logger.info(f"After assignment - Name: {user.first_name} {user.last_name}")
+        
+        db.session.add(user)  # Explicitly add to session
         db.session.commit()
+        
+        # Verify the commit worked
+        user_check = User.query.get(user.id)
+        current_app.logger.info(f"Post-commit verification - Name: {user_check.first_name} {user_check.last_name}")
+        
         flash('Personal information updated successfully', 'success')
     except Exception as e:
         current_app.logger.error(f"Error updating profile: {e}")
@@ -63,8 +82,12 @@ def change_password():
         return redirect(url_for('profile.profile'))
     
     try:
-        current_user.set_password(new_password)
-        current_user.last_password_change = datetime.utcnow()
+        # Get actual user object from database
+        user = User.query.get(current_user.id)
+        user.set_password(new_password)
+        user.last_password_change = datetime.utcnow()
+        
+        db.session.add(user)
         db.session.commit()
         flash('Password changed successfully', 'success')
     except Exception as e:
@@ -79,10 +102,13 @@ def change_password():
 def update_notifications():
     """Update notification preferences"""
     try:
-        current_user.email_notifications = bool(request.form.get('email-tasks'))
-        current_user.sms_notifications = bool(request.form.get('sms-urgent'))
-        current_user.in_app_notifications = bool(request.form.get('app-all'))
+        # Get actual user object from database
+        user = User.query.get(current_user.id)
+        user.email_notifications = bool(request.form.get('email-tasks'))
+        user.sms_notifications = bool(request.form.get('sms-urgent'))
+        user.in_app_notifications = bool(request.form.get('app-all'))
         
+        db.session.add(user)
         db.session.commit()
         flash('Notification preferences updated successfully', 'success')
     except Exception as e:
@@ -102,19 +128,31 @@ def update_preferences():
     if form.validate_on_submit():
         current_app.logger.info(f"Updating preferences - Theme: {form.theme_preference.data}, Dashboard: {form.default_dashboard_view.data}")
         
-        current_user.theme_preference = form.theme_preference.data
-        current_user.default_dashboard_view = form.default_dashboard_view.data
-        current_user.default_calendar_view = form.default_calendar_view.data
-        current_user.default_task_sort = form.default_task_sort.data
+        # Get the actual user object from database instead of using current_user proxy
+        user = User.query.get(current_user.id)
+        current_app.logger.info(f"Before update - User theme in DB: {user.theme_preference}")
+        
+        user.theme_preference = form.theme_preference.data
+        user.default_dashboard_view = form.default_dashboard_view.data
+        user.default_calendar_view = form.default_calendar_view.data
+        user.default_task_sort = form.default_task_sort.data
+        
+        current_app.logger.info(f"After assignment - User theme: {user.theme_preference}")
         
         try:
+            db.session.add(user)  # Explicitly add to session
             db.session.commit()
-            current_app.logger.info(f"Preferences updated successfully for user {current_user.email}")
+            current_app.logger.info(f"Preferences committed successfully for user {user.email}")
+            
+            # Verify the commit worked
+            user_check = User.query.get(user.id)
+            current_app.logger.info(f"Post-commit verification - User theme: {user_check.theme_preference}")
+            
             flash('Preferences updated successfully!', 'success')
             return jsonify({
                 'status': 'success', 
                 'message': 'Preferences updated successfully!',
-                'theme': current_user.theme_preference
+                'theme': user.theme_preference
             })
         except Exception as e:
             current_app.logger.error(f"Error updating preferences: {e}")
@@ -128,25 +166,63 @@ def update_preferences():
 @bp.route('/upload-image', methods=['POST'])
 @login_required
 def upload_profile_image():
-    """Handle profile image upload"""
+    """Handle profile image upload with security validation"""
     if 'profile_image' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
     
     file = request.files['profile_image']
-    if file.filename == '':
+    if not file or file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    if file and file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-        try:
-            # Save file logic would go here
-            current_user.profile_image = f"uploads/profile/{file.filename}"
-            db.session.commit()
-            return jsonify({'success': True, 'message': 'Profile image updated successfully'})
-        except Exception as e:
-            current_app.logger.error(f"Error uploading profile image: {e}")
-            return jsonify({'error': 'Failed to upload image'}), 500
-    
-    return jsonify({'error': 'Invalid file type'}), 400
+    try:
+        # Validate file extension
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Invalid file type. Only JPG, PNG, GIF allowed'}), 400
+        
+        # Validate file content
+        if not validate_file_content(file):
+            return jsonify({'error': 'Invalid file content - file type mismatch'}), 400
+        
+        # Check file size (max 5MB for profile images)
+        max_size = 5 * 1024 * 1024  # 5MB
+        file.stream.seek(0, 2)
+        file_size = file.stream.tell() 
+        file.stream.seek(0)
+        
+        if file_size > max_size:
+            return jsonify({'error': 'File too large. Maximum size: 5MB'}), 400
+        
+        # Create secure upload directory
+        upload_dir = os.path.join(current_app.config.get('UPLOAD_FOLDER', 'uploads'), 'profile')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Generate secure unique filename
+        original_filename = secure_filename(file.filename)
+        extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'jpg'
+        secure_filename_str = f"profile_{current_user.id}_{uuid.uuid4().hex}.{extension}"
+        
+        # Save file securely
+        file_path = os.path.join(upload_dir, secure_filename_str)
+        file.save(file_path)
+        
+        # Update user profile with relative path
+        user = User.query.get(current_user.id)
+        user.profile_image = f"uploads/profile/{secure_filename_str}"
+        db.session.add(user)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Profile image updated successfully',
+            'image_url': user.profile_image
+        })
+        
+    except ValueError as e:
+        current_app.logger.warning(f"File validation error: {e}")
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        current_app.logger.error(f"Error uploading profile image: {e}")
+        return jsonify({'error': 'Failed to upload image'}), 500
 
 @bp.route('/toggle-2fa', methods=['POST'])
 @login_required

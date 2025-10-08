@@ -152,8 +152,12 @@
                 </div>
                 <div class="card-body">
                     <div class="list-group">
+                        <a href="{{ url_for('admin_config.index') }}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-sliders-h"></i> Configuration Management
+                            <span class="badge badge-success">New</span>
+                        </a>
                         <a href="{{ url_for('admin.settings') }}" class="list-group-item list-group-item-action">
-                            <i class="fas fa-cogs"></i> Site Settings
+                            <i class="fas fa-cogs"></i> Site Settings (Legacy)
                         </a>
                         <a href="{{ url_for('admin.registrations') }}" class="list-group-item list-group-item-action">
                             <i class="fas fa-user-plus"></i> Registration Requests 

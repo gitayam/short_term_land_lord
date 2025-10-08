@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white text-center">
+                    <h4><i class="fas fa-question-circle"></i> Guest Registration Help</h4>
+                </div>
+                
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-key fa-3x text-info mb-3"></i>
+                        <h5>You need an invitation code to create a guest account</h5>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-user-check"></i> For Current Guests</h6>
+                                    <p>If you're currently staying at one of our properties:</p>
+                                    <ul>
+                                        <li>Check your welcome packet</li>
+                                        <li>Look for an invitation code</li>
+                                        <li>Contact your host if you can't find it</li>
+                                    </ul>
+                                    <div class="text-center">
+                                        <small class="text-muted">Example: ABC123DEF456</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-home"></i> For Future Guests</h6>
+                                    <p>If you have an upcoming booking:</p>
+                                    <ul>
+                                        <li>Your host will send you an invitation code</li>
+                                        <li>Check your booking confirmation email</li>
+                                        <li>Ask your host directly for the code</li>
+                                    </ul>
+                                    <div class="text-center">
+                                        <small class="text-muted">Usually sent 1-2 weeks before arrival</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-4">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Don't have an invitation code?</strong><br>
+                        Guest accounts are currently by invitation only. Please contact your property host to request an invitation code.
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <h6>What you can do without an account:</h6>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
+                                <a href="{{ url_for('guest.browse_properties') }}" class="btn btn-outline-primary w-100">
+                                    <i class="fas fa-search"></i><br>
+                                    Browse Properties
+                                </a>
+                                <small class="text-muted d-block mt-1">View available properties</small>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-success w-100">
+                                    <i class="fas fa-sign-in-alt"></i><br>
+                                    Sign In
+                                </a>
+                                <small class="text-muted d-block mt-1">Already have an account?</small>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="{{ url_for('main.index') }}" class="btn btn-outline-info w-100">
+                                    <i class="fas fa-home"></i><br>
+                                    Home
+                                </a>
+                                <small class="text-muted d-block mt-1">Return to main site</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- FAQ Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-question"></i> Frequently Asked Questions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq1">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                    Why do I need an invitation code?
+                                </button>
+                            </h2>
+                            <div id="collapse1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Guest accounts are reserved for verified guests who have stayed or will stay at our properties. 
+                                    This ensures a secure and personalized experience for our valued guests.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq2">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                    How do I get an invitation code?
+                                </button>
+                            </h2>
+                            <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Property hosts generate invitation codes for their guests. If you have a booking, 
+                                    contact your host directly to request a guest account invitation.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq3">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                    What can I do with a guest account?
+                                </button>
+                            </h2>
+                            <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Guest accounts allow you to book directly, view your booking history, 
+                                    access property information, receive exclusive offers, and get priority support.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

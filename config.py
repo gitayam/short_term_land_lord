@@ -6,7 +6,14 @@ load_dotenv(os.path.join(basedir, '.env'))
 
 class Config:
     """Base configuration class"""
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
+    # Security: SECRET_KEY must be set in environment - no fallback allowed
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        raise RuntimeError(
+            "SECRET_KEY environment variable must be set!\n"
+            "Generate a secure key with: python -c 'import secrets; print(secrets.token_hex(32))'"
+        )
+    
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///app.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
@@ -32,6 +39,13 @@ class Config:
     SESSION_PERMANENT = False
     SESSION_USE_SIGNER = True
     SESSION_KEY_PREFIX = os.environ.get('SESSION_KEY_PREFIX', 'stll_session:')
+    
+    # Enhanced session security
+    SESSION_COOKIE_SECURE = os.environ.get('FLASK_ENV') == 'production'  # HTTPS only in production
+    SESSION_COOKIE_HTTPONLY = True  # Prevent XSS access to session cookie
+    SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+    SESSION_COOKIE_NAME = 'stll_session'
+    SESSION_COOKIE_DOMAIN = None  # Use default (current domain)
     
     # Performance settings
     SQLALCHEMY_RECORD_QUERIES = os.environ.get('SQLALCHEMY_RECORD_QUERIES', 'false').lower() == 'true'
@@ -182,6 +196,11 @@ class ProductionConfig(Config):
     WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
     PERMANENT_SESSION_LIFETIME = 1800  # 30 minutes
     
+    # Force secure sessions in production
+    SESSION_COOKIE_SECURE = True  # Always require HTTPS
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Strict'  # Stricter in production
+    
     # Enable all monitoring in production
     SQLALCHEMY_RECORD_QUERIES = True
     PROMETHEUS_METRICS = True
@@ -251,8 +270,12 @@ class AppEngineConfig(Config):
     HEALTH_CHECK_ENABLED = True
     PROMETHEUS_METRICS = False
     
-    # Disable CSRF for now to simplify deployment
-    WTF_CSRF_ENABLED = False
+    # Enable CSRF protection for security
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
+    # Use secure CSRF settings for serverless
+    WTF_CSRF_SSL_STRICT = True  # Require HTTPS for CSRF tokens
+    WTF_CSRF_CHECK_DEFAULT = True  # Check CSRF on all POST/PUT/DELETE requests
 
 # Configuration mapping
 config = {

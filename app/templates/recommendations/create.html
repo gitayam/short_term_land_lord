@@ -2,144 +2,528 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Create New Recommendation</h2>
-    <form method="POST" enctype="multipart/form-data">
-        {{ form.csrf_token }}
-        
-        <div class="mb-3">
-            <label for="title" class="form-label">Title</label>
-            {{ form.title(class="form-control") }}
-            {% if form.title.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.title.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('property.view', id=property.id) }}">{{ property.name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}">Recommendations</a></li>
+                    <li class="breadcrumb-item active">Add New</li>
+                </ol>
+            </nav>
+            <h2 class="h3 mb-0">Add New Recommendation</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="app-card">
+                <div class="app-card-body">
+                    <form method="POST" enctype="multipart/form-data" id="recommendationForm">
+                        {{ form.csrf_token }}
+                        
+                        <!-- Basic Information -->
+                        <div class="section-header mb-3">
+                            <h5 class="mb-0">Basic Information</h5>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="app-form-group">
+                                    {{ form.title.label(class="app-form-label required") }}
+                                    {{ form.title(class="app-form-control", placeholder="e.g., Central Park, Joe's Pizza, Uber") }}
+                                    {% if form.title.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.title.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="app-form-group">
+                                    {{ form.recommendation_type.label(class="app-form-label required") }}
+                                    {{ form.recommendation_type(class="app-form-control", id="recommendationType", onchange="toggleTypeSpecificFields()") }}
+                                    {% if form.recommendation_type.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.recommendation_type.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="app-form-group">
+                            {{ form.description.label(class="app-form-label") }}
+                            {{ form.description(class="app-form-control", rows="3", placeholder="Brief description of why you recommend this...") }}
+                            {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.description.errors[0] }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.category.label(class="app-form-label") }}
+                                    {{ form.category(class="app-form-control") }}
+                                    {% if form.category.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.category.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="app-form-group">
+                                    {{ form.photo.label(class="app-form-label") }}
+                                    {{ form.photo(class="app-form-control", accept="image/*") }}
+                                    {% if form.photo.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.photo.errors[0] }}
+                                    </div>
+                                    {% endif %}
+                                    <small class="form-text text-secondary">Upload a photo (max 10MB)</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Type-Specific Fields -->
+                        <div class="section-header mb-3 mt-4">
+                            <h5 class="mb-0">Details</h5>
+                        </div>
+
+                        <!-- Place Fields -->
+                        <div id="placeFields" class="type-specific-fields">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.distance_from_property.label(class="app-form-label") }}
+                                        {{ form.distance_from_property(class="app-form-control", placeholder="e.g., 5 min walk, 10 min drive") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.map_link.label(class="app-form-label") }}
+                                        {{ form.map_link(class="app-form-control", placeholder="Google Maps or other map link (optional)") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.best_time_to_go.label(class="app-form-label") }}
+                                        {{ form.best_time_to_go(class="app-form-control", placeholder="e.g., Sunset, Weekday mornings") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.hours.label(class="app-form-label") }}
+                                        {{ form.hours(class="app-form-control", placeholder="e.g., Mon-Fri 9am-5pm") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.price_range.label(class="app-form-label") }}
+                                        {{ form.price_range(class="app-form-control", placeholder="e.g., $, $$, $$$, or Free") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.parking_details.label(class="app-form-label") }}
+                                        {{ form.parking_details(class="app-form-control", placeholder="e.g., Street parking, Valet available") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="app-form-group">
+                                {{ form.recommended_meal.label(class="app-form-label") }}
+                                {{ form.recommended_meal(class="app-form-control", placeholder="For restaurants: signature dish or must-try item") }}
+                            </div>
+                        </div>
+
+                        <!-- Activity Fields -->
+                        <div id="activityFields" class="type-specific-fields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        <label class="app-form-label">Duration</label>
+                                        <input type="text" class="app-form-control" name="duration" placeholder="e.g., 2-3 hours, Full day">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        <label class="app-form-label">Difficulty Level</label>
+                                        <select class="app-form-control" name="difficulty_level">
+                                            <option value="">Select difficulty</option>
+                                            <option value="easy">Easy</option>
+                                            <option value="moderate">Moderate</option>
+                                            <option value="challenging">Challenging</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.price_range.label(class="app-form-label") }}
+                                        {{ form.price_range(class="app-form-control", placeholder="e.g., $50/person, Free") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.best_time_to_go.label(class="app-form-label") }}
+                                        {{ form.best_time_to_go(class="app-form-control", placeholder="e.g., Morning, Spring season") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="app-form-group">
+                                <label class="app-form-label">What to Bring</label>
+                                <input type="text" class="app-form-control" name="what_to_bring" placeholder="e.g., Comfortable shoes, Camera, Water">
+                            </div>
+                        </div>
+
+                        <!-- Service Fields -->
+                        <div id="serviceFields" class="type-specific-fields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        <label class="app-form-label">Service Type</label>
+                                        <select class="app-form-control" name="service_type">
+                                            <option value="">Select type</option>
+                                            <option value="delivery">Delivery</option>
+                                            <option value="laundry">Laundry</option>
+                                            <option value="grocery">Grocery</option>
+                                            <option value="pharmacy">Pharmacy</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        <label class="app-form-label">Contact Number</label>
+                                        <input type="text" class="app-form-control" name="contact_number" placeholder="Phone number">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.hours.label(class="app-form-label") }}
+                                        {{ form.hours(class="app-form-control", placeholder="Service hours") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.price_range.label(class="app-form-label") }}
+                                        {{ form.price_range(class="app-form-control", placeholder="Price or fee structure") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="app-form-group">
+                                <label class="app-form-label">Delivery/Service Area</label>
+                                <input type="text" class="app-form-control" name="service_area" placeholder="e.g., Within 5 miles, City-wide">
+                            </div>
+                        </div>
+
+                        <!-- Event Fields -->
+                        <div id="eventFields" class="type-specific-fields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        <label class="app-form-label">Event Date/Season</label>
+                                        <input type="text" class="app-form-control" name="event_date" placeholder="e.g., Every Saturday, Summer only">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.hours.label(class="app-form-label") }}
+                                        {{ form.hours(class="app-form-control", placeholder="Event hours") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.price_range.label(class="app-form-label") }}
+                                        {{ form.price_range(class="app-form-control", placeholder="Ticket price or Free") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        <label class="app-form-label">Booking Required</label>
+                                        <select class="app-form-control" name="booking_required">
+                                            <option value="">Select</option>
+                                            <option value="yes">Yes - Book in advance</option>
+                                            <option value="no">No - Walk-in</option>
+                                            <option value="recommended">Recommended</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Transportation Fields -->
+                        <div id="transportationFields" class="type-specific-fields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        <label class="app-form-label">Transport Type</label>
+                                        <select class="app-form-control" name="transport_type">
+                                            <option value="">Select type</option>
+                                            <option value="taxi">Taxi</option>
+                                            <option value="rideshare">Rideshare (Uber/Lyft)</option>
+                                            <option value="public">Public Transit</option>
+                                            <option value="rental">Car Rental</option>
+                                            <option value="bike">Bike Share</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.price_range.label(class="app-form-label") }}
+                                        {{ form.price_range(class="app-form-control", placeholder="Typical fare or price") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="app-form-group">
+                                <label class="app-form-label">App/Booking Info</label>
+                                <input type="text" class="app-form-control" name="booking_info" placeholder="e.g., Download Uber app, Buy MetroCard at station">
+                            </div>
+                        </div>
+
+                        <!-- Shopping Fields -->
+                        <div id="shoppingFields" class="type-specific-fields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        <label class="app-form-label">Store Type</label>
+                                        <select class="app-form-control" name="store_type">
+                                            <option value="">Select type</option>
+                                            <option value="grocery">Grocery Store</option>
+                                            <option value="convenience">Convenience Store</option>
+                                            <option value="pharmacy">Pharmacy</option>
+                                            <option value="mall">Shopping Mall</option>
+                                            <option value="market">Local Market</option>
+                                            <option value="specialty">Specialty Store</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.distance_from_property.label(class="app-form-label") }}
+                                        {{ form.distance_from_property(class="app-form-control", placeholder="e.g., 2 blocks, 5 min walk") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.hours.label(class="app-form-label") }}
+                                        {{ form.hours(class="app-form-control", placeholder="Store hours") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.price_range.label(class="app-form-label") }}
+                                        {{ form.price_range(class="app-form-control", placeholder="Price level") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Emergency Fields -->
+                        <div id="emergencyFields" class="type-specific-fields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        <label class="app-form-label">Emergency Type</label>
+                                        <select class="app-form-control" name="emergency_type">
+                                            <option value="">Select type</option>
+                                            <option value="hospital">Hospital</option>
+                                            <option value="urgent_care">Urgent Care</option>
+                                            <option value="police">Police Station</option>
+                                            <option value="fire">Fire Department</option>
+                                            <option value="pharmacy_24h">24-Hour Pharmacy</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        <label class="app-form-label">Emergency Number</label>
+                                        <input type="text" class="app-form-control" name="emergency_number" placeholder="Phone number">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.distance_from_property.label(class="app-form-label") }}
+                                        {{ form.distance_from_property(class="app-form-control", placeholder="Distance to facility") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.map_link.label(class="app-form-label") }}
+                                        {{ form.map_link(class="app-form-control", placeholder="Map link to location") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="app-form-group">
+                                {{ form.hours.label(class="app-form-label") }}
+                                {{ form.hours(class="app-form-control", placeholder="e.g., 24/7, Mon-Fri 8am-8pm") }}
+                            </div>
+                        </div>
+
+                        <!-- WiFi Fields (kept for backward compatibility) -->
+                        <div id="wifiFields" class="type-specific-fields" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.wifi_name.label(class="app-form-label") }}
+                                        {{ form.wifi_name(class="app-form-control") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="app-form-group">
+                                        {{ form.wifi_password.label(class="app-form-label") }}
+                                        {{ form.wifi_password(class="app-form-control") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Guide Book Assignment -->
+                        <div class="section-header mb-3 mt-4">
+                            <h5 class="mb-0">Organization</h5>
+                        </div>
+                        
+                        <div class="app-form-group">
+                            {{ form.guide_books.label(class="app-form-label") }}
+                            {{ form.guide_books(class="app-form-control", multiple=True, size=3) }}
+                            <small class="form-text text-secondary">Hold Ctrl/Cmd to select multiple guide books</small>
+                            {% if form.guide_books.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.guide_books.errors[0] }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" class="app-btn app-btn-ghost">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="app-btn app-btn-primary">
+                                <i class="bi bi-check-circle"></i> Create Recommendation
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            {% endif %}
         </div>
 
-        <div class="mb-3">
-            <label for="description" class="form-label">Description</label>
-            {{ form.description(class="form-control") }}
-            {% if form.description.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.description.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
+        <!-- Help Sidebar -->
+        <div class="col-lg-4">
+            <div class="app-card">
+                <div class="app-card-header">
+                    <h5 class="mb-0">Tips</h5>
+                </div>
+                <div class="app-card-body">
+                    <div class="mb-3">
+                        <h6 class="text-primary"><i class="bi bi-lightbulb"></i> Choose the Right Type</h6>
+                        <p class="small text-secondary mb-0">Select the recommendation type that best matches what you're recommending. This helps show the most relevant fields.</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-primary"><i class="bi bi-map"></i> Map Links Optional</h6>
+                        <p class="small text-secondary mb-0">Map links are helpful but not required. You can add directions in the description instead.</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-primary"><i class="bi bi-book"></i> Guide Books</h6>
+                        <p class="small text-secondary mb-0">Add recommendations to guide books to organize them for guests. Create guide books first if needed.</p>
+                    </div>
 
-        <div class="mb-3">
-            <label for="category" class="form-label">Category</label>
-            {{ form.category(class="form-control") }}
-            {% if form.category.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.category.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
+                    <div id="typeHelp" class="mt-4">
+                        <!-- Dynamic help content based on type -->
+                    </div>
+                </div>
             </div>
-            {% endif %}
         </div>
-
-        <div class="mb-3">
-            <label for="map_link" class="form-label">Map Link</label>
-            {{ form.map_link(class="form-control") }}
-            {% if form.map_link.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.map_link.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="best_time_to_go" class="form-label">Best Time to Go</label>
-            {{ form.best_time_to_go(class="form-control") }}
-            {% if form.best_time_to_go.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.best_time_to_go.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="recommended_meal" class="form-label">Recommended Meal</label>
-            {{ form.recommended_meal(class="form-control") }}
-            {% if form.recommended_meal.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.recommended_meal.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="wifi_name" class="form-label">WiFi Network Name</label>
-            {{ form.wifi_name(class="form-control") }}
-            {% if form.wifi_name.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.wifi_name.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="wifi_password" class="form-label">WiFi Password</label>
-            {{ form.wifi_password(class="form-control") }}
-            {% if form.wifi_password.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.wifi_password.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="parking_details" class="form-label">Parking Details</label>
-            {{ form.parking_details(class="form-control") }}
-            {% if form.parking_details.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.parking_details.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="guide_books" class="form-label">Add to Guide Books</label>
-            {{ form.guide_books(class="form-select") }}
-            {% if form.guide_books.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.guide_books.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="mb-3">
-            <label for="photo" class="form-label">Photo</label>
-            {{ form.photo(class="form-control") }}
-            {% if form.photo.errors %}
-            <div class="alert alert-danger">
-                {% for error in form.photo.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-
-        <button type="submit" class="btn btn-primary">Create Recommendation</button>
-        <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" class="btn btn-secondary">Cancel</a>
-    </form>
+    </div>
 </div>
-{% endblock %} 
+
+<style>
+.section-header {
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.type-specific-fields {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.app-form-label.required::after {
+    content: " *";
+    color: var(--danger);
+}
+</style>
+
+<script>
+function toggleTypeSpecificFields() {
+    const type = document.getElementById('recommendationType').value;
+    
+    // Hide all type-specific field groups
+    document.querySelectorAll('.type-specific-fields').forEach(group => {
+        group.style.display = 'none';
+    });
+    
+    // Show relevant fields based on type
+    const fieldMap = {
+        'place': 'placeFields',
+        'activity': 'activityFields',
+        'service': 'serviceFields',
+        'event': 'eventFields',
+        'transportation': 'transportationFields',
+        'shopping': 'shoppingFields',
+        'emergency': 'emergencyFields'
+    };
+    
+    if (fieldMap[type]) {
+        const fields = document.getElementById(fieldMap[type]);
+        if (fields) {
+            fields.style.display = 'block';
+        }
+    }
+    
+    // Update help content
+    updateTypeHelp(type);
+}
+
+function updateTypeHelp(type) {
+    const helpContent = {
+        'place': '<h6>Place Recommendations</h6><p class="small">Restaurants, cafes, parks, attractions, etc. Include hours, prices, and what makes it special.</p>',
+        'activity': '<h6>Activity Recommendations</h6><p class="small">Things to do like tours, hikes, classes, etc. Include duration, difficulty, and what to bring.</p>',
+        'service': '<h6>Service Recommendations</h6><p class="small">Delivery, laundry, grocery services, etc. Include contact info and service areas.</p>',
+        'event': '<h6>Event Recommendations</h6><p class="small">Concerts, markets, festivals, etc. Include dates, times, and booking info.</p>',
+        'transportation': '<h6>Transportation Options</h6><p class="small">How to get around - taxis, rideshare, public transit, etc.</p>',
+        'shopping': '<h6>Shopping Recommendations</h6><p class="small">Stores, markets, malls where guests can shop for necessities or souvenirs.</p>',
+        'emergency': '<h6>Emergency Services</h6><p class="small">Important contacts and locations for emergencies - hospitals, police, etc.</p>'
+    };
+    
+    const helpDiv = document.getElementById('typeHelp');
+    helpDiv.innerHTML = helpContent[type] || '';
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleTypeSpecificFields();
+});
+</script>
+{% endblock %}

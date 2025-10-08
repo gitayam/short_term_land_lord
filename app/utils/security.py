@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Tuple
 from functools import wraps
-from flask import request, current_app, session, abort, g
+from flask import request, current_app, session, abort, g, flash, redirect, url_for
 from werkzeug.exceptions import TooManyRequests
 
 
@@ -300,10 +300,10 @@ class SecurityHeaders:
         # Content Security Policy (basic)
         csp = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com https://unpkg.com; "
             "img-src 'self' data: https:; "
-            "font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+            "font-src 'self' data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.gstatic.com; "
             "connect-src 'self'; "
             "frame-ancestors 'none';"
         )
@@ -353,6 +353,98 @@ def require_api_key(f):
         # For now, just check the format
         if len(api_key) < 40:
             abort(401)
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+class SessionManager:
+    """Enhanced session management for security"""
+    
+    @staticmethod
+    def invalidate_user_sessions(user_id: int):
+        """Invalidate all sessions for a specific user"""
+        # This would require Redis or database-backed sessions for full implementation
+        # For now, we can only clear the current session
+        if 'user_id' in session and session['user_id'] == user_id:
+            session.clear()
+            current_app.logger.info(f"Session invalidated for user {user_id}")
+    
+    @staticmethod
+    def regenerate_session_id():
+        """Regenerate session ID to prevent session fixation"""
+        # Save important session data
+        user_data = {}
+        if 'user_id' in session:
+            user_data['user_id'] = session['user_id']
+        if '_user_id' in session:
+            user_data['_user_id'] = session['_user_id']
+        if 'remember_token' in session:
+            user_data['remember_token'] = session['remember_token']
+        
+        # Clear session and regenerate
+        session.clear()
+        session.permanent = True
+        
+        # Restore important data
+        for key, value in user_data.items():
+            session[key] = value
+        
+        current_app.logger.debug("Session ID regenerated")
+    
+    @staticmethod
+    def validate_session_integrity():
+        """Validate session integrity"""
+        # Check for session hijacking indicators
+        user_agent = request.headers.get('User-Agent', '')
+        remote_addr = request.remote_addr
+        
+        # Store fingerprint in session on first visit
+        if 'session_fingerprint' not in session:
+            session['session_fingerprint'] = {
+                'user_agent_hash': hashlib.sha256(user_agent.encode()).hexdigest()[:16],
+                'creation_time': time.time()
+            }
+        
+        # Validate fingerprint
+        stored_fingerprint = session.get('session_fingerprint', {})
+        current_ua_hash = hashlib.sha256(user_agent.encode()).hexdigest()[:16]
+        
+        if stored_fingerprint.get('user_agent_hash') != current_ua_hash:
+            current_app.logger.warning(f"Session fingerprint mismatch for session")
+            return False
+        
+        # Check session age (max 24 hours)
+        creation_time = stored_fingerprint.get('creation_time', 0)
+        if time.time() - creation_time > 86400:  # 24 hours
+            current_app.logger.warning("Session expired due to age")
+            return False
+        
+        return True
+    
+    @staticmethod
+    def secure_session_setup():
+        """Set up secure session parameters"""
+        session.permanent = True
+        
+        # Add session security metadata
+        if 'session_created' not in session:
+            session['session_created'] = time.time()
+        
+        session['last_activity'] = time.time()
+
+
+def secure_session_required(f):
+    """Decorator to require secure session validation"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not SessionManager.validate_session_integrity():
+            session.clear()
+            flash('Your session has expired for security reasons. Please log in again.', 'warning')
+            return redirect(url_for('auth.login'))
+        
+        # Update last activity
+        session['last_activity'] = time.time()
         
         return f(*args, **kwargs)
     return decorated_function

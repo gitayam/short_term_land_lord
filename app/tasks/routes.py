@@ -137,7 +137,7 @@ def create():
             # Handle recurrence if enabled
             if form.is_recurring.data:
                 task.is_recurring = True
-                task.recurrence_pattern = form.recurrence_pattern.data if form.recurrence_pattern.data else RecurrencePattern.NONE.value
+                task.recurrence_pattern = form.recurrence_pattern.data if form.recurrence_pattern.data else RecurrencePattern.NONE
                 task.recurrence_interval = form.recurrence_interval.data
                 task.recurrence_end_date = form.recurrence_end_date.data
             
@@ -954,7 +954,7 @@ def repair_requests():
     sort_by = request.args.get('sort_by', 'priority')
     property_id = request.args.get('property_id', type=int)
     
-    # Base query - get tasks tagged as repair requests
+    # Base query - get tasks tagged as repair requests (secure parameterized query)
     query = Task.query.filter(Task.tags.like('%repair_request%'))
     
     # Apply property filter if specified
@@ -1041,7 +1041,7 @@ def create_repair_request():
                 notes=form.additional_notes.data,
                 creator_id=current_user.id,
                 tags='repair_request',
-                recurrence_pattern=RecurrencePattern.NONE.value
+                recurrence_pattern=RecurrencePattern.NONE
             )
             
             # Add task property
@@ -1425,7 +1425,7 @@ def apply_template(template_id):
         # Handle recurrence if enabled
         if form.is_recurring.data:
             task.is_recurring = True
-            task.recurrence_pattern = form.recurrence_pattern.data if form.recurrence_pattern.data else RecurrencePattern.NONE.value
+            task.recurrence_pattern = form.recurrence_pattern.data if form.recurrence_pattern.data else RecurrencePattern.NONE
             task.recurrence_interval = form.recurrence_interval.data
             task.recurrence_end_date = form.recurrence_end_date.data
         
@@ -1513,7 +1513,7 @@ def create_task_for_property(property_id):
         # Handle recurrence if enabled
         if form.is_recurring.data:
             task.is_recurring = True
-            task.recurrence_pattern = form.recurrence_pattern.data if form.recurrence_pattern.data else RecurrencePattern.NONE.value
+            task.recurrence_pattern = form.recurrence_pattern.data if form.recurrence_pattern.data else RecurrencePattern.NONE
             task.recurrence_interval = form.recurrence_interval.data
             task.recurrence_end_date = form.recurrence_end_date.data
         
@@ -1617,7 +1617,7 @@ def create_workorder():
             creator_id=current_user.id,
             notes=form.notes.data,
             is_recurring=form.is_recurring.data,
-            recurrence_pattern=form.recurrence_pattern.data if form.is_recurring.data else RecurrencePattern.NONE.value,
+            recurrence_pattern=form.recurrence_pattern.data if form.is_recurring.data else RecurrencePattern.NONE,
             recurrence_interval=form.recurrence_interval.data if form.is_recurring.data else 1,
             recurrence_end_date=form.recurrence_end_date.data,
             linked_to_checkout=form.linked_to_checkout.data,

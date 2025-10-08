@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <!-- Filter Sidebar -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-filter"></i> Filter Properties</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('guest.browse_properties') }}">
+                        <div class="mb-3">
+                            {{ form.city.label(class="form-label") }}
+                            {{ form.city(class="form-control") }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.state.label(class="form-label") }}
+                            {{ form.state(class="form-select") }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.property_type.label(class="form-label") }}
+                            {{ form.property_type(class="form-select") }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.min_bedrooms.label(class="form-label") }}
+                            {{ form.min_bedrooms(class="form-select") }}
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                            <a href="{{ url_for('guest.browse_properties') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-refresh"></i> Clear Filters
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Guest Registration CTA -->
+            {% if not current_user.is_authenticated %}
+            <div class="card mt-3">
+                <div class="card-header bg-success text-white">
+                    <h6><i class="fas fa-user-plus"></i> Join Our Community</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small">Have an invitation code? Create your guest account to:</p>
+                    <ul class="small">
+                        <li>Book directly with us</li>
+                        <li>View exclusive offers</li>
+                        <li>Track your stays</li>
+                        <li>Get priority support</li>
+                    </ul>
+                    <a href="{{ url_for('guest.register_help') }}" class="btn btn-success btn-sm">
+                        <i class="fas fa-user-plus"></i> Register
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-9">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-home"></i> Browse Properties</h2>
+                    <p class="text-muted">Found {{ properties|length }} properties</p>
+                </div>
+                {% if current_user.is_authenticated and current_user.is_guest_user %}
+                <a href="{{ url_for('guest.dashboard') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-user"></i> My Account
+                </a>
+                {% endif %}
+            </div>
+            
+            <!-- Properties Grid -->
+            {% if properties %}
+            <div class="row">
+                {% for property in properties %}
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <!-- Property Image -->
+                        <div class="position-relative">
+                            {% if property.get_primary_image_url() and property.get_primary_image_url() != "/static/img/default-property.jpg" %}
+                            <img src="{{ property.get_primary_image_url() }}" 
+                                 class="card-img-top" 
+                                 alt="{{ property.name }}"
+                                 style="height: 200px; object-fit: cover;">
+                            {% else %}
+                            {% set gradients = [
+                                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                                'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+                            ] %}
+                            {% set property_icons = {
+                                'house': 'bi-house-door',
+                                'apartment': 'bi-building',
+                                'condo': 'bi-building',
+                                'townhouse': 'bi-house',
+                                'villa': 'bi-house-heart',
+                                'cottage': 'bi-house',
+                                'studio': 'bi-door-open',
+                                'loft': 'bi-building'
+                            } %}
+                            {% set icon_class = property_icons.get(property.property_type, 'bi-house-door') %}
+                            {% set gradient = gradients[property.id % gradients|length] %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center" 
+                                 style="height: 200px; background: {{ gradient }};">
+                                <div class="text-center text-white">
+                                    <i class="bi {{ icon_class }}" style="font-size: 4rem;"></i>
+                                    <div class="mt-2" style="font-size: 0.9rem; opacity: 0.9;">{{ property.property_type|capitalize }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Property Type Badge -->
+                            <span class="badge bg-primary position-absolute top-0 end-0 m-2">
+                                {{ property.property_type.title() }}
+                            </span>
+                        </div>
+                        
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ property.name }}</h5>
+                            <p class="text-muted small">
+                                <i class="fas fa-map-marker-alt"></i>
+                                {{ property.city }}, {{ property.state }}
+                            </p>
+                            
+                            <!-- Property Details -->
+                            {% if property.bedrooms or property.bathrooms or property.max_guests %}
+                            <div class="mb-2">
+                                {% if property.bedrooms %}
+                                <span class="badge bg-light text-dark me-1">
+                                    <i class="fas fa-bed"></i> {{ property.bedrooms }} bed
+                                </span>
+                                {% endif %}
+                                {% if property.bathrooms %}
+                                <span class="badge bg-light text-dark me-1">
+                                    <i class="fas fa-bath"></i> {{ property.bathrooms }} bath
+                                </span>
+                                {% endif %}
+                                {% if property.max_guests %}
+                                <span class="badge bg-light text-dark">
+                                    <i class="fas fa-users"></i> {{ property.max_guests }} guests
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Description -->
+                            {% if property.description %}
+                            <p class="card-text small text-muted">{{ property.description }}</p>
+                            {% endif %}
+                            
+                            <!-- Amenities -->
+                            {% if property.amenities %}
+                            <div class="mb-2">
+                                {% for amenity in property.amenities %}
+                                <span class="badge bg-light text-dark me-1 mb-1">{{ amenity }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Action Button -->
+                            <div class="mt-auto">
+                                <a href="{{ url_for('guest.view_property_public', property_id=property.id) }}" 
+                                   class="btn btn-primary w-100">
+                                    <i class="fas fa-eye"></i> View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- No Properties Found -->
+            <div class="text-center py-5">
+                <i class="fas fa-home fa-3x text-muted mb-3"></i>
+                <h4>No Properties Found</h4>
+                <p class="text-muted">Try adjusting your search filters to find more properties.</p>
+                <a href="{{ url_for('guest.browse_properties') }}" class="btn btn-primary">
+                    <i class="fas fa-refresh"></i> Reset Search
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

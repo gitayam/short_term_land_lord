@@ -13,9 +13,9 @@
                     <a href="{{ url_for('property.view_calendar', id=property.id) }}" class="btn btn-sm btn-outline-info">View Calendar</a>
                     <a href="{{ url_for('property.manage_guest_access', id=property.id) }}" class="btn btn-sm btn-outline-success">Guest Access</a>
                     <a href="{{ url_for('property.worker_calendar_settings', id=property.id) }}" class="btn btn-sm btn-outline-info">Worker Calendar</a>
-                    <a href="{{ url_for('property.booking_calendar_settings', id=property.id) }}" class="btn btn-sm btn-outline-warning">Public Booking Calendar</a>
+                    <a href="{{ url_for('property.booking_calendar_settings', id=property.id) }}" class="btn btn-sm btn-outline-primary">Public Booking Calendar</a>
                     <a href="{{ url_for('inventory.index', property_id=property.id) }}" class="btn btn-sm btn-outline-success">Manage Inventory</a>
-                    <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-sm btn-outline-warning">View Tasks</a>
+                    <a href="{{ url_for('tasks.view_for_property', property_id=property.id) }}" class="btn btn-sm btn-outline-dark">View Tasks</a>
                     <a href="{{ url_for('recommendations.list_recommendations', property_id=property.id) }}" class="btn btn-sm btn-outline-info">
                         <i class="fas fa-map-marker-alt"></i> Manage Recommendations
                     </a>
@@ -853,9 +853,14 @@
                         {% else %}
                             <p>Guest access is <strong>disabled</strong> for this property.</p>
                         {% endif %}
-                        <a href="{{ url_for('property.manage_guest_access', id=property.id) }}" class="btn btn-success">
-                            <i class="bi bi-gear"></i> Manage Guest Access
-                        </a>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('property.manage_guest_access', id=property.id) }}" class="btn btn-success">
+                                <i class="bi bi-gear"></i> Manage Guest Access
+                            </a>
+                            <a href="{{ url_for('property_routes.manage_invitations', property_id=property.id) }}" class="btn btn-outline-success">
+                                <i class="bi bi-envelope-plus"></i> Guest Invitations
+                            </a>
+                        </div>
                     </div>
                 </div>
                 

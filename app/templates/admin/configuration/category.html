@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">
+                <i class="{{ category_info.icon }}"></i> {{ category_info.name }}
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_config.index') }}">Configuration</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ category_info.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    {% if category == 'sms' %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-exclamation-triangle"></i> SMS Configuration Requirements</h5>
+                <p>To enable SMS notifications, you need:</p>
+                <ul>
+                    <li>A Twilio account with verified phone number</li>
+                    <li>Account SID and Auth Token added to your <code>.env</code> file</li>
+                    <li>SMS notifications enabled in the Features settings</li>
+                </ul>
+                <p class="mb-0"><strong>Security Note:</strong> Twilio credentials are sensitive and can only be configured via environment variables for security reasons.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if category == 'integration' %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-key"></i> API Keys Security</h5>
+                <p>All API keys and tokens must be stored in your <code>.env</code> file for security. They cannot be edited through this interface.</p>
+                <p class="mb-0">Never commit API keys to version control. Always use environment variables.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if editable_settings %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit"></i> Editable Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="configForm">
+                        <div class="row">
+                            {% for key, setting in editable_settings.items() %}
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="{{ key }}">
+                                        {{ key.replace('_', ' ').title() }}
+                                        {% if setting.from_env %}
+                                        <span class="badge badge-info" title="Currently set from environment variable">ENV</span>
+                                        {% endif %}
+                                    </label>
+                                    
+                                    {% if setting.type == ConfigurationType.BOOLEAN %}
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input config-input" 
+                                               id="{{ key }}" name="{{ key }}"
+                                               data-key="{{ key }}" data-type="{{ setting.type }}"
+                                               {% if setting.value %}checked{% endif %}>
+                                        <label class="custom-control-label" for="{{ key }}">
+                                            {{ setting.description }}
+                                        </label>
+                                    </div>
+                                    
+                                    {% elif setting.type == ConfigurationType.PASSWORD %}
+                                    <div class="input-group">
+                                        <input type="password" class="form-control config-input" 
+                                               id="{{ key }}" name="{{ key }}"
+                                               data-key="{{ key }}" data-type="{{ setting.type }}"
+                                               value="{{ setting.display_value }}"
+                                               placeholder="Enter {{ key.replace('_', ' ').lower() }}">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="{{ key }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <small class="form-text text-muted">{{ setting.description }}</small>
+                                    
+                                    {% elif setting.type == ConfigurationType.INTEGER %}
+                                    <input type="number" class="form-control config-input" 
+                                           id="{{ key }}" name="{{ key }}"
+                                           data-key="{{ key }}" data-type="{{ setting.type }}"
+                                           value="{{ setting.value }}"
+                                           {% if setting.validation.min is defined %}min="{{ setting.validation.min }}"{% endif %}
+                                           {% if setting.validation.max is defined %}max="{{ setting.validation.max }}"{% endif %}>
+                                    <small class="form-text text-muted">
+                                        {{ setting.description }}
+                                        {% if setting.validation %}
+                                        {% if setting.validation.min is defined and setting.validation.max is defined %}
+                                        (Range: {{ setting.validation.min }} - {{ setting.validation.max }})
+                                        {% endif %}
+                                        {% endif %}
+                                    </small>
+                                    
+                                    {% elif setting.type == ConfigurationType.EMAIL %}
+                                    <input type="email" class="form-control config-input" 
+                                           id="{{ key }}" name="{{ key }}"
+                                           data-key="{{ key }}" data-type="{{ setting.type }}"
+                                           value="{{ setting.value }}"
+                                           placeholder="email@example.com">
+                                    <small class="form-text text-muted">{{ setting.description }}</small>
+                                    
+                                    {% elif setting.type == ConfigurationType.URL %}
+                                    <input type="url" class="form-control config-input" 
+                                           id="{{ key }}" name="{{ key }}"
+                                           data-key="{{ key }}" data-type="{{ setting.type }}"
+                                           value="{{ setting.value }}"
+                                           placeholder="https://example.com">
+                                    <small class="form-text text-muted">{{ setting.description }}</small>
+                                    
+                                    {% else %}
+                                    <input type="text" class="form-control config-input" 
+                                           id="{{ key }}" name="{{ key }}"
+                                           data-key="{{ key }}" data-type="{{ setting.type }}"
+                                           value="{{ setting.value }}">
+                                    <small class="form-text text-muted">
+                                        {{ setting.description }}
+                                        {% if setting.validation and setting.validation.choices %}
+                                        (Options: {{ setting.validation.choices|join(', ') }})
+                                        {% endif %}
+                                    </small>
+                                    {% endif %}
+                                    
+                                    {% if category == 'sms' and key == 'TWILIO_PHONE_NUMBER' %}
+                                    <div class="alert alert-info mt-2">
+                                        <i class="fas fa-info-circle"></i> <strong>Twilio Setup Guide:</strong><br>
+                                        <ol class="mb-0 mt-2">
+                                            <li>Sign up for a Twilio account at <a href="https://www.twilio.com/try-twilio" target="_blank" class="alert-link">twilio.com</a></li>
+                                            <li>Navigate to <a href="https://console.twilio.com" target="_blank" class="alert-link">Twilio Console</a></li>
+                                            <li>Find your Account SID and Auth Token in the dashboard</li>
+                                            <li>Add them to your <code>.env</code> file:
+                                                <pre class="mb-1 mt-1"><code>TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code></pre>
+                                            </li>
+                                            <li>Purchase a phone number from <a href="https://console.twilio.com/us1/develop/phone-numbers/manage/search" target="_blank" class="alert-link">Phone Numbers → Buy a Number</a></li>
+                                            <li>Enter the phone number here in E.164 format (e.g., +1234567890)</li>
+                                        </ol>
+                                        <hr>
+                                        <small><strong>Note:</strong> Credentials must be in <code>.env</code> file for security. They cannot be edited here.</small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if category == 'email' and key == 'MAIL_SERVER' %}
+                                    <div class="alert alert-info mt-2">
+                                        <i class="fas fa-info-circle"></i> <strong>Email Configuration Guide:</strong><br>
+                                        <p class="mb-2 mt-2">Common SMTP settings for popular providers:</p>
+                                        <table class="table table-sm">
+                                            <tr><th>Provider</th><th>SMTP Server</th><th>Port</th><th>TLS</th></tr>
+                                            <tr><td>Gmail</td><td>smtp.gmail.com</td><td>587</td><td>Yes</td></tr>
+                                            <tr><td>Outlook</td><td>smtp-mail.outlook.com</td><td>587</td><td>Yes</td></tr>
+                                            <tr><td>Yahoo</td><td>smtp.mail.yahoo.com</td><td>587</td><td>Yes</td></tr>
+                                            <tr><td>SendGrid</td><td>smtp.sendgrid.net</td><td>587</td><td>Yes</td></tr>
+                                        </table>
+                                        <small><strong>Note:</strong> Add your email password to <code>.env</code>: <code>MAIL_PASSWORD=your_password</code></small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if category == 'integration' and 'OPENAI' in key %}
+                                    <div class="alert alert-info mt-2">
+                                        <i class="fas fa-info-circle"></i> <strong>OpenAI API Setup:</strong><br>
+                                        <ol class="mb-0 mt-2">
+                                            <li>Sign up at <a href="https://platform.openai.com/signup" target="_blank" class="alert-link">OpenAI Platform</a></li>
+                                            <li>Go to <a href="https://platform.openai.com/api-keys" target="_blank" class="alert-link">API Keys</a></li>
+                                            <li>Create a new secret key</li>
+                                            <li>Add to your <code>.env</code> file: <code>OPENAI_API_KEY=sk-...</code></li>
+                                            <li>Set up billing at <a href="https://platform.openai.com/account/billing" target="_blank" class="alert-link">Billing Settings</a></li>
+                                        </ol>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if setting.default is not none %}
+                                    <button type="button" class="btn btn-sm btn-link reset-btn" data-key="{{ key }}" data-default="{{ setting.default }}">
+                                        <i class="fas fa-undo"></i> Reset to default
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary" id="saveBtn">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="window.location.reload()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if readonly_settings %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lock"></i> Read-Only Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Setting</th>
+                                    <th>Value</th>
+                                    <th>Description</th>
+                                    <th>Source</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for key, setting in readonly_settings.items() %}
+                                <tr>
+                                    <td><code>{{ key }}</code></td>
+                                    <td>
+                                        {% if setting.sensitive %}
+                                        <span class="text-muted">{{ setting.display_value }}</span>
+                                        {% else %}
+                                        {{ setting.value }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ setting.description }}</td>
+                                    <td>
+                                        {% if setting.from_env %}
+                                        <span class="badge badge-info">Environment</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">Default</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle password visibility toggle
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.dataset.target;
+            const input = document.getElementById(targetId);
+            const icon = this.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    });
+
+    // Handle reset buttons
+    document.querySelectorAll('.reset-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const key = this.dataset.key;
+            const defaultValue = this.dataset.default;
+            
+            if (confirm(`Reset "${key}" to default value: ${defaultValue}?`)) {
+                fetch(`{{ url_for('admin_config.reset_setting', key='KEY') }}`.replace('KEY', key), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+            }
+        });
+    });
+
+    // Handle form submission
+    document.getElementById('configForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        const settings = {};
+        document.querySelectorAll('.config-input').forEach(input => {
+            const key = input.dataset.key;
+            const type = input.dataset.type;
+            
+            if (type === '{{ ConfigurationType.BOOLEAN }}') {
+                settings[key] = input.checked;
+            } else {
+                settings[key] = input.value;
+            }
+        });
+        
+        fetch('{{ url_for("admin_config.batch_update") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(settings)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Settings saved successfully!');
+                window.location.reload();
+            } else {
+                alert('Error saving settings:\n' + (data.errors ? data.errors.join('\n') : data.error));
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            }
+        })
+        .catch(error => {
+            alert('Error saving settings: ' + error);
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        });
+    });
+});
+</script>
+{% endblock %}

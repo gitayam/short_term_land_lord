@@ -25,9 +25,9 @@ class UserRoles(enum.Enum):
     PROPERTY_GUEST = "property_guest"
 
 class TaskStatus(enum.Enum):
-    PENDING = 'PENDING'
-    IN_PROGRESS = 'IN_PROGRESS'
-    COMPLETED = 'COMPLETED'
+    PENDING = 'pending'
+    IN_PROGRESS = 'in_progress'
+    COMPLETED = 'completed'
 
 class TaskPriority(enum.Enum):
     LOW = "low"
@@ -310,6 +310,11 @@ class User(UserMixin, db.Model):
     two_factor_method = db.Column(db.String(20), nullable=True)  # sms, authenticator
     last_password_change = db.Column(db.DateTime, nullable=True)
     
+    # Account lockout settings
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime, nullable=True)
+    last_failed_login = db.Column(db.DateTime, nullable=True)
+    
     # Connected services
     google_calendar_connected = db.Column(db.Boolean, default=False)
     google_calendar_token = db.Column(db.Text, nullable=True)
@@ -353,6 +358,53 @@ class User(UserMixin, db.Model):
         if not result:
             current_app.logger.warning(f"Password check failed for user {self.email}")
         return result
+    
+    def is_account_locked(self) -> bool:
+        """Check if account is currently locked"""
+        if self.locked_until is None:
+            return False
+        return datetime.utcnow() < self.locked_until
+    
+    def lock_account(self, duration_minutes: int = None) -> None:
+        """Lock account for specified duration or progressive lockout"""
+        from datetime import timedelta
+        
+        if duration_minutes is None:
+            # Progressive lockout: 5min, 15min, 1hr, 24hr
+            if self.failed_login_attempts <= 5:
+                duration_minutes = 5
+            elif self.failed_login_attempts <= 10:
+                duration_minutes = 15
+            elif self.failed_login_attempts <= 15:
+                duration_minutes = 60
+            else:
+                duration_minutes = 1440  # 24 hours
+        
+        self.locked_until = datetime.utcnow() + timedelta(minutes=duration_minutes)
+        current_app.logger.warning(f"Account locked for user {self.email} until {self.locked_until}")
+    
+    def unlock_account(self) -> None:
+        """Unlock account and reset failed attempts"""
+        self.locked_until = None
+        self.failed_login_attempts = 0
+        self.last_failed_login = None
+        current_app.logger.info(f"Account unlocked for user {self.email}")
+    
+    def record_failed_login(self) -> None:
+        """Record a failed login attempt"""
+        self.failed_login_attempts = (self.failed_login_attempts or 0) + 1
+        self.last_failed_login = datetime.utcnow()
+        
+        # Lock account after 5 failed attempts
+        if self.failed_login_attempts >= 5:
+            self.lock_account()
+    
+    def record_successful_login(self) -> None:
+        """Record successful login and reset failed attempts"""
+        self.failed_login_attempts = 0
+        self.last_failed_login = None
+        self.last_login = datetime.utcnow()
+        # Don't unlock here - let manual unlock handle locked accounts
     
     def get_full_name(self) -> str:
         """Return user's full name (first + last)"""
@@ -502,9 +554,10 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         db.session.commit()
     
-    def is_active(self):
-        """Override UserMixin's is_active to check suspension status"""
-        return not self.is_suspended
+    def is_authenticated_and_active(self):
+        """Check if user is both authenticated and active (not disabled and not suspended)"""
+        # User must be both active (not disabled by admin) AND not suspended
+        return self.is_active and not self.is_suspended
     
     @property
     def visible_properties(self):
@@ -520,6 +573,263 @@ class User(UserMixin, db.Model):
         else:
             # Service staff and other roles
             return []
+    
+    # Guest-specific fields
+    @property 
+    def is_guest_user(self):
+        """Check if user is a guest user"""
+        return self.role == UserRoles.PROPERTY_GUEST.value
+    
+    # Guest account management
+    invitation_code_id = db.Column(db.Integer, db.ForeignKey('guest_invitations.id'), nullable=True)
+    guest_preferences = db.Column(db.Text, nullable=True)  # JSON for guest preferences
+    last_check_in = db.Column(db.DateTime, nullable=True)  # Track guest's last check-in
+    guest_rating = db.Column(db.Float, nullable=True)  # Guest rating from property owners
+    guest_notes = db.Column(db.Text, nullable=True)  # Internal notes about the guest
+    
+    # Guest contact preferences 
+    marketing_emails_consent = db.Column(db.Boolean, default=False, nullable=False)
+    booking_reminders_consent = db.Column(db.Boolean, default=True, nullable=False)
+    
+    # Guest verification
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_verification_token = db.Column(db.String(64), nullable=True)
+    email_verification_sent_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationship to invitation that created this guest account
+    invitation_used = db.relationship('GuestInvitation', foreign_keys=[invitation_code_id], 
+                                     backref='guest_user_created', lazy=True)
+    
+    def create_guest_user(self, email, first_name, last_name, invitation_code):
+        """Create a new guest user account"""
+        # Verify invitation code
+        invitation = GuestInvitation.get_by_code(invitation_code)
+        if not invitation or not invitation.is_available:
+            raise ValueError("Invalid or expired invitation code")
+        
+        # Create guest user
+        self.email = email
+        self.first_name = first_name
+        self.last_name = last_name
+        self.role = UserRoles.PROPERTY_GUEST.value
+        self.invitation_code_id = invitation.id
+        self.is_active = True
+        
+        # Generate email verification token
+        import secrets
+        self.email_verification_token = secrets.token_urlsafe(32)
+        self.email_verification_sent_at = datetime.utcnow()
+        
+        # Mark invitation as used
+        invitation.mark_as_used(self.id)
+        
+        return self
+    
+    def verify_email(self, token):
+        """Verify guest email with token"""
+        if (self.email_verification_token == token and 
+            self.email_verification_sent_at and
+            datetime.utcnow() - self.email_verification_sent_at < timedelta(days=7)):
+            self.email_verified = True
+            self.email_verification_token = None
+            self.email_verification_sent_at = None
+            return True
+        return False
+    
+    def get_guest_preferences(self):
+        """Get guest preferences as dict"""
+        if self.guest_preferences:
+            import json
+            try:
+                return json.loads(self.guest_preferences)
+            except json.JSONDecodeError:
+                return {}
+        return {}
+    
+    def update_guest_preferences(self, preferences_dict):
+        """Update guest preferences"""
+        import json
+        self.guest_preferences = json.dumps(preferences_dict)
+        self.updated_at = datetime.utcnow()
+    
+    def get_guest_properties(self):
+        """Get properties this guest has access to"""
+        if not self.is_guest_user:
+            return []
+        
+        # Get properties from bookings
+        from sqlalchemy import distinct
+        property_ids = db.session.query(distinct(GuestBooking.property_id)).filter_by(
+            guest_user_id=self.id
+        ).all()
+        
+        properties = []
+        for (prop_id,) in property_ids:
+            prop = Property.query.get(prop_id)
+            if prop:
+                properties.append(prop)
+        
+        return properties
+    
+    # Admin management methods
+    def disable_account(self, admin_user, reason=None):
+        """Disable user account (admin action)"""
+        if self.is_active:
+            self.is_active = False
+            
+            # Record the action
+            action = UserAccountAction(
+                user_id=self.id,
+                admin_id=admin_user.id,
+                action_type='disable',
+                old_value='active',
+                new_value='inactive',
+                reason=reason
+            )
+            
+            # Add both the user and action to the session
+            db.session.add(self)
+            db.session.add(action)
+            db.session.commit()
+            return True
+        return False
+    
+    def enable_account(self, admin_user, reason=None):
+        """Enable user account (admin action)"""
+        if not self.is_active:
+            self.is_active = True
+            
+            # Record the action
+            action = UserAccountAction(
+                user_id=self.id,
+                admin_id=admin_user.id,
+                action_type='enable',
+                old_value='inactive',
+                new_value='active',
+                reason=reason
+            )
+            
+            # Add both the user and action to the session
+            db.session.add(self)
+            db.session.add(action)
+            db.session.commit()
+            return True
+        return False
+    
+    def change_role(self, new_role, admin_user, reason=None):
+        """Change user role (admin action)"""
+        old_role = self.role
+        if old_role != new_role:
+            self.role = new_role
+            
+            # Update admin flag if changing to/from admin role
+            if new_role == UserRoles.ADMIN.value:
+                self._is_admin = True
+            elif old_role == UserRoles.ADMIN.value:
+                self._is_admin = False
+            
+            # Record the action
+            action = UserAccountAction(
+                user_id=self.id,
+                admin_id=admin_user.id,
+                action_type='role_change',
+                old_value=old_role,
+                new_value=new_role,
+                reason=reason
+            )
+            
+            # Add both the user and action to the session
+            db.session.add(self)
+            db.session.add(action)
+            db.session.commit()
+            return True
+        return False
+    
+    def reset_password_admin(self, admin_user, new_password, reason=None):
+        """Reset user password (admin action)"""
+        from werkzeug.security import generate_password_hash
+        
+        self.password_hash = generate_password_hash(new_password)
+        
+        # Record the action (don't store the actual password)
+        action = UserAccountAction(
+            user_id=self.id,
+            admin_id=admin_user.id,
+            action_type='password_reset',
+            old_value=None,
+            new_value='password_reset',
+            reason=reason
+        )
+        
+        # Add both the user and action to the session
+        db.session.add(self)
+        db.session.add(action)
+        db.session.commit()
+        return True
+    
+    def add_admin_note(self, admin_user, content, note_type='general', is_important=False):
+        """Add an admin note to this user"""
+        note = UserNote(
+            user_id=self.id,
+            admin_id=admin_user.id,
+            note_type=note_type,
+            content=content,
+            is_important=is_important
+        )
+        db.session.add(note)
+        db.session.commit()
+        return note
+    
+    def get_recent_notes(self, limit=10):
+        """Get recent admin notes for this user"""
+        return UserNote.query.filter_by(user_id=self.id)\
+                            .order_by(UserNote.created_at.desc())\
+                            .limit(limit).all()
+    
+    def get_recent_actions(self, limit=10):
+        """Get recent admin actions on this user"""
+        return UserAccountAction.query.filter_by(user_id=self.id)\
+                                     .order_by(UserAccountAction.created_at.desc())\
+                                     .limit(limit).all()
+    
+    @property
+    def account_status(self):
+        """Get comprehensive account status"""
+        status = {
+            'is_active': self.is_active,
+            'is_suspended': self.is_suspended,
+            'failed_logins': self.failed_login_attempts,
+            'last_login': self.last_login,
+            'created_at': self.created_at,
+            'role': self.role,
+            'is_admin': self.is_admin
+        }
+        return status
+    
+    @property
+    def status_badge_class(self):
+        """Get Bootstrap badge class for user status"""
+        if not self.is_active:
+            return 'bg-danger'
+        elif self.is_suspended:
+            return 'bg-warning text-dark'
+        elif self.failed_login_attempts > 3:
+            return 'bg-warning text-dark'
+        else:
+            return 'bg-success'
+    
+    @property
+    def status_text(self):
+        """Get human-readable status text"""
+        if not self.is_active:
+            return 'Disabled'
+        elif self.is_suspended:
+            return 'Suspended'
+        elif self.failed_login_attempts > 3:
+            return 'Locked'
+        else:
+            return 'Active'
+
 
 class Property(db.Model):
     """
@@ -558,6 +868,10 @@ class Property(db.Model):
     state = db.Column(db.String(64), nullable=True)
     zip_code = db.Column(db.String(16), nullable=True)
     country = db.Column(db.String(64), nullable=True)
+    
+    # Geographic coordinates for mapping
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     
     # Property details
     bedrooms = db.Column(db.Integer, nullable=True)
@@ -682,6 +996,45 @@ class Property(db.Model):
         
         # If no components are available, fall back to the address field
         return self.address
+    
+    def get_anonymized_address(self):
+        """Return an anonymized address hiding house numbers for privacy"""
+        if not (self.street_address or self.city or self.state):
+            return "Address not available"
+        
+        parts = []
+        
+        if self.street_address:
+            # Remove house numbers but keep street names
+            # Split by space and remove parts that are purely numeric or start with numeric
+            street_parts = self.street_address.split()
+            filtered_parts = []
+            
+            for i, part in enumerate(street_parts):
+                # Skip if it's purely numeric (house number)
+                if part.isdigit():
+                    continue
+                # Skip if it starts with digits and is likely an address number
+                if i == 0 and any(char.isdigit() for char in part[:3]):
+                    continue
+                # Keep everything else (street names, directions, etc.)
+                filtered_parts.append(part)
+            
+            if filtered_parts:
+                # Add "Near" to indicate approximate location
+                street_name = " ".join(filtered_parts)
+                parts.append(f"Near {street_name}")
+        
+        # Always include city and state for general location
+        city_state_zip = []
+        if self.city:
+            city_state_zip.append(self.city)
+        if self.state:
+            city_state_zip.append(self.state)
+        if city_state_zip:
+            parts.append(", ".join(city_state_zip))
+        
+        return ", ".join(parts) if parts else "General area location"
     
     def generate_guest_access_token(self):
         """Generate a unique token for guest access"""
@@ -861,6 +1214,12 @@ class PropertyCalendar(db.Model):
         """Return a user-friendly display name for the calendar service"""
         service_map = dict(self.SERVICE_CHOICES)
         return service_map.get(self.service, 'Other')
+    
+    def is_synced_recently(self):
+        """Check if calendar was synced within the last 24 hours"""
+        if not self.last_synced:
+            return False
+        return (datetime.utcnow() - self.last_synced).total_seconds() < 86400  # 24 hours in seconds
 
 
 class CalendarEvent(db.Model):
@@ -1569,8 +1928,14 @@ class SiteSetting(db.Model):
     value = db.Column(db.Text, nullable=True)
     description = db.Column(db.String(255), nullable=True)
     visible = db.Column(db.Boolean, default=True)
+    category = db.Column(db.String(32), nullable=True)  # Added for categorization
+    config_type = db.Column(db.String(16), nullable=True)  # Added for type info
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Track who made changes
+    
+    # Relationship to track who updated the setting
+    updated_by = db.relationship('User', backref='setting_updates', foreign_keys=[updated_by_id])
     
     @classmethod
     def get_setting(cls, key, default=None):
@@ -1579,19 +1944,53 @@ class SiteSetting(db.Model):
         return setting.value if setting else default
     
     @classmethod
-    def set_setting(cls, key, value, description=None, visible=True):
+    def set_setting(cls, key, value, description=None, visible=True, category=None, config_type=None, updated_by_id=None):
         """Create or update a setting"""
         setting = db.session.get(cls, key)
         
         if setting:
+            # Store old value for audit
+            old_value = setting.value
             setting.value = value
             setting.updated_at = datetime.utcnow()
             if description:
                 setting.description = description
             setting.visible = visible
+            if category:
+                setting.category = category
+            if config_type:
+                setting.config_type = config_type
+            if updated_by_id:
+                setting.updated_by_id = updated_by_id
+                # Create audit log entry
+                if old_value != value:
+                    audit = ConfigurationAudit(
+                        setting_key=key,
+                        old_value=old_value,
+                        new_value=value,
+                        changed_by_id=updated_by_id
+                    )
+                    db.session.add(audit)
         else:
-            setting = cls(key=key, value=value, description=description, visible=visible)
+            setting = cls(
+                key=key, 
+                value=value, 
+                description=description, 
+                visible=visible,
+                category=category,
+                config_type=config_type,
+                updated_by_id=updated_by_id
+            )
             db.session.add(setting)
+            # Create audit log entry for new setting
+            if updated_by_id:
+                audit = ConfigurationAudit(
+                    setting_key=key,
+                    old_value=None,
+                    new_value=value,
+                    changed_by_id=updated_by_id
+                )
+                db.session.add(audit)
         
         db.session.commit()
         return setting
@@ -1606,6 +2005,25 @@ class SiteSetting(db.Model):
         """Check if guest reviews feature is enabled"""
         value = cls.get_setting('guest_reviews_enabled', 'false')
         return value.lower() == 'true'
+
+
+class ConfigurationAudit(db.Model):
+    """Model for tracking configuration changes for audit trail"""
+    __tablename__ = 'configuration_audit'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    setting_key = db.Column(db.String(64), nullable=False)
+    old_value = db.Column(db.Text, nullable=True)
+    new_value = db.Column(db.Text, nullable=True)
+    changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    changed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Relationship to track who made the change
+    changed_by = db.relationship('User', backref='configuration_changes', foreign_keys=[changed_by_id])
+    
+    def __repr__(self):
+        return f'<ConfigurationAudit {self.setting_key} by {self.changed_by_id}>'
+
 
 def create_admin_user_from_env():
     """Create an admin user from environment variables if one doesn't exist"""
@@ -1791,19 +2209,64 @@ class RecommendationBlock(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Basic Information
     title = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=False)  # 300-char limit enforced in form
-    category = db.Column(db.String(20), nullable=False)  # Store enum as string in SQLite
-    map_link = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    recommendation_type = db.Column(db.String(30), nullable=False, default='place')  # place, activity, service, event, transportation, shopping, emergency
+    category = db.Column(db.String(50), nullable=False)  # More specific subcategory
+    
+    # Location & Contact
+    address = db.Column(db.String(500), nullable=True)
+    phone = db.Column(db.String(50), nullable=True)
+    website = db.Column(db.String(500), nullable=True)
+    map_link = db.Column(db.String(500), nullable=True)  # Now optional
+    distance_from_property = db.Column(db.String(50), nullable=True)  # e.g., "5 min walk", "10 min drive"
+    
+    # Timing & Availability
+    hours = db.Column(db.String(500), nullable=True)  # Operating hours (can be JSON for complex schedules)
     best_time_to_go = db.Column(db.String(255), nullable=True)
-    recommended_meal = db.Column(db.String(255), nullable=True)  # For food recommendations
-    wifi_name = db.Column(db.String(255), nullable=True)  # WiFi network name (SSID)
-    wifi_password = db.Column(db.String(255), nullable=True)  # WiFi password if available
-    parking_details = db.Column(db.Text, nullable=True)  # Parking information
-    hours = db.Column(db.String(255), nullable=True)  # Operating hours
-    in_guide_book = db.Column(db.Boolean, default=False)  # Whether this recommendation is in the guide book
+    seasonal_availability = db.Column(db.String(255), nullable=True)  # e.g., "Summer only", "Year-round"
+    
+    # Booking & Pricing
+    booking_required = db.Column(db.Boolean, default=False)
+    booking_link = db.Column(db.String(500), nullable=True)
+    price_range = db.Column(db.String(50), nullable=True)  # e.g., "$", "$$", "$$$", "$$$$", "Free"
+    
+    # Specific Fields for Different Types
+    # For Restaurants/Food
+    recommended_meal = db.Column(db.String(255), nullable=True)
+    cuisine_type = db.Column(db.String(100), nullable=True)
+    dietary_options = db.Column(db.String(255), nullable=True)  # Vegetarian, Vegan, Gluten-free, etc.
+    
+    # For Activities
+    duration = db.Column(db.String(100), nullable=True)  # e.g., "2-3 hours"
+    difficulty_level = db.Column(db.String(50), nullable=True)  # Easy, Moderate, Difficult
+    age_restrictions = db.Column(db.String(100), nullable=True)
+    
+    # For Transportation
+    app_download_link = db.Column(db.String(500), nullable=True)
+    fare_info = db.Column(db.String(255), nullable=True)
+    
+    # For Events
+    event_dates = db.Column(db.String(255), nullable=True)
+    recurring_schedule = db.Column(db.String(255), nullable=True)  # e.g., "Every Saturday"
+    
+    # Additional Details
+    wifi_name = db.Column(db.String(255), nullable=True)
+    wifi_password = db.Column(db.String(255), nullable=True)
+    parking_details = db.Column(db.Text, nullable=True)
+    accessibility_info = db.Column(db.String(255), nullable=True)  # Wheelchair accessible, etc.
+    insider_tips = db.Column(db.Text, nullable=True)  # Local tips and tricks
+    
+    # Meta Information
+    in_guide_book = db.Column(db.Boolean, default=False)
     photo_path = db.Column(db.String(500), nullable=True)
-    staff_pick = db.Column(db.Boolean, default=False)  # Whether this is marked as a staff pick
+    staff_pick = db.Column(db.Boolean, default=False)
+    priority_order = db.Column(db.Integer, default=0)  # For custom ordering
+    is_featured = db.Column(db.Boolean, default=False)  # Featured recommendations
+    rating = db.Column(db.Float, nullable=True)  # Average rating (1-5)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -1814,13 +2277,68 @@ class RecommendationBlock(db.Model):
         return f'<RecommendationBlock {self.title} for Property {self.property_id}>'
     
     def get_category_display(self):
-        return self.category.title()
+        return self.category.replace('_', ' ').title()
+    
+    def get_type_display(self):
+        return self.recommendation_type.replace('_', ' ').title()
+    
+    def get_price_display(self):
+        """Return price range with visual indicators"""
+        if not self.price_range:
+            return None
+        if self.price_range.lower() == 'free':
+            return 'Free'
+        return self.price_range
+    
+    def get_type_icon(self):
+        """Return an icon class based on recommendation type"""
+        icons = {
+            'place': 'bi-geo-alt-fill',
+            'activity': 'bi-bicycle',
+            'service': 'bi-tools',
+            'event': 'bi-calendar-event',
+            'transportation': 'bi-car-front',
+            'shopping': 'bi-bag',
+            'emergency': 'bi-exclamation-triangle-fill'
+        }
+        return icons.get(self.recommendation_type, 'bi-pin-map')
+    
+    def get_category_icon(self):
+        """Return an icon class based on category"""
+        icons = {
+            'restaurant': 'bi-cup-straw',
+            'bar': 'bi-cup',
+            'cafe': 'bi-cup-hot',
+            'museum': 'bi-building',
+            'park': 'bi-tree',
+            'beach': 'bi-umbrella',
+            'shopping': 'bi-bag',
+            'grocery': 'bi-basket',
+            'pharmacy': 'bi-capsule',
+            'hospital': 'bi-hospital',
+            'gym': 'bi-heart-pulse',
+            'spa': 'bi-flower1',
+            'tour': 'bi-map',
+            'rental': 'bi-key',
+            'taxi': 'bi-taxi-front',
+            'bus': 'bi-bus-front',
+            'train': 'bi-train-front'
+        }
+        return icons.get(self.category.lower(), self.get_type_icon())
     
     @property
     def photo_url(self):
         if self.photo_path:
             return url_for('static', filename=f'recommendations/{self.photo_path}')
         return None
+    
+    @property
+    def has_contact_info(self):
+        return any([self.phone, self.website, self.address, self.map_link])
+    
+    @property
+    def has_booking_info(self):
+        return self.booking_required or self.booking_link
     
     @property
     def vote_count(self):
@@ -1873,13 +2391,17 @@ class GuideBook(db.Model):
     property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
     
     # Relationships
-    # associated_property = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
+    property_obj = db.relationship('Property', backref=db.backref('guide_books', lazy=True))
     recommendations = db.relationship('RecommendationBlock', 
                                    secondary='guide_book_recommendations',
                                    backref=db.backref('guide_books', lazy=True))
 
     def __repr__(self):
         return f'<GuideBook {self.name}>'
+
+    def get_property(self):
+        """Get the property this guide book belongs to"""
+        return self.property_obj
 
     @property
     def recommendations_count(self):
@@ -1897,6 +2419,79 @@ class GuideBook(db.Model):
         if self.is_public and not self.access_token:
             return self.generate_access_token()
         return self.access_token
+    
+    @property
+    def associated_property(self):
+        """Alias for property to maintain backward compatibility"""
+        return self.property_obj
+    
+    @property
+    def property(self):
+        """Property accessor for backward compatibility"""
+        return self.property_obj
+
+class GuideBookSection(db.Model):
+    """Model for different sections within a guide book"""
+    __tablename__ = 'guide_book_sections'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    guide_book_id = db.Column(db.Integer, db.ForeignKey('guide_books.id'), nullable=False)
+    section_type = db.Column(db.String(50), nullable=False)  # house_rules, check_in, wifi, appliances, emergency, transportation, faq, etc.
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=True)  # Rich text content
+    order_index = db.Column(db.Integer, default=0)  # For ordering sections
+    is_active = db.Column(db.Boolean, default=True)
+    icon = db.Column(db.String(50), nullable=True)  # Bootstrap icon class
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    guide_book = db.relationship('GuideBook', backref=db.backref('sections', lazy=True, order_by='GuideBookSection.order_index'))
+    entries = db.relationship('GuideBookEntry', backref='section', lazy=True, cascade='all, delete-orphan', order_by='GuideBookEntry.order_index')
+    
+    def __repr__(self):
+        return f'<GuideBookSection {self.title} for GuideBook {self.guide_book_id}>'
+
+class GuideBookEntry(db.Model):
+    """Model for individual entries within a guide book section"""
+    __tablename__ = 'guide_book_entries'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    section_id = db.Column(db.Integer, db.ForeignKey('guide_book_sections.id'), nullable=False)
+    entry_type = db.Column(db.String(50), nullable=False)  # text, instruction, contact, location, link, image
+    title = db.Column(db.String(200), nullable=True)
+    content = db.Column(db.Text, nullable=True)
+    # Additional fields for different entry types
+    subtitle = db.Column(db.String(200), nullable=True)
+    url = db.Column(db.String(500), nullable=True)  # For links
+    phone = db.Column(db.String(50), nullable=True)  # For contacts
+    email = db.Column(db.String(100), nullable=True)  # For contacts
+    address = db.Column(db.String(500), nullable=True)  # For locations
+    latitude = db.Column(db.Float, nullable=True)  # For map locations
+    longitude = db.Column(db.Float, nullable=True)  # For map locations
+    image_path = db.Column(db.String(500), nullable=True)  # For images
+    icon = db.Column(db.String(50), nullable=True)  # Bootstrap icon class
+    order_index = db.Column(db.Integer, default=0)  # For ordering entries
+    is_important = db.Column(db.Boolean, default=False)  # Highlight important entries
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<GuideBookEntry {self.title or self.entry_type} for Section {self.section_id}>'
+    
+    def get_formatted_content(self):
+        """Return formatted content based on entry type"""
+        if self.entry_type == 'contact':
+            parts = []
+            if self.phone:
+                parts.append(f'Phone: {self.phone}')
+            if self.email:
+                parts.append(f'Email: {self.email}')
+            if self.address:
+                parts.append(f'Address: {self.address}')
+            return '\n'.join(parts)
+        return self.content
 
 # Association table for guide books and recommendations
 guide_book_recommendations = db.Table('guide_book_recommendations',
@@ -2316,3 +2911,551 @@ class GuidebookEntry(db.Model):
         """Get all entries for a property formatted for map display"""
         entries = cls.query.filter_by(property_id=property_id, is_active=True).all()
         return [entry.get_map_data() for entry in entries if entry.has_coordinates()]
+
+
+class GuestInvitation(db.Model):
+    """Model for guest invitation codes that allow guests to create accounts"""
+    __tablename__ = 'guest_invitations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(24), unique=True, nullable=False, index=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    email = db.Column(db.String(120), nullable=True)  # Optional: pre-specify guest email
+    guest_name = db.Column(db.String(200), nullable=True)  # Optional: guest name
+    
+    # Expiration and usage tracking
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    used_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Status fields
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    max_uses = db.Column(db.Integer, default=1, nullable=False)  # How many times code can be used
+    current_uses = db.Column(db.Integer, default=0, nullable=False)
+    
+    # Metadata
+    notes = db.Column(db.Text, nullable=True)  # Internal notes about the invitation
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    property_ref = db.relationship('Property', backref='guest_invitations', lazy=True)
+    created_by = db.relationship('User', foreign_keys=[created_by_id], backref='created_invitations', lazy=True)
+    used_by = db.relationship('User', foreign_keys=[used_by_id], backref='used_invitations', lazy=True)
+    
+    def __repr__(self):
+        return f'<GuestInvitation {self.code}>'
+    
+    @property
+    def is_expired(self):
+        """Check if the invitation has expired"""
+        return datetime.utcnow() > self.expires_at
+    
+    @property
+    def is_available(self):
+        """Check if the invitation can still be used"""
+        return (self.is_active and 
+                not self.is_expired and 
+                self.current_uses < self.max_uses)
+    
+    @property
+    def is_single_use(self):
+        """Check if this is a single-use invitation"""
+        return self.max_uses == 1
+    
+    @property
+    def invitation_code(self):
+        """Alias for code attribute to maintain template compatibility"""
+        return self.code
+    
+    @property
+    def uses(self):
+        """Alias for current_uses to maintain template compatibility"""
+        return self.current_uses
+    
+    @property
+    def is_used(self):
+        """Check if invitation has been used"""
+        return self.current_uses > 0
+    
+    @property
+    def property(self):
+        """Alias for property_ref to maintain template compatibility"""
+        return self.property_ref
+    
+    def mark_as_used(self, user_id):
+        """Mark the invitation as used by a specific user"""
+        self.current_uses += 1
+        if self.is_single_use:
+            self.used_at = datetime.utcnow()
+            self.used_by_id = user_id
+        self.updated_at = datetime.utcnow()
+        
+        # Deactivate if max uses reached
+        if self.current_uses >= self.max_uses:
+            self.is_active = False
+    
+    def extend_expiration(self, days=30):
+        """Extend the expiration date by specified days"""
+        self.expires_at = datetime.utcnow() + timedelta(days=days)
+        self.updated_at = datetime.utcnow()
+    
+    @classmethod
+    def generate_unique_code(cls, length=12):
+        """Generate a unique invitation code (5-24 characters, default 12)"""
+        import string
+        import secrets
+        
+        # Ensure length is within valid range
+        length = max(5, min(24, length))
+        
+        # Use alphanumeric characters (avoiding similar-looking ones)
+        alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits
+        alphabet = alphabet.replace('0', '').replace('O', '').replace('l', '').replace('I', '')
+        
+        max_attempts = 10
+        for _ in range(max_attempts):
+            code = ''.join(secrets.choice(alphabet) for _ in range(length))
+            
+            # Check if code already exists
+            if not cls.query.filter_by(code=code).first():
+                return code
+        
+        # Fallback to UUID-based code if random generation fails
+        import uuid
+        return str(uuid.uuid4()).replace('-', '')[:length].upper()
+    
+    @classmethod
+    def create_invitation(cls, created_by_id, property_id=None, email=None, guest_name=None, 
+                         expires_in_days=30, max_uses=1, notes=None):
+        """Create a new guest invitation"""
+        code = cls.generate_unique_code()
+        expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+        
+        invitation = cls(
+            code=code,
+            property_id=property_id,
+            created_by_id=created_by_id,
+            email=email,
+            guest_name=guest_name,
+            expires_at=expires_at,
+            max_uses=max_uses,
+            notes=notes
+        )
+        
+        db.session.add(invitation)
+        db.session.commit()
+        return invitation
+    
+    @classmethod
+    def get_by_code(cls, code):
+        """Get invitation by code"""
+        return cls.query.filter_by(code=code, is_active=True).first()
+    
+    @classmethod
+    def get_active_by_property(cls, property_id):
+        """Get all active invitations for a property"""
+        return cls.query.filter_by(
+            property_id=property_id, 
+            is_active=True
+        ).filter(
+            cls.expires_at > datetime.utcnow()
+        ).order_by(cls.created_at.desc()).all()
+    
+    @classmethod
+    def cleanup_expired(cls):
+        """Clean up expired invitations"""
+        expired = cls.query.filter(
+            cls.expires_at < datetime.utcnow(),
+            cls.is_active == True
+        ).all()
+        
+        for invitation in expired:
+            invitation.is_active = False
+        
+        db.session.commit()
+        return len(expired)
+
+
+class GuestBooking(db.Model):
+    """Model for tracking guest bookings (both external and direct)"""
+    __tablename__ = 'guest_bookings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    guest_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Booking details
+    check_in_date = db.Column(db.Date, nullable=False)
+    check_out_date = db.Column(db.Date, nullable=False)
+    guest_count = db.Column(db.Integer, default=1, nullable=False)
+    
+    # Booking source and external references
+    booking_source = db.Column(db.String(50), nullable=False)  # 'direct', 'airbnb', 'vrbo', 'booking_com'
+    external_booking_id = db.Column(db.String(100), nullable=True)  # ID from external platform
+    external_booking_url = db.Column(db.String(500), nullable=True)  # Link to external booking
+    
+    # Financial information
+    total_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    currency = db.Column(db.String(3), default='USD', nullable=False)
+    
+    # Status tracking
+    status = db.Column(db.String(20), default='confirmed', nullable=False)  # confirmed, cancelled, completed
+    confirmation_code = db.Column(db.String(50), nullable=True)
+    
+    # Guest communication
+    special_requests = db.Column(db.Text, nullable=True)
+    host_notes = db.Column(db.Text, nullable=True)  # Internal notes from host
+    
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    guest_user = db.relationship('User', backref='guest_bookings', lazy=True)
+    property_ref = db.relationship('Property', backref='guest_bookings', lazy=True)
+    
+    def __repr__(self):
+        return f'<GuestBooking {self.id}: {self.guest_user.email} at {self.property_ref.name}>'
+    
+    @property
+    def duration_nights(self):
+        """Calculate the number of nights for this booking"""
+        return (self.check_out_date - self.check_in_date).days
+    
+    @property
+    def is_current(self):
+        """Check if the booking is currently active"""
+        today = datetime.now().date()
+        return self.check_in_date <= today <= self.check_out_date
+    
+    @property
+    def is_future(self):
+        """Check if the booking is in the future"""
+        return self.check_in_date > datetime.now().date()
+    
+    @property
+    def is_past(self):
+        """Check if the booking is in the past"""
+        return self.check_out_date < datetime.now().date()
+    
+    @property
+    def booking_source_display(self):
+        """Get human-readable booking source"""
+        source_map = {
+            'direct': 'Direct Booking',
+            'airbnb': 'Airbnb',
+            'vrbo': 'VRBO',
+            'booking_com': 'Booking.com'
+        }
+        return source_map.get(self.booking_source, self.booking_source.title())
+    
+    def to_calendar_event_dict(self):
+        """Convert booking to calendar event format"""
+        return {
+            'id': f'guest_booking_{self.id}',
+            'title': f'{self.guest_user.first_name} {self.guest_user.last_name}',
+            'start': self.check_in_date.isoformat(),
+            'end': self.check_out_date.isoformat(),
+            'backgroundColor': '#28a745',  # Green for confirmed bookings
+            'borderColor': '#28a745',
+            'extendedProps': {
+                'type': 'guest_booking',
+                'property_id': self.property_id,
+                'guest_count': self.guest_count,
+                'booking_source': self.booking_source,
+                'total_amount': str(self.total_amount) if self.total_amount else None,
+                'confirmation_code': self.confirmation_code,
+                'status': self.status
+            }
+        }
+    
+    @classmethod
+    def get_by_guest(cls, guest_user_id, include_past=True):
+        """Get all bookings for a specific guest"""
+        query = cls.query.filter_by(guest_user_id=guest_user_id)
+        
+        if not include_past:
+            query = query.filter(cls.check_out_date >= datetime.now().date())
+        
+        return query.order_by(cls.check_in_date.desc()).all()
+    
+    @classmethod
+    def get_by_property(cls, property_id, include_past=True):
+        """Get all bookings for a specific property"""
+        query = cls.query.filter_by(property_id=property_id)
+        
+        if not include_past:
+            query = query.filter(cls.check_out_date >= datetime.now().date())
+        
+        return query.order_by(cls.check_in_date.desc()).all()
+    
+    @classmethod
+    def create_direct_booking(cls, guest_user_id, property_id, check_in_date, check_out_date,
+                            guest_count=1, total_amount=None, special_requests=None):
+        """Create a new direct booking"""
+        import secrets
+        confirmation_code = secrets.token_hex(8).upper()
+        
+        booking = cls(
+            guest_user_id=guest_user_id,
+            property_id=property_id,
+            check_in_date=check_in_date,
+            check_out_date=check_out_date,
+            guest_count=guest_count,
+            booking_source='direct',
+            total_amount=total_amount,
+            confirmation_code=confirmation_code,
+            special_requests=special_requests,
+            status='confirmed'
+        )
+        
+        db.session.add(booking)
+        db.session.commit()
+        return booking
+
+
+class UserNote(db.Model):
+    """Model for admin notes about users"""
+    __tablename__ = 'user_notes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    note_type = db.Column(db.String(50), nullable=False, default='general')  # general, warning, account_action, etc.
+    content = db.Column(db.Text, nullable=False)
+    is_important = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='admin_notes')
+    admin = db.relationship('User', foreign_keys=[admin_id], backref='created_notes')
+    
+    def __repr__(self):
+        return f'<UserNote {self.id}: {self.note_type} for user {self.user_id}>'
+    
+    @property
+    def admin_name(self):
+        """Get the name of the admin who created this note"""
+        return self.admin.get_full_name() if self.admin else 'Unknown Admin'
+
+
+class UserAccountAction(db.Model):
+    """Model for tracking admin actions on user accounts"""
+    __tablename__ = 'user_account_actions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    action_type = db.Column(db.String(50), nullable=False)  # disable, enable, role_change, password_reset, etc.
+    old_value = db.Column(db.String(255), nullable=True)  # Previous value (for role changes, etc.)
+    new_value = db.Column(db.String(255), nullable=True)  # New value
+    reason = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='account_actions')
+    admin = db.relationship('User', foreign_keys=[admin_id], backref='performed_actions')
+    
+    def __repr__(self):
+        return f'<UserAccountAction {self.id}: {self.action_type} on user {self.user_id}>'
+    
+    @property
+    def admin_name(self):
+        """Get the name of the admin who performed this action"""
+        return self.admin.get_full_name() if self.admin else 'Unknown Admin'
+
+
+class PropertyAssignment(db.Model):
+    """Model for assigning users to properties (property managers and service staff)"""
+    __tablename__ = 'property_assignments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    assigned_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    role = db.Column(db.String(50), nullable=False)  # property_manager, service_staff
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='property_assignments')
+    property = db.relationship('Property', foreign_keys=[property_id], backref='assigned_users')
+    admin = db.relationship('User', foreign_keys=[assigned_by], backref='created_assignments')
+    
+    def __repr__(self):
+        return f'<PropertyAssignment {self.user_id} -> {self.property_id} as {self.role}>'
+
+
+class UserManagerAssignment(db.Model):
+    """Model for assigning service staff to property managers"""
+    __tablename__ = 'user_manager_assignments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # service staff
+    manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # property manager
+    assigned_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # admin
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='manager_assignments')
+    manager = db.relationship('User', foreign_keys=[manager_id], backref='managed_users')
+    admin = db.relationship('User', foreign_keys=[assigned_by], backref='created_manager_assignments')
+    
+    def __repr__(self):
+        return f'<UserManagerAssignment {self.user_id} -> manager {self.manager_id}>'
+
+
+class UserOwnerAssignment(db.Model):
+    """Model for assigning property managers to property owners"""
+    __tablename__ = 'user_owner_assignments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # property manager
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # property owner
+    assigned_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # admin
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    
+    # Relationships
+    manager = db.relationship('User', foreign_keys=[manager_id], backref='owner_assignments')
+    owner = db.relationship('User', foreign_keys=[owner_id], backref='assigned_managers')
+    admin = db.relationship('User', foreign_keys=[assigned_by], backref='created_owner_assignments')
+    
+    def __repr__(self):
+        return f'<UserOwnerAssignment manager {self.manager_id} -> owner {self.owner_id}>'
+
+
+class BookingRequestStatus(enum.Enum):
+    """Status for booking requests"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
+class BookingRequest(db.Model):
+    """Model for guest booking requests before approval"""
+    __tablename__ = 'booking_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey('property.id'), nullable=False)
+    
+    # Guest Information
+    guest_name = db.Column(db.String(255), nullable=False)
+    guest_email = db.Column(db.String(255), nullable=False)
+    guest_phone = db.Column(db.String(50), nullable=True)
+    
+    # Booking Details
+    check_in_date = db.Column(db.Date, nullable=False)
+    check_out_date = db.Column(db.Date, nullable=False)
+    number_of_guests = db.Column(db.Integer, default=1, nullable=False)
+    
+    # Previous Stay Information
+    previous_stay_property = db.Column(db.String(255), nullable=True)
+    previous_stay_dates = db.Column(db.String(255), nullable=True)
+    
+    # Additional Information
+    notes = db.Column(db.Text, nullable=True)
+    special_requests = db.Column(db.Text, nullable=True)
+    
+    # Status and Tracking
+    status = db.Column(db.Enum(BookingRequestStatus), default=BookingRequestStatus.PENDING, nullable=False)
+    request_token = db.Column(db.String(100), unique=True, nullable=False, default=lambda: secrets.token_urlsafe(32))
+    
+    # User Account (if they have one or after creation)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Approval Information
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    property_ref = db.relationship('Property', backref='booking_requests')
+    user = db.relationship('User', foreign_keys=[user_id], backref='booking_requests')
+    approver = db.relationship('User', foreign_keys=[approved_by], backref='approved_bookings')
+    
+    def __repr__(self):
+        return f'<BookingRequest {self.id}: {self.guest_name} for {self.property_id}>'
+    
+    @property
+    def total_nights(self):
+        """Calculate total nights of the stay"""
+        if self.check_in_date and self.check_out_date:
+            return (self.check_out_date - self.check_in_date).days
+        return 0
+    
+    @property
+    def is_expired(self):
+        """Check if the request has expired"""
+        if self.expires_at:
+            return datetime.utcnow() > self.expires_at
+        return False
+    
+    def approve(self, admin_user):
+        """Approve the booking request"""
+        self.status = BookingRequestStatus.APPROVED
+        self.approved_by = admin_user.id
+        self.approved_at = datetime.utcnow()
+        
+    def reject(self, admin_user, reason=None):
+        """Reject the booking request"""
+        self.status = BookingRequestStatus.REJECTED
+        self.approved_by = admin_user.id
+        self.approved_at = datetime.utcnow()
+        self.rejection_reason = reason
+
+
+class GuestAccountRequest(db.Model):
+    """Model for guest account creation requests"""
+    __tablename__ = 'guest_account_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Guest Information
+    full_name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    phone = db.Column(db.String(50), nullable=True)
+    
+    # Associated Booking Request
+    booking_request_id = db.Column(db.Integer, db.ForeignKey('booking_requests.id'), nullable=True)
+    
+    # Verification
+    verification_token = db.Column(db.String(100), unique=True, nullable=False, default=lambda: secrets.token_urlsafe(32))
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Status
+    is_approved = db.Column(db.Boolean, default=False, nullable=False)
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    
+    # User Account (after creation)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    booking_request = db.relationship('BookingRequest', backref='guest_account_request')
+    approver = db.relationship('User', foreign_keys=[approved_by], backref='approved_guest_accounts')
+    user = db.relationship('User', foreign_keys=[user_id], backref='guest_account_request')
+    
+    def __repr__(self):
+        return f'<GuestAccountRequest {self.id}: {self.email}>'
+    
+    def approve(self, admin_user):
+        """Approve the guest account request"""
+        self.is_approved = True
+        self.approved_by = admin_user.id
+        self.approved_at = datetime.utcnow()

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-plus-circle"></i> Create Guest Invitation</h2>
+                    <p class="text-muted">Generate an invitation code for a guest</p>
+                </div>
+                <a href="{{ url_for('guest.manage_invitations') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Invitations
+                </a>
+            </div>
+            
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-key"></i> Invitation Details</h5>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.property_id.label(class="form-label") }}
+                                {{ form.property_id(class="form-select") }}
+                                <div class="form-text">Leave as "All Properties" for general access</div>
+                                {% for error in form.property_id.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.expires_in_days.label(class="form-label") }}
+                                {{ form.expires_in_days(class="form-control") }}
+                                <div class="form-text">Days until invitation expires</div>
+                                {% for error in form.expires_in_days.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.email.label(class="form-label") }}
+                                {{ form.email(class="form-control") }}
+                                <div class="form-text">Optional: Pre-specify guest email</div>
+                                {% for error in form.email.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                {{ form.guest_name.label(class="form-label") }}
+                                {{ form.guest_name(class="form-control") }}
+                                <div class="form-text">Optional: Guest name for reference</div>
+                                {% for error in form.guest_name.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.max_uses.label(class="form-label") }}
+                            {{ form.max_uses(class="form-control", style="max-width: 150px;") }}
+                            <div class="form-text">Maximum number of times this code can be used</div>
+                            {% for error in form.max_uses.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            {{ form.notes.label(class="form-label") }}
+                            {{ form.notes(class="form-control", rows="3") }}
+                            <div class="form-text">Internal notes about this invitation</div>
+                            {% for error in form.notes.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('guest.manage_invitations') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus-circle"></i> Create Invitation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Information Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-info-circle"></i> How Guest Invitations Work</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Invitation Process:</h6>
+                            <ol class="small">
+                                <li>Create invitation with guest details</li>
+                                <li>Share the 24-character code with guest</li>
+                                <li>Guest registers using the code</li>
+                                <li>Guest verifies email and gains access</li>
+                            </ol>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Guest Benefits:</h6>
+                            <ul class="small">
+                                <li>Direct booking capability</li>
+                                <li>Access to property information</li>
+                                <li>Booking history tracking</li>
+                                <li>Exclusive offers and updates</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3 mb-0">
+                        <i class="fas fa-lightbulb"></i>
+                        <strong>Tip:</strong> You can create bulk invitations for multiple guests at once using the 
+                        <a href="{{ url_for('guest.bulk_invitations') }}">bulk invitation tool</a>.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -14,19 +14,19 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="col-md-6">
                     <label for="first_name" class="form-label">First Name</label>
-                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ current_user.first_name }}">
+                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ current_user.first_name|e }}">
                 </div>
                 <div class="col-md-6">
                     <label for="last_name" class="form-label">Last Name</label>
-                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ current_user.last_name }}">
+                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ current_user.last_name|e }}">
                 </div>
                 <div class="col-md-6">
                     <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}">
+                    <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email|e }}">
                 </div>
                 <div class="col-md-6">
                     <label for="phone" class="form-label">Phone Number</label>
-                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ current_user.phone }}">
+                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ current_user.phone|e }}">
                 </div>
                 <div class="col-md-6">
                     <label for="timezone" class="form-label">Timezone</label>

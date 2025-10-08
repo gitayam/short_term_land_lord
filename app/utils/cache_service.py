@@ -318,10 +318,7 @@ class CacheService:
             # This would depend on the cache backend
             # For Redis, we could get memory usage, hit rates, etc.
             if current_app.config.get('CACHE_TYPE') == 'redis':
-                try:
-                    import redis
-                except ImportError:
-                    return {'message': 'Redis module not available'}
+                import redis
                 redis_url = current_app.config.get('REDIS_URL')
                 if redis_url:
                     r = redis.from_url(redis_url)

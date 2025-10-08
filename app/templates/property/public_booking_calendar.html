@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
+    <title>{{ property.name }} - Book Your Stay</title>
     
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- FullCalendar CSS -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <!-- Flatpickr for date selection -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Leaflet for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
         body {
@@ -300,6 +304,339 @@
                 flex-direction: column;
             }
         }
+        
+        /* Map styles */
+        #propertyMap {
+            height: 300px;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .map-info {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            border: 1px solid #e9ecef;
+        }
+        
+        /* Date selection styles */
+        .date-selection-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .date-input-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .date-input-wrapper {
+            flex: 1;
+        }
+        
+        .guest-input-wrapper {
+            max-width: 150px;
+        }
+        
+        /* Booking form modal */
+        .modal-content {
+            color: #212529 !important;
+            background-color: #fff !important;
+        }
+        
+        .modal-header {
+            background-color: #f8f9fa !important;
+            color: #212529 !important;
+            border-bottom: 1px solid #dee2e6 !important;
+        }
+        
+        .modal-title {
+            color: #212529 !important;
+        }
+        
+        .modal-body {
+            background-color: #fff !important;
+            color: #212529 !important;
+        }
+        
+        .modal-body label {
+            color: #495057 !important;
+        }
+        
+        .modal-body input,
+        .modal-body textarea,
+        .modal-body select {
+            color: #495057 !important;
+            background-color: #fff !important;
+            border: 1px solid #ced4da !important;
+        }
+        
+        .modal-body input::placeholder,
+        .modal-body textarea::placeholder {
+            color: #6c757d !important;
+        }
+        
+        .booking-form-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .booking-form-section h6 {
+            color: #212529 !important;
+        }
+        
+        .form-check-inline {
+            margin-right: 2rem;
+        }
+        
+        .form-check-label {
+            color: #212529 !important;
+        }
+        
+        .previous-stay-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        
+        .availability-status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        
+        .availability-status.available {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .availability-status.unavailable {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .booking-summary {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .booking-summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .booking-summary-total {
+            font-weight: bold;
+            border-top: 2px solid #dee2e6;
+            padding-top: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        /* Flatpickr custom styling */
+        .flatpickr-calendar {
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15) !important;
+            border: 2px solid #667eea !important;
+            border-radius: 12px !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            z-index: 9999 !important;
+        }
+        
+        .flatpickr-current-month {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            padding: 15px !important;
+            border-radius: 8px 8px 0 0 !important;
+        }
+        
+        .flatpickr-months {
+            padding: 0 !important;
+        }
+        
+        .flatpickr-month {
+            border-radius: 8px 8px 0 0 !important;
+        }
+        
+        .flatpickr-prev-month,
+        .flatpickr-next-month {
+            color: white !important;
+            background: rgba(255,255,255,0.2) !important;
+            border-radius: 4px !important;
+            width: 28px !important;
+            height: 28px !important;
+            margin: 4px !important;
+        }
+        
+        .flatpickr-prev-month:hover,
+        .flatpickr-next-month:hover {
+            background: rgba(255,255,255,0.3) !important;
+        }
+        
+        .flatpickr-weekdays {
+            background: #f8f9fa !important;
+            border-bottom: 1px solid #e9ecef !important;
+        }
+        
+        .flatpickr-weekday {
+            background: transparent !important;
+            color: #495057 !important;
+            font-weight: 700 !important;
+            font-size: 12px !important;
+            padding: 12px 0 !important;
+        }
+        
+        .flatpickr-days {
+            padding: 8px !important;
+        }
+        
+        .flatpickr-day {
+            border-radius: 6px !important;
+            margin: 2px !important;
+            width: 35px !important;
+            height: 35px !important;
+            line-height: 35px !important;
+            font-weight: 500 !important;
+            border: 1px solid transparent !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        .flatpickr-day:hover {
+            background: #667eea !important;
+            color: white !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3) !important;
+        }
+        
+        .flatpickr-day.selected {
+            background: #28a745 !important;
+            border-color: #28a745 !important;
+            color: white !important;
+            font-weight: 700 !important;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4) !important;
+        }
+        
+        .flatpickr-day.inRange {
+            background: rgba(40, 167, 69, 0.1) !important;
+            border-color: #28a745 !important;
+            color: #28a745 !important;
+        }
+        
+        .flatpickr-day.today {
+            border-color: #667eea !important;
+            color: #667eea !important;
+            font-weight: 700 !important;
+            background: rgba(102, 126, 234, 0.1) !important;
+        }
+        
+        .flatpickr-day.today:hover {
+            background: #667eea !important;
+            color: white !important;
+        }
+        
+        .flatpickr-day.disabled {
+            background: #f8d7da !important;
+            color: #721c24 !important;
+            cursor: not-allowed !important;
+            position: relative !important;
+        }
+        
+        .flatpickr-day.disabled::after {
+            content: '×' !important;
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+            color: #dc3545 !important;
+        }
+        
+        .flatpickr-day.prevMonthDay,
+        .flatpickr-day.nextMonthDay {
+            color: #ced4da !important;
+        }
+        
+        /* Date input styling to encourage calendar popup */
+        .date-input-wrapper {
+            position: relative !important;
+        }
+        
+        .date-input-wrapper input[type="text"] {
+            cursor: pointer !important;
+            background: white !important;
+            padding-right: 40px !important;
+            font-weight: 500 !important;
+        }
+        
+        .date-input-wrapper::after {
+            content: "📅" !important;
+            position: absolute !important;
+            right: 12px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            font-size: 18px !important;
+            pointer-events: none !important;
+            z-index: 1 !important;
+        }
+        
+        .date-input-wrapper input[type="text"]:focus {
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+        }
+        
+        .date-input-wrapper input[type="text"]:hover {
+            border-color: #667eea !important;
+        }
+        
+        /* Custom availability styling for calendar dates */
+        .flatpickr-day.available-date {
+            background: rgba(40, 167, 69, 0.1) !important;
+            border: 1px solid rgba(40, 167, 69, 0.3) !important;
+        }
+        
+        .flatpickr-day.available-date:hover {
+            background: #28a745 !important;
+            color: white !important;
+            border-color: #28a745 !important;
+        }
+        
+        .flatpickr-day.unavailable-date {
+            background: #f8d7da !important;
+            color: #721c24 !important;
+            border: 1px solid #f5c6cb !important;
+        }
+        
+        .flatpickr-day.unavailable-date:hover {
+            background: #f8d7da !important;
+            color: #721c24 !important;
+            cursor: not-allowed !important;
+        }
+        
+        /* Calendar popup animation */
+        .flatpickr-calendar.open {
+            animation: slideIn 0.3s ease-out !important;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
     </style>
 </head>
 <body>
@@ -308,12 +645,12 @@
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <h1 class="mb-0">
-                        <i class="fas fa-calendar-alt me-2"></i>
+                        <i class="bi bi-calendar-fill me-2"></i>
                         {{ property.name }}
                     </h1>
                     <p class="mb-0 mt-2 opacity-75">
-                        <i class="fas fa-map-marker-alt me-1"></i>
-                        {{ property.get_full_address() }}
+                        <i class="bi bi-geo-alt-fill me-1"></i>
+                        {{ property.get_anonymized_address() }}
                     </p>
                 </div>
                 <div class="col-md-4 text-md-end">
@@ -328,17 +665,91 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-8">
+                <!-- Property Location Map -->
+                <div class="property-info">
+                    <h4>
+                        <i class="bi bi-geo-alt-fill me-2"></i>
+                        Location
+                    </h4>
+                    <div id="propertyMap"></div>
+                    <div class="map-info">
+                        <p class="mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Approximate Location:</strong> The exact address will be provided after booking confirmation.
+                        </p>
+                        <p class="text-muted small mb-0 mt-2">
+                            This property is located in {{ property.city }}, {{ property.state }}. 
+                            The pin shows the general area within 0.5 miles of the actual location.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Date Selection and Availability Check -->
+                <div class="date-selection-card">
+                    <h4 class="mb-3">
+                        <i class="bi bi-calendar-range me-2"></i>
+                        Select Your Dates
+                    </h4>
+                    <form id="dateSelectionForm">
+                        <div class="date-input-group">
+                            <div class="date-input-wrapper">
+                                <label for="checkInDate" class="form-label">Check-in Date</label>
+                                <input type="text" class="form-control" id="checkInDate" placeholder="Select date" required>
+                            </div>
+                            <div class="date-input-wrapper">
+                                <label for="checkOutDate" class="form-label">Check-out Date</label>
+                                <input type="text" class="form-control" id="checkOutDate" placeholder="Select date" required>
+                            </div>
+                            <div class="guest-input-wrapper">
+                                <label for="numberOfGuests" class="form-label">Guests</label>
+                                <input type="number" class="form-control" id="numberOfGuests" min="1" max="10" value="1" required>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="checkAvailability()">
+                            <i class="bi bi-search me-2"></i>
+                            Check Availability
+                        </button>
+                        <div id="availabilityResult"></div>
+                    </form>
+                </div>
                 <!-- Property Information -->
                 <div class="property-info">
                     <div class="row">
-                        {% if property.get_primary_image_url() %}
                         <div class="col-md-4">
+                            {% if property.get_primary_image_url() %}
                             <img src="{{ property.get_primary_image_url() }}" 
                                  alt="{{ property.name }}" 
                                  class="property-image">
+                            {% else %}
+                            {% set gradients = [
+                                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                                'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+                            ] %}
+                            {% set property_icons = {
+                                'house': 'bi-house-door',
+                                'apartment': 'bi-building',
+                                'condo': 'bi-building',
+                                'townhouse': 'bi-house',
+                                'villa': 'bi-house-heart',
+                                'cottage': 'bi-house',
+                                'studio': 'bi-door-open',
+                                'loft': 'bi-building'
+                            } %}
+                            {% set icon_class = property_icons.get(property.property_type, 'bi-house-door') %}
+                            {% set gradient = gradients[property.id % gradients|length] %}
+                            <div class="property-image d-flex align-items-center justify-content-center" style="background: {{ gradient }};">
+                                <div class="text-center text-white">
+                                    <i class="bi {{ icon_class }}" style="font-size: 4rem;"></i>
+                                    <div class="mt-2" style="font-size: 0.9rem; opacity: 0.9;">{{ property.property_type|capitalize }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
-                        <div class="col-md-{{ '8' if property.get_primary_image_url() else '12' }}">
+                        <div class="col-md-8">
                             <h4>{{ property.name }}</h4>
                             {% if property.description %}
                             <p class="text-muted">{{ property.description }}</p>
@@ -347,24 +758,24 @@
                             <div class="property-details">
                                 {% if property.bedrooms %}
                                 <div class="property-detail">
-                                    <i class="fas fa-bed me-1"></i>
+                                    <i class="bi bi-bed-fill me-1"></i>
                                     {{ property.bedrooms }} bedroom{{ 's' if property.bedrooms != 1 else '' }}
                                 </div>
                                 {% endif %}
                                 {% if property.bathrooms %}
                                 <div class="property-detail">
-                                    <i class="fas fa-bath me-1"></i>
+                                    <i class="bi bi-droplet-fill me-1"></i>
                                     {{ property.bathrooms }} bathroom{{ 's' if property.bathrooms != 1 else '' }}
                                 </div>
                                 {% endif %}
                                 {% if property.square_feet %}
                                 <div class="property-detail">
-                                    <i class="fas fa-ruler-combined me-1"></i>
+                                    <i class="bi bi-rulers me-1"></i>
                                     {{ property.square_feet }} sq ft
                                 </div>
                                 {% endif %}
                                 <div class="property-detail">
-                                    <i class="fas fa-home me-1"></i>
+                                    <i class="bi bi-house-fill me-1"></i>
                                     {{ property.property_type.title() }}
                                 </div>
                             </div>
@@ -375,7 +786,7 @@
                 <!-- Calendar -->
                 <div class="calendar-container">
                     <h4 class="mb-3">
-                        <i class="fas fa-calendar-check me-2"></i>
+                        <i class="bi bi-calendar-check-fill me-2"></i>
                         Availability Calendar
                     </h4>
                     
@@ -406,18 +817,18 @@
                 {% if property.checkin_time or property.checkout_time %}
                 <div class="contact-info">
                     <h5>
-                        <i class="fas fa-clock me-2"></i>
+                        <i class="bi bi-clock-fill me-2"></i>
                         Check-in & Check-out
                     </h5>
                     {% if property.checkin_time %}
                     <p class="mb-2">
-                        <i class="fas fa-sign-in-alt me-2 text-success"></i>
+                        <i class="bi bi-box-arrow-in-right me-2 text-success"></i>
                         Check-in: {{ property.checkin_time }}
                     </p>
                     {% endif %}
                     {% if property.checkout_time %}
                     <p class="mb-0">
-                        <i class="fas fa-sign-out-alt me-2 text-danger"></i>
+                        <i class="bi bi-box-arrow-right me-2 text-danger"></i>
                         Check-out: {{ property.checkout_time }}
                     </p>
                     {% endif %}
@@ -425,61 +836,56 @@
                 {% endif %}
 
                 <!-- Booking Information -->
-                <div class="booking-cta">
+                <div class="booking-cta" id="bookingCTA" style="display: none;">
                     <h4>
-                        <i class="fas fa-star me-2"></i>
+                        <i class="bi bi-star-fill me-2"></i>
                         Ready to Book?
                     </h4>
-                    <p>Contact us directly to make a reservation or get more information about this property.</p>
+                    <p>Your selected dates are available! Complete the form to request your booking.</p>
+                    
+                    <div class="booking-summary" id="bookingSummary">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
                     
                     <div class="d-grid gap-2">
-                                                 {% if property.emergency_contact %}
-                         <a href="tel:{{ property.emergency_contact }}" 
-                            class="btn-book">
-                             <i class="fas fa-phone me-2"></i>
-                             Call to Book
-                         </a>
-                         {% endif %}
-                        
-                        <a href="mailto:info@example.com?subject=Booking Inquiry - {{ property.name }}" 
-                           class="btn-book">
-                            <i class="fas fa-envelope me-2"></i>
-                            Email Inquiry
-                        </a>
+                        <button type="button" class="btn-book" onclick="showBookingModal()">
+                            <i class="bi bi-calendar-check me-2"></i>
+                            Request to Book
+                        </button>
                     </div>
                 </div>
 
                 <!-- Property Features -->
                 <div class="contact-info">
                     <h5>
-                        <i class="fas fa-list me-2"></i>
+                        <i class="bi bi-list-ul me-2"></i>
                         Property Features
                     </h5>
-                    <ul class="list-unstyled">
+                    <ul class="list-ul-unstyled">
                         {% if property.wifi_network %}
                         <li class="mb-2">
-                            <i class="fas fa-wifi me-2 text-primary"></i>
+                            <i class="bi bi-wifi me-2 text-primary"></i>
                             Free WiFi Available
                         </li>
                         {% endif %}
                         {% if property.number_of_tvs %}
                         <li class="mb-2">
-                            <i class="fas fa-tv me-2 text-primary"></i>
+                            <i class="bi bi-tv-fill me-2 text-primary"></i>
                             {{ property.number_of_tvs }} TV{{ 's' if property.number_of_tvs != 1 else '' }}
                         </li>
                         {% endif %}
                         {% if property.total_beds %}
                         <li class="mb-2">
-                            <i class="fas fa-bed me-2 text-primary"></i>
+                            <i class="bi bi-bed-fill me-2 text-primary"></i>
                             {{ property.total_beds }} Bed{{ 's' if property.total_beds != 1 else '' }}
                         </li>
                         {% endif %}
                         <li class="mb-2">
-                            <i class="fas fa-shield-alt me-2 text-success"></i>
+                            <i class="bi bi-shield-fill-check me-2 text-success"></i>
                             Professionally Managed
                         </li>
                         <li class="mb-0">
-                            <i class="fas fa-broom me-2 text-success"></i>
+                            <i class="bi bi-brush-fill me-2 text-success"></i>
                             Professionally Cleaned
                         </li>
                     </ul>
@@ -488,14 +894,524 @@
         </div>
     </div>
 
+    <!-- Booking Request Modal -->
+    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookingModalLabel">
+                        <i class="bi bi-calendar-check me-2"></i>
+                        Request to Book - {{ property.name }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="bookingRequestForm" method="POST" action="/property/{{ property.id }}/request-booking">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <!-- Booking Summary -->
+                        <div class="booking-summary mb-3">
+                            <div class="booking-summary-row">
+                                <span>Check-in:</span>
+                                <span id="modalCheckIn">--</span>
+                            </div>
+                            <div class="booking-summary-row">
+                                <span>Check-out:</span>
+                                <span id="modalCheckOut">--</span>
+                            </div>
+                            <div class="booking-summary-row">
+                                <span>Number of Guests:</span>
+                                <span id="modalGuests">--</span>
+                            </div>
+                            <div class="booking-summary-row booking-summary-total">
+                                <span>Total Nights:</span>
+                                <span id="modalNights">--</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Guest Information -->
+                        <div class="booking-form-section">
+                            <h6 class="mb-3">Guest Information</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="guestName" class="form-label">Full Name *</label>
+                                    <input type="text" class="form-control" id="guestName" name="guest_name" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="guestEmail" class="form-label">Email Address *</label>
+                                    <input type="email" class="form-control" id="guestEmail" name="guest_email" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="guestPhone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="guestPhone" name="guest_phone">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Previous Stay Information -->
+                        <div class="booking-form-section">
+                            <h6 class="mb-3">Have you stayed at one of our properties before?</h6>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="previous_stay" id="previousStayYes" value="yes" onchange="togglePreviousStayInfo()">
+                                <label class="form-check-label" for="previousStayYes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="previous_stay" id="previousStayNo" value="no" checked onchange="togglePreviousStayInfo()">
+                                <label class="form-check-label" for="previousStayNo">No</label>
+                            </div>
+                            
+                            <div class="previous-stay-info" id="previousStayInfo" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="previousProperty" class="form-label">Which property?</label>
+                                        <input type="text" class="form-control" id="previousProperty" name="previous_stay_property">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="previousDates" class="form-label">When did you stay?</label>
+                                        <input type="text" class="form-control" id="previousDates" name="previous_stay_dates" placeholder="e.g., June 2024">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Information -->
+                        <div class="booking-form-section">
+                            <h6 class="mb-3">Additional Information</h6>
+                            <div class="mb-3">
+                                <label for="specialRequests" class="form-label">Special Requests</label>
+                                <textarea class="form-control" id="specialRequests" name="special_requests" rows="2" placeholder="Any special requests or requirements..."></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Notes or Comments</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Tell us more about your stay..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Account Creation Notice -->
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Note:</strong> If you don't have an account yet, we'll create one for you using the email address provided. 
+                            You'll receive a confirmation email with further instructions.
+                        </div>
+                        
+                        <!-- Hidden fields for dates -->
+                        <input type="hidden" id="hiddenCheckIn" name="check_in_date">
+                        <input type="hidden" id="hiddenCheckOut" name="check_out_date">
+                        <input type="hidden" id="hiddenGuests" name="number_of_guests">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send me-2"></i>
+                            Submit Booking Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- FullCalendar JS -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
+        // Global variables for selected dates
+        let selectedCheckIn = null;
+        let selectedCheckOut = null;
+        let selectedGuests = 1;
+        let bookedDates = [];
+        
+        // Initialize map with approximate location
+        function initMap() {
+            // Use the property's coordinates if available, otherwise geocode based on city/state
+            let lat = {% if property.latitude %}{{ property.latitude }}{% else %}null{% endif %};
+            let lng = {% if property.longitude %}{{ property.longitude }}{% else %}null{% endif %};
+            
+            // If no coordinates available, use approximate location for Fayetteville, NC
+            if (lat === null || lng === null) {
+                // Default to Fayetteville, NC area
+                lat = 35.0526;
+                lng = -78.8784;
+            }
+            
+            // Create map centered on property location
+            const map = L.map('propertyMap').setView([lat, lng], 14);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Add circle to show approximate area (0.5 mile radius = ~800 meters)
+            L.circle([lat, lng], {
+                color: '#667eea',
+                fillColor: '#667eea',
+                fillOpacity: 0.2,
+                radius: 800
+            }).addTo(map);
+            
+            // Add marker at center
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup('Approximate location of {{ property.name }}')
+                .openPopup();
+        }
+        
+        // Initialize date pickers
+        function initDatePickers() {
+            console.log('Initializing date pickers...');
+            
+            // Get booked dates from events
+            {% for event in events %}
+            bookedDates.push({
+                start: '{{ event.start }}',
+                end: '{{ event.end }}'
+            });
+            {% endfor %}
+            
+            console.log('Booked dates:', bookedDates);
+            
+            // Check-in date picker with enhanced calendar popup
+            console.log('Creating check-in picker...');
+            const checkInPicker = flatpickr("#checkInDate", {
+                dateFormat: "M j, Y",
+                altInput: true,
+                altFormat: "M j, Y",
+                minDate: "today",
+                inline: false,
+                static: false,
+                clickOpens: true,
+                allowInput: false,
+                mode: "single",
+                showMonths: 1,
+                disable: bookedDates.map(range => ({
+                    from: range.start,
+                    to: range.end
+                })),
+                onOpen: function(selectedDates, dateStr, instance) {
+                    // Ensure calendar is prominently displayed
+                    setTimeout(() => {
+                        const calendar = instance.calendarContainer;
+                        if (calendar) {
+                            calendar.style.zIndex = '10000';
+                            calendar.style.position = 'absolute';
+                        }
+                    }, 50);
+                },
+                onChange: function(selectedDates, dateStr, instance) {
+                    selectedCheckIn = instance.input.value;
+                    
+                    // Update check-out min date and clear check-out if needed
+                    if (window.checkOutPicker) {
+                        const nextDay = new Date(selectedDates[0]);
+                        nextDay.setDate(nextDay.getDate() + 1);
+                        window.checkOutPicker.set('minDate', nextDay);
+                        
+                        // Clear check-out if it's before new check-in
+                        if (selectedCheckOut && new Date(selectedCheckOut) <= selectedDates[0]) {
+                            window.checkOutPicker.clear();
+                            selectedCheckOut = null;
+                        }
+                    }
+                    
+                    // Close current picker and auto-open check-out picker
+                    setTimeout(() => {
+                        instance.close();
+                        if (window.checkOutPicker && !selectedCheckOut) {
+                            setTimeout(() => {
+                                window.checkOutPicker.open();
+                            }, 300);
+                        }
+                    }, 100);
+                },
+                onDayCreate: function(dObj, dStr, fp, dayElem) {
+                    // Add enhanced styling for booked dates with availability info
+                    const dateStr = dayElem.dateObj.toISOString().split('T')[0];
+                    const isBooked = bookedDates.some(booking => {
+                        const start = new Date(booking.start);
+                        const end = new Date(booking.end);
+                        const current = new Date(dateStr);
+                        return current >= start && current <= end;
+                    });
+                    
+                    if (isBooked) {
+                        dayElem.classList.add('unavailable-date');
+                        dayElem.title = 'This date is not available for check-in';
+                    } else {
+                        dayElem.classList.add('available-date');
+                        dayElem.title = 'Available for check-in';
+                    }
+                }
+            });
+            
+            // Check-out date picker with enhanced calendar popup
+            console.log('Creating check-out picker...');
+            const checkOutPicker = flatpickr("#checkOutDate", {
+                dateFormat: "M j, Y",
+                altInput: true,
+                altFormat: "M j, Y",
+                minDate: new Date(Date.now() + 86400000), // Tomorrow
+                inline: false,
+                static: false,
+                clickOpens: true,
+                allowInput: false,
+                mode: "single",
+                showMonths: 1,
+                disable: bookedDates.map(range => ({
+                    from: range.start,
+                    to: range.end
+                })),
+                onOpen: function(selectedDates, dateStr, instance) {
+                    // Ensure calendar is prominently displayed
+                    setTimeout(() => {
+                        const calendar = instance.calendarContainer;
+                        if (calendar) {
+                            calendar.style.zIndex = '10000';
+                            calendar.style.position = 'absolute';
+                        }
+                    }, 50);
+                },
+                onChange: function(selectedDates, dateStr, instance) {
+                    selectedCheckOut = instance.input.value;
+                    
+                    // Close picker and auto-check availability if both dates selected
+                    setTimeout(() => {
+                        instance.close();
+                        if (selectedCheckIn && selectedCheckOut) {
+                            setTimeout(checkAvailability, 200);
+                        }
+                    }, 100);
+                },
+                onDayCreate: function(dObj, dStr, fp, dayElem) {
+                    // Add enhanced styling for booked dates with availability info
+                    const dateStr = dayElem.dateObj.toISOString().split('T')[0];
+                    const isBooked = bookedDates.some(booking => {
+                        const start = new Date(booking.start);
+                        const end = new Date(booking.end);
+                        const current = new Date(dateStr);
+                        return current >= start && current <= end;
+                    });
+                    
+                    if (isBooked) {
+                        dayElem.classList.add('unavailable-date');
+                        dayElem.title = 'This date is not available for check-out';
+                    } else {
+                        dayElem.classList.add('available-date');
+                        dayElem.title = 'Available for check-out';
+                    }
+                }
+            });
+            
+            // Make pickers globally accessible
+            window.checkInPicker = checkInPicker;
+            window.checkOutPicker = checkOutPicker;
+            
+            console.log('Date pickers created successfully');
+            
+            // Add click handlers to make calendar open more reliably
+            document.getElementById('checkInDate').addEventListener('click', function() {
+                console.log('Check-in date clicked, opening picker...');
+                checkInPicker.open();
+            });
+            
+            document.getElementById('checkOutDate').addEventListener('click', function() {
+                console.log('Check-out date clicked, opening picker...');
+                checkOutPicker.open();
+            });
+            
+            console.log('Date picker initialization complete');
+        }
+        
+        // Check availability for selected dates
+        function checkAvailability() {
+            const checkIn = document.getElementById('checkInDate').value;
+            const checkOut = document.getElementById('checkOutDate').value;
+            const guests = document.getElementById('numberOfGuests').value;
+            
+            if (!checkIn || !checkOut) {
+                alert('Please select both check-in and check-out dates');
+                return;
+            }
+            
+            if (new Date(checkIn) >= new Date(checkOut)) {
+                alert('Check-out date must be after check-in date');
+                return;
+            }
+            
+            // Check if dates are available
+            let isAvailable = true;
+            const checkInDate = new Date(checkIn);
+            const checkOutDate = new Date(checkOut);
+            
+            for (let booking of bookedDates) {
+                const bookingStart = new Date(booking.start);
+                const bookingEnd = new Date(booking.end);
+                
+                if ((checkInDate >= bookingStart && checkInDate < bookingEnd) ||
+                    (checkOutDate > bookingStart && checkOutDate <= bookingEnd) ||
+                    (checkInDate <= bookingStart && checkOutDate >= bookingEnd)) {
+                    isAvailable = false;
+                    break;
+                }
+            }
+            
+            const resultDiv = document.getElementById('availabilityResult');
+            const bookingCTA = document.getElementById('bookingCTA');
+            
+            if (isAvailable) {
+                // Calculate nights
+                const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+                
+                resultDiv.innerHTML = `
+                    <div class="availability-status available">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Available! ${nights} night${nights !== 1 ? 's' : ''}
+                    </div>
+                `;
+                
+                // Update booking summary
+                document.getElementById('bookingSummary').innerHTML = `
+                    <div class="booking-summary-row">
+                        <span>Check-in:</span>
+                        <span>${new Date(checkIn).toLocaleDateString()}</span>
+                    </div>
+                    <div class="booking-summary-row">
+                        <span>Check-out:</span>
+                        <span>${new Date(checkOut).toLocaleDateString()}</span>
+                    </div>
+                    <div class="booking-summary-row">
+                        <span>Guests:</span>
+                        <span>${guests}</span>
+                    </div>
+                    <div class="booking-summary-row booking-summary-total">
+                        <span>Total Nights:</span>
+                        <span>${nights}</span>
+                    </div>
+                `;
+                
+                // Show booking CTA
+                bookingCTA.style.display = 'block';
+                
+                // Store selected values
+                selectedCheckIn = checkIn;
+                selectedCheckOut = checkOut;
+                selectedGuests = guests;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="availability-status unavailable">
+                        <i class="bi bi-x-circle me-2"></i>
+                        Not available for selected dates
+                    </div>
+                `;
+                bookingCTA.style.display = 'none';
+            }
+        }
+        
+        // Show booking modal with pre-filled information
+        function showBookingModal() {
+            if (!selectedCheckIn || !selectedCheckOut) {
+                alert('Please select dates first');
+                return;
+            }
+            
+            // Calculate nights
+            const nights = Math.ceil((new Date(selectedCheckOut) - new Date(selectedCheckIn)) / (1000 * 60 * 60 * 24));
+            
+            // Update modal with selected information
+            document.getElementById('modalCheckIn').textContent = new Date(selectedCheckIn).toLocaleDateString();
+            document.getElementById('modalCheckOut').textContent = new Date(selectedCheckOut).toLocaleDateString();
+            document.getElementById('modalGuests').textContent = selectedGuests;
+            document.getElementById('modalNights').textContent = nights;
+            
+            // Set hidden fields
+            document.getElementById('hiddenCheckIn').value = selectedCheckIn;
+            document.getElementById('hiddenCheckOut').value = selectedCheckOut;
+            document.getElementById('hiddenGuests').value = selectedGuests;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+            modal.show();
+        }
+        
+        // Toggle previous stay information
+        function togglePreviousStayInfo() {
+            const previousStayInfo = document.getElementById('previousStayInfo');
+            const previousStayYes = document.getElementById('previousStayYes');
+            
+            if (previousStayYes.checked) {
+                previousStayInfo.style.display = 'block';
+            } else {
+                previousStayInfo.style.display = 'none';
+            }
+        }
+        
+        // Handle booking form submission
+        document.getElementById('bookingRequestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(this);
+            
+            // Submit via AJAX
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide modal
+                    bootstrap.Modal.getInstance(document.getElementById('bookingModal')).hide();
+                    
+                    // Show success message
+                    alert('Your booking request has been submitted successfully! You will receive a confirmation email shortly.');
+                    
+                    // Reset form
+                    this.reset();
+                    document.getElementById('dateSelectionForm').reset();
+                    document.getElementById('bookingCTA').style.display = 'none';
+                } else {
+                    alert('Error: ' + (data.message || 'An error occurred while submitting your request.'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while submitting your request. Please try again.');
+            });
+        });
+        
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, starting initialization...');
+            
+            // Initialize map
+            try {
+                initMap();
+                console.log('Map initialized successfully');
+            } catch (error) {
+                console.error('Map initialization failed:', error);
+            }
+            
+            // Initialize date pickers
+            try {
+                initDatePickers();
+                console.log('Date pickers initialized successfully');
+            } catch (error) {
+                console.error('Date picker initialization failed:', error);
+            }
+            
+            // Initialize calendar
             var calendarEl = document.getElementById('calendar');
+            console.log('Calendar element found:', !!calendarEl);
             
             // Convert Python events to FullCalendar format
             var events = [];
@@ -519,24 +1435,31 @@
             });
             {% endfor %}
             
+            console.log('Events loaded:', events.length, events);
+            
             // Remove loading indicator
             var loadingEl = calendarEl.querySelector('.calendar-loading');
             if (loadingEl) {
+                console.log('Removing loading indicator');
                 loadingEl.remove();
+            } else {
+                console.log('No loading indicator found');
             }
             
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,dayGridWeek'
-                },
-                height: 'auto',
-                aspectRatio: 1.35,
-                events: events,
-                eventDisplay: 'block',
-                dayMaxEvents: false,
+            try {
+                console.log('Creating FullCalendar instance...');
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,dayGridWeek'
+                    },
+                    height: 'auto',
+                    aspectRatio: 1.35,
+                    events: events,
+                    eventDisplay: 'block',
+                    dayMaxEvents: false,
                 eventDidMount: function(info) {
                     // Add tooltip for booked dates
                     var props = info.event.extendedProps;
@@ -590,7 +1513,24 @@
                 }
             });
             
+            console.log('Calendar created, now rendering...');
             calendar.render();
+            console.log('Calendar rendered successfully');
+            
+            } catch (error) {
+                console.error('FullCalendar initialization failed:', error);
+                
+                // Show fallback message
+                if (calendarEl) {
+                    calendarEl.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Calendar failed to load. Please try refreshing the page.
+                            <br><small>Error: ${error.message}</small>
+                        </div>
+                    `;
+                }
+            }
         });
     </script>
 </body>

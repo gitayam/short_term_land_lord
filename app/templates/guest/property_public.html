@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- Back Navigation -->
+        <div class="col-12 mb-3">
+            <a href="{{ url_for('guest.browse_properties') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Browse
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Property Image & Basic Info -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <img src="{{ property.image_url }}" 
+                     class="card-img-top" 
+                     alt="{{ property.name }}"
+                     style="height: 300px; object-fit: cover;">
+                
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h2 class="card-title">{{ property.name }}</h2>
+                            <p class="text-muted">
+                                <i class="fas fa-map-marker-alt"></i>
+                                {{ property.city }}, {{ property.state }}
+                            </p>
+                        </div>
+                        <span class="badge bg-primary fs-6">{{ property.property_type.title() }}</span>
+                    </div>
+                    
+                    <!-- Property Details -->
+                    {% if property.bedrooms or property.bathrooms or property.max_guests %}
+                    <div class="row mb-3">
+                        {% if property.bedrooms %}
+                        <div class="col-auto">
+                            <div class="text-center">
+                                <i class="fas fa-bed fa-2x text-primary mb-1"></i>
+                                <div class="small text-muted">{{ property.bedrooms }} Bedroom(s)</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if property.bathrooms %}
+                        <div class="col-auto">
+                            <div class="text-center">
+                                <i class="fas fa-bath fa-2x text-primary mb-1"></i>
+                                <div class="small text-muted">{{ property.bathrooms }} Bathroom(s)</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if property.max_guests %}
+                        <div class="col-auto">
+                            <div class="text-center">
+                                <i class="fas fa-users fa-2x text-primary mb-1"></i>
+                                <div class="small text-muted">Up to {{ property.max_guests }} Guests</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Description -->
+                    {% if property.description %}
+                    <div class="mb-4">
+                        <h5>About This Property</h5>
+                        <p class="text-muted">{{ property.description }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Amenities -->
+                    {% if property.amenities %}
+                    <div class="mb-4">
+                        <h5>Amenities</h5>
+                        <div class="row">
+                            {% for amenity in property.amenities %}
+                            <div class="col-md-6 mb-2">
+                                <i class="fas fa-check text-success me-2"></i>{{ amenity }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Local Information -->
+            <div class="row">
+                {% if property.local_attractions %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6><i class="fas fa-map-signs"></i> Local Attractions</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small">{{ property.local_attractions }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if property.nearby_restaurants %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6><i class="fas fa-utensils"></i> Nearby Restaurants</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small">{{ property.nearby_restaurants }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if property.transportation_info %}
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6><i class="fas fa-car"></i> Transportation</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="small">{{ property.transportation_info }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Booking Information -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-calendar-check"></i> Interested in Staying?</h6>
+                </div>
+                <div class="card-body">
+                    {% if current_user.is_authenticated and current_user.is_guest_user %}
+                        {% if current_user.email_verified %}
+                        <p class="mb-3">You can book this property directly!</p>
+                        <a href="{{ url_for('guest.book_property', property_id=property.id) }}" 
+                           class="btn btn-success w-100 mb-2">
+                            <i class="fas fa-calendar-plus"></i> Book Now
+                        </a>
+                        {% else %}
+                        <p class="mb-3">Please verify your email to enable booking.</p>
+                        <button class="btn btn-warning w-100 mb-2" disabled>
+                            <i class="fas fa-exclamation-triangle"></i> Email Verification Required
+                        </button>
+                        {% endif %}
+                    {% elif current_user.is_authenticated %}
+                    <p class="mb-3">This property can be booked through our guest portal.</p>
+                    <a href="{{ url_for('guest.register_help') }}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-info-circle"></i> Learn About Guest Accounts
+                    </a>
+                    {% else %}
+                    <p class="mb-3">Create a guest account to book directly and get exclusive benefits.</p>
+                    <a href="{{ url_for('guest.register_help') }}" class="btn btn-success w-100 mb-2">
+                        <i class="fas fa-user-plus"></i> Get Guest Account
+                    </a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-sign-in-alt"></i> Sign In
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Guest Benefits -->
+            {% if not current_user.is_authenticated or not current_user.is_guest_user %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-star"></i> Guest Account Benefits</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled small">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Direct booking (no platform fees)
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Booking history tracking
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Exclusive guest offers
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Priority customer support
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Property access information
+                        </li>
+                        <li>
+                            <i class="fas fa-check text-success me-2"></i>
+                            Personalized experience
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Contact Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-envelope"></i> Have Questions?</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-3">Need more information about this property or our services?</p>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='mailto:info@example.com'">
+                            <i class="fas fa-envelope"></i> Email Us
+                        </button>
+                        
+                        {% if current_user.is_authenticated and current_user.is_guest_user %}
+                        <a href="{{ url_for('guest.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-user"></i> My Account
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Property Details Modal (if needed) -->
+    <div class="modal fade" id="propertyDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Property Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Property Information</h6>
+                            <ul class="list-unstyled small">
+                                <li><strong>Type:</strong> {{ property.property_type.title() }}</li>
+                                <li><strong>Location:</strong> {{ property.city }}, {{ property.state }}</li>
+                                {% if property.bedrooms %}
+                                <li><strong>Bedrooms:</strong> {{ property.bedrooms }}</li>
+                                {% endif %}
+                                {% if property.bathrooms %}
+                                <li><strong>Bathrooms:</strong> {{ property.bathrooms }}</li>
+                                {% endif %}
+                                {% if property.max_guests %}
+                                <li><strong>Max Guests:</strong> {{ property.max_guests }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Booking Information</h6>
+                            <p class="small">To make a reservation, please create a guest account or contact us directly.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    {% if current_user.is_authenticated and current_user.is_guest_user and current_user.email_verified %}
+                    <a href="{{ url_for('guest.book_property', property_id=property.id) }}" class="btn btn-primary">
+                        <i class="fas fa-calendar-plus"></i> Book Now
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add any JavaScript for property viewing functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-scroll to top
+    window.scrollTo(0, 0);
+    
+    // Log property view for analytics (if needed)
+    console.log('Property viewed: {{ property.name }}');
+});
+</script>
+{% endblock %}

@@ -1,38 +1,56 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Invoices</h1>
-        <div>
-            <a href="{{ url_for('invoicing.financial_reports') }}" class="btn btn-info mr-2">
-                <i class="fas fa-chart-bar"></i> Financial Reports
-            </a>
-            <a href="{{ url_for('invoicing.generate_from_tasks') }}" class="btn btn-info mr-2">
-                <i class="fas fa-magic"></i> Generate from Tasks
-            </a>
-            <a href="{{ url_for('invoicing.create_invoice') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Create New Invoice
-            </a>
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h2 mb-0">Invoices</h1>
+                <p class="text-secondary">Manage your property invoices and billing</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('invoicing.financial_reports') }}" class="app-btn app-btn-ghost">
+                    <i class="bi bi-bar-chart"></i> Financial Reports
+                </a>
+                <a href="{{ url_for('invoicing.generate_from_tasks') }}" class="app-btn app-btn-ghost">
+                    <i class="bi bi-magic"></i> Generate from Tasks
+                </a>
+                <a href="{{ url_for('invoicing.create_invoice') }}" class="app-btn app-btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create Invoice
+                </a>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Quick Search and Export -->
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <input type="text" id="invoiceSearch" class="form-control" placeholder="Quick search by invoice # or property...">
-        </div>
-        <div class="col-md-6 text-right">
-            <button class="btn btn-outline-secondary mr-2" id="exportCSV"><i class="fas fa-file-csv"></i> Export CSV</button>
-            <button class="btn btn-outline-secondary" id="exportPDF"><i class="fas fa-file-pdf"></i> Export PDF</button>
+<!-- Quick Search and Export -->
+<div class="app-card mb-4">
+    <div class="app-card-body">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="app-form-group mb-0">
+                    <input type="text" id="invoiceSearch" class="app-form-control" placeholder="Quick search by invoice # or property...">
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="d-flex gap-2 justify-content-end">
+                    <button class="app-btn app-btn-secondary app-btn-sm" id="exportCSV">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+                    </button>
+                    <button class="app-btn app-btn-secondary app-btn-sm" id="exportPDF">
+                        <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5>Filter Invoices</h5>
+    <div class="app-card mb-6">
+        <div class="app-card-header">
+            <h3>Filter Invoices</h3>
         </div>
-        <div class="card-body">
+        <div class="app-card-body">
             <form method="get" action="{{ url_for('invoicing.invoices') }}">
                 <div class="row">
                     <div class="col-md-3">
@@ -97,93 +115,98 @@
     {% endif %}
 
     <!-- Status Color Legend -->
-    <div class="mb-3">
-        <span class="badge badge-secondary" data-toggle="tooltip" title="Draft">Draft</span>
-        <span class="badge badge-primary" data-toggle="tooltip" title="Sent">Sent</span>
-        <span class="badge badge-success" data-toggle="tooltip" title="Paid">Paid</span>
-        <span class="badge badge-danger" data-toggle="tooltip" title="Overdue">Overdue</span>
-        <span class="badge badge-dark" data-toggle="tooltip" title="Cancelled">Cancelled</span>
-        <span class="ml-2 text-muted">Status Color Legend</span>
-    </div>
-
-    <div class="card">
-        <div class="card-body">
-            {% if invoices %}
-            <div class="table-responsive">
-                <table class="table table-striped" id="invoiceTable">
-                    <thead>
-                        <tr>
-                            <th>Invoice #</th>
-                            <th>Property</th>
-                            <th>Date Range</th>
-                            <th>Status</th>
-                            <th>Total</th>
-                            <th>Due Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for invoice in invoices %}
-                        <tr>
-                            <td>{{ invoice.invoice_number }}</td>
-                            <td>{{ invoice.property.name }}</td>
-                            <td>
-                                {% if invoice.date_from and invoice.date_to %}
-                                {{ invoice.date_from.strftime('%b %d') }} - {{ invoice.date_to.strftime('%b %d, %Y') }}
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if invoice.status.value == 'draft' %}
-                                <span class="badge badge-secondary" data-toggle="tooltip" title="Draft">Draft</span>
-                                {% elif invoice.status.value == 'sent' %}
-                                <span class="badge badge-primary" data-toggle="tooltip" title="Sent">Sent</span>
-                                {% elif invoice.status.value == 'paid' %}
-                                <span class="badge badge-success" data-toggle="tooltip" title="Paid">Paid</span>
-                                {% elif invoice.status.value == 'overdue' %}
-                                <span class="badge badge-danger" data-toggle="tooltip" title="Overdue">Overdue</span>
-                                {% elif invoice.status.value == 'cancelled' %}
-                                <span class="badge badge-dark" data-toggle="tooltip" title="Cancelled">Cancelled</span>
-                                {% endif %}
-                            </td>
-                            <td>${{ "%.2f"|format(invoice.total) }}</td>
-                            <td>
-                                {% if invoice.due_date %}
-                                {{ invoice.due_date.strftime('%b %d, %Y') }}
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="btn-group">
-                                    <a href="{{ url_for('invoicing.view_invoice', id=invoice.id) }}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye"></i> View
-                                    </a>
-                                    {% if invoice.status.value == 'draft' %}
-                                    <a href="{{ url_for('invoicing.edit_invoice', id=invoice.id) }}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <!-- Pagination Controls -->
-            <nav aria-label="Invoice pagination">
-                <ul class="pagination justify-content-center mt-3" id="invoicePagination"></ul>
-            </nav>
-            {% else %}
-            <div class="alert alert-info">
-                No invoices found. Use the "Create New Invoice" button to create your first invoice.
-            </div>
-            {% endif %}
-        </div>
+<div class="mb-4">
+    <div class="d-flex gap-3 flex-wrap align-items-center">
+        <span class="app-badge app-badge-secondary" data-bs-toggle="tooltip" title="Draft">Draft</span>
+        <span class="app-badge app-badge-primary" data-bs-toggle="tooltip" title="Sent">Sent</span>
+        <span class="app-badge app-badge-success" data-bs-toggle="tooltip" title="Paid">Paid</span>
+        <span class="app-badge app-badge-danger" data-bs-toggle="tooltip" title="Overdue">Overdue</span>
+        <span class="app-badge" style="background: var(--bg-quaternary); color: var(--text-primary);" data-bs-toggle="tooltip" title="Cancelled">Cancelled</span>
+        <span class="ms-3 text-muted small">Status Color Legend</span>
     </div>
 </div>
+
+{% if invoices %}
+<div class="app-table-responsive">
+    <div class="app-table-container">
+        <table class="app-table" id="invoiceTable">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Property</th>
+                    <th>Date Range</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Due Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td data-label="Invoice #">{{ invoice.invoice_number }}</td>
+                    <td data-label="Property">{{ invoice.property.name }}</td>
+                    <td data-label="Date Range">
+                        {% if invoice.date_from and invoice.date_to %}
+                        {{ invoice.date_from.strftime('%b %d') }} - {{ invoice.date_to.strftime('%b %d, %Y') }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td data-label="Status">
+                        {% if invoice.status.value == 'draft' %}
+                        <span class="app-badge app-badge-secondary" data-bs-toggle="tooltip" title="Draft">Draft</span>
+                        {% elif invoice.status.value == 'sent' %}
+                        <span class="app-badge app-badge-primary" data-bs-toggle="tooltip" title="Sent">Sent</span>
+                        {% elif invoice.status.value == 'paid' %}
+                        <span class="app-badge app-badge-success" data-bs-toggle="tooltip" title="Paid">Paid</span>
+                        {% elif invoice.status.value == 'overdue' %}
+                        <span class="app-badge app-badge-danger" data-bs-toggle="tooltip" title="Overdue">Overdue</span>
+                        {% elif invoice.status.value == 'cancelled' %}
+                        <span class="app-badge" style="background: var(--bg-quaternary); color: var(--text-primary);" data-bs-toggle="tooltip" title="Cancelled">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Total">${{ "%.2f"|format(invoice.total) }}</td>
+                    <td data-label="Due Date">
+                        {% if invoice.due_date %}
+                        {{ invoice.due_date.strftime('%b %d, %Y') }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td data-label="Actions">
+                        <div class="d-flex gap-1">
+                            <a href="{{ url_for('invoicing.view_invoice', id=invoice.id) }}" class="app-btn app-btn-primary app-btn-sm">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            {% if invoice.status.value == 'draft' %}
+                            <a href="{{ url_for('invoicing.edit_invoice', id=invoice.id) }}" class="app-btn app-btn-secondary app-btn-sm">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination Controls -->
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Invoice pagination">
+            <ul class="pagination" id="invoicePagination"></ul>
+        </nav>
+    </div>
+</div>
+{% else %}
+<div class="app-alert app-alert-info">
+    <i class="bi bi-info-circle"></i>
+    <div>
+        <p class="mb-0">No invoices found. Use the "Create New Invoice" button to create your first invoice.</p>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

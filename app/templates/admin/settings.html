@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% import 'bootstrap/wtf.html' as wtf %}
 
 {% block content %}
 <div class="container mt-4">
@@ -38,9 +37,9 @@
                         <fieldset class="mb-4">
                             <legend>Feature Toggles</legend>
                             <div class="form-check mb-3">
-                                {{ form.guest_reviews_enabled(class="form-check-input") }}
-                                {{ form.guest_reviews_enabled.label(class="form-check-label") }}
-                                <small class="form-text text-muted d-block">{{ form.guest_reviews_enabled.description }}</small>
+                                {{ form.enable_guest_reviews(class="form-check-input") }}
+                                {{ form.enable_guest_reviews.label(class="form-check-label") }}
+                                <small class="form-text text-muted d-block">{{ form.enable_guest_reviews.description or "Allow property owners and managers to add guest reviews" }}</small>
                             </div>
                         </fieldset>
                         

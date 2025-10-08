@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('property.view', id=invitation.property.id) }}">{{ invitation.property.name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('property_routes.manage_invitations', property_id=invitation.property.id) }}">Invitations</a></li>
+                    <li class="breadcrumb-item active">Share</li>
+                </ol>
+            </nav>
+            <h2 class="h3 mb-0">Share Guest Invitation</h2>
+            <p class="text-secondary">Easy ways to share invitation code: <strong>{{ invitation.invitation_code }}</strong></p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Sharing Options -->
+        <div class="col-lg-8">
+            <!-- Quick Copy Section -->
+            <div class="app-card mb-4">
+                <div class="app-card-header">
+                    <h5 class="mb-0"><i class="bi bi-copy"></i> Quick Copy</h5>
+                </div>
+                <div class="app-card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Invitation Code</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control invitation-code-input" 
+                                   value="{{ invitation.invitation_code }}" readonly>
+                            <button class="btn btn-outline-primary" type="button" 
+                                    onclick="copyToClipboard('{{ invitation.invitation_code }}', this)">
+                                <i class="bi bi-copy"></i> Copy Code
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Registration Link</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" 
+                                   value="{{ registration_url }}" readonly>
+                            <button class="btn btn-outline-primary" type="button" 
+                                    onclick="copyToClipboard('{{ registration_url }}', this)">
+                                <i class="bi bi-copy"></i> Copy Link
+                            </button>
+                        </div>
+                        <small class="form-text text-secondary">This link includes the invitation code automatically</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Templates -->
+            <div class="app-card mb-4">
+                <div class="app-card-header">
+                    <h5 class="mb-0"><i class="bi bi-envelope"></i> Message Templates</h5>
+                </div>
+                <div class="app-card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Email/Text Message</label>
+                        <textarea class="form-control" rows="4" readonly id="emailTemplate">Hi{% if invitation.guest_name %} {{ invitation.guest_name }}{% endif %}!
+
+You're invited to access information for {{ invitation.property.name }}. 
+
+To get started, register at: {{ registration_url }}
+
+Your invitation code is: {{ invitation.invitation_code }}
+
+Best regards!</textarea>
+                        <button class="btn btn-sm btn-outline-primary mt-2" 
+                                onclick="copyToClipboard(document.getElementById('emailTemplate').value, this)">
+                            <i class="bi bi-copy"></i> Copy Message
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Short Text/SMS</label>
+                        <textarea class="form-control" rows="2" readonly id="smsTemplate">{{ invitation.property.name }} invitation code: {{ invitation.invitation_code }}. Register at: {{ registration_url|replace('http://', '')|replace('https://', '') }}</textarea>
+                        <button class="btn btn-sm btn-outline-primary mt-2" 
+                                onclick="copyToClipboard(document.getElementById('smsTemplate').value, this)">
+                            <i class="bi bi-copy"></i> Copy SMS
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Code -->
+            <div class="app-card">
+                <div class="app-card-header">
+                    <h5 class="mb-0"><i class="bi bi-qr-code"></i> QR Code</h5>
+                </div>
+                <div class="app-card-body">
+                    <div class="text-center">
+                        <div id="qrcode" class="mb-3"></div>
+                        <p class="text-secondary">Guests can scan this QR code to go directly to the registration page</p>
+                        <button class="btn btn-outline-primary" onclick="downloadQR()">
+                            <i class="bi bi-download"></i> Download QR Code
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invitation Details Sidebar -->
+        <div class="col-lg-4">
+            <div class="app-card">
+                <div class="app-card-header">
+                    <h5 class="mb-0">Invitation Details</h5>
+                </div>
+                <div class="app-card-body">
+                    <div class="mb-3">
+                        <h6 class="text-secondary">Property</h6>
+                        <p class="mb-0">{{ invitation.property.name }}</p>
+                    </div>
+                    
+                    {% if invitation.guest_name %}
+                    <div class="mb-3">
+                        <h6 class="text-secondary">Guest Name</h6>
+                        <p class="mb-0">{{ invitation.guest_name }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if invitation.email %}
+                    <div class="mb-3">
+                        <h6 class="text-secondary">Email</h6>
+                        <p class="mb-0">{{ invitation.email }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <h6 class="text-secondary">Status</h6>
+                        {% if invitation.is_used %}
+                        <span class="badge bg-success">Used ({{ invitation.uses }}/{{ invitation.max_uses }})</span>
+                        {% elif invitation.is_expired %}
+                        <span class="badge bg-warning">Expired</span>
+                        {% elif invitation.is_active %}
+                        <span class="badge bg-primary">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-secondary">Created</h6>
+                        <p class="mb-0">{{ invitation.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                    </div>
+                    
+                    {% if invitation.expires_at %}
+                    <div class="mb-3">
+                        <h6 class="text-secondary">Expires</h6>
+                        <p class="mb-0">{{ invitation.expires_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <h6 class="text-secondary">Max Uses</h6>
+                        <p class="mb-0">{{ invitation.max_uses }}</p>
+                    </div>
+                    
+                    {% if invitation.notes %}
+                    <div class="mb-3">
+                        <h6 class="text-secondary">Notes</h6>
+                        <p class="mb-0 small">{{ invitation.notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="app-card mt-3">
+                <div class="app-card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="app-card-body">
+                    <div class="d-grid gap-2">
+                        <a href="mailto:?subject=Invitation to {{ invitation.property.name }}&body={{ 'Hi' + (' ' + invitation.guest_name if invitation.guest_name else '') + '!\n\nYou\'re invited to access information for ' + invitation.property.name + '.\n\nTo get started, register at: ' + registration_url + '\n\nYour invitation code is: ' + invitation.invitation_code + '\n\nBest regards!' }}" 
+                           class="btn btn-outline-primary">
+                            <i class="bi bi-envelope"></i> Send Email
+                        </a>
+                        
+                        <a href="sms:?body={{ invitation.property.name + ' invitation code: ' + invitation.invitation_code + '. Register at: ' + registration_url|replace('http://', '')|replace('https://', '') }}" 
+                           class="btn btn-outline-success">
+                            <i class="bi bi-phone"></i> Send SMS
+                        </a>
+                        
+                        <button class="btn btn-outline-info" onclick="shareNative()">
+                            <i class="bi bi-share"></i> Share via Device
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <a href="{{ url_for('property_routes.manage_invitations', property_id=invitation.property.id) }}" 
+               class="app-btn app-btn-ghost">
+                <i class="bi bi-arrow-left"></i> Back to Invitations
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.invitation-code-input {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-weight: bold;
+    font-size: 1.1em;
+    background-color: var(--bg-secondary);
+}
+
+#qrcode {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#qrcode canvas {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+</style>
+
+<!-- QR Code Library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<script>
+// Generate QR code
+document.addEventListener('DOMContentLoaded', function() {
+    const qrContainer = document.getElementById('qrcode');
+    QRCode.toCanvas('{{ registration_url }}', {
+        width: 200,
+        height: 200,
+        margin: 2,
+        color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+        }
+    }, function(error, canvas) {
+        if (error) {
+            console.error('Error generating QR code:', error);
+            qrContainer.innerHTML = '<p class="text-danger">Failed to generate QR code</p>';
+        } else {
+            qrContainer.appendChild(canvas);
+        }
+    });
+});
+
+function copyToClipboard(text, button) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show temporary success message
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-check text-success"></i> Copied!';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-outline-primary');
+        
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-primary');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Failed to copy: ', err);
+        alert('Failed to copy to clipboard');
+    });
+}
+
+function downloadQR() {
+    const canvas = document.querySelector('#qrcode canvas');
+    if (canvas) {
+        const link = document.createElement('a');
+        link.download = 'invitation-qr-{{ invitation.invitation_code }}.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+}
+
+function shareNative() {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Invitation to {{ invitation.property.name }}',
+            text: 'You\'re invited! Use code: {{ invitation.invitation_code }}',
+            url: '{{ registration_url }}'
+        }).catch(console.error);
+    } else {
+        // Fallback for browsers that don't support Web Share API
+        copyToClipboard('{{ registration_url }}', event.target);
+    }
+}
+</script>
+{% endblock %}

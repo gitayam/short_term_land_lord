@@ -20,7 +20,16 @@
                 <div class="card h-100">
                     <div class="row g-0">
                         <div class="col-md-4">
+                            {% if property.images and property.images|length > 0 %}
                             <img src="{{ property.get_primary_image_url() }}" class="img-fluid rounded-start h-100" alt="{{ property.name }}" style="object-fit: cover;">
+                            {% else %}
+                            <div class="d-flex justify-content-center align-items-center h-100 rounded-start" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 200px;">
+                                <div class="text-center text-white">
+                                    <i class="fas fa-home" style="font-size: 3rem;"></i>
+                                    <div class="mt-2" style="font-size: 0.9rem; opacity: 0.9;">No Image</div>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                         <div class="col-md-8">
                             <div class="card-body">

@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Welcome Header -->
+        <div class="col-12 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2><i class="fas fa-user"></i> Welcome, {{ current_user.first_name }}!</h2>
+                            <p class="mb-0">Manage your bookings and account preferences</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            {% if not current_user.email_verified %}
+                            <div class="alert alert-warning mb-0">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Email not verified</strong><br>
+                                <small>Please check your email to verify your account</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Current & Upcoming Bookings -->
+        <div class="col-lg-8">
+            {% if current_bookings %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-calendar-check"></i> Current & Upcoming Bookings</h5>
+                </div>
+                <div class="card-body">
+                    {% for booking in current_bookings %}
+                    <div class="card mb-3 {% if booking.is_current %}border-success{% else %}border-primary{% endif %}">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="card-title">
+                                        {{ booking.property_ref.name }}
+                                        {% if booking.is_current %}
+                                        <span class="badge bg-success">Current Stay</span>
+                                        {% else %}
+                                        <span class="badge bg-primary">Upcoming</span>
+                                        {% endif %}
+                                    </h6>
+                                    <p class="card-text">
+                                        <i class="fas fa-map-marker-alt"></i> 
+                                        {{ booking.property_ref.city }}, {{ booking.property_ref.state }}<br>
+                                        <i class="fas fa-calendar"></i> 
+                                        {{ booking.check_in_date.strftime('%B %d, %Y') }} - 
+                                        {{ booking.check_out_date.strftime('%B %d, %Y') }}<br>
+                                        <i class="fas fa-users"></i> {{ booking.guest_count }} guest(s)<br>
+                                        <i class="fas fa-tag"></i> {{ booking.booking_source_display }}
+                                        {% if booking.confirmation_code %}
+                                        <br><i class="fas fa-barcode"></i> {{ booking.confirmation_code }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="btn-group-vertical" role="group">
+                                        <a href="{{ url_for('property.guest_view', token=booking.property_ref.guest_access_token) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> Property Info
+                                        </a>
+                                        {% if booking.booking_source == 'direct' and booking.is_future %}
+                                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                                            <i class="fas fa-edit"></i> Modify
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if booking.special_requests %}
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <strong>Special Requests:</strong> {{ booking.special_requests }}
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Past Bookings -->
+            {% if past_bookings %}
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-history"></i> Past Stays</h5>
+                </div>
+                <div class="card-body">
+                    {% for booking in past_bookings[:5] %}
+                    <div class="card mb-2 border-light">
+                        <div class="card-body py-2">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="card-title mb-1">{{ booking.property_ref.name }}</h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar"></i> 
+                                        {{ booking.check_in_date.strftime('%b %d, %Y') }} - 
+                                        {{ booking.check_out_date.strftime('%b %d, %Y') }}
+                                        | {{ booking.duration_nights }} nights
+                                    </small>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    {% if booking.booking_source == 'direct' %}
+                                    <a href="{{ url_for('guest.book_property', property_id=booking.property_id) }}" 
+                                       class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-repeat"></i> Book Again
+                                    </a>
+                                    {% else %}
+                                    <small class="text-muted">{{ booking.booking_source_display }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if past_bookings|length > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('guest.bookings') }}" class="btn btn-outline-primary">
+                            View All Past Stays ({{ past_bookings|length }} total)
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- No Bookings Message -->
+            {% if not current_bookings and not past_bookings %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <h5>No Bookings Yet</h5>
+                    <p class="text-muted">Once you have bookings, they'll appear here</p>
+                    <a href="{{ url_for('guest.browse_properties') }}" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Browse Properties
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-bolt"></i> Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('guest.browse_properties') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-search"></i> Browse Properties
+                        </a>
+                        <a href="{{ url_for('guest.bookings') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-calendar-alt"></i> All Bookings
+                        </a>
+                        <a href="{{ url_for('guest.profile') }}" class="btn btn-outline-info">
+                            <i class="fas fa-user-cog"></i> Account Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-shield-alt"></i> Account Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                {% if current_user.email_verified %}
+                                <i class="fas fa-check-circle fa-2x text-success"></i>
+                                <div class="small mt-1">Email Verified</div>
+                                {% else %}
+                                <i class="fas fa-exclamation-circle fa-2x text-warning"></i>
+                                <div class="small mt-1">Email Pending</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <i class="fas fa-user-check fa-2x text-success"></i>
+                                <div class="small mt-1">Guest Account</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if not current_user.email_verified %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <small>
+                            <i class="fas fa-info-circle"></i>
+                            Please verify your email to enable all features.
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- My Properties -->
+            {% if properties %}
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-home"></i> My Properties</h6>
+                </div>
+                <div class="card-body">
+                    {% set gradients = [
+                        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                        'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+                    ] %}
+                    {% set property_icons = {
+                        'house': 'fa-home',
+                        'apartment': 'fa-building',
+                        'condo': 'fa-building',
+                        'townhouse': 'fa-home',
+                        'villa': 'fa-home',
+                        'cottage': 'fa-home',
+                        'studio': 'fa-door-open',
+                        'loft': 'fa-building'
+                    } %}
+                    {% for property in properties %}
+                    <div class="d-flex align-items-center mb-2">
+                        {% if property.image_url %}
+                        <img src="{{ property.image_url }}" 
+                             class="rounded me-2" 
+                             width="40" height="40" 
+                             style="object-fit: cover;">
+                        {% else %}
+                        {% set icon_class = property_icons.get(property.property_type, 'fa-home') %}
+                        {% set gradient = gradients[property.id % gradients|length] %}
+                        <div class="rounded me-2 d-flex align-items-center justify-content-center" 
+                             style="width: 40px; height: 40px; background: {{ gradient }};">
+                            <i class="fas {{ icon_class }} text-white" style="font-size: 1.2rem;"></i>
+                        </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <div class="fw-bold small">{{ property.name }}</div>
+                            <div class="text-muted small">{{ property.city }}, {{ property.state }}</div>
+                        </div>
+                        <a href="{{ url_for('guest.view_property_public', property_id=property.id) }}" 
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

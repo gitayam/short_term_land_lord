@@ -5,11 +5,13 @@ from app import db
 from app.auth import bp
 from app.auth.forms import RegistrationForm, PropertyRegistrationForm, LoginForm, RequestPasswordResetForm, ResetPasswordForm, InviteServiceStaffForm
 from app.models import User, RegistrationRequest, Property, UserRoles, ApprovalStatus
+from app.utils.security import rate_limit, log_security_event, SessionManager
 from urllib.parse import urlparse as url_parse
 from sqlalchemy import or_
 import secrets
 
 @bp.route('/login', methods=['GET', 'POST'])
+@rate_limit(limit=5, window=300, per='ip', message="Too many login attempts. Please try again in 5 minutes.")
 def login():
     """Handle user login."""
     if current_user.is_authenticated:
@@ -18,10 +20,59 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
-        if user is None or not user.check_password(form.password.data):
+        
+        # Check if user exists and account is not locked
+        if user is None:
+            # Log failed login attempt for non-existent user
+            log_security_event('login_failed', {
+                'email': form.email.data,
+                'reason': 'user_not_found'
+            })
             flash('Invalid email or password', 'danger')
             return redirect(url_for('auth.login'))
+        
+        if user.is_account_locked():
+            # Log failed login attempt for locked account
+            log_security_event('login_failed', {
+                'email': form.email.data,
+                'reason': 'account_locked',
+                'locked_until': user.locked_until.isoformat() if user.locked_until else None
+            }, user_id=user.id)
+            flash('Account is temporarily locked due to multiple failed login attempts. Please try again later.', 'warning')
+            return redirect(url_for('auth.login'))
+        
+        if not user.check_password(form.password.data):
+            # Record failed login attempt
+            user.record_failed_login()
+            db.session.commit()
             
+            # Log failed login attempt
+            log_security_event('login_failed', {
+                'email': form.email.data,
+                'reason': 'invalid_password',
+                'failed_attempts': user.failed_login_attempts
+            }, user_id=user.id)
+            
+            if user.is_account_locked():
+                flash('Too many failed login attempts. Account has been temporarily locked.', 'danger')
+            else:
+                flash('Invalid email or password', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        # Successful login
+        user.record_successful_login()
+        db.session.commit()
+        
+        # Log successful login
+        log_security_event('login_success', {
+            'email': form.email.data,
+            'user_id': user.id
+        }, user_id=user.id)
+        
+        # Set up secure session
+        SessionManager.regenerate_session_id()
+        SessionManager.secure_session_setup()
+        
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
@@ -42,9 +93,13 @@ def logout():
 # ... (other imports and functions remain the same) ...
 
 @bp.route('/register', methods=['GET', 'POST'])
+@rate_limit(limit=10, window=3600, per='ip', message="Too many registration attempts. Please try again in 1 hour.")
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
+    
+    # Pre-fill invitation code if provided in URL
+    invitation_code = request.args.get('invitation_code')
     
     # Start with a clean session by rolling back any existing transactions
     try:
@@ -55,11 +110,17 @@ def register():
             if current_app:
                 current_app.logger.error(f"Error rolling back session: {str(e)}")
             else:
-                print(f"ERROR: Error rolling back session (current_app unavailable): {str(e)}")  # Fallback logging
+                pass  # Session rollback failed, but we can't log without app context
         except Exception as log_error:
-            print(f"ERROR: Failed to log rollback error: {str(e)}, Logging error: {str(log_error)}")
+            pass  # Unable to log error
     
     form = RegistrationForm()
+    
+    # Pre-fill invitation code if provided
+    if invitation_code and request.method == 'GET':
+        form.invitation_code.data = invitation_code
+        form.role.data = 'guest'
+    
     property_form = None
     
     # Handle property owner registration (two-step process)
@@ -68,32 +129,32 @@ def register():
         property_step = True
         property_form = PropertyRegistrationForm()
         
-        # Debug: Print request method and form data
-        print("\n=== Property Registration Debug ===")
-        print(f"Request method: {request.method}")
-        print(f"Form data: {request.form}")
+        # Log property registration attempt
+        if current_app:
+            current_app.logger.debug(f"Property registration step - Method: {request.method}")
         
         # Get user data from session
         user_data = session.get('registration_data', {})
-        print(f"Session registration_data exists: {'registration_data' in session}")
-        print(f"User data from session: {user_data}")
+        # Session data handled securely without logging sensitive information
         
         if not user_data:
             flash('Registration information missing. Please start again.', 'danger')
-            print("No user data in session, redirecting to register")
+            if current_app:
+                current_app.logger.warning("Registration data missing from session")
             return redirect(url_for('auth.register'))
             
         # Handle property form submission
-        print(f"Validating property form. Form valid: {property_form.validate()}")
         if not property_form.validate():
-            print(f"Property form errors: {property_form.errors}")
+            if current_app:
+                current_app.logger.debug("Property form validation failed")
             
         if property_form.validate_on_submit():
-            print("Property form is valid, processing submission...")
+            if current_app:
+                current_app.logger.info("Processing property registration")
             user_data['property_name'] = property_form.property_name.data
             user_data['property_address'] = property_form.property_address.data
             user_data['property_description'] = property_form.property_description.data
-            print(f"Updated user_data with property info: {user_data}")
+            # Property info stored in session
             
             try:
                 # Import models at function level to ensure they're available in all code paths
@@ -179,9 +240,9 @@ def register():
                         if current_app:
                             current_app.logger.error(f"Error during registration: {str(e)}")
                         else:
-                            print(f"Error during registration: {str(e)}")
+                            pass  # Error already handled above
                     except Exception as log_err:
-                        print(f"Error logging registration error: {str(log_err)}")
+                        pass  # Unable to log error
                     flash('An error occurred during registration. Please try again.', 'danger')
                     return render_template('auth/register_property.html', title='Register Property', form=property_form)
                 
@@ -204,9 +265,9 @@ def register():
                     if current_app:
                         current_app.logger.error(f"Registration error: {str(e)}")
                     else:
-                        print(f"ERROR: Registration error (current_app unavailable): {str(e)}")  # Fallback logging
+                        pass  # Cannot log without app context
                 except Exception as log_error:
-                    print(f"ERROR: Failed to log registration error: {str(e)}, Logging error: {str(log_error)}")
+                    pass  # Unable to log error
                 flash(f'An error occurred during registration. Please try again. Error: {str(e)}', 'danger')
                 return render_template('auth/register_property.html', title='Register Property', form=property_form)
         
@@ -235,8 +296,70 @@ def register():
             if hasattr(form, 'username') and form.username.data:
                 username = form.username.data
             
+            # If this is a guest registration, handle immediately
+            if form.role.data == 'guest':
+                try:
+                    # Import models
+                    from app.models import GuestInvitation, GuestBooking
+                    
+                    # Get and validate invitation
+                    invitation = GuestInvitation.query.filter_by(
+                        invitation_code=form.invitation_code.data,
+                        is_active=True,
+                        is_used=False
+                    ).first()
+                    
+                    if not invitation or invitation.is_expired():
+                        flash('Invalid or expired invitation code.', 'danger')
+                        return render_template('auth/register.html', title='Register', form=form)
+                    
+                    # Create guest user directly (no approval needed)
+                    guest_user = User(
+                        email=form.email.data,
+                        first_name=form.first_name.data,
+                        last_name=form.last_name.data,
+                        phone=form.phone.data if hasattr(form, 'phone') else None,
+                        role=UserRoles.GUEST.value,
+                        is_active=True,
+                        username=form.username.data if hasattr(form, 'username') and form.username.data else None
+                    )
+                    guest_user.set_password(form.password.data)
+                    
+                    db.session.add(guest_user)
+                    db.session.flush()  # Get the user ID
+                    
+                    # Create guest booking record
+                    guest_booking = GuestBooking(
+                        guest_id=guest_user.id,
+                        invitation_id=invitation.id,
+                        property_id=invitation.property_id
+                    )
+                    db.session.add(guest_booking)
+                    
+                    # Mark invitation as used
+                    invitation.uses += 1
+                    if invitation.uses >= invitation.max_uses:
+                        invitation.is_used = True
+                    
+                    db.session.commit()
+                    
+                    flash('Registration successful! You can now log in.', 'success')
+                    return redirect(url_for('auth.login'))
+                    
+                except Exception as e:
+                    db.session.rollback()
+                    try:
+                        if current_app:
+                            current_app.logger.error(f"Error during guest registration: {str(e)}")
+                        else:
+                            pass  # Error already handled above
+                    except Exception as log_error:
+                        pass  # Unable to log error
+                    flash('An error occurred during registration. Please try again.', 'danger')
+                    return render_template('auth/register.html', title='Register', form=form)
+            
             # If this is a property owner, go to step 2
-            if form.role.data == UserRoles.PROPERTY_OWNER.value:
+            elif form.role.data == UserRoles.PROPERTY_OWNER.value:
                 # Store data in session for the next step
                 try:
                     # Create registration request
@@ -264,9 +387,9 @@ def register():
                         if current_app:
                             current_app.logger.error(f"Error creating registration request: {str(e)}")
                         else:
-                            print(f"ERROR: Error creating registration request (current_app unavailable): {str(e)}")  # Fallback logging
+                            pass  # Cannot log without app context
                     except Exception as log_error:
-                        print(f"ERROR: Failed to log registration request error: {str(e)}, Logging error: {str(log_error)}")
+                        pass  # Unable to log error
                     flash('An error occurred during registration. Please try again.', 'danger')
                     return render_template('auth/register.html', title='Register', form=form)
                 
@@ -315,9 +438,9 @@ def register():
                         if current_app:
                             current_app.logger.error(f"Error creating registration request: {str(e)}")
                         else:
-                            print(f"ERROR: Error creating registration request (current_app unavailable): {str(e)}")  # Fallback logging
+                            pass  # Cannot log without app context
                     except Exception as log_error:
-                        print(f"ERROR: Failed to log registration request error: {str(e)}, Logging error: {str(log_error)}")
+                        pass  # Unable to log error
                     flash('An error occurred during registration. Please try again.', 'danger')
                     return render_template('auth/register.html', title='Register', form=form)
         except Exception as e:

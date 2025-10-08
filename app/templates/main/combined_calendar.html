@@ -2,499 +2,555 @@
 
 {% block styles %}
 {{ super() }}
-{# Use FullCalendar v6 with scheduler #}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
+{# Timeline calendar uses custom CSS - no external calendar library needed #}
 
 <style>
+    /* CSS Custom Properties - Design System */
+    :root {
+        /* Spacing Scale */
+        --spacing-xs: 4px;
+        --spacing-sm: 8px;
+        --spacing-md: 16px;
+        --spacing-lg: 24px;
+        --spacing-xl: 32px;
+        --spacing-2xl: 48px;
+        
+        /* Border Radius Scale */
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --radius-xl: 16px;
+        --radius-2xl: 24px;
+        
+        /* Shadow Scale */
+        --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+        --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+        --shadow-lg: 0 10px 15px rgba(0,0,0,0.10), 0 4px 6px rgba(0,0,0,0.05);
+        --shadow-xl: 0 20px 25px rgba(0,0,0,0.15), 0 8px 10px rgba(0,0,0,0.04);
+        
+        /* Platform Colors - Accessible */
+        --airbnb-primary: #FF5A5F;
+        --airbnb-accessible: #E31E23;
+        --vrbo-primary: #3D67FF;
+        --vrbo-accessible: #1976D2;
+        --booking-primary: #003580;
+        --booking-accessible: #0D47A1;
+        --direct-primary: #34C759;
+        --direct-accessible: #2E7D32;
+        
+        /* Status Colors */
+        --status-confirmed: #10B981;
+        --status-pending: #F59E0B;
+        --status-cancelled: #EF4444;
+        --status-blocked: #6B7280;
+        
+        /* Neutral Colors */
+        --gray-50: #F9FAFB;
+        --gray-100: #F3F4F6;
+        --gray-200: #E5E7EB;
+        --gray-300: #D1D5DB;
+        --gray-400: #9CA3AF;
+        --gray-500: #6B7280;
+        --gray-600: #4B5563;
+        --gray-700: #374151;
+        --gray-800: #1F2937;
+        --gray-900: #111827;
+        
+        /* Background & Surface */
+        --bg-primary: #FFFFFF;
+        --bg-secondary: var(--gray-50);
+        --bg-tertiary: var(--gray-100);
+        
+        /* Typography */
+        --font-weight-normal: 400;
+        --font-weight-medium: 500;
+        --font-weight-semibold: 600;
+        --font-weight-bold: 700;
+        
+        /* Animation */
+        --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+        --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     body {
-        background-color: #f8f9fa; /* Light background */
-        color: #212529; /* Standard text color */
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+        color: var(--gray-800);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+        line-height: 1.6;
     }
 
     .calendar-container {
-        margin-top: 20px;
-        background-color: #fff;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-top: var(--spacing-lg);
+        background: var(--bg-primary);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        box-shadow: var(--shadow-xl);
+        backdrop-filter: blur(10px);
         width: 100vw;
         max-width: 100vw;
         min-width: 95vw;
-    }
-
-    /* FullCalendar Timeline Customizations */
-    .fc {
-        max-width: 100vw;
-    }
-
-    /* Header Toolbar Styling */
-    .fc .fc-toolbar.fc-header-toolbar {
-        margin-bottom: 1.5em;
-        padding-bottom: 1em;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .fc .fc-toolbar-title {
-        font-size: 1.5em;
-        font-weight: 600;
-    }
-
-    .fc .fc-button {
-        background-color: #fff;
-        border: 1px solid #ced4da;
-        color: #495057;
-        text-transform: capitalize;
-        box-shadow: none;
-        transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
-    }
-    .fc .fc-button:hover {
-        background-color: #e9ecef;
-    }
-
-    .fc .fc-button-primary:not(:disabled).fc-button-active,
-    .fc .fc-button-primary:not(:disabled):active {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-        color: #fff;
-    }
-    
-    .fc .fc-today-button {
-        /* Optionally highlight today button */
-    }
-
-    /* Resource Area (Left Property List) Styling */
-    .fc .fc-resource-area-header, .fc .fc-resource-timeline-divider, .fc .fc-resource-area-cushion {
-        display: none !important;
-    }
-    
-    .fc .fc-timeline-lane-frame {
-        border-left: none !important;
-        margin-left: 0 !important;
-        padding-left: 0 !important;
-    }
-
-    .fc .fc-timeline-header-row-0 {
-        display: none !important;
-    }
-
-    .fc .fc-col-header, .fc .fc-timeline-header {
-        display: table-header-group !important;
-        background: #f8f9fa;
-        z-index: 2;
-    }
-
-    /* Timeline Area Styling */
-    .fc .fc-timeline-slot-label { /* Day numbers / labels */
-        font-size: 0.85em;
-        color: #6c757d;
-    }
-    
-    .fc .fc-timeline-slot { /* Vertical day dividers */
-       border-right: 1px solid #eee;
-    }
-
-    /* Event Styling */
-    .fc-timeline-event {
-        padding: 3px 6px;
-        border-radius: 4px;
-        font-size: 0.8em;
-        margin-top: 2px;
-        margin-bottom: 2px;
+        position: relative;
         overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        color: #fff; /* Default text color for events */
-        border: none;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
-    .fc-timeline-event:hover {
-       opacity: 0.85;
+    
+    .calendar-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--gray-300), transparent);
     }
 
-    /* Source-specific event colors */
-    .fc-timeline-event.airbnb-event {
-        background-color: #FF5A5F; /* Airbnb Red */
+    /* Enhanced Property Sidebar */
+    .sidebar-property-list {
+        background: var(--bg-primary);
+        border-right: 1px solid var(--gray-200);
+        backdrop-filter: blur(10px);
+        box-shadow: var(--shadow-md);
     }
     
-    .fc-timeline-event.vrbo-event {
-        background-color: #3D67FF; /* VRBO Blue */
+    .property-list-item {
+        transition: all var(--transition-fast);
+        border-radius: var(--radius-md);
+        margin: var(--spacing-xs) var(--spacing-sm);
+        padding: var(--spacing-md) !important;
+        position: relative;
+        overflow: hidden;
     }
     
-    .fc-timeline-event.booking-event { /* Added example for Booking.com */
-       background-color: #003580; /* Booking.com Blue */
+    .property-list-item:hover {
+        background: var(--gray-50);
+        transform: translateX(4px);
+        box-shadow: var(--shadow-sm);
     }
     
-    .fc-timeline-event.direct-event {
-        background-color: #34C759; /* Green */
+    .property-color-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin-right: var(--spacing-md);
+        box-shadow: var(--shadow-xs);
+        border: 2px solid var(--bg-primary);
+        transition: all var(--transition-fast);
     }
     
-    .fc-timeline-event.blocked-event {
-        background-color: #8E8E93; /* Grey */
+    .property-search-container {
+        padding: var(--spacing-lg);
+        border-bottom: 1px solid var(--gray-200);
+        background: var(--bg-secondary);
     }
     
-    .fc-timeline-event.other-event {
-        background-color: #767676; /* Darker Grey */
+    #propertySearch {
+        border: 1px solid var(--gray-300);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-md);
+        background: var(--bg-primary);
+        transition: all var(--transition-fast);
+        box-shadow: var(--shadow-xs);
+    }
+    
+    #propertySearch:focus {
+        border-color: #3B82F6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), var(--shadow-sm);
+        outline: none;
     }
 
-    /* Remove default event border color */
-    .fc-event {
-        border-color: transparent !important;
-    }
-    
-    /* Ensure good contrast for event text */
-    .fc-event-title {
-        color: #fff;
-    }
-
-    /* Adjusting height - remove fixed height if content should dictate */
-    #calendar {
-        width: 98vw;
-        min-width: 95vw;
-        max-width: 100vw;
-        margin: 0 auto;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-        height: auto;
+    /* Timeline Calendar Container */
+    .timeline-calendar {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
         min-height: 600px;
     }
-    
-    /* Make timeline rows taller to better display booking information */
-    .fc .fc-timeline-lane {
-        height: 60px !important;
-        min-height: 60px !important;
-    }
-    
-    .fc .fc-timeline-lane-frame {
-        height: 60px !important;
-        min-height: 60px !important;
-    }
-    
-    /* Resource (property) row styling */
-    .fc .fc-resource {
-        height: 60px !important;
-        min-height: 60px !important;
-        padding: 8px 12px !important;
-        border-bottom: 2px solid #e9ecef !important;
-    }
-    
-    /* Better event spacing within taller rows */
-    .fc-timeline-event {
-        margin-top: 4px !important;
-        margin-bottom: 4px !important;
-        height: 48px !important;
-        line-height: 48px !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-    
-    /* Timeline styles */
-    .fc-timeline-slot {
-        border: 1px solid #f0f0f0;
-    }
-    .fc-timeline-slot-minor {
-        border-style: dotted;
-    }
-    
-    /* Highlight for selected resource */
-    .fc-resource-cell.highlighted {
-        background-color: rgba(66, 139, 202, 0.15) !important;
-        font-weight: bold;
-    }
-    
-    /* Sidebar active state */
-    .property-list-item.active {
-        background-color: rgba(66, 139, 202, 0.15);
-        border-left: 3px solid #007bff;
+
+    /* Timeline Header */
+    .timeline-header {
+        display: flex;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--gray-200);
+        position: sticky;
+        top: 0;
+        z-index: 100;
     }
 
-    /* Mobile-responsive sidebar */
-    @media (max-width: 992px) {
-        .sidebar-property-list { 
-            display: none !important; 
-        }
-        
-        .main-calendar-area {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-        
-        /* Mobile-friendly navigation */
-        .top-nav {
-            padding: 0.5rem 1rem;
-        }
-        
-        .top-nav-links a {
-            padding: 0.5rem;
-            font-size: 0.9em;
-        }
-        
-        .top-nav-brand {
-            font-size: 1.1em;
-        }
-    }
-    
-    /* Desktop: Show sidebar */
-    @media (min-width: 993px) {
-        .sidebar-property-list { 
-            display: block !important; 
-        }
-    }
-
-    .property-color-dot {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin-right: 8px;
-    }
-
-    /* Mobile-First Responsive Design */
-    @media (max-width: 768px) {
-        .calendar-container {
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 6px;
-        }
-        
-        /* Mobile calendar optimization */
-        #calendar {
-            width: 100vw;
-            min-width: 95vw;
-            font-size: 0.85em;
-        }
-        
-        /* Adjust FullCalendar for mobile */
-        .fc .fc-toolbar {
-            flex-direction: column;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .fc .fc-toolbar-title {
-            font-size: 1.25em;
-            margin: 0.5em 0;
-        }
-        
-        .fc .fc-button-group {
-            display: flex;
-            justify-content: center;
-        }
-        
-        .fc .fc-button {
-            font-size: 0.8em;
-            padding: 0.4em 0.6em;
-        }
-        
-        /* Timeline optimization for mobile */
-        .fc .fc-timeline-lane {
-            height: 50px !important;
-            min-height: 50px !important;
-        }
-        
-        .fc .fc-timeline-lane-frame {
-            height: 50px !important;
-            min-height: 50px !important;
-        }
-        
-        .fc .fc-resource {
-            height: 50px !important;
-            min-height: 50px !important;
-            padding: 6px 8px !important;
-            font-size: 0.85em;
-        }
-        
-        .fc-timeline-event {
-            height: 38px !important;
-            line-height: 38px !important;
-            font-size: 0.8em;
-            margin-top: 3px !important;
-            margin-bottom: 3px !important;
-        }
-        
-        /* Hide detailed info on very small screens */
-        .event-content .event-details {
-            display: none;
-        }
-        
-        /* Improve touch targets */
-        .fc .fc-event {
-            min-height: 36px;
-            cursor: pointer;
-        }
-        
-        /* Optimize timeline header for mobile */
-        .fc .fc-timeline-header th {
-            min-width: 80px;
-            font-size: 0.75em;
-        }
-    }
-    
-    /* Large mobile / Small tablet */
-    @media (min-width: 576px) and (max-width: 992px) {
-        .calendar-container {
-            padding: 15px;
-        }
-        
-        .fc .fc-toolbar {
-            flex-direction: row;
-        }
-        
-        .fc .fc-button {
-            font-size: 0.9em;
-        }
-        
-        .fc .fc-timeline-lane {
-            height: 55px !important;
-        }
-        
-        .fc-timeline-event {
-            height: 42px !important;
-            line-height: 42px !important;
-        }
-    }
-    
-    /* Touch-friendly improvements */
-    @media (hover: none) and (pointer: coarse) {
-        .fc .fc-button {
-            min-height: 44px;
-            min-width: 44px;
-        }
-        
-        .fc .fc-event {
-            min-height: 44px;
-        }
-        
-        .fc .fc-daygrid-event {
-            padding: 4px 6px;
-        }
-    }
-    .event-content {
+    .timeline-property-header {
+        width: 280px;
+        min-width: 280px;
+        padding: var(--spacing-lg);
+        border-right: 1px solid var(--gray-200);
+        background: var(--bg-secondary);
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 0 8px;
-        border-radius: 20px;
-        color: #fff;
+        font-weight: var(--font-weight-semibold);
+        color: var(--gray-700);
+    }
+
+    .timeline-dates-header {
+        flex: 1;
+        overflow-x: auto;
+        background: var(--bg-secondary);
+    }
+
+    .dates-grid {
+        display: flex;
+        min-width: max-content;
+        border-collapse: collapse;
+    }
+
+    .date-header {
+        padding: var(--spacing-md);
+        text-align: center;
+        border-right: 1px solid var(--gray-200);
+        font-size: 0.875rem;
+        font-weight: var(--font-weight-medium);
+        color: var(--gray-600);
         min-width: 120px;
-        font-size: 1em;
-        font-weight: 500;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        flex-shrink: 0;
     }
-    .event-title {
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+
+    .date-header.today {
+        background: var(--airbnb-accessible);
+        color: white;
+        font-weight: var(--font-weight-bold);
     }
-    .status-pill {
-        background: #fff;
-        color: #222;
-        border-radius: 10px;
-        padding: 1px 8px;
-        font-size: 0.8em;
-        font-weight: 600;
-        display: inline-block;
-        white-space: nowrap;
-        margin-left: 4px;
+
+    .date-number {
+        font-size: 1.1rem;
+        font-weight: var(--font-weight-bold);
+        color: var(--gray-800);
+        margin-bottom: 2px;
     }
-    .checkout-date {
-        font-size: 0.8em;
-        font-weight: 600;
-        background: #fff;
-        color: #222;
-        border-radius: 10px;
-        padding: 1px 8px;
-        margin-left: 4px;
+
+    .date-day {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
-    .fc-event-content, .event-content {
+
+    /* Timeline Body */
+    .timeline-body {
+        display: flex;
+        flex-direction: column;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .timeline-row {
+        display: flex;
+        border-bottom: 1px solid var(--gray-200);
+        min-height: 80px;
+        transition: background-color var(--transition-fast);
+    }
+
+    .timeline-row:hover {
+        background-color: var(--gray-50);
+    }
+
+    .property-info {
+        width: 280px;
+        min-width: 280px;
+        padding: var(--spacing-lg);
+        border-right: 1px solid var(--gray-200);
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 0 8px;
+        gap: var(--spacing-md);
     }
-    .fc-event-content .event-title, .event-content .event-title {
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+
+    .property-image {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-lg);
+        object-fit: cover;
+        box-shadow: var(--shadow-sm);
     }
-    .fc-event-content .status-pill, .event-content .status-pill {
-        background: #fff;
-        color: #222;
-        border-radius: 10px;
-        padding: 1px 8px;
-        font-size: 0.8em;
-        font-weight: 600;
-        display: inline-block;
-        white-space: nowrap;
-        margin-left: 4px;
-    }
-    .fc-event-content .checkout-date, .event-content .checkout-date {
-        font-size: 0.8em;
-        font-weight: 600;
-        background: #fff;
-        color: #222;
-        border-radius: 10px;
-        padding: 1px 8px;
-        margin-left: 4px;
-    }
-    .fc-timeline-event, .fc-event {
-        border-radius: 20px !important;
-        font-size: 1em !important;
-        font-weight: 500;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        border: none !important;
+    
+    .property-placeholder {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-lg);
         display: flex;
         align-items: center;
-        min-width: 120px;
+        justify-content: center;
+        box-shadow: var(--shadow-sm);
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .property-details h4 {
+        font-size: 0.95rem;
+        font-weight: var(--font-weight-semibold);
+        color: var(--gray-800);
+        margin: 0 0 4px 0;
+        line-height: 1.2;
+    }
+
+    .property-location {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+        margin: 0;
+    }
+
+    .property-status {
+        margin-top: 4px;
+    }
+
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+        font-weight: var(--font-weight-medium);
+        background: var(--status-confirmed);
+        color: white;
+    }
+
+    /* Timeline Days */
+    .timeline-days {
+        flex: 1;
+        overflow-x: auto;
         position: relative;
-        background: var(--event-bg, #008489) !important;
-        color: #fff !important;
-        padding: 6px 16px !important;
-        gap: 8px;
     }
+
+    .days-grid {
+        display: flex;
+        min-width: max-content;
+        height: 100%;
+        position: relative;
+    }
+
+    .day-cell {
+        border-right: 1px solid var(--gray-200);
+        position: relative;
+        min-height: 80px;
+        min-width: 120px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        color: var(--gray-400);
+    }
+
+    .day-cell.today {
+        background: linear-gradient(135deg, rgba(255, 90, 95, 0.1) 0%, rgba(255, 90, 95, 0.05) 100%);
+        border-right-color: var(--airbnb-accessible);
+    }
+
+    /* Booking Blocks */
+    .booking-block {
+        position: absolute;
+        top: 8px;
+        bottom: 8px;
+        border-radius: var(--radius-md);
+        padding: var(--spacing-sm);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: var(--font-weight-medium);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        min-width: 100px;
+    }
+
+    .booking-block:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+        z-index: 10;
+    }
+
+    .booking-block.airbnb {
+        background: linear-gradient(135deg, var(--airbnb-accessible) 0%, #C71E23 100%);
+    }
+
+    .booking-block.vrbo {
+        background: linear-gradient(135deg, var(--vrbo-accessible) 0%, #1565C0 100%);
+    }
+
+    .booking-block.booking {
+        background: linear-gradient(135deg, var(--booking-accessible) 0%, #0A3D91 100%);
+    }
+
+    .booking-block.direct {
+        background: linear-gradient(135deg, var(--direct-accessible) 0%, #1B5E20 100%);
+    }
+
+    .booking-guest {
+        font-weight: var(--font-weight-semibold);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 2px;
+    }
+
+    .booking-price {
+        font-size: 0.7rem;
+        opacity: 0.9;
+        white-space: nowrap;
+    }
+
+    .guest-count {
+        font-size: 0.65rem;
+        opacity: 0.9;
+        white-space: nowrap;
+        margin-top: 2px;
+    }
+
+    /* Navigation Controls */
+    .timeline-nav {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        padding: var(--spacing-lg);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        justify-content: space-between;
+    }
+
+    .nav-controls {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .nav-btn {
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: 1px solid var(--gray-300);
+        background: var(--bg-primary);
+        border-radius: var(--radius-md);
+        color: var(--gray-700);
+        font-size: 0.875rem;
+        font-weight: var(--font-weight-medium);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .nav-btn:hover {
+        background: var(--gray-50);
+        border-color: var(--gray-400);
+        transform: translateY(-1px);
+    }
+
+    .current-period {
+        font-size: 1.1rem;
+        font-weight: var(--font-weight-bold);
+        color: var(--gray-800);
+    }
+
+    /* Property type icons */
+    .property-type-icon {
+        width: 20px;
+        height: 20px;
+        margin-right: var(--spacing-sm);
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+    .property-type-house { background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23374151"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>'); }
+    .property-type-suite { background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23374151"><path d="M12 2L2 7v10c0 5.55 3.84 9 9 9s9-3.45 9-9V7l-8-5zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>'); }
+    .property-type-apartment { background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23374151"><path d="M17 11V3H7v4H3v14h8v-4h2v4h8V11h-4zM7 19H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V9h2v2zm4 8H9v-2h2v2zm0-4H9v-2h2v2zm0-4H9V9h2v2zm0-4H9V5h2v2zm4 12h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V9h2v2zm4 8h-2v-2h2v2zm0-4h-2v-2h2v2z"/></svg>'); }
 </style>
 {% endblock %}
 
 {% block content %}
-{# Simple top navigation bar like the image #}
+{# Simple top navigation bar #}
 <nav class="top-nav">
-    <div class="top-nav-brand">OpenBnB</div> {# Placeholder brand name #}
+    <div class="top-nav-brand">OpenBnB</div>
     <div class="top-nav-links">
         <a href="#">Today</a>
         <a href="#" class="active">Calendar</a>
         <a href="#">Tasks</a>
         <a href="#">Work Orders</a>
         <a href="#">Messages</a>
-        {# Add more links as needed #}
     </div>
 </nav>
 
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar: Property List -->
-        <div class="col-lg-3 d-none d-lg-block sidebar-property-list" style="background:#fff; border-right:1px solid #eee; min-height:700px; padding:0;">
-            <div class="p-3 border-bottom">
-                <input type="text" class="form-control" id="propertySearch" placeholder="Search listings...">
+        <!-- Enhanced Sidebar: Property List -->
+        <div class="col-lg-3 d-none d-lg-block sidebar-property-list" style="min-height:700px; padding:0;">
+            <div class="property-search-container">
+                <input type="text" class="form-control" id="propertySearch" placeholder="🔍 Search properties...">
             </div>
             <div id="propertyList" class="list-group list-group-flush">
                 {% for resource in resources %}
-                <a href="#" class="list-group-item list-group-item-action d-flex align-items-center property-list-item" data-resource-id="{{ resource.id }}">
+                <a href="/property/{{ resource.id }}/view" class="list-group-item list-group-item-action d-flex align-items-center property-list-item" data-resource-id="{{ resource.id }}">
                     <span class="property-color-dot" style="background: {{ resource.color }};"></span>
-                    <img src="{{ resource.image_url }}" alt="{{ resource.title }}" class="rounded me-2" style="width:40px; height:40px; object-fit:cover;">
-                    <div>
-                        <div class="fw-bold">{{ resource.title }}</div>
-                        <div class="text-muted small">{{ resource.city }}, {{ resource.state }}</div>
+                    <div class="property-type-icon property-type-{{ resource.property_type or 'house' }}"></div>
+                    {% if resource.image_url %}
+                    <img src="{{ resource.image_url }}" alt="{{ resource.title }}" class="rounded me-3" style="width:48px; height:48px; object-fit:cover; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);">
+                    {% else %}
+                    {% set gradients = [
+                        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                        'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+                    ] %}
+                    {% set property_icons = {
+                        'house': '🏠',
+                        'apartment': '🏢',
+                        'condo': '🏢',
+                        'townhouse': '🏘️',
+                        'villa': '🏡',
+                        'cottage': '🏚️',
+                        'studio': '🚪',
+                        'loft': '🏢'
+                    } %}
+                    {% set icon = property_icons.get(resource.property_type, '🏠') %}
+                    {% set gradient = gradients[resource.id % gradients|length] %}
+                    <div class="property-placeholder me-3" style="width:48px; height:48px; background: {{ gradient }}; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); color: white; font-size: 1.5rem;">{{ icon }}</div>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold text-gray-800">{{ resource.title }}</div>
+                        <div class="text-muted small d-flex align-items-center gap-1">
+                            📍 {{ resource.city }}, {{ resource.state }}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="badge bg-light text-dark rounded-pill px-2 py-1" style="font-size: 0.7rem;">Active</div>
                     </div>
                 </a>
                 {% endfor %}
             </div>
         </div>
-        <!-- Main Calendar Area -->
+        <!-- Main Timeline Calendar Area -->
         <div class="col-lg-9 col-12 main-calendar-area">
-            <div class="calendar-container">
-                <div id="calendar"></div>
+            <div class="timeline-calendar">
+                <!-- Timeline Navigation -->
+                <div class="timeline-nav">
+                    <div class="current-period" id="currentPeriod">August 2025</div>
+                    <div class="nav-controls">
+                        <button class="nav-btn" id="prevWeek">← Previous</button>
+                        <button class="nav-btn" id="todayBtn">Today</button>
+                        <button class="nav-btn" id="nextWeek">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Timeline Header with Dates -->
+                <div class="timeline-header">
+                    <div class="timeline-property-header">Properties</div>
+                    <div class="timeline-dates-header">
+                        <div class="dates-grid" id="datesGrid">
+                            <!-- Dates will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline Body with Property Rows -->
+                <div class="timeline-body" id="timelineBody">
+                    <!-- Property rows will be populated by JavaScript -->
+                </div>
             </div>
         </div>
     </div>
@@ -528,8 +584,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <a id="assign-task-btn" href="#" class="btn btn-primary">Assign Task</a>
-                <a id="repair-request-btn" href="#" class="btn btn-warning">Repair Request</a>
+                <button id="assign-task-btn" type="button" class="btn btn-primary" onclick="createTaskFromBooking()">Assign Task</button>
+                <button id="repair-request-btn" type="button" class="btn btn-warning" onclick="createRepairRequestFromBooking()">Repair Request</button>
             </div>
         </div>
     </div>
@@ -539,12 +595,8 @@
 
 {% block scripts %}
 {{ super() }}
-{# Include FullCalendar v5 with scheduler - using more reliable CDN #}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource@6.1.10/index.global.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.10/index.global.min.js"></script>
 {# Include Bootstrap JS for modal #}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
 var resources = {{ resources|tojson|safe }} || [];
@@ -552,251 +604,417 @@ var rawEvents = {{ events|tojson|safe }} || [];
 
 console.log('Resources loaded:', resources.length);
 console.log('Events loaded:', rawEvents.length);
+console.log('Sample event data:', rawEvents);
 
-document.addEventListener('DOMContentLoaded', function() {
-    var uniqueEvents = {};
-    var deduplicatedEvents = [];
-    rawEvents.forEach(function(event) {
-        if (!event || !event.start) return;
-        if (!event.resourceId && event.extendedProps && event.extendedProps.property_id) {
-            event.resourceId = String(event.extendedProps.property_id);
-        }
-        var uniqueId = event.external_id || event.id;
-        if (!uniqueEvents[uniqueId]) {
-            uniqueEvents[uniqueId] = event;
-            deduplicatedEvents.push(event);
-        }
-    });
+// Timeline Calendar Implementation
+class TimelineCalendar {
+    constructor() {
+        this.currentStartDate = new Date();
+        this.daysToShow = 30; // Show 30 days for better overview
+        this.properties = resources;
+        this.events = this.processEvents(rawEvents);
+        
+        this.init();
+    }
 
-    var calendarEl = document.getElementById('calendar');
-    console.log('Calendar element found:', !!calendarEl);
-    console.log('FullCalendar available:', typeof FullCalendar);
-    
-    if (!calendarEl) {
-        console.error('Calendar element not found');
-        return;
+    init() {
+        this.setupEventListeners();
+        this.setCurrentWeek();
+        this.render();
+        this.setupScrollSynchronization();
+        this.scrollToToday();
     }
-    
-    if (typeof FullCalendar === 'undefined') {
-        console.error('FullCalendar library not loaded');
-        return;
+
+    processEvents(events) {
+        return events.map(event => {
+            return {
+                ...event,
+                startDate: new Date(event.start),
+                endDate: event.end ? new Date(event.end) : new Date(event.start),
+                platform: event.extendedProps?.platform || 'direct',
+                propertyId: event.extendedProps?.property_id || event.resourceId
+            };
+        });
     }
-    
-    // Detect mobile device for responsive configuration
-    var isMobile = window.innerWidth <= 768;
-    var isTablet = window.innerWidth > 768 && window.innerWidth <= 992;
-    
-    // Mobile-first responsive calendar configuration
-    var calendarConfig = {
-        height: isMobile ? 'auto' : 'auto',
-        aspectRatio: isMobile ? 1.0 : 1.35,
-        navLinks: true,
-        selectable: true,
-        editable: false,
-        nowIndicator: true,
-        events: deduplicatedEvents,
-        headerToolbar: isMobile ? {
-            left: 'prev,next',
-            center: 'title',
-            right: 'today'
-        } : {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,listWeek'
-        },
-        footerToolbar: isMobile ? {
-            center: 'dayGridMonth,listWeek'
-        } : false,
-        initialView: isMobile ? 'listWeek' : 'dayGridMonth',
-        eventDisplay: 'block',
-        // Mobile-specific event sizing
-        eventMinHeight: isMobile ? 30 : 20,
-        eventShortHeight: isMobile ? 25 : 20,
-        // Handle window resize for responsiveness
-        windowResizeDelay: 100,
-        eventContent: function(arg) {
-            var content = document.createElement('div');
-            content.classList.add('event-content');
-            content.style.display = 'flex';
-            content.style.alignItems = 'center';
-            content.style.justifyContent = 'space-between';
-            content.style.padding = '4px 8px';
-            content.style.height = '100%';
-            content.style.overflow = 'hidden';
+
+    setCurrentWeek() {
+        // Start from Monday of current week
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        this.currentStartDate = new Date(today);
+        this.currentStartDate.setDate(today.getDate() + mondayOffset);
+    }
+
+    setupEventListeners() {
+        document.getElementById('prevWeek').addEventListener('click', () => {
+            this.currentStartDate.setDate(this.currentStartDate.getDate() - 7);
+            this.render();
+        });
+
+        document.getElementById('nextWeek').addEventListener('click', () => {
+            this.currentStartDate.setDate(this.currentStartDate.getDate() + 7);
+            this.render();
+        });
+
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            this.setCurrentWeek();
+            this.render();
+            this.scrollToToday();
+        });
+    }
+
+    generateDates() {
+        const dates = [];
+        for (let i = 0; i < this.daysToShow; i++) {
+            const date = new Date(this.currentStartDate);
+            date.setDate(this.currentStartDate.getDate() + i);
+            dates.push(date);
+        }
+        return dates;
+    }
+
+    renderDateHeaders() {
+        const datesGrid = document.getElementById('datesGrid');
+        const dates = this.generateDates();
+        const today = new Date();
+        
+        datesGrid.innerHTML = dates.map(date => {
+            const isToday = date.toDateString() === today.toDateString();
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             
-            // Set background color from resource
-            var resource = resources.find(r => r.id == arg.event.getResources()[0]?.id || arg.event.extendedProps.property_id);
-            var bgColor = resource && resource.color ? resource.color : '#008489';
-            content.style.background = bgColor;
-            content.style.borderRadius = '4px';
-            content.style.color = '#fff';
+            return `
+                <div class="date-header ${isToday ? 'today' : ''}" data-date="${date.toISOString().split('T')[0]}">
+                    <div class="date-number">${date.getDate()}</div>
+                    <div class="date-day">${dayNames[date.getDay()]}</div>
+                </div>
+            `;
+        }).join('');
+
+        // Update period display
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
+        const startMonth = monthNames[this.currentStartDate.getMonth()];
+        const endDate = new Date(this.currentStartDate);
+        endDate.setDate(endDate.getDate() + this.daysToShow - 1);
+        const endMonth = monthNames[endDate.getMonth()];
+        
+        const periodText = startMonth === endMonth 
+            ? `${startMonth} ${this.currentStartDate.getFullYear()}`
+            : `${startMonth} - ${endMonth} ${this.currentStartDate.getFullYear()}`;
+        
+        document.getElementById('currentPeriod').textContent = periodText;
+    }
+
+    renderPropertyRows() {
+        const timelineBody = document.getElementById('timelineBody');
+        const dates = this.generateDates();
+        
+        // Define gradients and icons for properties without images
+        const gradients = [
+            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+        ];
+        
+        const propertyIcons = {
+            'house': '🏠',
+            'apartment': '🏢',
+            'condo': '🏢',
+            'townhouse': '🏘️',
+            'villa': '🏡',
+            'cottage': '🏚️',
+            'studio': '🚪',
+            'loft': '🏢'
+        };
+        
+        timelineBody.innerHTML = this.properties.map(property => {
+            const propertyEvents = this.events.filter(event => 
+                String(event.propertyId) === String(property.id)
+            );
             
-            // Left side: Guest name and platform
-            var leftDiv = document.createElement('div');
-            leftDiv.style.flex = '1';
-            leftDiv.style.minWidth = '0'; // Allow text truncation
+            // Get property type from property object or default to 'house'
+            const propertyType = property.property_type || 'house';
+            const icon = propertyIcons[propertyType] || '🏠';
+            const gradient = gradients[property.id % gradients.length];
             
-            var titleEl = document.createElement('div');
-            titleEl.style.fontWeight = 'bold';
-            titleEl.style.fontSize = '13px';
-            titleEl.style.whiteSpace = 'nowrap';
-            titleEl.style.overflow = 'hidden';
-            titleEl.style.textOverflow = 'ellipsis';
-            titleEl.innerHTML = arg.event.title;
-            leftDiv.appendChild(titleEl);
-            
-            if (arg.event.extendedProps.platform) {
-                var platformEl = document.createElement('div');
-                platformEl.style.fontSize = '11px';
-                platformEl.style.opacity = '0.9';
-                platformEl.innerHTML = arg.event.extendedProps.platform;
-                leftDiv.appendChild(platformEl);
-            }
-            
-            content.appendChild(leftDiv);
-            
-            // Right side: Status and amount
-            var rightDiv = document.createElement('div');
-            rightDiv.style.display = 'flex';
-            rightDiv.style.flexDirection = 'column';
-            rightDiv.style.alignItems = 'flex-end';
-            rightDiv.style.marginLeft = '8px';
-            
-            if (arg.event.extendedProps.amount) {
-                var amountEl = document.createElement('div');
-                amountEl.style.fontSize = '12px';
-                amountEl.style.fontWeight = 'bold';
-                amountEl.innerHTML = '$' + arg.event.extendedProps.amount;
-                rightDiv.appendChild(amountEl);
-            }
-            
-            if (arg.event.extendedProps.status) {
-                var statusEl = document.createElement('div');
-                statusEl.style.fontSize = '10px';
-                statusEl.style.backgroundColor = 'rgba(255,255,255,0.2)';
-                statusEl.style.padding = '1px 4px';
-                statusEl.style.borderRadius = '8px';
-                statusEl.style.marginTop = '2px';
-                statusEl.innerHTML = arg.event.extendedProps.status;
-                rightDiv.appendChild(statusEl);
-            }
-            
-            content.appendChild(rightDiv);
-            
-            return { domNodes: [content] };
-        },
-        eventDidMount: function(info) {
-            try {
-                new bootstrap.Tooltip(info.el, {
-                    title: function() {
-                        return `
-                            <div>
-                                <p><strong>${info.event.extendedProps.property_name || 'Property'}</strong></p>
-                                <p>${info.event.title}</p>
-                                <p>${new Date(info.event.start).toLocaleDateString()} - ${new Date(info.event.end).toLocaleDateString()}</p>
-                                <p>${info.event.extendedProps.service || 'Direct'}</p>
+            // Create image or placeholder
+            const imageElement = property.image_url 
+                ? `<img src="${property.image_url}" alt="${property.title}" class="property-image">`
+                : `<div class="property-placeholder" style="background: ${gradient};">${icon}</div>`;
+
+            return `
+                <div class="timeline-row" data-property-id="${property.id}">
+                    <div class="property-info">
+                        ${imageElement}
+                        <div class="property-details">
+                            <h4><a href="/property/${property.id}/view" style="color: inherit; text-decoration: none;">${property.title}</a></h4>
+                            <p class="property-location">📍 ${property.city}, ${property.state}</p>
+                            <div class="property-status">
+                                <span class="status-badge">Active</span>
                             </div>
-                        `;
-                    },
-                    html: true,
-                    placement: 'top'
+                        </div>
+                    </div>
+                    <div class="timeline-days">
+                        <div class="days-grid">
+                            ${this.renderDayCells(dates, propertyEvents)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    renderDayCells(dates, propertyEvents) {
+        const today = new Date();
+        
+        return dates.map((date, index) => {
+            const isToday = date.toDateString() === today.toDateString();
+            const dayEvents = this.getDayEvents(date, propertyEvents);
+            
+            return `
+                <div class="day-cell ${isToday ? 'today' : ''}" data-date-index="${index}">
+                    ${dayEvents.map(event => this.renderBookingBlock(event, date, dates)).join('')}
+                </div>
+            `;
+        }).join('');
+    }
+
+    getDayEvents(date, events) {
+        return events.filter(event => {
+            const eventStart = new Date(event.startDate);
+            const eventEnd = new Date(event.endDate);
+            const checkDate = new Date(date); // Don't modify original date!
+            
+            eventStart.setHours(0, 0, 0, 0);
+            eventEnd.setHours(23, 59, 59, 999);
+            checkDate.setHours(12, 0, 0, 0);
+            
+            return checkDate >= eventStart && checkDate <= eventEnd;
+        });
+    }
+
+    renderBookingBlock(event, currentDate, allDates) {
+        const eventStart = new Date(event.startDate);
+        const eventEnd = new Date(event.endDate);
+        
+        // Check if this is the start of the booking block
+        const isStart = currentDate.toDateString() === eventStart.toDateString() || 
+                       (currentDate <= eventStart && currentDate === allDates[0]);
+
+        if (!isStart) return '';
+
+        // Calculate span
+        const startIndex = allDates.findIndex(d => d.toDateString() === currentDate.toDateString());
+        let endIndex = allDates.findIndex(d => d.toDateString() === eventEnd.toDateString());
+        if (endIndex === -1) endIndex = allDates.length - 1;
+        
+        const span = endIndex - startIndex + 1;
+        const width = `${span * 120 - 4}px`; // 120px per day minus padding
+
+        const platformClass = event.platform.toLowerCase();
+        const guestName = event.title || 'Booking';
+        const amount = event.extendedProps?.amount || '';
+        const guestCount = event.extendedProps?.guest_count || '';
+
+        return `
+            <div class="booking-block ${platformClass}" 
+                 style="left: 2px; width: ${width}; z-index: 5;"
+                 onclick="showEventModal('${event.id}')">
+                <div class="booking-guest">${guestName}</div>
+                ${amount ? `<div class="booking-price">$${amount}</div>` : ''}
+                ${guestCount ? `<div class="guest-count">👥 ${guestCount}</div>` : ''}
+            </div>
+        `;
+    }
+
+    render() {
+        this.renderDateHeaders();
+        this.renderPropertyRows();
+        // Re-setup scroll synchronization after DOM elements are recreated
+        setTimeout(() => {
+            this.setupScrollSynchronization();
+        }, 50);
+    }
+
+    scrollToToday() {
+        setTimeout(() => {
+            const todayHeader = document.querySelector('.date-header.today');
+            if (todayHeader) {
+                const datesContainer = document.querySelector('.timeline-dates-header');
+                const scrollLeft = todayHeader.offsetLeft - datesContainer.offsetWidth / 2;
+                datesContainer.scrollLeft = Math.max(0, scrollLeft);
+                
+                // Also scroll timeline days
+                document.querySelectorAll('.timeline-days').forEach(container => {
+                    container.scrollLeft = Math.max(0, scrollLeft);
                 });
-            } catch (e) {}
-        },
-        eventClick: function(info) {
-            showEventModal(info.event);
-        },
-        select: function(info) {
-            console.log('Selected:', info);
-        }
-    };
-    
-    // Try to add resource timeline if available
-    if (typeof FullCalendar !== 'undefined' && FullCalendar.resourceTimelinePlugin) {
-        console.log('Resource timeline available, using advanced view');
-        calendarConfig.initialView = 'resourceTimelineMonth';
-        calendarConfig.schedulerLicenseKey = 'GPL-My-Project-Is-Open-Source';
-        calendarConfig.resources = resources;
-        calendarConfig.resourceAreaWidth = '25%';
-        calendarConfig.headerToolbar.right = 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth';
-    } else {
-        console.log('Resource timeline not available, using standard month view');
+            }
+        }, 100);
     }
+
+    setupScrollSynchronization() {
+        const datesContainer = document.querySelector('.timeline-dates-header');
+        const timelineDaysContainers = document.querySelectorAll('.timeline-days');
+        
+        if (!datesContainer || timelineDaysContainers.length === 0) return;
+        
+        let isScrolling = false;
+        
+        // Sync dates header scroll with timeline days
+        datesContainer.addEventListener('scroll', () => {
+            if (isScrolling) return;
+            isScrolling = true;
+            
+            timelineDaysContainers.forEach(container => {
+                container.scrollLeft = datesContainer.scrollLeft;
+            });
+            
+            requestAnimationFrame(() => {
+                isScrolling = false;
+            });
+        });
+        
+        // Sync timeline days scroll with dates header
+        timelineDaysContainers.forEach(container => {
+            container.addEventListener('scroll', () => {
+                if (isScrolling) return;
+                isScrolling = true;
+                
+                datesContainer.scrollLeft = container.scrollLeft;
+                
+                // Sync all other timeline days containers
+                timelineDaysContainers.forEach(otherContainer => {
+                    if (otherContainer !== container) {
+                        otherContainer.scrollLeft = container.scrollLeft;
+                    }
+                });
+                
+                requestAnimationFrame(() => {
+                    isScrolling = false;
+                });
+            });
+        });
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, starting timeline calendar...');
     
-    var calendar = new FullCalendar.Calendar(calendarEl, calendarConfig);
-    
+    if (resources.length === 0) {
+        console.warn('No properties found, creating sample data');
+        // Add sample properties for demo
+        resources = [
+            {
+                id: '1',
+                title: 'Elegant Suite',
+                city: 'Miami',
+                state: 'FL',
+                image_url: '/static/img/default-property.jpg'
+            }
+        ];
+    }
+
+    // Initialize timeline calendar
+    window.timelineCalendar = new TimelineCalendar();
+});
+
+// Global variable to store current event context for modal actions
+let currentModalEvent = null;
+
+// Event modal function
+function showEventModal(eventId) {
+    const event = rawEvents.find(e => e.id === eventId);
+    if (!event) return;
+
     try {
-        calendar.render();
-        console.log('Calendar rendered successfully');
-    } catch (error) {
-        console.error('Error rendering calendar:', error);
-        // Show error message to user
-        document.getElementById('calendar').innerHTML = '<div class="alert alert-warning">Calendar could not be loaded. Please refresh the page.</div>';
+        // Store event context globally for button actions
+        currentModalEvent = event;
+        
+        const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+        document.getElementById('property-name').textContent = event.extendedProps?.property_name || 'Unknown Property';
+        document.getElementById('guest-summary').textContent = event.title || 'No guest information';
+        
+        const startDate = new Date(event.start).toLocaleDateString();
+        const endDate = event.end ? new Date(event.end).toLocaleDateString() : startDate;
+        document.getElementById('date-range').textContent = startDate + ' to ' + endDate;
+        document.getElementById('source').textContent = event.extendedProps?.platform || 'Direct Booking';
+        
+        modal.show();
+    } catch (e) {
+        console.error('Error showing event modal:', e);
     }
+}
 
-    function showEventModal(event) {
-        try {
-            var modal = new bootstrap.Modal(document.getElementById('eventModal'));
-            document.getElementById('property-name').textContent = event.extendedProps.property_name || 'Unknown Property';
-            
-            // Enhanced guest information
-            var guestInfo = event.title || 'No guest information';
-            if (event.extendedProps.guest_count) {
-                guestInfo += ` (${event.extendedProps.guest_count} guests)`;
-            }
-            if (event.extendedProps.amount) {
-                guestInfo += ` - $${event.extendedProps.amount}`;
-            }
-            document.getElementById('guest-summary').textContent = guestInfo;
-            
-            var startDate = new Date(event.start).toLocaleDateString();
-            var endDate = startDate;
-            if (event.end) {
-                var end = new Date(event.end);
-                end.setDate(end.getDate() - 1);
-                endDate = end.toLocaleDateString();
-            }
-            document.getElementById('date-range').textContent = startDate + ' to ' + endDate;
-            
-            // Show platform and status
-            var sourceText = event.extendedProps.platform || 'Direct Booking';
-            if (event.extendedProps.status) {
-                sourceText += ` (${event.extendedProps.status})`;
-            }
-            document.getElementById('source').textContent = sourceText;
-            
-            var bookingId = event.id;
-            var assignTaskBtn = document.getElementById('assign-task-btn');
-            if (assignTaskBtn) assignTaskBtn.href = '/tasks/create?booking_id=' + bookingId;
-            var repairRequestBtn = document.getElementById('repair-request-btn');
-            if (repairRequestBtn) repairRequestBtn.href = '/tasks/repair_requests/create?property_id=' + event.extendedProps.property_id;
-            modal.show();
-        } catch (e) {
-            console.error('Error showing event modal:', e);
-        }
+// Create task from booking context
+function createTaskFromBooking() {
+    if (!currentModalEvent) {
+        console.error('No event context available');
+        return;
     }
-
-    // Sidebar search logic
-    document.getElementById('propertySearch').addEventListener('input', function() {
-        var val = this.value.toLowerCase();
-        document.querySelectorAll('.property-list-item').forEach(function(item) {
-            var name = item.querySelector('.fw-bold').textContent.toLowerCase();
-            item.style.display = name.includes(val) ? '' : 'none';
-        });
+    
+    const propertyId = currentModalEvent.extendedProps?.property_id || currentModalEvent.resourceId;
+    const guestName = currentModalEvent.title || '';
+    const checkoutDate = currentModalEvent.end || currentModalEvent.start;
+    const platform = currentModalEvent.extendedProps?.platform || '';
+    
+    // Build URL with context parameters
+    const params = new URLSearchParams({
+        property_id: propertyId,
+        booking_context: 'true',
+        guest_name: guestName,
+        suggested_due_date: checkoutDate,
+        platform: platform,
+        booking_id: currentModalEvent.id
     });
+    
+    // Navigate to task creation page with context
+    window.location.href = `/tasks/property/${propertyId}/create?${params.toString()}`;
+}
 
-    // Sidebar click logic
-    document.querySelectorAll('.property-list-item').forEach(function(item) {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            var resourceId = this.getAttribute('data-resource-id');
-            document.querySelectorAll('.property-list-item').forEach(function(p) { p.classList.remove('active'); });
-            this.classList.add('active');
-            try {
-                calendar.scrollToResource(resourceId);
-            } catch (e) {}
-        });
+// Create repair request from booking context  
+function createRepairRequestFromBooking() {
+    if (!currentModalEvent) {
+        console.error('No event context available');
+        return;
+    }
+    
+    const propertyId = currentModalEvent.extendedProps?.property_id || currentModalEvent.resourceId;
+    const guestName = currentModalEvent.title || '';
+    const checkoutDate = currentModalEvent.end || currentModalEvent.start;
+    const platform = currentModalEvent.extendedProps?.platform || '';
+    
+    // Build URL with context parameters
+    const params = new URLSearchParams({
+        property_id: propertyId,
+        booking_context: 'true', 
+        guest_name: guestName,
+        suggested_due_date: checkoutDate,
+        platform: platform,
+        booking_id: currentModalEvent.id,
+        severity: 'medium'  // Default severity for booking-related repairs
     });
+    
+    // Navigate to repair request creation page with context
+    window.location.href = `/tasks/repair_requests/create?${params.toString()}`;
+}
+
+// Enhanced search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('propertySearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const val = this.value.toLowerCase();
+            document.querySelectorAll('.timeline-row').forEach(function(row) {
+                const propertyName = row.querySelector('h4').textContent.toLowerCase();
+                row.style.display = propertyName.includes(val) ? '' : 'none';
+            });
+        });
+    }
 });
 </script>
 {% endblock %}

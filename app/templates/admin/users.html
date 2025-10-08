@@ -4,7 +4,10 @@
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-12">
-            <h1 class="mb-4">User Management</h1>
+            <h1 class="mb-4">
+                <i class="fas fa-users"></i> User Management
+                <small class="text-muted">Comprehensive Admin Controls</small>
+            </h1>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
@@ -20,27 +23,27 @@
             <div class="btn-group" role="group">
                 <a href="{{ url_for('admin.users', role='all') }}" 
                    class="btn btn-outline-primary {{ 'active' if current_role == 'all' }}">
-                    All Users
+                    <i class="fas fa-users"></i> All Users
                 </a>
                 <a href="{{ url_for('admin.users', role='property_owner') }}"
                    class="btn btn-outline-success {{ 'active' if current_role == 'property_owner' }}">
-                    Property Owners
+                    <i class="fas fa-home"></i> Property Owners
                 </a>
                 <a href="{{ url_for('admin.users', role='property_manager') }}"
                    class="btn btn-outline-info {{ 'active' if current_role == 'property_manager' }}">
-                    Property Managers
+                    <i class="fas fa-briefcase"></i> Property Managers
                 </a>
                 <a href="{{ url_for('admin.users', role='service_staff') }}"
                    class="btn btn-outline-secondary {{ 'active' if current_role == 'service_staff' }}">
-                    Service Staff
+                    <i class="fas fa-tools"></i> Service Staff
                 </a>
                 <a href="{{ url_for('admin.users', role='property_guest') }}"
                    class="btn btn-outline-warning {{ 'active' if current_role == 'property_guest' }}">
-                    Property Guests
+                    <i class="fas fa-user-friends"></i> Property Guests
                 </a>
                 <a href="{{ url_for('admin.users', role='admin') }}"
                    class="btn btn-outline-danger {{ 'active' if current_role == 'admin' }}">
-                    Admins
+                    <i class="fas fa-crown"></i> Admins
                 </a>
             </div>
         </div>
@@ -66,20 +69,27 @@
                             </thead>
                             <tbody>
                                 {% for user in users %}
-                                <tr>
-                                    <td>{{ user.first_name }} {{ user.last_name }}</td>
+                                <tr id="user-row-{{ user.id }}">
+                                    <td>
+                                        <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                                        {% if user.admin_notes|length > 0 %}
+                                        <span class="badge bg-info ms-1" title="Has admin notes">
+                                            <i class="fas fa-sticky-note"></i> {{ user.admin_notes|length }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ user.email }}</td>
                                     <td>
                                         {% if user.role == 'property_owner' %}
-                                        <span class="badge badge-primary">Property Owner</span>
+                                        <span class="badge bg-primary">Property Owner</span>
                                         {% elif user.role == 'property_manager' %}
-                                        <span class="badge badge-info">Property Manager</span>
+                                        <span class="badge bg-info">Property Manager</span>
                                         {% elif user.role == 'service_staff' %}
-                                        <span class="badge badge-secondary">Service Staff</span>
+                                        <span class="badge bg-secondary">Service Staff</span>
                                         {% elif user.role == 'property_guest' %}
-                                        <span class="badge badge-warning">Property Guest</span>
+                                        <span class="badge bg-warning text-dark">Property Guest</span>
                                         {% elif user.role == 'admin' %}
-                                        <span class="badge badge-danger">Admin</span>
+                                        <span class="badge bg-danger">Admin</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ user.created_at.strftime('%b %d, %Y') }}</td>
@@ -87,34 +97,42 @@
                                         {% if user.last_login %}
                                         {{ user.last_login.strftime('%b %d, %Y %H:%M') }}
                                         {% else %}
-                                        <span class="text-muted">Never</span>
+                                        <span class="text-secondary fw-bold">Never</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if user.is_active %}
-                                        <span class="badge badge-success">Active</span>
-                                        {% else %}
-                                        <span class="badge badge-danger">Inactive</span>
+                                        <span class="badge {{ user.status_badge_class }}">{{ user.status_text }}</span>
+                                        {% if user.failed_login_attempts > 0 %}
+                                        <small class="text-danger d-block">{{ user.failed_login_attempts }} failed logins</small>
                                         {% endif %}
                                     </td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="{{ url_for('profile.view_user', id=user.id) }}" class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="showUserDetails({{ user.id }})">
+                                                <i class="fas fa-eye"></i> View
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle dropdown-toggle-split" 
+                                                    data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                 <span class="sr-only">Toggle Dropdown</span>
                                             </button>
                                             <div class="dropdown-menu">
-                                                <a class="dropdown-item" href="#">
+                                                <a class="dropdown-item" href="#" onclick="showPasswordResetModal({{ user.id }}, '{{ user.email }}')">
                                                     <i class="fas fa-key"></i> Reset Password
                                                 </a>
+                                                <a class="dropdown-item" href="#" onclick="showChangeRoleModal({{ user.id }}, '{{ user.email }}', '{{ user.role }}')">
+                                                    <i class="fas fa-user-tag"></i> Change Role
+                                                </a>
+                                                <a class="dropdown-item" href="#" onclick="showAddNoteModal({{ user.id }}, '{{ user.email }}')">
+                                                    <i class="fas fa-sticky-note"></i> Add Note
+                                                </a>
+                                                <div class="dropdown-divider"></div>
                                                 {% if user.is_active %}
-                                                <a class="dropdown-item text-danger" href="#">
+                                                <a class="dropdown-item text-danger" href="#" onclick="showDisableUserModal({{ user.id }}, '{{ user.email }}')">
                                                     <i class="fas fa-ban"></i> Disable Account
                                                 </a>
                                                 {% else %}
-                                                <a class="dropdown-item text-success" href="#">
+                                                <a class="dropdown-item text-success" href="#" onclick="showEnableUserModal({{ user.id }}, '{{ user.email }}')">
                                                     <i class="fas fa-check"></i> Enable Account
                                                 </a>
                                                 {% endif %}
@@ -137,4 +155,704 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1" role="dialog" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userDetailsModalLabel">
+                    <i class="fas fa-user"></i> User Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="userDetailsContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Disable User Modal -->
+<div class="modal fade" id="disableUserModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-ban text-danger"></i> Disable User Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to disable the account for <strong id="disableUserEmail"></strong>?</p>
+                <div class="form-group">
+                    <label for="disableReason">Reason (optional):</label>
+                    <textarea class="form-control" id="disableReason" rows="3" placeholder="Enter reason for disabling this account..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="disableUser()">Disable Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enable User Modal -->
+<div class="modal fade" id="enableUserModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-check text-success"></i> Enable User Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to enable the account for <strong id="enableUserEmail"></strong>?</p>
+                <div class="form-group">
+                    <label for="enableReason">Reason (optional):</label>
+                    <textarea class="form-control" id="enableReason" rows="3" placeholder="Enter reason for enabling this account..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="enableUser()">Enable Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Role Modal -->
+<div class="modal fade" id="changeRoleModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-tag"></i> Change User Role
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Change role for <strong id="changeRoleUserEmail"></strong></p>
+                <div class="form-group">
+                    <label for="newRole">New Role:</label>
+                    <select class="form-control" id="newRole" onchange="updateAssignmentOptions()">
+                        <option value="">Select a role...</option>
+                    </select>
+                </div>
+                
+                <!-- Assignment Options (shown based on role selection) -->
+                <div id="assignmentOptions" style="display: none;">
+                    <hr>
+                    <h6><i class="fas fa-link"></i> Assignment Options</h6>
+                    
+                    <!-- Property Assignment (for property managers and service staff) -->
+                    <div id="propertyAssignment" style="display: none;">
+                        <div class="form-group">
+                            <label for="assignedProperties">Assign to Properties:</label>
+                            <select class="form-control" id="assignedProperties" multiple size="5">
+                                <!-- Properties will be loaded via JavaScript -->
+                            </select>
+                            <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple properties</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Manager Assignment (for service staff) -->
+                    <div id="managerAssignment" style="display: none;">
+                        <div class="form-group">
+                            <label for="assignedManager">Assign to Property Manager:</label>
+                            <select class="form-control" id="assignedManager">
+                                <option value="">No manager assignment</option>
+                                <!-- Managers will be loaded via JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Owner Assignment (for property managers managing owner's properties) -->
+                    <div id="ownerAssignment" style="display: none;">
+                        <div class="form-group">
+                            <label for="assignedOwner">Assign to Property Owner:</label>
+                            <select class="form-control" id="assignedOwner">
+                                <option value="">No owner assignment</option>
+                                <!-- Owners will be loaded via JavaScript -->
+                            </select>
+                            <small class="form-text text-muted">This manager will oversee properties for this owner</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="roleChangeReason">Reason (optional):</label>
+                    <textarea class="form-control" id="roleChangeReason" rows="3" placeholder="Enter reason for role change..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="changeUserRole()">Change Role</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Password Reset Modal -->
+<div class="modal fade" id="passwordResetModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-key"></i> Reset User Password
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Reset password for <strong id="resetPasswordUserEmail"></strong></p>
+                <div class="form-group">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="sendEmailNotification" checked>
+                        <label class="form-check-label" for="sendEmailNotification">
+                            Send new password via email
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">If unchecked, the new password will be displayed here after reset.</small>
+                </div>
+                <div class="form-group">
+                    <label for="passwordResetReason">Reason (optional):</label>
+                    <textarea class="form-control" id="passwordResetReason" rows="3" placeholder="Enter reason for password reset..."></textarea>
+                </div>
+                <div id="newPasswordDisplay" class="alert alert-warning" style="display:none;">
+                    <strong>New Password:</strong> <span id="newPasswordText"></span>
+                    <br><small>Please save this password securely. It will not be shown again.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="resetUserPassword()">Reset Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Note Modal -->
+<div class="modal fade" id="addNoteModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-sticky-note"></i> Add Admin Note
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Add note for <strong id="addNoteUserEmail"></strong></p>
+                <div class="form-group">
+                    <label for="noteType">Note Type:</label>
+                    <select class="form-control" id="noteType">
+                        <option value="general">General</option>
+                        <option value="warning">Warning</option>
+                        <option value="account_action">Account Action</option>
+                        <option value="support">Support</option>
+                        <option value="billing">Billing</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="noteContent">Note Content:</label>
+                    <textarea class="form-control" id="noteContent" rows="4" placeholder="Enter your note here..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="isImportant">
+                        <label class="form-check-label" for="isImportant">
+                            Mark as important
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addUserNote()">Add Note</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentUserId = null;
+let userRoles = [];
+let properties = [];
+let propertyManagers = [];
+let propertyOwners = [];
+
+// Load user roles on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadUserRoles();
+    loadProperties();
+    loadPropertyManagers();
+    loadPropertyOwners();
+});
+
+function loadUserRoles() {
+    fetch('{{ url_for("admin.get_user_roles") }}')
+        .then(response => response.json())
+        .then(data => {
+            userRoles = data.roles;
+            const roleSelect = document.getElementById('newRole');
+            roleSelect.innerHTML = '<option value="">Select a role...</option>';
+            userRoles.forEach(role => {
+                roleSelect.innerHTML += `<option value="${role.value}">${role.name}</option>`;
+            });
+        })
+        .catch(error => console.error('Error loading roles:', error));
+}
+
+function loadProperties() {
+    fetch('{{ url_for("admin.get_properties_list") }}')
+        .then(response => response.json())
+        .then(data => {
+            properties = data.properties;
+            populatePropertiesSelect();
+        })
+        .catch(error => console.error('Error loading properties:', error));
+}
+
+function loadPropertyManagers() {
+    fetch('{{ url_for("admin.get_property_managers") }}')
+        .then(response => response.json())
+        .then(data => {
+            propertyManagers = data.managers;
+            populateManagersSelect();
+        })
+        .catch(error => console.error('Error loading property managers:', error));
+}
+
+function loadPropertyOwners() {
+    fetch('{{ url_for("admin.get_property_owners") }}')
+        .then(response => response.json())
+        .then(data => {
+            propertyOwners = data.owners;
+            populateOwnersSelect();
+        })
+        .catch(error => console.error('Error loading property owners:', error));
+}
+
+function populatePropertiesSelect() {
+    const select = document.getElementById('assignedProperties');
+    select.innerHTML = '';
+    properties.forEach(property => {
+        select.innerHTML += `<option value="${property.id}">${property.name} (${property.address})</option>`;
+    });
+}
+
+function populateManagersSelect() {
+    const select = document.getElementById('assignedManager');
+    select.innerHTML = '<option value="">No manager assignment</option>';
+    propertyManagers.forEach(manager => {
+        select.innerHTML += `<option value="${manager.id}">${manager.name} (${manager.email})</option>`;
+    });
+}
+
+function populateOwnersSelect() {
+    const select = document.getElementById('assignedOwner');
+    select.innerHTML = '<option value="">No owner assignment</option>';
+    propertyOwners.forEach(owner => {
+        select.innerHTML += `<option value="${owner.id}">${owner.name} (${owner.email})</option>`;
+    });
+}
+
+function updateAssignmentOptions() {
+    const selectedRole = document.getElementById('newRole').value;
+    const assignmentOptions = document.getElementById('assignmentOptions');
+    const propertyAssignment = document.getElementById('propertyAssignment');
+    const managerAssignment = document.getElementById('managerAssignment');
+    const ownerAssignment = document.getElementById('ownerAssignment');
+    
+    // Hide all assignment options first
+    assignmentOptions.style.display = 'none';
+    propertyAssignment.style.display = 'none';
+    managerAssignment.style.display = 'none';
+    ownerAssignment.style.display = 'none';
+    
+    // Show relevant assignment options based on role
+    if (selectedRole === 'property_manager') {
+        assignmentOptions.style.display = 'block';
+        propertyAssignment.style.display = 'block';
+        ownerAssignment.style.display = 'block';
+    } else if (selectedRole === 'service_staff') {
+        assignmentOptions.style.display = 'block';
+        propertyAssignment.style.display = 'block';
+        managerAssignment.style.display = 'block';
+    }
+}
+
+function showUserDetails(userId) {
+    currentUserId = userId;
+    const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+    
+    // Show loading spinner
+    document.getElementById('userDetailsContent').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Load user details
+    fetch(`{{ url_for("admin.user_details", user_id=0) }}`.replace('0', userId))
+        .then(response => response.json())
+        .then(data => {
+            displayUserDetails(data);
+        })
+        .catch(error => {
+            document.getElementById('userDetailsContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Error loading user details: ${error.message}
+                </div>
+            `;
+        });
+}
+
+function displayUserDetails(data) {
+    const user = data.user;
+    const notes = data.notes;
+    const actions = data.actions;
+    
+    let content = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-user"></i> User Information</h6>
+                <dl class="row">
+                    <dt class="col-sm-4">ID:</dt>
+                    <dd class="col-sm-8">#${user.id}</dd>
+                    
+                    <dt class="col-sm-4">Name:</dt>
+                    <dd class="col-sm-8">${user.full_name}</dd>
+                    
+                    <dt class="col-sm-4">Email:</dt>
+                    <dd class="col-sm-8">${user.email}</dd>
+                    
+                    <dt class="col-sm-4">Role:</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-info">${user.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                    </dd>
+                    
+                    <dt class="col-sm-4">Status:</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge ${user.status_badge_class}">${user.status}</span>
+                    </dd>
+                    
+                    <dt class="col-sm-4">Created:</dt>
+                    <dd class="col-sm-8">${user.created_at}</dd>
+                    
+                    <dt class="col-sm-4">Last Login:</dt>
+                    <dd class="col-sm-8">${user.last_login}</dd>
+                    
+                    <dt class="col-sm-4">Failed Logins:</dt>
+                    <dd class="col-sm-8">${user.failed_login_attempts}</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-sticky-note"></i> Recent Notes (${notes.length})</h6>
+                <div style="max-height: 200px; overflow-y: auto;">
+    `;
+    
+    if (notes.length > 0) {
+        notes.forEach(note => {
+            content += `
+                <div class="card mb-2 ${note.is_important ? 'border-warning' : ''}">
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-secondary fw-bold">${note.note_type} - ${note.created_at}</small>
+                            ${note.is_important ? '<span class="badge bg-warning text-dark">Important</span>' : ''}
+                        </div>
+                        <p class="mb-1">${note.content}</p>
+                        <small class="text-secondary">by ${note.admin_name}</small>
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        content += '<p class="text-secondary">No notes found.</p>';
+    }
+    
+    content += `
+                </div>
+            </div>
+        </div>
+        <hr>
+        <h6><i class="fas fa-history"></i> Recent Actions (${actions.length})</h6>
+        <div style="max-height: 200px; overflow-y: auto;">
+    `;
+    
+    if (actions.length > 0) {
+        actions.forEach(action => {
+            content += `
+                <div class="card mb-2">
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between">
+                            <strong>${action.action_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</strong>
+                            <small class="text-secondary fw-bold">${action.created_at}</small>
+                        </div>
+                        ${action.old_value ? `<small class="text-dark">From: ${action.old_value}</small><br>` : ''}
+                        ${action.new_value ? `<small class="text-dark">To: ${action.new_value}</small><br>` : ''}
+                        ${action.reason ? `<p class="mb-1"><em>${action.reason}</em></p>` : ''}
+                        <small class="text-secondary">by ${action.admin_name}</small>
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        content += '<p class="text-secondary">No actions found.</p>';
+    }
+    
+    content += '</div>';
+    
+    document.getElementById('userDetailsContent').innerHTML = content;
+}
+
+function showDisableUserModal(userId, email) {
+    currentUserId = userId;
+    document.getElementById('disableUserEmail').textContent = email;
+    document.getElementById('disableReason').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('disableUserModal'));
+    modal.show();
+}
+
+function showEnableUserModal(userId, email) {
+    currentUserId = userId;
+    document.getElementById('enableUserEmail').textContent = email;
+    document.getElementById('enableReason').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('enableUserModal'));
+    modal.show();
+}
+
+function showChangeRoleModal(userId, email, currentRole) {
+    currentUserId = userId;
+    document.getElementById('changeRoleUserEmail').textContent = email;
+    document.getElementById('roleChangeReason').value = '';
+    
+    // Set current role as selected
+    const roleSelect = document.getElementById('newRole');
+    roleSelect.value = currentRole;
+    
+    const modal = new bootstrap.Modal(document.getElementById('changeRoleModal'));
+    modal.show();
+}
+
+function showPasswordResetModal(userId, email) {
+    currentUserId = userId;
+    document.getElementById('resetPasswordUserEmail').textContent = email;
+    document.getElementById('passwordResetReason').value = '';
+    document.getElementById('sendEmailNotification').checked = true;
+    document.getElementById('newPasswordDisplay').style.display = 'none';
+    const modal = new bootstrap.Modal(document.getElementById('passwordResetModal'));
+    modal.show();
+}
+
+function showAddNoteModal(userId, email) {
+    currentUserId = userId;
+    document.getElementById('addNoteUserEmail').textContent = email;
+    document.getElementById('noteContent').value = '';
+    document.getElementById('noteType').value = 'general';
+    document.getElementById('isImportant').checked = false;
+    const modal = new bootstrap.Modal(document.getElementById('addNoteModal'));
+    modal.show();
+}
+
+function disableUser() {
+    const reason = document.getElementById('disableReason').value;
+    
+    fetch(`{{ url_for("admin.disable_user", user_id=0) }}`.replace('0', currentUserId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('disableUserModal')).hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+
+function enableUser() {
+    const reason = document.getElementById('enableReason').value;
+    
+    fetch(`{{ url_for("admin.enable_user", user_id=0) }}`.replace('0', currentUserId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('enableUserModal')).hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+
+function changeUserRole() {
+    const newRole = document.getElementById('newRole').value;
+    const reason = document.getElementById('roleChangeReason').value;
+    
+    if (!newRole) {
+        alert('Please select a new role');
+        return;
+    }
+    
+    // Collect assignment data
+    const assignmentData = {};
+    
+    if (newRole === 'property_manager' || newRole === 'service_staff') {
+        // Get selected properties
+        const propertiesSelect = document.getElementById('assignedProperties');
+        const selectedProperties = Array.from(propertiesSelect.selectedOptions).map(option => option.value);
+        if (selectedProperties.length > 0) {
+            assignmentData.properties = selectedProperties;
+        }
+    }
+    
+    if (newRole === 'property_manager') {
+        // Get assigned owner
+        const assignedOwner = document.getElementById('assignedOwner').value;
+        if (assignedOwner) {
+            assignmentData.owner = assignedOwner;
+        }
+    }
+    
+    if (newRole === 'service_staff') {
+        // Get assigned manager
+        const assignedManager = document.getElementById('assignedManager').value;
+        if (assignedManager) {
+            assignmentData.manager = assignedManager;
+        }
+    }
+    
+    const requestData = { 
+        role: newRole, 
+        reason: reason,
+        assignments: assignmentData
+    };
+    
+    fetch(`{{ url_for("admin.change_user_role", user_id=0) }}`.replace('0', currentUserId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('changeRoleModal')).hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+
+function resetUserPassword() {
+    const reason = document.getElementById('passwordResetReason').value;
+    const sendEmail = document.getElementById('sendEmailNotification').checked;
+    
+    fetch(`{{ url_for("admin.reset_user_password", user_id=0) }}`.replace('0', currentUserId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ reason: reason, send_email: sendEmail })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.new_password) {
+                document.getElementById('newPasswordText').textContent = data.new_password;
+                document.getElementById('newPasswordDisplay').style.display = 'block';
+            } else {
+                bootstrap.Modal.getInstance(document.getElementById('passwordResetModal')).hide();
+                alert('Password reset successfully. New password sent via email.');
+                location.reload();
+            }
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+
+function addUserNote() {
+    const content = document.getElementById('noteContent').value;
+    const noteType = document.getElementById('noteType').value;
+    const isImportant = document.getElementById('isImportant').checked;
+    
+    if (!content.trim()) {
+        alert('Please enter note content');
+        return;
+    }
+    
+    fetch(`{{ url_for("admin.add_user_note", user_id=0) }}`.replace('0', currentUserId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ 
+            content: content, 
+            note_type: noteType, 
+            is_important: isImportant 
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('addNoteModal')).hide();
+            alert('Note added successfully');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error.message);
+    });
+}
+</script>
+
+{% endblock %}

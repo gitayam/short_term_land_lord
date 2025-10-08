@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block title %}Business Analytics Dashboard{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .metric-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0.5rem 0;
+    }
+    
+    .metric-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .metric-change {
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .metric-change.positive {
+        color: var(--success);
+    }
+    
+    .metric-change.negative {
+        color: var(--danger);
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        height: 400px;
+    }
+    
+    .property-performance-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--bg-quaternary);
+    }
+    
+    .property-performance-item:last-child {
+        border-bottom: none;
+    }
+    
+    .occupancy-bar {
+        height: 8px;
+        background: var(--bg-quaternary);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 0.25rem;
+    }
+    
+    .occupancy-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+        transition: width 0.3s ease;
+    }
+    
+    .booking-source-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .booking-source-badge.airbnb {
+        background: #FF5A5F;
+        color: white;
+    }
+    
+    .booking-source-badge.vrbo {
+        background: #0066CC;
+        color: white;
+    }
+    
+    .booking-source-badge.booking {
+        background: #003580;
+        color: white;
+    }
+    
+    .booking-source-badge.direct {
+        background: var(--success);
+        color: white;
+    }
+    
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .date-selector {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="dashboard-header">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-graph-up-arrow"></i> Business Analytics
+            </h1>
+            <p class="text-muted mb-0">{{ metrics.month_name }} {{ metrics.year }} Performance</p>
+        </div>
+        
+        <div class="date-selector">
+            <select id="monthSelect" class="form-select form-select-sm" onchange="updateDateRange()">
+                <option value="1" {% if 1 == metrics.month %}selected{% endif %}>January</option>
+                <option value="2" {% if 2 == metrics.month %}selected{% endif %}>February</option>
+                <option value="3" {% if 3 == metrics.month %}selected{% endif %}>March</option>
+                <option value="4" {% if 4 == metrics.month %}selected{% endif %}>April</option>
+                <option value="5" {% if 5 == metrics.month %}selected{% endif %}>May</option>
+                <option value="6" {% if 6 == metrics.month %}selected{% endif %}>June</option>
+                <option value="7" {% if 7 == metrics.month %}selected{% endif %}>July</option>
+                <option value="8" {% if 8 == metrics.month %}selected{% endif %}>August</option>
+                <option value="9" {% if 9 == metrics.month %}selected{% endif %}>September</option>
+                <option value="10" {% if 10 == metrics.month %}selected{% endif %}>October</option>
+                <option value="11" {% if 11 == metrics.month %}selected{% endif %}>November</option>
+                <option value="12" {% if 12 == metrics.month %}selected{% endif %}>December</option>
+            </select>
+            <select id="yearSelect" class="form-select form-select-sm" onchange="updateDateRange()">
+                {% for year in range(current_year - 2, current_year + 1) %}
+                <option value="{{ year }}" {% if year == metrics.year %}selected{% endif %}>
+                    {{ year }}
+                </option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-outline-primary" onclick="exportData()">
+                <i class="bi bi-download"></i> Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Key Metrics Row -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Total Revenue</div>
+                <div class="metric-value">${{ "{:,.2f}".format(metrics.total_revenue) }}</div>
+                <div class="metric-change positive">
+                    <i class="bi bi-arrow-up"></i> 12% from last month
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Total Bookings</div>
+                <div class="metric-value">{{ metrics.total_bookings }}</div>
+                <div class="metric-change positive">
+                    <i class="bi bi-arrow-up"></i> 8% from last month
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Avg Occupancy Rate</div>
+                <div class="metric-value">{{ "{:.1f}".format(metrics.occupancy_rate) }}%</div>
+                <div class="occupancy-bar">
+                    <div class="occupancy-fill" style="width: {{ "%.1f"|format(metrics.occupancy_rate) }}%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-label">Avg Booking Value</div>
+                <div class="metric-value">${{ "{:,.2f}".format(metrics.avg_booking_value) }}</div>
+                <div class="metric-change negative">
+                    <i class="bi bi-arrow-down"></i> 3% from last month
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="chart-container">
+                <h5 class="mb-3">Revenue Trend</h5>
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="chart-container">
+                <h5 class="mb-3">Booking Sources</h5>
+                <canvas id="sourcesChart"></canvas>
+                <div class="mt-3">
+                    {% for source, count in metrics.booking_sources.items() %}
+                    <span class="booking-source-badge {{ source|e }}">
+                        {{ source|capitalize }}: {{ count }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Property Performance -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Top Performing Properties</h5>
+                </div>
+                <div class="card-body">
+                    {% for property_name, revenue in metrics.top_properties %}
+                    <div class="property-performance-item">
+                        <div>
+                            <strong>{{ property_name }}</strong>
+                            <div class="text-muted small">
+                                Occupancy: {{ "{:.0f}".format(metrics.occupancy_by_property[property_name]) }}%
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <strong>${{ "{:,.2f}".format(revenue) }}</strong>
+                            <div class="occupancy-bar" style="width: 100px;">
+                                <div class="occupancy-fill" 
+                                     style="width: {{ "%.1f"|format(metrics.occupancy_by_property[property_name]) }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Upcoming Bookings (Next 7 Days)</h5>
+                </div>
+                <div class="card-body">
+                    {% if metrics.upcoming_bookings %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Property</th>
+                                        <th>Guest</th>
+                                        <th>Check-in</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for booking in metrics.upcoming_bookings[:5] %}
+                                    <tr>
+                                        <td>{{ booking.property }}</td>
+                                        <td>{{ booking.guest }}</td>
+                                        <td>{{ booking.check_in.strftime('%b %d') }}</td>
+                                        <td>
+                                            {% if booking.amount %}
+                                                ${{ "{:,.2f}".format(booking.amount) }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-3">No upcoming bookings in the next 7 days</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Actions</h5>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('property.index') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-house-door"></i> Manage Properties
+                        </a>
+                        <a href="{{ url_for('main.combined_calendar') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-calendar3"></i> View Calendar
+                        </a>
+                        <a href="{{ url_for('invoicing.invoices') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-receipt"></i> View Invoices
+                        </a>
+                        <button class="btn btn-outline-primary" onclick="generateReport()">
+                            <i class="bi bi-file-earmark-text"></i> Generate Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Revenue Trend Chart
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+const revenueChart = new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+        labels: [{% for item in metrics.monthly_revenue %}{{ item.month|tojson }}{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Revenue',
+            data: [{% for item in metrics.monthly_revenue %}{{ item.revenue }}{% if not loop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgb(37, 99, 235)',
+            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            tension: 0.3,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return '$' + context.parsed.y.toLocaleString();
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Booking Sources Chart
+const sourcesCtx = document.getElementById('sourcesChart').getContext('2d');
+const sourcesChart = new Chart(sourcesCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [{% for source, count in metrics.booking_sources.items() %}{{ (source|capitalize)|tojson }}{% if not loop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for source, count in metrics.booking_sources.items() %}{{ count }}{% if not loop.last %},{% endif %}{% endfor %}],
+            backgroundColor: [
+                '#FF5A5F', // Airbnb red
+                '#0066CC', // VRBO blue
+                '#003580', // Booking.com blue
+                '#059669', // Direct green
+                '#64748b'  // Other gray
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+function updateDateRange() {
+    const month = document.getElementById('monthSelect').value;
+    const year = document.getElementById('yearSelect').value;
+    window.location.href = `{{ url_for('analytics.business_dashboard') }}?month=${month}&year=${year}`;
+}
+
+function exportData() {
+    window.location.href = '{{ url_for('analytics.export_analytics') }}';
+}
+
+function generateReport() {
+    // This would generate a PDF report
+    alert('Report generation coming soon!');
+}
+</script>
+{% endblock %}

@@ -46,6 +46,17 @@ def create_app(config_class=Config):
         if config_class == 'testing':
             from config import TestConfig
             app.config.from_object(TestConfig)
+        elif config_class.startswith('postgres'):
+            # Handle PostgreSQL configurations
+            if config_class == 'postgres_dev':
+                from config_postgres import DevelopmentPostgreSQLConfig
+                app.config.from_object(DevelopmentPostgreSQLConfig)
+            elif config_class == 'postgres_prod':
+                from config_postgres import ProductionPostgreSQLConfig
+                app.config.from_object(ProductionPostgreSQLConfig)
+            elif config_class == 'postgres_test':
+                from config_postgres import TestPostgreSQLConfig
+                app.config.from_object(TestPostgreSQLConfig)
         else:
             # Try to import the config class by name
             app.config.from_object(config_class)
@@ -135,6 +146,10 @@ def create_app(config_class=Config):
     from app.admin import bp as admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
     
+    # Register configuration management blueprint
+    from app.admin.config_routes import bp as admin_config_bp
+    app.register_blueprint(admin_config_bp)
+    
     from app.workforce import bp as workforce_bp
     app.register_blueprint(workforce_bp, url_prefix='/workforce')
 
@@ -143,6 +158,9 @@ def create_app(config_class=Config):
 
     from app.guidebook import bp as guidebook_bp
     app.register_blueprint(guidebook_bp, url_prefix='/guidebook')
+
+    from app.guest import bp as guest_bp
+    app.register_blueprint(guest_bp, url_prefix='/guest')
 
     from app.routes.health import bp as health_bp
     app.register_blueprint(health_bp)
@@ -153,9 +171,11 @@ def create_app(config_class=Config):
     from app.routes.property_routes import bp as property_routes_bp
     app.register_blueprint(property_routes_bp)
     
-    # Register Zillow API routes
-    from app.routes.zillow_api import zillow_bp
-    app.register_blueprint(zillow_bp)
+    from app.routes.analytics_routes import bp as analytics_bp
+    app.register_blueprint(analytics_bp)
+    
+    from app.routes.financial_analytics_routes import bp as financial_analytics_bp
+    app.register_blueprint(financial_analytics_bp)
     
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)

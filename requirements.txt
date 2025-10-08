@@ -1,33 +1,68 @@
-Flask==2.3.3
-Flask-SQLAlchemy==3.0.5
+# Core Flask dependencies
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
 Flask-Login==0.6.3
-Flask-WTF==1.1.1
-Flask-Mail==0.9.1
-Flask-Migrate==4.0.5
-WTForms==3.0.1
-WTForms-SQLAlchemy==0.3
-python-dotenv==1.0.0
-email-validator==2.0.0
-gunicorn==21.2.0
-Werkzeug==2.3.7
-requests>=2.25.0
-Pillow>=9.0.0
-python-dateutil>=2.8.2
-pytz>=2021.1
-boto3>=1.26.0
-twilio>=8.0.0
-beautifulsoup4>=4.11.0
-google-cloud-secret-manager>=2.16.0
-google-cloud-storage>=2.10.0
-icalendar>=5.0.0
-recurring-ical-events>=2.1.0
-marshmallow>=3.19.0
-bleach>=6.0.0
-Flask-Caching>=2.0.0
+Flask-WTF==1.2.1
+Flask-Mail==0.10.0
+Flask-Migrate==4.0.7
+Flask-Caching==2.3.0
 
-# Enhanced Zillow Scraper Dependencies
-playwright==1.40.0
-playwright-stealth==1.0.6
-undetected-chromedriver==3.5.4
-selenium==4.15.2
-requests-html==0.10.0
+# Forms and validation
+WTForms==3.2.1
+WTForms-SQLAlchemy==0.4
+email-validator==2.2.0
+
+# Web server
+gunicorn==23.0.0
+Werkzeug==3.1.3
+
+# Database
+SQLAlchemy==2.0.43
+psycopg2-binary==2.9.10
+
+# Security and authentication
+cryptography==45.0.6
+bleach==6.2.0
+python-jose[cryptography]==3.5.0
+itsdangerous==2.2.0
+
+# External services
+boto3==1.40.11
+botocore==1.40.11
+twilio==9.7.0
+requests==2.32.3
+google-cloud-secret-manager==2.20.2
+google-cloud-storage==3.3.0
+
+# Image processing
+Pillow==11.3.0
+
+# File type detection
+python-magic==0.4.27
+
+# Date and time handling
+python-dateutil==2.9.0.post0
+pytz==2024.2
+icalendar==6.1.0
+recurring-ical-events==3.3.4
+
+# Data serialization
+marshmallow==3.23.1
+
+# HTML parsing
+beautifulsoup4==4.12.3
+
+# Environment configuration
+python-dotenv==1.1.1
+
+# Additional security updates
+certifi==2025.8.3
+urllib3==2.3.0
+idna==3.10
+charset-normalizer==3.4.3
+
+# Development dependencies (optional, add to requirements-dev.txt)
+# pytest==8.3.4
+# pytest-cov==6.0.0
+# black==24.10.0
+# flake8==7.1.1

@@ -48,6 +48,7 @@
     </style>
 </head>
 <body>
+    {% if property.get_primary_image_url() %}
     <div class="header-image" style="background-image: url('{{ property.get_primary_image_url() }}');">
         <div class="property-name">
             <div class="container">
@@ -56,6 +57,39 @@
             </div>
         </div>
     </div>
+    {% else %}
+    {% set gradients = [
+        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+        'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+    ] %}
+    {% set property_icons = {
+        'house': 'bi-house-door',
+        'apartment': 'bi-building',
+        'condo': 'bi-building',
+        'townhouse': 'bi-house',
+        'villa': 'bi-house-heart',
+        'cottage': 'bi-house',
+        'studio': 'bi-door-open',
+        'loft': 'bi-building'
+    } %}
+    {% set icon_class = property_icons.get(property.property_type, 'bi-house-door') %}
+    {% set gradient = gradients[property.id % gradients|length] %}
+    <div class="header-image d-flex align-items-center justify-content-center" style="background: {{ gradient }}; height: 300px;">
+        <div class="text-center">
+            <i class="bi {{ icon_class }} text-white" style="font-size: 5rem;"></i>
+            <div class="property-name mt-3">
+                <div class="container">
+                    <h1>{{ property.name }}</h1>
+                    <p class="mb-0">{{ property.city }}, {{ property.state }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="container mt-4">
         <div class="row">
