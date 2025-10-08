@@ -19,8 +19,19 @@ export interface Env {
   // Email configuration
   EMAIL_PROVIDER?: string;
   EMAIL_FROM?: string;
+
+  // AWS SES credentials
+  SES_SMTP_HOST?: string;
+  SES_SMTP_PORT?: string;
+  SES_SMTP_USERNAME?: string;
+  SES_SMTP_PASSWORD?: string;
+  SES_REGION?: string;
+
+  // Mailgun credentials (alternative)
   MAILGUN_API_KEY?: string;
   MAILGUN_DOMAIN?: string;
+
+  // SendGrid credentials (alternative)
   SENDGRID_API_KEY?: string;
 }
 

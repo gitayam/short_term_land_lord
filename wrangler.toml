@@ -35,29 +35,42 @@ ENVIRONMENT = "development"
 FRONTEND_URL = "http://localhost:5173"  # Update for production
 
 # Email provider configuration
-EMAIL_PROVIDER = "mailgun"  # Options: mailgun, sendgrid, or leave empty for dev mode
-EMAIL_FROM = "noreply@yourdomain.com"
+EMAIL_PROVIDER = "ses"  # Options: ses, mailgun, sendgrid, or leave empty for dev mode
+EMAIL_FROM = "no-reply@irregularchat.com"
 
-# Secret environment variables (set using: wrangler secret put <KEY>)
+# Secret environment variables (set using: wrangler pages secret put <KEY> --project-name=short-term-landlord)
 # These should NOT be committed to version control
 #
 # Required secrets:
 # - JWT_SECRET: Secret key for JWT token signing (generate with: openssl rand -base64 32)
-#     wrangler secret put JWT_SECRET
+#     wrangler pages secret put JWT_SECRET --project-name=short-term-landlord
 #
 # Email provider secrets (choose one):
+#
+# For AWS SES (recommended):
+# - SES_SMTP_HOST: SES SMTP endpoint (e.g., email-smtp.us-east-1.amazonaws.com)
+#     wrangler pages secret put SES_SMTP_HOST --project-name=short-term-landlord
+# - SES_SMTP_PORT: SMTP port (usually 587)
+#     wrangler pages secret put SES_SMTP_PORT --project-name=short-term-landlord
+# - SES_SMTP_USERNAME: SES SMTP username (IAM credentials)
+#     wrangler pages secret put SES_SMTP_USERNAME --project-name=short-term-landlord
+# - SES_SMTP_PASSWORD: SES SMTP password (IAM secret)
+#     wrangler pages secret put SES_SMTP_PASSWORD --project-name=short-term-landlord
+# - SES_REGION: AWS region (e.g., us-east-1)
+#     wrangler pages secret put SES_REGION --project-name=short-term-landlord
+#
 # For Mailgun:
 # - MAILGUN_API_KEY: Mailgun API key
-#     wrangler secret put MAILGUN_API_KEY
+#     wrangler pages secret put MAILGUN_API_KEY --project-name=short-term-landlord
 # - MAILGUN_DOMAIN: Mailgun domain (e.g., mg.yourdomain.com)
-#     wrangler secret put MAILGUN_DOMAIN
+#     wrangler pages secret put MAILGUN_DOMAIN --project-name=short-term-landlord
 #
 # For SendGrid:
 # - SENDGRID_API_KEY: SendGrid API key
-#     wrangler secret put SENDGRID_API_KEY
+#     wrangler pages secret put SENDGRID_API_KEY --project-name=short-term-landlord
 #
-# To list all secrets: wrangler secret list
-# To delete a secret: wrangler secret delete <KEY>
+# To list all secrets: wrangler pages secret list --project-name=short-term-landlord
+# To delete a secret: wrangler pages secret delete <KEY> --project-name=short-term-landlord
 
 # Pages configuration for frontend
 pages_build_output_dir = "dist"
