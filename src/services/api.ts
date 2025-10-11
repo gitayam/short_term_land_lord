@@ -449,4 +449,95 @@ export const invoicesApi = {
   },
 };
 
+// Inventory Catalog API
+export const inventoryCatalogApi = {
+  async list(filters?: {
+    category?: string;
+    search?: string;
+    limit?: number;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+
+    const queryString = params.toString();
+    return fetchApi<any>(`/inventory/catalog${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async get(id: string) {
+    return fetchApi<any>(`/inventory/catalog/${id}`);
+  },
+
+  async create(itemData: any) {
+    return fetchApi<any>('/inventory/catalog', {
+      method: 'POST',
+      body: JSON.stringify(itemData),
+    });
+  },
+
+  async update(id: string, itemData: any) {
+    return fetchApi<any>(`/inventory/catalog/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(itemData),
+    });
+  },
+
+  async delete(id: string) {
+    return fetchApi<any>(`/inventory/catalog/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Inventory Items API
+export const inventoryItemsApi = {
+  async list(filters?: {
+    property_id?: string;
+    category?: string;
+    low_stock?: boolean;
+    limit?: number;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.low_stock) params.append('low_stock', 'true');
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+
+    const queryString = params.toString();
+    return fetchApi<any>(`/inventory/items${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async get(id: string) {
+    return fetchApi<any>(`/inventory/items/${id}`);
+  },
+
+  async create(itemData: any) {
+    return fetchApi<any>('/inventory/items', {
+      method: 'POST',
+      body: JSON.stringify(itemData),
+    });
+  },
+
+  async update(id: string, itemData: any) {
+    return fetchApi<any>(`/inventory/items/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(itemData),
+    });
+  },
+
+  async delete(id: string) {
+    return fetchApi<any>(`/inventory/items/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async adjust(id: string, adjustment: number) {
+    return fetchApi<any>(`/inventory/items/${id}/adjust`, {
+      method: 'POST',
+      body: JSON.stringify({ adjustment }),
+    });
+  },
+};
+
 export { ApiError };
