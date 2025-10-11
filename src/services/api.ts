@@ -290,4 +290,163 @@ export const cleaningApi = {
   },
 };
 
+// Expenses API
+export const expensesApi = {
+  async list(filters?: {
+    property_id?: string;
+    category?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.start_date) params.append('start_date', filters.start_date);
+    if (filters?.end_date) params.append('end_date', filters.end_date);
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+
+    const queryString = params.toString();
+    return fetchApi<any>(`/expenses${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async get(id: string) {
+    return fetchApi<any>(`/expenses/${id}`);
+  },
+
+  async create(expenseData: any) {
+    return fetchApi<any>('/expenses', {
+      method: 'POST',
+      body: JSON.stringify(expenseData),
+    });
+  },
+
+  async update(id: string, expenseData: any) {
+    return fetchApi<any>(`/expenses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(expenseData),
+    });
+  },
+
+  async delete(id: string) {
+    return fetchApi<any>(`/expenses/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getCategories() {
+    return fetchApi<any>('/expenses/categories');
+  },
+};
+
+// Revenue API
+export const revenueApi = {
+  async list(filters?: {
+    property_id?: string;
+    source?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.source) params.append('source', filters.source);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.start_date) params.append('start_date', filters.start_date);
+    if (filters?.end_date) params.append('end_date', filters.end_date);
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+
+    const queryString = params.toString();
+    return fetchApi<any>(`/revenue${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async create(revenueData: any) {
+    return fetchApi<any>('/revenue', {
+      method: 'POST',
+      body: JSON.stringify(revenueData),
+    });
+  },
+
+  async getSummary(filters?: {
+    property_id?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.start_date) params.append('start_date', filters.start_date);
+    if (filters?.end_date) params.append('end_date', filters.end_date);
+
+    const queryString = params.toString();
+    return fetchApi<any>(`/revenue/summary${queryString ? `?${queryString}` : ''}`);
+  },
+};
+
+// Invoices API
+export const invoicesApi = {
+  async list(filters?: {
+    property_id?: string;
+    booking_id?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.booking_id) params.append('booking_id', filters.booking_id);
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.start_date) params.append('start_date', filters.start_date);
+    if (filters?.end_date) params.append('end_date', filters.end_date);
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+
+    const queryString = params.toString();
+    return fetchApi<any>(`/invoices${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async get(id: string) {
+    return fetchApi<any>(`/invoices/${id}`);
+  },
+
+  async create(invoiceData: any) {
+    return fetchApi<any>('/invoices', {
+      method: 'POST',
+      body: JSON.stringify(invoiceData),
+    });
+  },
+
+  async update(id: string, invoiceData: any) {
+    return fetchApi<any>(`/invoices/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(invoiceData),
+    });
+  },
+
+  async delete(id: string) {
+    return fetchApi<any>(`/invoices/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async send(id: string) {
+    return fetchApi<any>(`/invoices/${id}/send`, {
+      method: 'POST',
+    });
+  },
+
+  async getPayments(id: string) {
+    return fetchApi<any>(`/invoices/${id}/payments`);
+  },
+
+  async recordPayment(id: string, paymentData: any) {
+    return fetchApi<any>(`/invoices/${id}/payments`, {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+  },
+};
+
 export { ApiError };

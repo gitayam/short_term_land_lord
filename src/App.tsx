@@ -13,6 +13,7 @@ import { CleaningSessionsPage } from './pages/cleaning/CleaningSessionsPage';
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { FinancialPage } from './pages/financial/FinancialPage';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
           <Route path="tasks" element={<TasksPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="cleaning" element={<CleaningSessionsPage />} />
+          <Route path="financial" element={<FinancialPage />} />
         </Route>
 
         {/* Catch all */}
