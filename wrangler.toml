@@ -31,8 +31,8 @@ command = "npm run build"
 
 # Environment variables (non-secret)
 [vars]
-ENVIRONMENT = "development"
-FRONTEND_URL = "http://localhost:5173"  # Update for production
+ENVIRONMENT = "production"
+FRONTEND_URL = "https://short-term-landlord.pages.dev"
 
 # Email provider configuration
 EMAIL_PROVIDER = "ses"  # Options: ses, mailgun, sendgrid, or leave empty for dev mode
