@@ -14,6 +14,11 @@ import { VerifyEmailPage } from './pages/auth/VerifyEmailPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { FinancialPage } from './pages/financial/FinancialPage';
+import { ExpensesPage } from './pages/financial/ExpensesPage';
+import { RevenuePage } from './pages/financial/RevenuePage';
+import { InvoicesPage } from './pages/financial/InvoicesPage';
+import { InventoryCatalogPage } from './pages/inventory/InventoryCatalogPage';
+import { InventoryItemsPage } from './pages/inventory/InventoryItemsPage';
 
 function App() {
   return (
@@ -43,6 +48,11 @@ function App() {
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="cleaning" element={<CleaningSessionsPage />} />
           <Route path="financial" element={<FinancialPage />} />
+          <Route path="financial/expenses" element={<ExpensesPage />} />
+          <Route path="financial/revenue" element={<RevenuePage />} />
+          <Route path="financial/invoices" element={<InvoicesPage />} />
+          <Route path="inventory/catalog" element={<InventoryCatalogPage />} />
+          <Route path="inventory/items" element={<InventoryItemsPage />} />
         </Route>
 
         {/* Catch all */}

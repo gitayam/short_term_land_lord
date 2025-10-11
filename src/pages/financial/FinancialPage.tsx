@@ -120,30 +120,30 @@ export function FinancialPage() {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
-            to="/financial/expenses/new"
+            to="/financial/expenses"
             className="card hover:shadow-md transition-shadow bg-gray-50 hover:bg-gray-100"
           >
             <span className="text-2xl mb-2 block">💸</span>
-            <h3 className="font-medium text-gray-900">Record Expense</h3>
-            <p className="text-sm text-gray-600 mt-1">Add a new expense</p>
+            <h3 className="font-medium text-gray-900">Manage Expenses</h3>
+            <p className="text-sm text-gray-600 mt-1">View and add expenses</p>
           </Link>
 
           <Link
-            to="/financial/revenue/new"
+            to="/financial/revenue"
             className="card hover:shadow-md transition-shadow bg-gray-50 hover:bg-gray-100"
           >
             <span className="text-2xl mb-2 block">💰</span>
-            <h3 className="font-medium text-gray-900">Record Revenue</h3>
-            <p className="text-sm text-gray-600 mt-1">Add new revenue</p>
+            <h3 className="font-medium text-gray-900">Manage Revenue</h3>
+            <p className="text-sm text-gray-600 mt-1">View and record revenue</p>
           </Link>
 
           <Link
-            to="/financial/invoices/new"
+            to="/financial/invoices"
             className="card hover:shadow-md transition-shadow bg-gray-50 hover:bg-gray-100"
           >
             <span className="text-2xl mb-2 block">📄</span>
-            <h3 className="font-medium text-gray-900">Create Invoice</h3>
-            <p className="text-sm text-gray-600 mt-1">Generate new invoice</p>
+            <h3 className="font-medium text-gray-900">Manage Invoices</h3>
+            <p className="text-sm text-gray-600 mt-1">View and create invoices</p>
           </Link>
         </div>
       </div>
@@ -265,12 +265,9 @@ export function FinancialPage() {
                 {recentInvoices.map((invoice: any) => (
                   <tr key={invoice.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <Link
-                        to={`/financial/invoices/${invoice.id}`}
-                        className="text-blue-600 hover:text-blue-700 font-medium"
-                      >
+                      <span className="text-blue-600 font-medium">
                         {invoice.invoice_number}
-                      </Link>
+                      </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{invoice.recipient_name}</div>

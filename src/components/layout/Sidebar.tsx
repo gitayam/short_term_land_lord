@@ -7,6 +7,7 @@ const navigation = [
   { name: 'Calendar', href: '/calendar', icon: '📅' },
   { name: 'Cleaning Sessions', href: '/cleaning', icon: '🧹' },
   { name: 'Financial', href: '/financial', icon: '💰' },
+  { name: 'Inventory', href: '/inventory/items', icon: '📦' },
 ];
 
 export function Sidebar() {
