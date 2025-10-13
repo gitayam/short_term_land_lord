@@ -2,7 +2,7 @@
 
 ## Current Status 📍
 
-**Version**: Cloudflare v2.0 (Migrated from Google App Engine)
+**Version**: Cloudflare v2.1.0 (Frictionless Booking & Same-Day Turnovers)
 **Status**: ✅ **Production-Ready** - Calendar-Focused Booking System
 **Live URL**: https://short-term-landlord.pages.dev
 **Architecture**: React + TypeScript + Cloudflare Pages + D1 Database
@@ -36,16 +36,25 @@
 - ✅ **Share Links & QR Codes**: Generate shareable property links
 
 ### Booking System ✅
+- ✅ **Frictionless Guest Booking**: 4-step flow without authentication required
+- ✅ **Progressive Disclosure**: Dates → Guest Info → Payment → Confirmation
+- ✅ **Payment Before Account**: Dark pattern for higher conversion
+- ✅ **Post-Booking Account Creation**: Optional account after payment
 - ✅ **Public Booking Requests**: Guest submission form on property pages
 - ✅ **Booking Request Dashboard**: Owner view of all requests
 - ✅ **Status Management**: Pending, Approved, Rejected, Cancelled
 - ✅ **Owner Responses**: Text response field for booking communications
 
 ### Calendar System ✅
+- ✅ **Same-Day Turnovers**: Support checkout/checkin on same day with cleaning time
+- ✅ **Auto-Select Checkout**: Automatically select checkout when only one night available
+- ✅ **Visual Checkout Hints**: Blue highlighting for valid checkout dates
+- ✅ **Smart Date Selection**: Detects available consecutive nights
 - ✅ **Calendar Events**: Track bookings, blocks, external platform syncs
 - ✅ **Property Calendar**: Platform sync settings per property
-- ✅ **Availability API**: Month-based availability queries
+- ✅ **Availability API**: Month-based availability queries with turnover logic
 - ✅ **Multi-Property Support**: Aggregate or per-property availability
+- ✅ **Public Calendar View**: Guest-facing availability calendar on landing page
 
 ### Authentication & Users ✅
 - ✅ **User Registration**: Email + password signup
@@ -99,7 +108,10 @@
 ### Priority 2: Calendar Enhancement 🟡
 **Goal**: Professional calendar experience matching Airbnb quality
 
-1. **Calendar Interactions**
+1. **Calendar Interactions** (PARTIALLY COMPLETE)
+   - [x] Same-day turnover support
+   - [x] Auto-select checkout dates
+   - [x] Visual checkout date highlighting
    - [ ] Booking details on hover/click
    - [ ] Color coding by booking source (Airbnb, VRBO, Direct, Blocked)
    - [ ] Drag-to-select multiple days
@@ -112,7 +124,7 @@
    - [ ] iCal export functionality
 
 3. **Blocking & Availability**
-   - [ ] Manual block/unblock dates
+   - [x] Manual block/unblock dates (API complete)
    - [ ] Recurring blocks (weekly, monthly)
    - [ ] Bulk operations on dates
    - [ ] Minimum/maximum stay rules
@@ -438,8 +450,27 @@ TWILIO_AUTH_TOKEN=<twilio token>
 
 ---
 
-**Last Updated**: October 12, 2025
+**Last Updated**: October 12, 2025 - v2.1.0 Release
 **Next Review**: Weekly during active development
 **Architecture**: Cloudflare Pages + Functions + D1 Database
 **Frontend**: React 18 + TypeScript + TailwindCSS
 **Target Market**: Fayetteville, NC Short-Term Rentals
+
+---
+
+## 🎉 RECENT UPDATES (v2.1.0 - October 12, 2025)
+
+### Completed in This Release
+- ✅ Frictionless booking flow (4-step progressive disclosure)
+- ✅ Payment before account creation
+- ✅ Same-day turnover support in calendar
+- ✅ Auto-select checkout dates
+- ✅ Visual checkout date highlighting
+- ✅ Public property showcase pages
+- ✅ Guest stay verification system
+- ✅ Calendar availability API improvements
+
+### Bug Fixes
+- Fixed calendar blocking logic to not block checkout dates
+- Fixed overlap detection to allow same-day turnovers
+- Improved date selection UX with visual feedback
