@@ -25,7 +25,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       return new Response('Property not found', { status: 404 });
     }
 
-    // Get all calendar events for this property
+    // Get ONLY "direct" calendar events for this property
+    // Do not export events from external platforms (airbnb, vrbo, etc) to avoid circular sync
     const events = await env.DB.prepare(
       `SELECT
         ce.id, ce.title, ce.start_date, ce.end_date,
@@ -34,6 +35,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
        FROM calendar_events ce
        LEFT JOIN property_calendar pc ON ce.property_calendar_id = pc.id
        WHERE ce.property_id = ?
+         AND ce.source = 'direct'
        ORDER BY ce.start_date ASC`
     )
       .bind(propertyId)

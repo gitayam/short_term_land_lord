@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { GuestBookingFlow } from '../components/booking/GuestBookingFlow';
 
 interface CalendarDay {
   date: string;
@@ -31,6 +32,7 @@ export function LandingPage() {
   const [loading, setLoading] = useState(true);
   const [checkInDate, setCheckInDate] = useState<string | null>(null);
   const [checkOutDate, setCheckOutDate] = useState<string | null>(null);
+  const [showBookingForm, setShowBookingForm] = useState(false);
 
   const [availabilityData, setAvailabilityData] = useState<{
     blockedDates: Record<string, boolean>;
@@ -40,6 +42,13 @@ export function LandingPage() {
   useEffect(() => {
     loadAvailability();
   }, [currentDate, selectedProperty]);
+
+  // Auto-select property if there's only one
+  useEffect(() => {
+    if (properties.length === 1 && selectedProperty === 'all') {
+      setSelectedProperty(properties[0].id);
+    }
+  }, [properties]);
 
   const loadAvailability = async () => {
     try {
@@ -320,8 +329,8 @@ export function LandingPage() {
                   </div>
                 </div>
 
-                {/* Property Filter */}
-                {properties.length > 0 && (
+                {/* Property Filter - Only show if multiple properties */}
+                {properties.length > 1 && (
                   <div className="w-full sm:w-auto">
                     <select
                       value={selectedProperty}
@@ -470,12 +479,20 @@ export function LandingPage() {
                     <p className="text-sm text-gray-600 mb-6">
                       These dates are available! Ready to request your booking?
                     </p>
-                    <Link
-                      to="/login"
-                      className="block w-full text-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all mb-3"
-                    >
-                      Request Booking
-                    </Link>
+                    {selectedProperty === 'all' ? (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-3">
+                        <p className="text-sm text-yellow-800">
+                          Please select a specific property from the filter above to request a booking.
+                        </p>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowBookingForm(true)}
+                        className="block w-full text-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all mb-3"
+                      >
+                        Request Booking (No Login Required!)
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setCheckInDate(null);
@@ -580,6 +597,34 @@ export function LandingPage() {
           </div>
         </div>
       </div>
+
+      {/* Guest Booking Flow Modal */}
+      {showBookingForm && selectedProperty !== 'all' && checkInDate && checkOutDate && (() => {
+        const property = properties.find(p => p.id === selectedProperty);
+        if (!property) return null;
+
+        return (
+          <GuestBookingFlow
+            property={{
+              id: property.id,
+              name: property.name,
+              address: property.address,
+              city: property.city,
+              state: 'NC',
+              nightly_rate: 150, // Default - actual pricing calculated server-side
+              cleaning_fee: 75,  // Default - actual pricing calculated server-side
+              bedrooms: property.bedrooms,
+              bathrooms: property.bathrooms,
+            }}
+            isOpen={showBookingForm}
+            onClose={() => setShowBookingForm(false)}
+            preselectedDates={{
+              checkIn: checkInDate,
+              checkOut: checkOutDate,
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

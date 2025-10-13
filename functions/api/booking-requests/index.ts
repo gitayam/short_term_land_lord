@@ -39,13 +39,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       check_out_date,
       num_guests,
       message,
+      payment_intent_id,
     } = data;
 
     // Validate required fields
-    if (!property_id || !guest_name || !guest_email || !check_in_date || !check_out_date || !num_guests) {
+    if (!property_id || !guest_name || !guest_email || !guest_phone || !check_in_date || !check_out_date || !num_guests || !payment_intent_id) {
       return new Response(
         JSON.stringify({
-          error: 'Missing required fields: property_id, guest_name, guest_email, check_in_date, check_out_date, num_guests',
+          error: 'Missing required fields: property_id, guest_name, guest_email, guest_phone, check_in_date, check_out_date, num_guests, payment_intent_id',
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
@@ -101,20 +102,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       );
     }
 
-    // Create booking request
+    // Create booking request with payment intent
     await env.DB.prepare(
-      `INSERT INTO booking_request (property_id, guest_name, guest_email, guest_phone, check_in_date, check_out_date, num_guests, message, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
+      `INSERT INTO booking_request (property_id, guest_name, guest_email, guest_phone, check_in_date, check_out_date, num_guests, message, stripe_payment_intent_id, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
     )
       .bind(
         property_id,
         guest_name,
         guest_email,
-        guest_phone || null,
+        guest_phone,
         check_in_date,
         check_out_date,
         num_guests,
-        message || null
+        message || null,
+        payment_intent_id
       )
       .run();
 

@@ -162,65 +162,118 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         )
         .run();
 
-      // Generate Stripe payment link if configured
+      // Handle payment based on whether booking has payment intent
       let paymentLink: string | undefined;
-      let stripePaymentIntentId: string | undefined;
+      const paymentIntentId = bookingRequest.stripe_payment_intent_id as string | undefined;
 
       if (env.STRIPE_SECRET_KEY) {
-        // Get property details for pricing
-        const property = await env.DB.prepare(
-          'SELECT nightly_rate, cleaning_fee, name FROM property WHERE id = ?'
-        )
-          .bind(bookingRequest.property_id)
-          .first();
+        if (paymentIntentId) {
+          // NEW FLOW: Capture pre-validated payment intent
+          console.log('[Booking Approval] Capturing payment for intent:', paymentIntentId);
 
-        if (property) {
-          const prop = property as any;
-          const checkIn = new Date(bookingRequest.check_in_date as string);
-          const checkOut = new Date(bookingRequest.check_out_date as string);
-          const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+          try {
+            const captureResponse = await fetch(
+              `https://api.stripe.com/v1/payment_intents/${paymentIntentId}/capture`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${env.STRIPE_SECRET_KEY}`,
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                },
+              }
+            );
 
-          const nightlyTotal = (prop.nightly_rate || 100) * nights;
-          const cleaningFee = prop.cleaning_fee || 0;
-          const totalAmount = nightlyTotal + cleaningFee;
+            if (!captureResponse.ok) {
+              const error = await captureResponse.json();
+              console.error('[Booking Approval] Failed to capture payment:', error);
+            } else {
+              const capturedIntent = await captureResponse.json();
+              console.log('[Booking Approval] Payment captured successfully:', capturedIntent.id);
 
-          // Create Stripe payment link
-          const paymentResult = await createStripePaymentLink(
-            {
-              amount: totalAmount,
-              currency: 'usd',
-              description: `Booking: ${prop.name} (${bookingRequest.check_in_date} to ${bookingRequest.check_out_date})`,
-              customerEmail: bookingRequest.guest_email as string,
-              customerName: bookingRequest.guest_name as string,
-              metadata: {
-                booking_request_id: requestId,
-                property_id: bookingRequest.property_id as string,
-                check_in: bookingRequest.check_in_date as string,
-                check_out: bookingRequest.check_out_date as string,
+              // Update payment status and create transaction record
+              await env.DB.prepare(
+                `UPDATE booking_request
+                 SET payment_status = 'paid',
+                     updated_at = datetime('now')
+                 WHERE id = ?`
+              )
+                .bind(requestId)
+                .run();
+
+              await env.DB.prepare(
+                `INSERT INTO payment_transactions
+                 (property_id, booking_request_id, transaction_type, amount, currency, status, stripe_payment_intent_id, description, payment_date)
+                 SELECT
+                   property_id,
+                   id,
+                   'booking_payment',
+                   estimated_total,
+                   'usd',
+                   'succeeded',
+                   stripe_payment_intent_id,
+                   'Booking payment for ' || guest_name,
+                   datetime('now')
+                 FROM booking_request
+                 WHERE id = ?`
+              )
+                .bind(requestId)
+                .run();
+            }
+          } catch (error: any) {
+            console.error('[Booking Approval] Payment capture error:', error);
+          }
+        } else {
+          // OLD FLOW: Generate payment link for bookings without payment intent
+          console.log('[Booking Approval] No payment intent, generating payment link');
+
+          const property = await env.DB.prepare(
+            'SELECT nightly_rate, cleaning_fee, name FROM property WHERE id = ?'
+          )
+            .bind(bookingRequest.property_id)
+            .first();
+
+          if (property) {
+            const prop = property as any;
+            const checkIn = new Date(bookingRequest.check_in_date as string);
+            const checkOut = new Date(bookingRequest.check_out_date as string);
+            const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+
+            const nightlyTotal = (prop.nightly_rate || 100) * nights;
+            const cleaningFee = prop.cleaning_fee || 0;
+            const totalAmount = nightlyTotal + cleaningFee;
+
+            const paymentResult = await createStripePaymentLink(
+              {
+                amount: totalAmount,
+                currency: 'usd',
+                description: `Booking: ${prop.name} (${bookingRequest.check_in_date} to ${bookingRequest.check_out_date})`,
+                customerEmail: bookingRequest.guest_email as string,
+                customerName: bookingRequest.guest_name as string,
+                metadata: {
+                  booking_request_id: requestId,
+                  property_id: bookingRequest.property_id as string,
+                  check_in: bookingRequest.check_in_date as string,
+                  check_out: bookingRequest.check_out_date as string,
+                },
+                successUrl: `${new URL(request.url).origin}/booking-success`,
               },
-              successUrl: `${new URL(request.url).origin}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
-            },
-            { apiKey: env.STRIPE_SECRET_KEY }
-          );
+              { apiKey: env.STRIPE_SECRET_KEY }
+            );
 
-          if (paymentResult.success && paymentResult.paymentLink) {
-            paymentLink = paymentResult.paymentLink;
-            stripePaymentIntentId = paymentResult.paymentIntentId;
+            if (paymentResult.success && paymentResult.paymentLink) {
+              paymentLink = paymentResult.paymentLink;
 
-            // Update booking request with payment link
-            await env.DB.prepare(
-              `UPDATE booking_request
-               SET stripe_payment_link = ?,
-                   stripe_payment_intent_id = ?,
-                   estimated_total = ?,
-                   payment_status = 'pending',
-                   updated_at = datetime('now')
-               WHERE id = ?`
-            )
-              .bind(paymentLink, stripePaymentIntentId, totalAmount, requestId)
-              .run();
-          } else {
-            console.error('[Booking Approval] Failed to create Stripe payment link:', paymentResult.error);
+              await env.DB.prepare(
+                `UPDATE booking_request
+                 SET stripe_payment_link = ?,
+                     estimated_total = ?,
+                     payment_status = 'pending',
+                     updated_at = datetime('now')
+                 WHERE id = ?`
+              )
+                .bind(paymentLink, totalAmount, requestId)
+                .run();
+            }
           }
         }
       }

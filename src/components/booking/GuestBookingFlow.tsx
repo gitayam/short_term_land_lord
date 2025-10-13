@@ -1,11 +1,18 @@
 /**
- * Frictionless Guest Booking Flow
- * Optimized for conversion using progressive disclosure and sunk cost fallacy
- * Flow: Dates → Guest Info → Payment → Account Creation (optional)
+ * Guest Booking Request Flow with Upfront Card Validation
+ * Flow: Dates → Guest Info → Card Validation → Submit Request
+ * Card is validated (not charged) to prevent spam bookings
+ * Payment is captured automatically when owner approves
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import { StripePaymentStep } from './StripePaymentStep';
+
+// Initialize Stripe
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 interface Property {
   id: string;
@@ -43,12 +50,6 @@ interface BookingData {
   numGuests: number;
   specialRequests: string;
 
-  // Step 3: Payment
-  cardNumber: string;
-  cardExpiry: string;
-  cardCvc: string;
-  billingZip: string;
-
   // Calculated
   nights: number;
   subtotal: number;
@@ -67,6 +68,8 @@ export function GuestBookingFlow({
   const [step, setStep] = useState<BookingStep>('dates');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [bookingData, setBookingData] = useState<BookingData>({
     checkInDate: preselectedDates?.checkIn || '',
     checkOutDate: preselectedDates?.checkOut || '',
@@ -75,10 +78,6 @@ export function GuestBookingFlow({
     guestPhone: '',
     numGuests: 1,
     specialRequests: '',
-    cardNumber: '',
-    cardExpiry: '',
-    cardCvc: '',
-    billingZip: '',
     nights: 0,
     subtotal: 0,
     cleaningFee: property.cleaning_fee || 75,
@@ -110,47 +109,70 @@ export function GuestBookingFlow({
     }
   }, [bookingData.checkInDate, bookingData.checkOutDate, property.nightly_rate, bookingData.cleaningFee]);
 
-  const handleSubmitBooking = async () => {
+  const createPaymentIntent = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Submit guest booking (no auth required)
-      const response = await fetch('/api/guest-bookings', {
+      const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          amount: bookingData.total,
           property_id: property.id,
           check_in_date: bookingData.checkInDate,
           check_out_date: bookingData.checkOutDate,
-          guest_name: bookingData.guestName,
-          guest_email: bookingData.guestEmail,
-          guest_phone: bookingData.guestPhone,
-          num_guests: bookingData.numGuests,
-          special_requests: bookingData.specialRequests,
-          payment: {
-            amount: bookingData.total,
-            // In production, use Stripe token instead of raw card data
-            token: 'tok_visa', // Placeholder
-          },
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Booking failed');
+        throw new Error(errorData.error || 'Failed to initialize payment');
       }
 
       const result = await response.json();
+      setClientSecret(result.clientSecret);
+      setPaymentIntentId(result.paymentIntentId);
+      setStep('payment');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Redirect to confirmation page instead of showing modal
-      const bookingId = result.booking?.external_id || result.booking?.id;
-      if (bookingId) {
-        navigate(`/booking/${bookingId}/confirmation`);
-        onClose(); // Close the modal
-      } else {
-        setStep('confirmation'); // Fallback to modal if no booking ID
+  const handlePaymentSuccess = async (validatedPaymentIntentId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Submit booking request with payment intent ID
+      const response = await fetch('/api/booking-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          property_id: property.id,
+          guest_name: bookingData.guestName,
+          guest_email: bookingData.guestEmail,
+          guest_phone: bookingData.guestPhone,
+          check_in_date: bookingData.checkInDate,
+          check_out_date: bookingData.checkOutDate,
+          num_guests: bookingData.numGuests,
+          message: bookingData.specialRequests || null,
+          payment_intent_id: validatedPaymentIntentId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Booking request failed');
       }
+
+      const result = await response.json();
+      console.log('[Booking Request] Success:', result);
+
+      // Show confirmation step
+      setStep('confirmation');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -161,8 +183,7 @@ export function GuestBookingFlow({
   if (!isOpen) return null;
 
   const canProceedFromDates = bookingData.checkInDate && bookingData.checkOutDate && bookingData.nights > 0;
-  const canProceedFromGuestInfo = bookingData.guestName && bookingData.guestEmail && bookingData.numGuests > 0;
-  const canProceedFromPayment = bookingData.cardNumber && bookingData.cardExpiry && bookingData.cardCvc && bookingData.billingZip;
+  const canProceedFromGuestInfo = bookingData.guestName && bookingData.guestEmail && bookingData.guestPhone && bookingData.numGuests > 0;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -186,7 +207,7 @@ export function GuestBookingFlow({
           </div>
           <div className="flex justify-between text-xs text-gray-600 mt-1">
             <span>Dates</span>
-            <span>Guest Info</span>
+            <span>Info</span>
             <span>Payment</span>
             <span>Done!</span>
           </div>
@@ -258,6 +279,12 @@ export function GuestBookingFlow({
                   <p className="text-gray-600">We'll send your confirmation here</p>
                 </div>
 
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    {error}
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
@@ -282,12 +309,13 @@ export function GuestBookingFlow({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
                     <input
                       type="tel"
                       value={bookingData.guestPhone}
                       onChange={(e) => setBookingData({ ...bookingData, guestPhone: e.target.value })}
                       placeholder="+1 (555) 123-4567"
+                      required
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -320,143 +348,87 @@ export function GuestBookingFlow({
                 </div>
 
                 <button
-                  onClick={() => setStep('payment')}
-                  disabled={!canProceedFromGuestInfo}
-                  className="w-full py-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-lg"
+                  onClick={createPaymentIntent}
+                  disabled={!canProceedFromGuestInfo || loading}
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
                 >
-                  Continue to Payment
+                  {loading ? 'Preparing Payment...' : 'Continue to Payment'}
                 </button>
+
+                <p className="text-xs text-gray-500 text-center">
+                  Next: Validate your payment method (you won't be charged until approved)
+                </p>
               </div>
             )}
 
             {/* Step 3: Payment */}
-            {step === 'payment' && (
+            {step === 'payment' && clientSecret && (
               <div className="space-y-6">
-                <div>
-                  <button
-                    onClick={() => setStep('guest-info')}
-                    className="text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-1"
-                  >
-                    ← Back
-                  </button>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Complete Your Booking</h3>
-                  <p className="text-gray-600">Secure payment via Stripe</p>
-                </div>
-
                 {error && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                     {error}
                   </div>
                 )}
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Card Number *</label>
-                    <input
-                      type="text"
-                      value={bookingData.cardNumber}
-                      onChange={(e) => setBookingData({ ...bookingData, cardNumber: e.target.value })}
-                      placeholder="4242 4242 4242 4242"
-                      maxLength={19}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Expiry *</label>
-                      <input
-                        type="text"
-                        value={bookingData.cardExpiry}
-                        onChange={(e) => setBookingData({ ...bookingData, cardExpiry: e.target.value })}
-                        placeholder="MM/YY"
-                        maxLength={5}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">CVC *</label>
-                      <input
-                        type="text"
-                        value={bookingData.cardCvc}
-                        onChange={(e) => setBookingData({ ...bookingData, cardCvc: e.target.value })}
-                        placeholder="123"
-                        maxLength={4}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Billing ZIP Code *</label>
-                    <input
-                      type="text"
-                      value={bookingData.billingZip}
-                      onChange={(e) => setBookingData({ ...bookingData, billingZip: e.target.value })}
-                      placeholder="12345"
-                      maxLength={10}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleSubmitBooking}
-                  disabled={!canProceedFromPayment || loading}
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-                >
-                  {loading ? 'Processing...' : `Pay $${bookingData.total}`}
-                </button>
-
-                <p className="text-xs text-gray-500 text-center">
-                  🔒 Your payment info is secure. We use Stripe for processing.
-                </p>
+                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <StripePaymentStep
+                    amount={bookingData.total}
+                    onBack={() => setStep('guest-info')}
+                    onSuccess={handlePaymentSuccess}
+                    onError={setError}
+                  />
+                </Elements>
               </div>
             )}
 
             {/* Step 4: Confirmation */}
             {step === 'confirmation' && (
               <div className="space-y-6 text-center py-8">
-                <div className="text-6xl mb-4">🎉</div>
-                <h3 className="text-3xl font-bold text-gray-900">Booking Confirmed!</h3>
+                <div className="text-6xl mb-4">✅</div>
+                <h3 className="text-3xl font-bold text-gray-900">Request Submitted!</h3>
                 <p className="text-gray-600 text-lg">
-                  We've sent confirmation details to <strong>{bookingData.guestEmail}</strong>
+                  Your booking request and payment method have been validated successfully.
+                </p>
+                <p className="text-gray-600">
+                  We'll notify you at <strong>{bookingData.guestEmail}</strong> once it's reviewed.
                 </p>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-left max-w-md mx-auto">
-                  <h4 className="font-bold text-gray-900 mb-4">Next Steps:</h4>
-                  <ul className="space-y-2 text-sm text-gray-700">
-                    <li>✓ Check your email for booking details</li>
-                    <li>✓ Add check-in date to your calendar</li>
-                    <li>✓ Contact host with any questions</li>
+                  <h4 className="font-bold text-gray-900 mb-4">What happens next:</h4>
+                  <ul className="space-y-3 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-lg">✅</span>
+                      <div>
+                        <strong>Payment method validated</strong> - Your card is saved securely
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-lg">👀</span>
+                      <div>
+                        <strong>Owner reviews</strong> your request (usually within 24 hours)
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-lg">💳</span>
+                      <div>
+                        <strong>If approved</strong>, your card will be charged automatically (${bookingData.total})
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-lg">📧</span>
+                      <div>
+                        <strong>Email confirmation</strong> sent immediately after approval
+                      </div>
+                    </li>
                   </ul>
                 </div>
 
-                <div className="border-t border-gray-200 pt-6 mt-6">
-                  <h4 className="font-bold text-gray-900 mb-4">Want to track your booking?</h4>
-                  <p className="text-gray-600 mb-4">
-                    Create an account to manage your reservations, view past stays, and more!
-                  </p>
-                  <button
-                    onClick={() => {
-                      const params = new URLSearchParams({
-                        name: bookingData.guestName,
-                        email: bookingData.guestEmail,
-                        phone: bookingData.guestPhone,
-                      });
-                      navigate(`/convert-guest?${params.toString()}`);
-                    }}
-                    className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700"
-                  >
-                    Create Free Account
-                  </button>
-                  <button
-                    onClick={onClose}
-                    className="block w-full mt-3 text-gray-600 hover:text-gray-800"
-                  >
-                    Skip for now
-                  </button>
-                </div>
+                <button
+                  onClick={onClose}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700"
+                >
+                  Done
+                </button>
               </div>
             )}
           </div>
