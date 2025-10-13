@@ -35,6 +35,7 @@ import { StaffDashboardPage } from './pages/staff/StaffDashboardPage';
 import { PublicPropertyPage } from './pages/public/PublicPropertyPage';
 import { LandingPage } from './pages/LandingPage';
 import { BookingRequestsPage } from './pages/booking-requests/BookingRequestsPage';
+import { BookingConfirmationPage } from './pages/bookings/BookingConfirmationPage';
 import { InstallPrompt, IOSInstallInstructions } from './components/pwa/InstallPrompt';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator';
 
@@ -57,6 +58,7 @@ function App() {
         <Route path="/guest-stay/verify" element={<GuestStayVerificationPage />} />
         <Route path="/guest-stay/details" element={<GuestStayDetailsPage />} />
         <Route path="/p/:id" element={<PublicPropertyPage />} />
+        <Route path="/booking/:id/confirmation" element={<BookingConfirmationPage />} />
 
         {/* Protected routes */}
         <Route

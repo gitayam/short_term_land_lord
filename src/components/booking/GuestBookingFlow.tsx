@@ -142,7 +142,15 @@ export function GuestBookingFlow({
       }
 
       const result = await response.json();
-      setStep('confirmation');
+
+      // Redirect to confirmation page instead of showing modal
+      const bookingId = result.booking?.external_id || result.booking?.id;
+      if (bookingId) {
+        navigate(`/booking/${bookingId}/confirmation`);
+        onClose(); // Close the modal
+      } else {
+        setStep('confirmation'); // Fallback to modal if no booking ID
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
