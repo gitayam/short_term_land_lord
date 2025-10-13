@@ -1,10 +1,10 @@
-# Short Term Landlord - Product Roadmap (Updated October 2025)
+# OpenBNB - Product Roadmap (Updated October 2025)
 
 ## Current Status 📍
 
-**Version**: Cloudflare v2.1.0 (Frictionless Booking & Same-Day Turnovers)
-**Status**: ✅ **Production-Ready** - Calendar-Focused Booking System
-**Live URL**: https://short-term-landlord.pages.dev
+**Version**: Cloudflare v2.2.0 (Enhanced Guest Experience)
+**Status**: 🚧 **In Development** - Guest Selection & Property Details
+**Live URL**: https://openbnb.me
 **Architecture**: React + TypeScript + Cloudflare Pages + D1 Database
 **Target Market**: Fayetteville, NC (4 properties initially)
 
@@ -78,7 +78,40 @@
 
 ## 🎯 IMMEDIATE PRIORITIES (This Week)
 
-### Priority 1: Complete Booking Flow 🔴
+### Priority 1: Enhanced Property & Guest Experience 🔴 **[v2.2.0 - IN PROGRESS]**
+**Goal**: Airbnb-style property display and guest selection features
+
+1. **Property Display Enhancements**
+   - [ ] Display shareable property link in listing
+   - [ ] Show approximate location map (general area, not exact address)
+   - [ ] Interactive map similar to Airbnb (neighborhood view)
+   - [ ] Property amenities highlighting
+
+2. **Guest Selection & Add-ons**
+   - [ ] Number of guests selector in booking flow
+   - [ ] Pet count selector (if pets allowed)
+   - [ ] Early check-in option (+$20, 2 hours early)
+   - [ ] Late checkout option (+$20, 2 hours late)
+   - [ ] Dynamic price calculation with add-ons
+   - [ ] Add-on request disclaimer (not guaranteed)
+
+3. **Property Schema Updates**
+   - [ ] Add `max_guests` field (integer)
+   - [ ] Add `pets_allowed` field (boolean)
+   - [ ] Add `max_pets` field (integer)
+   - [ ] Add `pet_fee` field (decimal)
+   - [ ] Add `allow_early_checkin` field (boolean)
+   - [ ] Add `allow_late_checkout` field (boolean)
+   - [ ] Add `early_checkin_fee` field (default: $20)
+   - [ ] Add `late_checkout_fee` field (default: $20)
+
+4. **Search & Filtering**
+   - [ ] Filter properties by guest capacity
+   - [ ] Filter properties by pet-friendly
+   - [ ] Sort by availability for guest count
+   - [ ] Advanced search with multiple criteria
+
+### Priority 2: Complete Booking Flow 🟡
 **Goal**: Full automation from guest request to calendar block
 
 1. **Email Notifications**
