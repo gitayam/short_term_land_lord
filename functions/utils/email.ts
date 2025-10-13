@@ -213,49 +213,10 @@ async function hmacSha256(key: ArrayBuffer | Uint8Array, data: Uint8Array): Prom
 }
 
 /**
- * Send email using Resend (simple API)
- * Requires RESEND_API_KEY environment variable
+ * Send email using AWS SES API
+ * Requires AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, and AWS_SES_FROM_EMAIL
  */
-export async function sendEmail(
-  params: EmailParams,
-  resendApiKey: string,
-  fromEmail: string = 'onboarding@resend.dev'
-): Promise<boolean> {
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [params.to],
-        subject: params.subject,
-        html: params.html,
-        ...(params.replyTo && { reply_to: params.replyTo }),
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('[Email] Resend API failed:', error);
-      return false;
-    }
-
-    const result = await response.json();
-    console.log('[Email] Sent successfully:', result.id);
-    return true;
-  } catch (error) {
-    console.error('[Email] Send error:', error);
-    return false;
-  }
-}
-
-/**
- * Send email using AWS SES (legacy - for backwards compatibility)
- */
-export async function sendEmailSES(params: EmailParams, credentials?: AWSCredentials, fromEmail?: string): Promise<boolean> {
+export async function sendEmail(params: EmailParams, credentials?: AWSCredentials, fromEmail?: string): Promise<boolean> {
   if (!credentials) {
     console.error('AWS credentials not configured');
     return false;

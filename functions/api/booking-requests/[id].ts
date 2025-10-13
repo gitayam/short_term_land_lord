@@ -198,8 +198,16 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
       .first();
 
     // Send email notification to guest
-    if (env.RESEND_API_KEY && updated && (status === 'approved' || status === 'rejected')) {
+    if (env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY && updated && (status === 'approved' || status === 'rejected')) {
       const br = updated as any;
+
+      const awsCredentials = {
+        accessKeyId: env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+        region: env.AWS_REGION || 'us-east-1',
+      };
+
+      const fromEmail = env.AWS_SES_FROM_EMAIL || 'noreply@example.com';
 
       if (status === 'approved') {
         const emailTemplate = bookingApprovedEmail({
@@ -221,7 +229,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
               subject: emailTemplate.subject,
               html: emailTemplate.html,
             },
-            env.RESEND_API_KEY
+            awsCredentials,
+            fromEmail
           )
         );
       } else if (status === 'rejected') {
@@ -242,7 +251,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
               subject: emailTemplate.subject,
               html: emailTemplate.html,
             },
-            env.RESEND_API_KEY
+            awsCredentials,
+            fromEmail
           )
         );
       }

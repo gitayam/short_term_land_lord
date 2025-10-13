@@ -20,7 +20,13 @@ export interface Env {
   EMAIL_PROVIDER?: string;
   EMAIL_FROM?: string;
 
-  // AWS SES credentials
+  // AWS SES API credentials (recommended)
+  AWS_ACCESS_KEY_ID?: string;
+  AWS_SECRET_ACCESS_KEY?: string;
+  AWS_REGION?: string;
+  AWS_SES_FROM_EMAIL?: string;
+
+  // AWS SES SMTP credentials (legacy)
   SES_SMTP_HOST?: string;
   SES_SMTP_PORT?: string;
   SES_SMTP_USERNAME?: string;
