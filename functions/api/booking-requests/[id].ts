@@ -72,19 +72,20 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     }
 
     // If approving, check for calendar conflicts
+    // IMPORTANT: Allow same-day checkout/checkin (turnover)
+    // Conflict only if: new_checkin < existing_checkout AND new_checkout > existing_checkin
     if (status === 'approved') {
       const existingEvents = await env.DB.prepare(
-        `SELECT id FROM calendar_events
+        `SELECT id, start_date, end_date FROM calendar_events
          WHERE property_id = ?
-           AND ((start_date <= ? AND end_date >= ?)
-           OR (start_date >= ? AND start_date <= ?))`
+           AND booking_status IN ('confirmed', 'blocked')
+           AND start_date < ?
+           AND end_date > ?`
       )
         .bind(
           bookingRequest.property_id,
-          bookingRequest.check_out_date,
-          bookingRequest.check_in_date,
-          bookingRequest.check_in_date,
-          bookingRequest.check_out_date
+          bookingRequest.check_out_date,  // existing must start before new checkout
+          bookingRequest.check_in_date     // existing must end after new checkin
         )
         .all();
 
@@ -159,6 +160,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
           bookingRequest.guest_phone
         )
         .run();
+
+      // Invalidate calendar cache for this property
+      await env.KV.delete(`calendar:events:${bookingRequest.property_id}:all:all`);
     }
 
     // If rejected or cancelled, remove calendar event if exists
@@ -178,6 +182,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
           bookingRequest.guest_name
         )
         .run();
+
+      // Invalidate calendar cache for this property
+      await env.KV.delete(`calendar:events:${bookingRequest.property_id}:all:all`);
     }
 
     // Get updated booking request with property details
