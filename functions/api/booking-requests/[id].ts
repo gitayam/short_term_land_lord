@@ -7,6 +7,7 @@
 import { Env } from '../../_middleware';
 import { requireAuth } from '../../utils/auth';
 import { sendEmail, bookingApprovedEmail, bookingRejectedEmail } from '../../utils/email';
+import { createStripePaymentLink } from '../../utils/stripe';
 
 interface BookingRequest {
   id: string;
@@ -161,6 +162,69 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
         )
         .run();
 
+      // Generate Stripe payment link if configured
+      let paymentLink: string | undefined;
+      let stripePaymentIntentId: string | undefined;
+
+      if (env.STRIPE_SECRET_KEY) {
+        // Get property details for pricing
+        const property = await env.DB.prepare(
+          'SELECT nightly_rate, cleaning_fee, name FROM property WHERE id = ?'
+        )
+          .bind(bookingRequest.property_id)
+          .first();
+
+        if (property) {
+          const prop = property as any;
+          const checkIn = new Date(bookingRequest.check_in_date as string);
+          const checkOut = new Date(bookingRequest.check_out_date as string);
+          const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+
+          const nightlyTotal = (prop.nightly_rate || 100) * nights;
+          const cleaningFee = prop.cleaning_fee || 0;
+          const totalAmount = nightlyTotal + cleaningFee;
+
+          // Create Stripe payment link
+          const paymentResult = await createStripePaymentLink(
+            {
+              amount: totalAmount,
+              currency: 'usd',
+              description: `Booking: ${prop.name} (${bookingRequest.check_in_date} to ${bookingRequest.check_out_date})`,
+              customerEmail: bookingRequest.guest_email as string,
+              customerName: bookingRequest.guest_name as string,
+              metadata: {
+                booking_request_id: requestId,
+                property_id: bookingRequest.property_id as string,
+                check_in: bookingRequest.check_in_date as string,
+                check_out: bookingRequest.check_out_date as string,
+              },
+              successUrl: `${new URL(request.url).origin}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+            },
+            { apiKey: env.STRIPE_SECRET_KEY }
+          );
+
+          if (paymentResult.success && paymentResult.paymentLink) {
+            paymentLink = paymentResult.paymentLink;
+            stripePaymentIntentId = paymentResult.paymentIntentId;
+
+            // Update booking request with payment link
+            await env.DB.prepare(
+              `UPDATE booking_request
+               SET stripe_payment_link = ?,
+                   stripe_payment_intent_id = ?,
+                   estimated_total = ?,
+                   payment_status = 'pending',
+                   updated_at = datetime('now')
+               WHERE id = ?`
+            )
+              .bind(paymentLink, stripePaymentIntentId, totalAmount, requestId)
+              .run();
+          } else {
+            console.error('[Booking Approval] Failed to create Stripe payment link:', paymentResult.error);
+          }
+        }
+      }
+
       // Invalidate calendar cache for this property
       await env.KV.delete(`calendar:events:${bookingRequest.property_id}:all:all`);
     }
@@ -219,6 +283,8 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
           numGuests: br.num_guests,
           ownerResponse: owner_response,
           propertyUrl: `${new URL(request.url).origin}/p/${br.property_id}`,
+          paymentLink: br.stripe_payment_link || undefined,
+          totalAmount: br.estimated_total || undefined,
         });
 
         // Send email asynchronously

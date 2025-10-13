@@ -39,6 +39,10 @@ export interface Env {
 
   // SendGrid credentials (alternative)
   SENDGRID_API_KEY?: string;
+
+  // Stripe payment processing
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
 }
 
 // CORS headers

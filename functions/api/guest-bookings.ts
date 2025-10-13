@@ -146,23 +146,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .bind(externalId)
       .first();
 
-    // Store payment record (you might want a separate payments table)
+    // Store payment record in payment_transactions table
     await env.DB.prepare(
-      `INSERT INTO financial_transactions
-       (property_id, transaction_type, amount, description, transaction_date, payment_method, reference_id)
-       VALUES (?, 'payment', ?, ?, datetime('now'), 'card', ?)`
+      `INSERT INTO payment_transactions
+       (property_id, calendar_event_id, transaction_type, amount, status,
+        stripe_payment_intent_id, description, payment_date, currency)
+       VALUES (?, (SELECT id FROM calendar_events WHERE external_id = ?),
+               'booking_payment', ?, 'succeeded', ?, ?, date('now'), 'USD')`
     )
       .bind(
         property_id,
+        externalId,
         payment.amount,
-        `Guest booking: ${guest_name} (${check_in_date} to ${check_out_date})`,
-        transactionId
+        transactionId,
+        `Guest booking: ${guest_name} (${check_in_date} to ${check_out_date})`
       )
-      .run()
-      .catch(() => {
-        // Financial table might not exist, silently fail
-        console.log('[Guest Booking] Could not record financial transaction');
-      });
+      .run();
 
     // Invalidate cache
     await env.KV.delete(`calendar:events:${property_id}:all:all`);

@@ -72,18 +72,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       },
     };
 
-    // Try to get total_paid from financial_transactions
-    const transaction = await env.DB.prepare(
-      `SELECT amount FROM financial_transactions
-       WHERE reference_id LIKE ?
-       ORDER BY transaction_date DESC
-       LIMIT 1`
+    // Try to get total_paid from payment_transactions
+    const paymentSummary = await env.DB.prepare(
+      `SELECT SUM(amount) as total_paid
+       FROM payment_transactions
+       WHERE calendar_event_id = ? AND status = 'succeeded'`
     )
-      .bind(`%${b.external_id}%`)
+      .bind(b.id)
       .first();
 
-    if (transaction) {
-      response.booking.total_paid = (transaction as any).amount || 0;
+    if (paymentSummary) {
+      response.booking.total_paid = (paymentSummary as any).total_paid || 0;
     }
 
     return new Response(

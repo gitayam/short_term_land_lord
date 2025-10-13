@@ -400,6 +400,8 @@ export function bookingApprovedEmail(data: {
   numGuests: number;
   ownerResponse?: string;
   propertyUrl?: string;
+  paymentLink?: string;
+  totalAmount?: number;
 }): { subject: string; html: string } {
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -454,6 +456,18 @@ export function bookingApprovedEmail(data: {
           <div style="background: white; border-left: 4px solid #667eea; padding: 20px; margin-bottom: 20px; border-radius: 5px;">
             <h2 style="margin-top: 0; color: #667eea; font-size: 20px;">Message from Your Host</h2>
             <p style="margin: 0;">${data.ownerResponse}</p>
+          </div>
+          ` : ''}
+
+          ${data.paymentLink && data.totalAmount ? `
+          <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 25px; margin-bottom: 20px; border-radius: 10px; text-align: center;">
+            <h2 style="margin-top: 0; color: white; font-size: 22px;">💳 Complete Your Payment</h2>
+            <p style="font-size: 32px; font-weight: bold; margin: 15px 0; color: white;">$${data.totalAmount.toFixed(2)}</p>
+            <p style="margin-bottom: 20px; color: rgba(255, 255, 255, 0.9);">Secure your reservation by completing payment now</p>
+            <a href="${data.paymentLink}" style="display: inline-block; background: white; color: #2563eb; padding: 18px 50px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              Pay Now →
+            </a>
+            <p style="font-size: 13px; margin-top: 15px; color: rgba(255, 255, 255, 0.8);">🔒 Secure payment powered by Stripe</p>
           </div>
           ` : ''}
 
