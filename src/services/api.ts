@@ -186,6 +186,23 @@ export const tasksApi = {
       body: JSON.stringify(taskData),
     });
   },
+
+  async get(id: string) {
+    return fetchApi<any>(`/tasks/${id}`);
+  },
+
+  async update(id: string, taskData: any) {
+    return fetchApi<any>(`/tasks/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(taskData),
+    });
+  },
+
+  async delete(id: string) {
+    return fetchApi<any>(`/tasks/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // Calendar API
@@ -202,6 +219,44 @@ export const calendarApi = {
     return fetchApi<any>('/calendar/sync', {
       method: 'POST',
       body: JSON.stringify({ property_id: propertyId }),
+    });
+  },
+
+  // Property calendar management
+  async listPropertyCalendars(propertyId: string) {
+    return fetchApi<any>(`/properties/${propertyId}/calendars`);
+  },
+
+  async addPropertyCalendar(propertyId: string, data: { platform_name: string; ical_url: string }) {
+    return fetchApi<any>(`/properties/${propertyId}/calendars`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updatePropertyCalendar(propertyId: string, calendarId: string, data: { platform_name?: string; ical_url?: string; is_active?: boolean }) {
+    return fetchApi<any>(`/properties/${propertyId}/calendars/${calendarId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deletePropertyCalendar(propertyId: string, calendarId: string) {
+    return fetchApi<any>(`/properties/${propertyId}/calendars/${calendarId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Get iCal feed URL for property
+  getICalFeedUrl(propertyId: string): string {
+    return `${window.location.origin}/api/properties/${propertyId}/calendar.ics`;
+  },
+
+  // Block dates on property calendar
+  async blockDates(propertyId: string, data: { start_date: string; end_date: string; reason?: string }) {
+    return fetchApi<any>(`/properties/${propertyId}/block-dates`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };
@@ -536,6 +591,166 @@ export const inventoryItemsApi = {
     return fetchApi<any>(`/inventory/items/${id}/adjust`, {
       method: 'POST',
       body: JSON.stringify({ adjustment }),
+    });
+  },
+};
+
+// Guidebook API
+export const guidebookApi = {
+  async get(propertyId: string) {
+    return fetchApi<any>(`/guidebook/${propertyId}`);
+  },
+
+  async create(propertyId: string, guidebookData: any) {
+    return fetchApi<any>(`/guidebook/${propertyId}`, {
+      method: 'POST',
+      body: JSON.stringify(guidebookData),
+    });
+  },
+
+  async update(propertyId: string, guidebookData: any) {
+    return fetchApi<any>(`/guidebook/${propertyId}`, {
+      method: 'PUT',
+      body: JSON.stringify(guidebookData),
+    });
+  },
+
+  async delete(propertyId: string) {
+    return fetchApi<any>(`/guidebook/${propertyId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Guest Portal API (public - no auth required)
+export const guestPortalApi = {
+  async getByAccessCode(accessCode: string) {
+    // Bypass auth for public endpoint
+    const response = await fetch(`${API_BASE_URL}/guest-portal/${accessCode}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new ApiError(response.status, data.error || data.message || 'An error occurred');
+    }
+
+    return data;
+  },
+};
+
+// Access Codes API
+export const accessCodesApi = {
+  async list(filters?: {
+    property_id?: string;
+    status?: string;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.status) params.append('status', filters.status);
+
+    const queryString = params.toString();
+    return fetchApi<any>(`/access-codes${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async create(codeData: any) {
+    return fetchApi<any>('/access-codes', {
+      method: 'POST',
+      body: JSON.stringify(codeData),
+    });
+  },
+};
+
+// Recommendations API
+export const recommendationsApi = {
+  async list(propertyId: string) {
+    return fetchApi<any>(`/recommendations/${propertyId}`);
+  },
+
+  async create(propertyId: string, recommendationData: any) {
+    return fetchApi<any>(`/recommendations/${propertyId}`, {
+      method: 'POST',
+      body: JSON.stringify(recommendationData),
+    });
+  },
+};
+
+// Messages API (Internal Messaging)
+export const messagesApi = {
+  async list(type: 'inbox' | 'sent' | 'unread' = 'inbox', filters?: {
+    property_id?: string;
+    limit?: number;
+  }) {
+    const params = new URLSearchParams({ type });
+    if (filters?.property_id) params.append('property_id', filters.property_id);
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+
+    return fetchApi<any>(`/messages?${params.toString()}`);
+  },
+
+  async send(messageData: {
+    recipient_id: string;
+    subject?: string;
+    body: string;
+    priority?: string;
+    property_id?: string;
+    task_id?: string;
+  }) {
+    return fetchApi<any>('/messages', {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    });
+  },
+
+  async markAsRead(messageId: string) {
+    return fetchApi<any>(`/messages/${messageId}/read`, {
+      method: 'PUT',
+    });
+  },
+};
+
+// Message Templates API
+export const messageTemplatesApi = {
+  async list(filters?: {
+    category?: string;
+    active?: boolean;
+  }) {
+    const params = new URLSearchParams();
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.active !== undefined) params.append('active', filters.active.toString());
+
+    const queryString = params.toString();
+    return fetchApi<any>(`/message-templates${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async create(templateData: {
+    name: string;
+    category: string;
+    subject?: string;
+    body: string;
+    variables?: string[];
+    channel?: 'email' | 'sms' | 'both';
+    is_active?: boolean;
+  }) {
+    return fetchApi<any>('/message-templates', {
+      method: 'POST',
+      body: JSON.stringify(templateData),
+    });
+  },
+};
+
+// SMS API
+export const smsApi = {
+  async send(smsData: {
+    recipient_phone: string;
+    recipient_name?: string;
+    recipient_user_id?: string;
+    message_body: string;
+    template_id?: string;
+    property_id?: string;
+    booking_id?: string;
+  }) {
+    return fetchApi<any>('/sms/send', {
+      method: 'POST',
+      body: JSON.stringify(smsData),
     });
   },
 };

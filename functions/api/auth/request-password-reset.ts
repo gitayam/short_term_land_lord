@@ -124,12 +124,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       user.first_name as string | undefined
     );
 
-    await sendEmail(env, {
-      to: user.email as string,
-      subject: 'Reset Your Password - Short Term Land Lord',
-      html,
-      text,
-    });
+    await sendEmail(
+      {
+        to: user.email as string,
+        subject: 'Reset Your Password - Short Term Land Lord',
+        html,
+      },
+      env.RESEND_API_KEY
+    );
 
     return new Response(
       JSON.stringify({

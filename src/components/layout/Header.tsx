@@ -13,7 +13,7 @@ export function Header() {
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link to="/dashboard" className="flex items-center">
+            <Link to="/app/dashboard" className="flex items-center">
               <h1 className="text-xl font-bold text-blue-600">
                 Short Term Land Lord
               </h1>

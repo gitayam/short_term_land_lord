@@ -1,33 +1,11 @@
 /**
- * Invoices API - List and Create
- * GET  /api/invoices - List invoices with filters
- * POST /api/invoices - Create a new invoice with line items
+ * Invoices API with Line Items
+ * GET  /api/invoices - List invoices
+ * POST /api/invoices - Create invoice with line items
  */
 
 import { Env } from '../../_middleware';
 import { requireAuth } from '../../utils/auth';
-
-// Invoice statuses
-const INVOICE_STATUSES = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];
-
-// Generate invoice number in format: INV-YYYYMMDD-XXXX
-async function generateInvoiceNumber(env: Env): Promise<string> {
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
-
-  // Get count of invoices created today
-  const result = await env.DB.prepare(
-    `SELECT COUNT(*) as count FROM invoices
-     WHERE invoice_number LIKE ?`
-  )
-    .bind(`INV-${dateStr}-%`)
-    .first();
-
-  const count = (result?.count as number) || 0;
-  const sequence = String(count + 1).padStart(4, '0');
-
-  return `INV-${dateStr}-${sequence}`;
-}
 
 // GET /api/invoices
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -36,100 +14,78 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     const user = await requireAuth(request, env);
     const url = new URL(request.url);
-
-    // Query parameters
     const propertyId = url.searchParams.get('property_id');
-    const bookingId = url.searchParams.get('booking_id');
+    const workerId = url.searchParams.get('worker_id');
     const status = url.searchParams.get('status');
-    const startDate = url.searchParams.get('start_date');
-    const endDate = url.searchParams.get('end_date');
-    const limit = parseInt(url.searchParams.get('limit') || '100');
 
-    // Build query
     let query = `
       SELECT
-        i.id, i.invoice_number, i.title, i.description,
-        i.property_id, i.booking_id,
-        i.recipient_name, i.recipient_email, i.recipient_address,
-        i.subtotal, i.tax_rate, i.tax_amount,
-        i.discount_amount, i.total_amount,
-        i.invoice_date, i.due_date, i.paid_date,
-        i.status, i.payment_method, i.notes, i.terms,
-        i.created_at, i.updated_at,
+        i.*,
         p.name as property_name,
-        p.address as property_address
+        w.first_name || ' ' || w.last_name as worker_name
       FROM invoices i
       LEFT JOIN property p ON i.property_id = p.id
+      LEFT JOIN users w ON i.worker_id = w.id
       WHERE 1=1
     `;
 
-    const params: any[] = [];
+    const bindings: any[] = [];
 
-    // Filter by property ownership (admins see all)
-    if (user.role !== 'admin') {
-      query += ' AND p.owner_id = ?';
-      params.push(user.userId);
-    }
-
-    // Apply filters
     if (propertyId) {
       query += ' AND i.property_id = ?';
-      params.push(propertyId);
+      bindings.push(propertyId);
     }
 
-    if (bookingId) {
-      query += ' AND i.booking_id = ?';
-      params.push(bookingId);
+    if (workerId) {
+      query += ' AND i.worker_id = ?';
+      bindings.push(workerId);
     }
 
     if (status) {
       query += ' AND i.status = ?';
-      params.push(status);
+      bindings.push(status);
     }
 
-    if (startDate) {
-      query += ' AND i.invoice_date >= ?';
-      params.push(startDate);
+    // Property owners can only see invoices for their properties
+    if (user.role === 'property_owner') {
+      query += ' AND p.owner_id = ?';
+      bindings.push(user.userId);
     }
 
-    if (endDate) {
-      query += ' AND i.invoice_date <= ?';
-      params.push(endDate);
+    // Workers can only see their own invoices
+    if (user.role === 'service_staff') {
+      query += ' AND i.worker_id = ?';
+      bindings.push(user.userId);
     }
 
-    query += ' ORDER BY i.invoice_date DESC, i.created_at DESC LIMIT ?';
-    params.push(limit);
+    query += ' ORDER BY i.created_at DESC';
 
-    const invoices = await env.DB.prepare(query).bind(...params).all();
+    const stmt = env.DB.prepare(query);
+    const invoices = await (bindings.length > 0
+      ? stmt.bind(...bindings)
+      : stmt
+    ).all();
 
-    // Calculate summary statistics
-    let totalAmount = 0;
-    let paidAmount = 0;
-    let pendingAmount = 0;
-    let overdueAmount = 0;
+    // Get line items for each invoice
+    const invoicesWithItems = await Promise.all(
+      (invoices.results || []).map(async (invoice: any) => {
+        const items = await env.DB.prepare(
+          'SELECT * FROM invoice_line_item WHERE invoice_id = ?'
+        )
+          .bind(invoice.id)
+          .all();
 
-    invoices.results?.forEach((inv: any) => {
-      totalAmount += inv.total_amount || 0;
-      if (inv.status === 'paid') {
-        paidAmount += inv.total_amount || 0;
-      } else if (inv.status === 'overdue') {
-        overdueAmount += inv.total_amount || 0;
-      } else if (inv.status === 'sent' || inv.status === 'draft') {
-        pendingAmount += inv.total_amount || 0;
-      }
-    });
+        return {
+          ...invoice,
+          line_items: items.results || [],
+        };
+      })
+    );
 
     return new Response(
       JSON.stringify({
         success: true,
-        invoices: invoices.results || [],
-        count: invoices.results?.length || 0,
-        summary: {
-          total_amount: totalAmount,
-          paid_amount: paidAmount,
-          pending_amount: pendingAmount,
-          overdue_amount: overdueAmount,
-        },
+        invoices: invoicesWithItems,
       }),
       {
         status: 200,
@@ -143,7 +99,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         error: error.message || 'Failed to fetch invoices',
       }),
       {
-        status: error.message.includes('Unauthorized') ? 401 : 500,
+        status: error.message === 'Unauthorized' || error.message === 'Session expired' ? 401 : 500,
         headers: { 'Content-Type': 'application/json' },
       }
     );
@@ -157,13 +113,26 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
     const user = await requireAuth(request, env);
     const data = await request.json();
+    const {
+      property_id,
+      worker_id,
+      title,
+      description,
+      recipient_name,
+      recipient_email,
+      recipient_address,
+      invoice_date,
+      due_date,
+      tax_rate = 0,
+      discount_amount = 0,
+      notes,
+      terms,
+      line_items = [],
+    } = data;
 
-    // Validate required fields
-    if (!data.title || !data.recipient_name || !data.items || !Array.isArray(data.items) || data.items.length === 0) {
+    if (!title || !recipient_name || !line_items || line_items.length === 0) {
       return new Response(
-        JSON.stringify({
-          error: 'Title, recipient name, and at least one line item are required',
-        }),
+        JSON.stringify({ error: 'title, recipient_name, and at least one line_item are required' }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -171,161 +140,113 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       );
     }
 
-    // Verify property access if property_id provided
-    if (data.property_id) {
-      const property = await env.DB.prepare(
-        'SELECT id, owner_id FROM property WHERE id = ?'
-      )
-        .bind(data.property_id)
-        .first();
+    // Calculate totals
+    const subtotal = line_items.reduce((sum: number, item: any) => {
+      return sum + (item.unit_price * item.quantity);
+    }, 0);
 
-      if (!property) {
-        return new Response(
-          JSON.stringify({ error: 'Property not found' }),
-          {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      if (user.role !== 'admin' && property.owner_id !== user.userId) {
-        return new Response(
-          JSON.stringify({ error: 'Access denied to this property' }),
-          {
-            status: 403,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-    }
-
-    // Calculate totals from line items
-    let subtotal = 0;
-    for (const item of data.items) {
-      if (!item.description || !item.unit_price) {
-        return new Response(
-          JSON.stringify({
-            error: 'Each line item must have description and unit_price',
-          }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      const quantity = item.quantity || 1;
-      const unitPrice = parseFloat(item.unit_price);
-      if (isNaN(unitPrice) || unitPrice < 0) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid unit_price in line items' }),
-          {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      subtotal += quantity * unitPrice;
-    }
-
-    // Calculate tax and total
-    const taxRate = parseFloat(data.tax_rate || '0');
-    const taxAmount = subtotal * (taxRate / 100);
-    const discountAmount = parseFloat(data.discount_amount || '0');
-    const totalAmount = subtotal + taxAmount - discountAmount;
+    const tax_amount = subtotal * (tax_rate / 100);
+    const total_amount = subtotal + tax_amount - discount_amount;
 
     // Generate invoice number
-    const invoiceNumber = await generateInvoiceNumber(env);
+    const invoiceCount = await env.DB.prepare(
+      'SELECT COUNT(*) as count FROM invoices'
+    ).first();
+    const invoiceNumber = `INV-$${String((invoiceCount as any).count + 1).padStart(5, '0')}`;
 
     // Create invoice
-    const invoiceResult = await env.DB.prepare(
+    await env.DB.prepare(
       `INSERT INTO invoices (
-        property_id, booking_id, invoice_number, title, description,
-        recipient_name, recipient_email, recipient_address,
-        subtotal, tax_rate, tax_amount, discount_amount, total_amount,
-        invoice_date, due_date, status, notes, terms, created_by_id
+        property_id,
+        invoice_number,
+        title,
+        description,
+        recipient_name,
+        recipient_email,
+        recipient_address,
+        subtotal,
+        tax_rate,
+        tax_amount,
+        discount_amount,
+        total_amount,
+        invoice_date,
+        due_date,
+        notes,
+        terms,
+        status,
+        worker_id,
+        created_by_id
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
-        data.property_id || null,
-        data.booking_id || null,
+        property_id || null,
         invoiceNumber,
-        data.title,
-        data.description || null,
-        data.recipient_name,
-        data.recipient_email || null,
-        data.recipient_address || null,
+        title,
+        description || null,
+        recipient_name,
+        recipient_email || null,
+        recipient_address || null,
         subtotal,
-        taxRate,
-        taxAmount,
-        discountAmount,
-        totalAmount,
-        data.invoice_date || new Date().toISOString().split('T')[0],
-        data.due_date || null,
-        data.status || 'draft',
-        data.notes || null,
-        data.terms || null,
+        tax_rate,
+        tax_amount,
+        discount_amount,
+        total_amount,
+        invoice_date || new Date().toISOString().split('T')[0],
+        due_date || null,
+        notes || null,
+        terms || null,
+        'draft',
+        worker_id || null,
         user.userId
       )
       .run();
 
-    const invoiceId = invoiceResult.meta.last_row_id;
+    // Get the created invoice
+    const invoice = await env.DB.prepare(
+      'SELECT * FROM invoices WHERE invoice_number = ?'
+    )
+      .bind(invoiceNumber)
+      .first();
 
     // Create line items
-    for (const item of data.items) {
-      const quantity = item.quantity || 1;
-      const unitPrice = parseFloat(item.unit_price);
-      const amount = quantity * unitPrice;
-
+    for (const item of line_items) {
+      const itemTotal = item.unit_price * item.quantity;
       await env.DB.prepare(
-        `INSERT INTO invoice_items (
-          invoice_id, description, quantity, unit_price, amount, item_type
+        `INSERT INTO invoice_line_item (
+          invoice_id,
+          service_price_id,
+          description,
+          quantity,
+          unit_price,
+          total
         ) VALUES (?, ?, ?, ?, ?, ?)`
       )
         .bind(
-          invoiceId,
+          (invoice as any).id,
+          item.service_price_id || null,
           item.description,
-          quantity,
-          unitPrice,
-          amount,
-          item.item_type || null
+          item.quantity,
+          item.unit_price,
+          itemTotal
         )
         .run();
     }
 
-    // Fetch created invoice with items
-    const invoice = await env.DB.prepare(
-      `SELECT
-        i.id, i.invoice_number, i.title, i.description,
-        i.property_id, i.booking_id,
-        i.recipient_name, i.recipient_email, i.recipient_address,
-        i.subtotal, i.tax_rate, i.tax_amount,
-        i.discount_amount, i.total_amount,
-        i.invoice_date, i.due_date, i.status,
-        i.notes, i.terms, i.created_at,
-        p.name as property_name
-      FROM invoices i
-      LEFT JOIN property p ON i.property_id = p.id
-      WHERE i.id = ?`
-    )
-      .bind(invoiceId)
-      .first();
-
+    // Get invoice with line items
     const items = await env.DB.prepare(
-      `SELECT id, description, quantity, unit_price, amount, item_type
-       FROM invoice_items WHERE invoice_id = ?`
+      'SELECT * FROM invoice_line_item WHERE invoice_id = ?'
     )
-      .bind(invoiceId)
+      .bind((invoice as any).id)
       .all();
 
     return new Response(
       JSON.stringify({
         success: true,
+        message: 'Invoice created successfully',
         invoice: {
           ...invoice,
-          items: items.results || [],
+          line_items: items.results || [],
         },
-        message: 'Invoice created successfully',
       }),
       {
         status: 201,
@@ -336,11 +257,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     console.error('[Invoices POST] Error:', error);
     return new Response(
       JSON.stringify({
-        error: 'Failed to create invoice',
-        message: error.message,
+        error: error.message || 'Failed to create invoice',
       }),
       {
-        status: error.message.includes('Unauthorized') ? 401 : 500,
+        status: error.message === 'Unauthorized' || error.message === 'Session expired' ? 401 : 500,
         headers: { 'Content-Type': 'application/json' },
       }
     );

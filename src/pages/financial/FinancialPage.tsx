@@ -120,7 +120,7 @@ export function FinancialPage() {
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
-            to="/financial/expenses"
+            to="/app/financial/expenses"
             className="card hover:shadow-md transition-shadow bg-gray-50 hover:bg-gray-100"
           >
             <span className="text-2xl mb-2 block">💸</span>
@@ -129,7 +129,7 @@ export function FinancialPage() {
           </Link>
 
           <Link
-            to="/financial/revenue"
+            to="/app/financial/revenue"
             className="card hover:shadow-md transition-shadow bg-gray-50 hover:bg-gray-100"
           >
             <span className="text-2xl mb-2 block">💰</span>
@@ -138,7 +138,7 @@ export function FinancialPage() {
           </Link>
 
           <Link
-            to="/financial/invoices"
+            to="/app/financial/invoices"
             className="card hover:shadow-md transition-shadow bg-gray-50 hover:bg-gray-100"
           >
             <span className="text-2xl mb-2 block">📄</span>
@@ -153,7 +153,7 @@ export function FinancialPage() {
         <div className="card">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Recent Expenses</h2>
-            <Link to="/financial/expenses" className="text-sm text-blue-600 hover:text-blue-700">
+            <Link to="/app/financial/expenses" className="text-sm text-blue-600 hover:text-blue-700">
               View All →
             </Link>
           </div>
@@ -194,7 +194,7 @@ export function FinancialPage() {
         <div className="card">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Recent Revenue</h2>
-            <Link to="/financial/revenue" className="text-sm text-blue-600 hover:text-blue-700">
+            <Link to="/app/financial/revenue" className="text-sm text-blue-600 hover:text-blue-700">
               View All →
             </Link>
           </div>
@@ -235,7 +235,7 @@ export function FinancialPage() {
       <div className="card mt-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Recent Invoices</h2>
-          <Link to="/financial/invoices" className="text-sm text-blue-600 hover:text-blue-700">
+          <Link to="/app/financial/invoices" className="text-sm text-blue-600 hover:text-blue-700">
             View All →
           </Link>
         </div>

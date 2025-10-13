@@ -1,13 +1,14 @@
 import { NavLink } from 'react-router-dom';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: '📊' },
-  { name: 'Properties', href: '/properties', icon: '🏠' },
-  { name: 'Tasks', href: '/tasks', icon: '✓' },
-  { name: 'Calendar', href: '/calendar', icon: '📅' },
-  { name: 'Cleaning Sessions', href: '/cleaning', icon: '🧹' },
-  { name: 'Financial', href: '/financial', icon: '💰' },
-  { name: 'Inventory', href: '/inventory/items', icon: '📦' },
+  { name: 'Dashboard', href: '/app/dashboard', icon: '📊' },
+  { name: 'Properties', href: '/app/properties', icon: '🏠' },
+  { name: 'Booking Requests', href: '/app/booking-requests', icon: '📨' },
+  { name: 'Tasks', href: '/app/tasks', icon: '✓' },
+  { name: 'Calendar', href: '/app/calendar', icon: '📅' },
+  { name: 'Cleaning Sessions', href: '/app/cleaning', icon: '🧹' },
+  { name: 'Financial', href: '/app/financial', icon: '💰' },
+  { name: 'Inventory', href: '/app/inventory/items', icon: '📦' },
 ];
 
 export function Sidebar() {

@@ -18,7 +18,7 @@ export function LoginPage() {
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      navigate('/app/dashboard');
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);

@@ -1,14 +1,26 @@
 import { useEffect, useState } from 'react';
-import { tasksApi } from '../../services/api';
+import { tasksApi, propertiesApi } from '../../services/api';
 import type { Task } from '../../types';
 
 export function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
   const [filter, setFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    status: 'PENDING',
+    priority: 'MEDIUM',
+    property_id: '',
+    due_date: '',
+  });
 
   useEffect(() => {
     loadTasks();
+    loadProperties();
   }, [filter]);
 
   const loadTasks = async () => {
@@ -21,6 +33,93 @@ export function TasksPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadProperties = async () => {
+    try {
+      const data = await propertiesApi.list();
+      setProperties(data.properties || []);
+    } catch (error) {
+      console.error('Failed to load properties:', error);
+    }
+  };
+
+  const handleCreateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await tasksApi.create(formData);
+      setShowCreateForm(false);
+      setFormData({
+        title: '',
+        description: '',
+        status: 'PENDING',
+        priority: 'MEDIUM',
+        property_id: '',
+        due_date: '',
+      });
+      loadTasks();
+    } catch (error: any) {
+      alert(error.message || 'Failed to create task');
+    }
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setFormData({
+      title: task.title,
+      description: task.description || '',
+      status: task.status,
+      priority: task.priority,
+      property_id: task.property_id || '',
+      due_date: task.due_date || '',
+    });
+    setShowCreateForm(false);
+  };
+
+  const handleUpdateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTask) return;
+
+    try {
+      await tasksApi.update(editingTask.id, formData);
+      setEditingTask(null);
+      setFormData({
+        title: '',
+        description: '',
+        status: 'PENDING',
+        priority: 'MEDIUM',
+        property_id: '',
+        due_date: '',
+      });
+      loadTasks();
+    } catch (error: any) {
+      alert(error.message || 'Failed to update task');
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string, taskTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${taskTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await tasksApi.delete(taskId);
+      loadTasks();
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete task');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTask(null);
+    setFormData({
+      title: '',
+      description: '',
+      status: 'PENDING',
+      priority: 'MEDIUM',
+      property_id: '',
+      due_date: '',
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -45,8 +144,132 @@ export function TasksPage() {
     <div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
-        <button className="btn-primary">+ Add Task</button>
+        <button
+          onClick={() => {
+            setShowCreateForm(!showCreateForm);
+            if (editingTask) handleCancelEdit();
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          {showCreateForm ? 'Cancel' : '+ Add Task'}
+        </button>
       </div>
+
+      {(showCreateForm || editingTask) && (
+        <div className="card mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            {editingTask ? 'Edit Task' : 'Create New Task'}
+          </h2>
+          <form onSubmit={editingTask ? handleUpdateTask : handleCreateTask} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="input"
+                  placeholder="Task title"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Property
+                </label>
+                <select
+                  value={formData.property_id}
+                  onChange={(e) => setFormData({ ...formData, property_id: e.target.value })}
+                  className="input"
+                >
+                  <option value="">Select property (optional)</option>
+                  {properties.map((prop) => (
+                    <option key={prop.id} value={prop.id}>
+                      {prop.name || prop.address}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Due Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  className="input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="input"
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Priority
+                </label>
+                <select
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                  className="input"
+                >
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
+                  <option value="URGENT">Urgent</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="input"
+                rows={3}
+                placeholder="Task description..."
+              />
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={editingTask ? handleCancelEdit : () => setShowCreateForm(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                {editingTask ? 'Update Task' : 'Create Task'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div className="mb-6 flex gap-2">
         {['all', 'PENDING', 'IN_PROGRESS', 'COMPLETED'].map((status) => (
@@ -104,7 +327,20 @@ export function TasksPage() {
                     <span>Created: {new Date(task.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <button className="btn-secondary ml-4">View</button>
+                <div className="flex gap-2 ml-4">
+                  <button
+                    onClick={() => handleEditTask(task)}
+                    className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTask(task.id, task.title)}
+                    className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}

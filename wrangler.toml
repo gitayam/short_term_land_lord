@@ -21,9 +21,9 @@ id = "48afc9fe53a3425b8757e9dc526c359e"
 binding = "BUCKET"
 bucket_name = "short-term-landlord-files"
 
-# Cron triggers for calendar sync (every 6 hours)
+# Cron triggers for calendar sync (every 2 hours)
 [triggers]
-crons = ["0 */6 * * *"]
+crons = ["0 */2 * * *"]
 
 # Build configuration
 [build]

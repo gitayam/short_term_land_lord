@@ -102,12 +102,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       dbUser.first_name as string | undefined
     );
 
-    await sendEmail(env, {
-      to: dbUser.email as string,
-      subject: 'Verify Your Email Address - Short Term Land Lord',
-      html,
-      text,
-    });
+    await sendEmail(
+      {
+        to: dbUser.email as string,
+        subject: 'Verify Your Email Address - Short Term Land Lord',
+        html,
+      },
+      env.RESEND_API_KEY
+    );
 
     return new Response(
       JSON.stringify({

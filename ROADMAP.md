@@ -1,266 +1,445 @@
-# Short Term Landlord - Product Roadmap (Updated August 2024)
+# Short Term Landlord - Product Roadmap (Updated October 2025)
 
 ## Current Status 📍
 
-**Version**: Production v1.2 (Live on Google App Engine)  
-**Status**: ✅ **Production-Ready** - 95% Feature Complete  
-**Live URL**: https://short-term-landlord-dot-speech-memorization.uc.r.appspot.com  
-**Codebase Grade**: A (95/100) - Enterprise-ready with comprehensive financial analytics  
-**GitHub**: ✅ **PR #43 Merged** - Comprehensive Financial Analytics integrated into main branch
-
-### Login Credentials
-- **Email**: admin@landlord.com
-- **Password**: admin123
+**Version**: Cloudflare v2.0 (Migrated from Google App Engine)
+**Status**: ✅ **Production-Ready** - Calendar-Focused Booking System
+**Live URL**: https://short-term-landlord.pages.dev
+**Architecture**: React + TypeScript + Cloudflare Pages + D1 Database
+**Target Market**: Fayetteville, NC (4 properties initially)
 
 ---
 
-## ✅ COMPLETED FEATURES (What's Done - Aug 2024)
+## ✅ COMPLETED FEATURES (October 2025)
 
-### Production Infrastructure ✅ 
-- ✅ **Google App Engine**: Serverless auto-scaling deployment
-- ✅ **Database Persistence**: Cloud Storage backup/restore system
-- ✅ **Google Cloud Secret Manager**: Secure credential management
-- ✅ **Health Monitoring**: Comprehensive health checks and error tracking
-- ✅ **Redis Caching**: 80-90% performance improvement
-- ✅ **Security**: Marshmallow validation, XSS prevention, CSRF protection
+### Infrastructure ✅
+- ✅ **Cloudflare Pages**: Edge-deployed React SPA
+- ✅ **Cloudflare Functions**: Serverless API endpoints
+- ✅ **Cloudflare D1 Database**: 43 tables, SQLite-based edge database
+- ✅ **React Router**: Client-side routing with protected routes
+- ✅ **TypeScript**: Type-safe frontend code
 
-### Core Features ✅
-- ✅ **Calendar Platform Sync**: Real Airbnb/VRBO/Booking.com integration (NEW!)
-- ✅ **Mobile UX**: Touch-friendly calendar and task management (NEW!)
-- ✅ **Property Management**: Multi-owner support, full CRUD operations
-- ✅ **Task Management**: Assignment, tracking, workforce coordination
-- ✅ **User System**: Role-based access control with admin dashboard
-- ✅ **Inventory Management**: Supply tracking with low-stock alerts
-- ✅ **Invoicing System**: Financial tracking and invoice generation
-- ✅ **Guest Portal**: Access controls, guidebooks, information sharing
-- ✅ **Messaging**: SMS integration with Twilio
+### Landing & Booking System ✅
+- ✅ **Calendar-Focused Landing Page**: Airbnb-style availability calendar
+- ✅ **Date Range Selection**: Check-in + check-out date picking
+- ✅ **Real-time Availability**: Synced with database bookings
+- ✅ **Property Filter Dropdown**: View all or filter by specific property
+- ✅ **Visual Date Ranges**: Purple highlighting for selected stay period
+- ✅ **Automatic Night Calculation**: Displays total nights
+- ✅ **Fayetteville, NC Branding**: Local market focus
 
-### Recent Updates (Aug 2024) ✅
-- ✅ Fixed 74+ test failures and authentication issues
-- ✅ Added CalendarEvent model for real bookings
-- ✅ Implemented mobile-responsive design
-- ✅ Enhanced database persistence
-- ✅ **NEW: Guest Invitation System** - Complete invitation code workflow
-- ✅ **NEW: UI/UX Standardization** - Bootstrap 5.3.0 + unified icons
-- ✅ **NEW: Code Cleanup** - Removed 186+ duplicate files and 5,233 lines of technical debt
-- ✅ **NEW: Business Analytics Dashboard** - Revenue and occupancy tracking
-- ✅ **MAJOR: Comprehensive Financial Analytics** - Complete financial management solution
-- ✅ **ENHANCEMENT: Chart Optimization** - Fixed rendering issues and CSP compliance
-- ✅ **QUALITY: Code Linting** - PEP8 compliance and cleaned codebase
-- ✅ **INTEGRATION: PR #43 Merged** - Financial analytics fully integrated into main branch
+### Property Management ✅
+- ✅ **Property CRUD**: Full create, read, update, delete
+- ✅ **Property Images**: Upload, reorder, captions, delete
+- ✅ **Property Rooms**: Bedrooms, bathrooms, amenities tracking
+- ✅ **Guest Access Control**: Enable/disable guest viewing per property
+- ✅ **Share Links & QR Codes**: Generate shareable property links
 
-### Comprehensive Financial Analytics System (COMPLETED - Aug 2024) 🔥
-- ✅ **Complete Financial Dashboard**: Modern UI with KPI cards, charts, and real-time metrics
-- ✅ **Holistic Expense Tracking**: 14 IRS-compliant categories (utilities, insurance, labor, supplies, etc.)
-- ✅ **Profit & Loss Analysis**: Automated P&L calculations with cash flow forecasting
-- ✅ **Interactive Charts**: 12-month cash flow trends with Chart.js visualization
-- ✅ **Property Performance Ranking**: ROI comparison and occupancy rate analysis
-- ✅ **Tax-Ready Exports**: CSV reports for accounting software and tax preparation
-- ✅ **Business Intelligence**: Net income, profit margins, estimated tax savings
-- ✅ **Upcoming Expenses**: 30-day bill tracking with overdue notifications
-- ✅ **Multi-Property Support**: Consolidated view across entire property portfolio
+### Booking System ✅
+- ✅ **Public Booking Requests**: Guest submission form on property pages
+- ✅ **Booking Request Dashboard**: Owner view of all requests
+- ✅ **Status Management**: Pending, Approved, Rejected, Cancelled
+- ✅ **Owner Responses**: Text response field for booking communications
 
-### 🎯 **CURRENT STATUS: FULLY OPERATIONAL**
-**All features are now live in main branch and ready for production deployment!**
-- Navigation: Analytics → Financial Analytics
-- Exports: P&L and Tax Reports available via dropdown menu
-- Charts: Interactive 12-month cash flow visualization
-- Integration: Seamlessly integrated with existing property management system
+### Calendar System ✅
+- ✅ **Calendar Events**: Track bookings, blocks, external platform syncs
+- ✅ **Property Calendar**: Platform sync settings per property
+- ✅ **Availability API**: Month-based availability queries
+- ✅ **Multi-Property Support**: Aggregate or per-property availability
 
----
+### Authentication & Users ✅
+- ✅ **User Registration**: Email + password signup
+- ✅ **Login/Logout**: Session token management
+- ✅ **Email Verification**: Email confirmation workflow
+- ✅ **Password Reset**: Forgot password flow
+- ✅ **Protected Routes**: Owner-only dashboard access
 
-## 🚀 DEPLOYMENT OPTIONS
-
-### Option 1: Google Cloud Run (Production)
-```bash
-# Build and deploy to Cloud Run
-docker build -t gcr.io/speech-memorization/short-term-landlord .
-docker push gcr.io/speech-memorization/short-term-landlord
-gcloud run deploy --image gcr.io/speech-memorization/short-term-landlord \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated
-```
-
-### Option 2: Local Development
-```bash
-# Quick local setup
-git clone https://github.com/gitayam/short_term_land_lord.git
-cd short_term_land_lord
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your settings
-flask db upgrade
-python create_admin.py
-flask run --debug
-# Access at http://localhost:5000
-```
-
-### Option 3: Docker Compose (Local Production)
-```bash
-# docker-compose.yml included in repo
-docker-compose up -d
-# Access at http://localhost:5000
-```
+### Other Features ✅
+- ✅ **Task Management**: Basic task tracking system
+- ✅ **Cleaning Sessions**: Cleaning workflow tracking
+- ✅ **Financial Tracking**: Expenses, revenue, invoices
+- ✅ **Inventory Management**: Item tracking across properties
+- ✅ **Access Codes**: Guest access code management
+- ✅ **Worker Management**: Track maintenance workers
+- ✅ **Repair Requests**: Issue tracking system
+- ✅ **Messages**: Basic messaging system
+- ✅ **Guidebook**: Property information for guests
 
 ---
 
-## 📋 WHAT WE NEED NEXT (Priority Order)
+## 🎯 IMMEDIATE PRIORITIES (This Week)
 
-### 🔴 Week 1 Priorities
-1. **PostgreSQL Migration** (2 days)
-   - Move from SQLite to Cloud SQL
-   - Connection pooling
-   - Automated backups
-   
-2. **Onboarding Wizard** (2 days)
-   - Guided setup flow
-   - Sample data generator
-   - Interactive tutorial
-   
-3. **Two-Way Calendar Sync** (1 day)
-   - Push events to platforms
-   - Conflict resolution
+### Priority 1: Complete Booking Flow 🔴
+**Goal**: Full automation from guest request to calendar block
 
-### 🟡 Week 2 Priorities
-1. **Business Dashboard** (2 days)
-   - Occupancy analytics
-   - Revenue tracking
-   - Performance metrics
-   
-2. **Email Notifications** (2 days)
-   - SendGrid/SES setup
-   - Task notifications
-   - Booking confirmations
-   
-3. **REST API** (1 day)
-   - Mobile app endpoints
-   - API documentation
+1. **Email Notifications**
+   - [ ] Owner notification on new booking request
+   - [ ] Guest confirmation on booking approval
+   - [ ] Pre-arrival reminder emails
+   - [ ] Check-out reminder emails
 
-### 🟢 Month 1-2 Goals
-- Mobile apps (React Native/Flutter)
-- Payment processing (Stripe)
-- Multi-tenancy support
-- Advanced analytics
-- Webhook integrations
+2. **Booking Approval Workflow**
+   - [ ] One-click approve/reject from dashboard
+   - [ ] Auto-block calendar on approval
+   - [ ] Auto-unblock calendar on rejection/cancellation
+   - [ ] Booking status timeline tracking
+
+3. **Guest Confirmation Page**
+   - [ ] Confirmation details page after booking
+   - [ ] Property information display
+   - [ ] Check-in instructions
+   - [ ] Contact information
+
+4. **Payment Integration**
+   - [ ] Stripe payment links in approval emails
+   - [ ] Payment status tracking
+   - [ ] Deposit and full payment options
+   - [ ] Automated payment reminders
+
+### Priority 2: Calendar Enhancement 🟡
+**Goal**: Professional calendar experience matching Airbnb quality
+
+1. **Calendar Interactions**
+   - [ ] Booking details on hover/click
+   - [ ] Color coding by booking source (Airbnb, VRBO, Direct, Blocked)
+   - [ ] Drag-to-select multiple days
+   - [ ] Quick add booking modal
+
+2. **Calendar Views**
+   - [ ] Multiple view options (month, week, list)
+   - [ ] Owner calendar page improvements
+   - [ ] Print-friendly calendar export
+   - [ ] iCal export functionality
+
+3. **Blocking & Availability**
+   - [ ] Manual block/unblock dates
+   - [ ] Recurring blocks (weekly, monthly)
+   - [ ] Bulk operations on dates
+   - [ ] Minimum/maximum stay rules
+
+### Priority 3: Mobile Optimization 🟢
+**Goal**: Flawless mobile experience for guests and owners
+
+1. **Mobile Responsive**
+   - [ ] Calendar touch interactions
+   - [ ] Mobile-optimized forms
+   - [ ] Photo upload from camera
+   - [ ] Push notifications (PWA)
+
+2. **Guest Mobile Experience**
+   - [ ] Mobile check-in flow
+   - [ ] QR code scanning for access
+   - [ ] In-stay messaging
+   - [ ] Issue reporting
 
 ---
 
-## 📊 METRICS & TARGETS
+## 🚀 PHASE 1: Booking & Guest Experience (Weeks 1-2)
 
-### Current Performance
-- ✅ Test Coverage: 91%
-- ✅ Page Load: <2 seconds
-- ✅ Uptime: 99.9%
-- ✅ Mobile Responsive: Yes
+### Booking Enhancement
+- [ ] **Multi-night pricing rules**: Weekend, holiday, season rates
+- [ ] **Minimum night requirements**: Per property/season
+- [ ] **Discount codes**: For repeat guests
+- [ ] **Early bird / last-minute discounts**
+- [ ] **Cleaning fee calculator**: Based on property size
 
-### Business Targets
-- Time to Onboard: <10 minutes
-- Customer Acquisition: 10 companies in 3 months
-- MRR Goal: $10K in 6 months
-- User Satisfaction: 4.5+ stars
+### Guest Communication
+- [ ] **Automated email templates**
+  - Welcome email on booking
+  - Pre-arrival (3 days, 1 day before)
+  - Check-in instructions (day of)
+  - Mid-stay check-in
+  - Check-out instructions
+  - Review request
+- [ ] **SMS notifications**: Urgent communications
+- [ ] **Template library**: Common scenarios
+- [ ] **Guest messaging portal**: Two-way communication
+
+### Guest Portal
+- [ ] **Booking confirmation page**: Full details
+- [ ] **Digital check-in**: ID upload, signature, guest count
+- [ ] **Property guidebook**: Wi-Fi, appliances, rules
+- [ ] **Local recommendations**: Restaurants, attractions
+- [ ] **Issue reporting**: Submit maintenance requests
+- [ ] **Early check-in/late checkout requests**
 
 ---
 
-## 🛠️ TECHNICAL DEBT
+## 🚀 PHASE 2: Operations & Automation (Weeks 3-4)
+
+### Cleaning Automation
+- [ ] **Auto-generate cleaning tasks**: On checkout
+- [ ] **Cleaner notifications**: Email/SMS assignments
+- [ ] **Cleaning checklists**: Room-by-room tasks
+- [ ] **Photo verification**: Upload completion photos
+- [ ] **Inventory restocking alerts**: Low supplies
+- [ ] **Quality control**: Owner inspection workflow
+
+### Property Operations
+- [ ] **Maintenance scheduling**: Routine maintenance calendar
+- [ ] **Inspection checklists**: Property walkthroughs
+- [ ] **Utility tracking**: Bills and usage per property
+- [ ] **Vendor management**: Cleaner, plumber, electrician contacts
+- [ ] **Insurance tracking**: Renewal reminders
+- [ ] **License compliance**: Short-term rental permits
+
+### Smart Automation
+- [ ] **Smart lock integration**: Auto-generate access codes
+- [ ] **Thermostat control**: Pre-arrival climate adjustment
+- [ ] **Noise monitoring**: NoiseAware integration
+- [ ] **Security cameras**: Access for owners
+
+---
+
+## 🚀 PHASE 3: Revenue & Analytics (Weeks 5-6)
+
+### Dynamic Pricing
+- [ ] **Pricing calendar**: Visual rate management
+- [ ] **Seasonal pricing**: Summer, holidays, events
+- [ ] **Occupancy-based pricing**: Last-minute discounts
+- [ ] **Competitive analysis**: Market rate comparison
+- [ ] **Revenue forecasting**: 30/60/90 day projections
+
+### Financial Management
+- [ ] **Profit & Loss per property**: Real-time P&L
+- [ ] **Tax preparation reports**: Schedule E ready
+- [ ] **Expense categorization**: IRS categories
+- [ ] **Receipt scanning & OCR**: Mobile expense entry
+- [ ] **Bank account integration**: Plaid sync
+- [ ] **Payout tracking**: Platform revenue
+- [ ] **Payment reconciliation**: Match bookings to payments
+
+### Analytics Dashboard
+- [ ] **Executive KPI dashboard**
+  - Total revenue
+  - Occupancy rate
+  - Average daily rate (ADR)
+  - Revenue per available room (RevPAR)
+  - Booking lead time
+  - Guest acquisition cost
+- [ ] **Property comparison**: Side-by-side performance
+- [ ] **Trend analysis**: YoY, MoM growth
+- [ ] **Guest demographics**: Location, group size, booking source
+
+---
+
+## 🚀 PHASE 4: Platform Integrations (Weeks 7-10)
+
+### Channel Manager
+- [ ] **Airbnb API**: Calendar sync, booking import
+- [ ] **VRBO API**: Calendar sync, booking import
+- [ ] **Booking.com API**: Channel integration
+- [ ] **Two-way sync**: Block dates across platforms
+- [ ] **Unified pricing**: Update rates everywhere
+- [ ] **Review aggregation**: Import reviews
+
+### Payment Processing
+- [ ] **Stripe integration**: Direct booking payments
+- [ ] **Security deposit**: Hold and release
+- [ ] **Payment plans**: Deposit + balance
+- [ ] **Refund automation**: Cancellation processing
+- [ ] **Split payments**: Co-host payouts
+
+### Communication APIs
+- [ ] **Twilio SMS**: Automated guest messaging
+- [ ] **SendGrid email**: Transactional emails
+- [ ] **WhatsApp Business**: International guests
+- [ ] **Slack notifications**: Team updates
+
+---
+
+## 🚀 PHASE 5: Mobile Apps & Advanced UX (Weeks 11-12)
+
+### Progressive Web App (PWA)
+- [ ] **Install prompt**: Add to home screen
+- [ ] **Offline mode**: View bookings offline
+- [ ] **Push notifications**: Real-time alerts
+- [ ] **Camera access**: Photo uploads
+- [ ] **Location services**: Nearby properties
+
+### Cleaner Mobile App
+- [ ] **Task checklist**: Step-by-step cleaning guide
+- [ ] **Clock in/out**: Time tracking
+- [ ] **Photo verification**: Room-by-room photos
+- [ ] **Supply requests**: Report low inventory
+- [ ] **Issue reporting**: Maintenance needs
+- [ ] **Performance dashboard**: Cleaner metrics
+
+### Owner Mobile Experience
+- [ ] **Mobile dashboard**: Key metrics at a glance
+- [ ] **Quick actions**: Approve bookings, respond to guests
+- [ ] **Calendar management**: Block/unblock dates
+- [ ] **Photo management**: Upload property photos
+- [ ] **Task assignment**: Assign cleaners/workers
+
+---
+
+## 🛡️ SECURITY & COMPLIANCE (Ongoing)
+
+### Security Enhancements
+- [ ] **Two-factor authentication (2FA)**: SMS or authenticator app
+- [ ] **API rate limiting**: Prevent abuse
+- [ ] **CSRF protection**: All forms protected
+- [ ] **Input validation**: Zod schemas throughout
+- [ ] **SQL injection prevention**: Parameterized queries only
+- [ ] **XSS protection**: Output encoding
+- [ ] **Security headers**: CSP, HSTS, X-Frame-Options
+- [ ] **Dependency updates**: Regular vulnerability scans
+
+### Data Privacy
+- [ ] **GDPR compliance**: EU guest data handling
+- [ ] **Data retention**: Automatic cleanup policies
+- [ ] **Guest data export**: GDPR right to data
+- [ ] **Guest data deletion**: GDPR right to erasure
+- [ ] **Privacy policy**: Legal compliance
+- [ ] **Cookie consent**: EU cookie law
+- [ ] **Audit logging**: Track sensitive operations
+
+### Backup & Recovery
+- [ ] **Automated D1 backups**: Daily snapshots
+- [ ] **Backup to R2 storage**: Off-site redundancy
+- [ ] **Disaster recovery testing**: Quarterly drills
+- [ ] **Data export tools**: Owner data portability
+- [ ] **Version control**: Calendar event history
+
+---
+
+## 📊 SUCCESS METRICS
+
+### Short-term (1 Month)
+- [ ] 90% reduction in manual booking coordination
+- [ ] <2 minute booking request to confirmation
+- [ ] Zero double-bookings
+- [ ] 100% automated cleaning task creation
+- [ ] 80% guest satisfaction rating
+
+### Medium-term (3 Months)
+- [ ] 50% increase in direct bookings
+- [ ] 80% reduction in support requests
+- [ ] <5 minute guest check-in time
+- [ ] 95% guest satisfaction
+- [ ] 10+ direct bookings per month
+
+### Long-term (6 Months)
+- [ ] 30% increase in revenue per property
+- [ ] 95% occupancy during peak season
+- [ ] Expand to 10+ properties
+- [ ] Sub-1 second page load times
+- [ ] 4.8+ star average rating
+
+---
+
+## 🔧 TECHNICAL DEBT
 
 ### High Priority
-- [ ] PostgreSQL migration
-- [ ] Remove duplicate files
-- [ ] Consolidate main_*.py files
-- [ ] Fix deprecation warnings
+- [ ] Add comprehensive TypeScript types throughout
+- [ ] Implement React error boundaries
+- [ ] Add unit tests (Vitest) for critical flows
+- [ ] Add integration tests for API endpoints
+- [ ] Centralize error handling
+- [ ] Improve loading states consistency
 
 ### Medium Priority
-- [ ] Standardize API responses
-- [ ] Add rate limiting
-- [ ] Optimize queries
-- [ ] Improve logging
+- [ ] Code splitting for faster initial load
+- [ ] Image optimization and lazy loading
+- [ ] Database query optimization
+- [ ] Implement caching strategy (KV)
+- [ ] Add API documentation (OpenAPI)
+- [ ] Standardize API response formats
 
 ### Low Priority
-- [ ] GraphQL API
-- [ ] WebSocket support
-- [ ] Internationalization
-- [ ] Dark mode
+- [ ] Dark mode support
+- [ ] Internationalization (i18n)
+- [ ] GraphQL API option
+- [ ] WebSocket for real-time updates
+- [ ] Advanced accessibility (WCAG 2.1 AAA)
 
 ---
 
-## 🎯 2-WEEK SPRINT PLAN
+## 🎯 THIS WEEK'S ACTION PLAN
 
-### Week 1: Foundation
-- **Mon-Tue**: PostgreSQL migration
-- **Wed-Thu**: Onboarding wizard
-- **Fri**: Testing & documentation
+### Monday-Tuesday: Booking Approval Workflow
+1. Add "Approve" and "Reject" buttons to booking requests page
+2. Implement calendar auto-block on approval
+3. Add booking status timeline
+4. Test workflow end-to-end
 
-### Week 2: Business Features
-- **Mon-Tue**: Business dashboard
-- **Wed-Thu**: Email notifications
-- **Fri**: API development
+### Wednesday: Email Notifications
+1. Set up email service (Resend or SendGrid)
+2. Create email templates (booking request, approval, confirmation)
+3. Send test emails
+4. Implement async email sending
 
----
+### Thursday: Guest Confirmation Page
+1. Create /booking/[id]/confirmation route
+2. Display booking details
+3. Add property information
+4. Include check-in instructions
 
-## 💡 KEY DIFFERENTIATORS
-
-1. **Real Calendar Sync**: Actually works with Airbnb/VRBO (competitors charge extra)
-2. **Mobile-First**: Staff can work entirely from phones
-3. **All-in-One**: Property + Task + Inventory + Invoicing
-4. **Simple Pricing**: One price, all features
-5. **Quick Setup**: <10 minute onboarding
-
----
-
-## 📈 MARKET READINESS
-
-**Current State**: 85% ready for paying customers
-
-**What's Working**:
-- Core functionality complete
-- Production infrastructure solid
-- Mobile experience excellent
-- Calendar sync functional
-
-**What's Needed**:
-- PostgreSQL for scale
-- Onboarding for ease
-- Dashboard for insights
-- API for integrations
-
-**Timeline to Market**: 2 weeks with focused effort
+### Friday: Testing & Polish
+1. End-to-end booking flow test
+2. Mobile responsiveness check
+3. Fix any bugs found
+4. Deploy to production
 
 ---
 
-## 🚀 QUICK START COMMANDS
+## 💡 COMPETITIVE ADVANTAGES
 
+1. **Calendar-First UX**: Modern, Airbnb-like booking experience
+2. **Direct Booking Focus**: Save 15-20% on platform fees
+3. **Fayetteville, NC Specific**: Local market expertise
+4. **Mobile-First**: Staff work entirely from phones
+5. **All-in-One**: No need for multiple tools
+6. **Simple Pricing**: One price, all features
+7. **Quick Setup**: <10 minute onboarding
+
+---
+
+## 🚀 DEPLOYMENT
+
+### Production URL
+https://short-term-landlord.pages.dev
+
+### Deployment Commands
 ```bash
-# Deploy to production
-gcloud app deploy app_simple.yaml --project=speech-memorization
+# Build and deploy
+npm run build
+wrangler pages deploy dist --project-name=short-term-landlord
 
-# Run tests
-python3 -m pytest tests/
+# Deploy with commit message
+wrangler pages deploy dist --commit-dirty=true
 
-# Check code quality
-flake8 app/
-black app/
+# Tail logs
+wrangler pages deployment tail --project-name=short-term-landlord
+```
 
-# Database operations
-flask db upgrade
-flask db migrate -m "Description"
-
-# Create admin user
-python create_admin.py
+### Environment Variables
+```bash
+# Cloudflare Dashboard → Pages → short-term-landlord → Settings → Environment Variables
+DATABASE_URL=<D1 database binding>
+JWT_SECRET=<random secret>
+EMAIL_SERVICE_KEY=<sendgrid/resend key>
+STRIPE_SECRET_KEY=<stripe key>
+TWILIO_ACCOUNT_SID=<twilio sid>
+TWILIO_AUTH_TOKEN=<twilio token>
 ```
 
 ---
 
 ## 📝 NOTES
 
-- Platform stable and production-ready
-- Calendar sync is the killer feature
-- Mobile UX sets us apart from competitors
-- PostgreSQL migration unlocks scaling
-- Ready for first customers after 2-week sprint
+- **Migration Complete**: Successfully moved from Google App Engine (Python/Flask) to Cloudflare (React/TypeScript)
+- **Database**: 43 tables migrated to Cloudflare D1
+- **Focus**: Fayetteville, NC market with 4 properties initially
+- **Key Feature**: Calendar-focused landing page for availability checking
+- **Next Priority**: Complete booking approval workflow with email notifications
+- **Timeline**: MVP features complete in 2-3 weeks
 
-**Last Updated**: August 2024  
-**Next Review**: After PostgreSQL migration  
-**Contact**: admin@landlord.com
+---
+
+**Last Updated**: October 12, 2025
+**Next Review**: Weekly during active development
+**Architecture**: Cloudflare Pages + Functions + D1 Database
+**Frontend**: React 18 + TypeScript + TailwindCSS
+**Target Market**: Fayetteville, NC Short-Term Rentals

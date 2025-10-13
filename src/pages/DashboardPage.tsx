@@ -60,19 +60,19 @@ export function DashboardPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Link to="/properties" className="card hover:shadow-md transition-shadow">
+        <Link to="/app/properties" className="card hover:shadow-md transition-shadow">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Properties</h3>
           <p className="text-3xl font-bold text-gray-900">{stats.properties}</p>
           <p className="text-sm text-gray-500 mt-2">Total managed properties</p>
         </Link>
 
-        <Link to="/tasks" className="card hover:shadow-md transition-shadow">
+        <Link to="/app/tasks" className="card hover:shadow-md transition-shadow">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Pending Tasks</h3>
           <p className="text-3xl font-bold text-gray-900">{stats.tasks}</p>
           <p className="text-sm text-gray-500 mt-2">Tasks requiring attention</p>
         </Link>
 
-        <Link to="/cleaning" className="card hover:shadow-md transition-shadow">
+        <Link to="/app/cleaning" className="card hover:shadow-md transition-shadow">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Active Cleanings</h3>
           <p className="text-3xl font-bold text-gray-900">{stats.cleaningSessions}</p>
           <p className="text-sm text-gray-500 mt-2">Cleaning sessions in progress</p>
@@ -83,16 +83,16 @@ export function DashboardPage() {
         <div className="card">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-2">
-            <Link to="/properties" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <Link to="/app/properties" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               🏠 Manage Properties
             </Link>
-            <Link to="/tasks" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <Link to="/app/tasks" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               ✓ View Tasks
             </Link>
-            <Link to="/calendar" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <Link to="/app/calendar" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               📅 Check Calendar
             </Link>
-            <Link to="/cleaning" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <Link to="/app/cleaning" className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
               🧹 Cleaning Sessions
             </Link>
           </div>
