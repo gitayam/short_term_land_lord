@@ -32,11 +32,11 @@ command = "npm run build"
 # Environment variables (non-secret)
 [vars]
 ENVIRONMENT = "production"
-FRONTEND_URL = "https://short-term-landlord.pages.dev"
+FRONTEND_URL = "https://openbnb.me"
 
 # Email provider configuration
 EMAIL_PROVIDER = "ses"  # Options: ses, mailgun, sendgrid, or leave empty for dev mode
-EMAIL_FROM = "no-reply@irregularchat.com"
+EMAIL_FROM = "no-reply@openbnb.me"
 
 # Secret environment variables (set using: wrangler pages secret put <KEY> --project-name=short-term-landlord)
 # These should NOT be committed to version control

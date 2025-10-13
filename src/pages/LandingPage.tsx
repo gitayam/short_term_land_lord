@@ -1,6 +1,6 @@
 /**
  * Landing Page - Availability Calendar
- * Public calendar showing available dates for Fayetteville, NC properties
+ * Public calendar showing available dates for short-term rentals
  */
 
 import { useState, useEffect } from 'react';
@@ -273,7 +273,7 @@ export function LandingPage() {
             <div className="flex items-center">
               <Link to="/" className="flex items-center space-x-2">
                 <div className="text-3xl">🏠</div>
-                <span className="text-xl font-bold text-gray-900">Fayetteville Rentals</span>
+                <span className="text-xl font-bold text-gray-900">OpenBNB</span>
               </Link>
             </div>
             <div className="flex items-center space-x-4">

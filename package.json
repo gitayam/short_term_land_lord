@@ -1,7 +1,7 @@
 {
-  "name": "short-term-landlord-cloudflare",
+  "name": "openbnb",
   "version": "1.0.0",
-  "description": "Short Term Land Lord property management system - Cloudflare Workers migration",
+  "description": "OpenBNB - Open-source property management platform for short-term rentals",
   "main": "functions/_middleware.ts",
   "type": "module",
   "scripts": {

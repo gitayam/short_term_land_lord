@@ -15,7 +15,7 @@ export function Header() {
           <div className="flex items-center">
             <Link to="/app/dashboard" className="flex items-center">
               <h1 className="text-xl font-bold text-blue-600">
-                Short Term Land Lord
+                OpenBNB
               </h1>
             </Link>
           </div>

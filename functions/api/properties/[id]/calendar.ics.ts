@@ -77,7 +77,7 @@ function generateICalFeed(
   let ical = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Short Term Land Lord//Property Calendar//EN',
+    'PRODID:-//OpenBNB//Property Calendar//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${escapeICalText(property.name || 'Property')}`,
@@ -87,7 +87,7 @@ function generateICalFeed(
 
   // Add events
   for (const event of events) {
-    const uid = event.external_id || `event-${event.id}@short-term-landlord.pages.dev`;
+    const uid = event.external_id || `event-${event.id}@openbnb.me`;
     const summary = escapeICalText(event.title || 'Reserved');
     const startDate = formatICalDate(new Date(event.start_date + 'T00:00:00Z'));
     const endDate = formatICalDate(new Date(event.end_date + 'T00:00:00Z'));
