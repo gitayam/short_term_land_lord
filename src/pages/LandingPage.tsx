@@ -989,15 +989,9 @@ export function LandingPage() {
               <div className="space-y-2">
                 <Link
                   to="/login"
-                  className="block w-full text-center px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-white transition-colors"
-                >
-                  Owner Login
-                </Link>
-                <Link
-                  to="/guidebook-manager"
                   className="block w-full text-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  📖 Manage Guidebooks
+                  Owner Login
                 </Link>
               </div>
             </div>

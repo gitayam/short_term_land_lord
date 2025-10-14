@@ -9,6 +9,7 @@ const navigation = [
   { name: 'Cleaning Sessions', href: '/app/cleaning', icon: '🧹' },
   { name: 'Financial', href: '/app/financial', icon: '💰' },
   { name: 'Inventory', href: '/app/inventory/items', icon: '📦' },
+  { name: 'Guidebook Manager', href: '/app/guidebook-manager', icon: '📖' },
 ];
 
 export function Sidebar() {

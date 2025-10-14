@@ -51,7 +51,6 @@ function App() {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/favorites" element={<FavoritesPage />} />
-        <Route path="/guidebook-manager" element={<GuidebookManager />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/convert-guest" element={<ConvertGuestPage />} />
@@ -87,6 +86,7 @@ function App() {
           <Route path="inventory/catalog" element={<InventoryCatalogPage />} />
           <Route path="inventory/items" element={<InventoryItemsPage />} />
           <Route path="guidebook" element={<GuidebookPage />} />
+          <Route path="guidebook-manager" element={<GuidebookManager />} />
           <Route path="access-codes" element={<AccessCodesPage />} />
           <Route path="bookings" element={<BookingsPage />} />
           <Route path="booking-requests" element={<BookingRequestsPage />} />
