@@ -24,6 +24,15 @@ interface Property {
   cleaning_fee?: number;
   bedrooms: number;
   bathrooms: number;
+  max_guests?: number;
+  pets_allowed?: boolean;
+  max_pets?: number;
+  pet_fee?: number;
+  pet_fee_per_pet?: boolean;
+  allow_early_checkin?: boolean;
+  allow_late_checkout?: boolean;
+  early_checkin_fee?: number;
+  late_checkout_fee?: number;
 }
 
 interface GuestBookingFlowProps {
@@ -48,12 +57,18 @@ interface BookingData {
   guestEmail: string;
   guestPhone: string;
   numGuests: number;
+  numPets: number;
+  requestEarlyCheckin: boolean;
+  requestLateCheckout: boolean;
   specialRequests: string;
 
   // Calculated
   nights: number;
   subtotal: number;
   cleaningFee: number;
+  petFee: number;
+  earlyCheckinFee: number;
+  lateCheckoutFee: number;
   serviceFee: number;
   total: number;
 }
@@ -77,15 +92,21 @@ export function GuestBookingFlow({
     guestEmail: '',
     guestPhone: '',
     numGuests: 1,
+    numPets: 0,
+    requestEarlyCheckin: false,
+    requestLateCheckout: false,
     specialRequests: '',
     nights: 0,
     subtotal: 0,
     cleaningFee: property.cleaning_fee || 75,
+    petFee: 0,
+    earlyCheckinFee: 0,
+    lateCheckoutFee: 0,
     serviceFee: 0,
     total: 0,
   });
 
-  // Calculate pricing when dates change
+  // Calculate pricing when dates or add-ons change
   useEffect(() => {
     if (bookingData.checkInDate && bookingData.checkOutDate) {
       const checkIn = new Date(bookingData.checkInDate);
@@ -95,19 +116,44 @@ export function GuestBookingFlow({
       if (nights > 0) {
         const nightlyRate = property.nightly_rate || 150;
         const subtotal = nights * nightlyRate;
+
+        // Calculate pet fee
+        const petFee = bookingData.numPets > 0
+          ? (property.pet_fee || 0) * (property.pet_fee_per_pet ? bookingData.numPets : 1)
+          : 0;
+
+        // Calculate early/late fees
+        const earlyCheckinFee = bookingData.requestEarlyCheckin ? (property.early_checkin_fee || 20) : 0;
+        const lateCheckoutFee = bookingData.requestLateCheckout ? (property.late_checkout_fee || 20) : 0;
+
         const serviceFee = Math.round(subtotal * 0.12); // 12% service fee
-        const total = subtotal + bookingData.cleaningFee + serviceFee;
+        const total = subtotal + bookingData.cleaningFee + petFee + earlyCheckinFee + lateCheckoutFee + serviceFee;
 
         setBookingData(prev => ({
           ...prev,
           nights,
           subtotal,
+          petFee,
+          earlyCheckinFee,
+          lateCheckoutFee,
           serviceFee,
           total,
         }));
       }
     }
-  }, [bookingData.checkInDate, bookingData.checkOutDate, property.nightly_rate, bookingData.cleaningFee]);
+  }, [
+    bookingData.checkInDate,
+    bookingData.checkOutDate,
+    bookingData.numPets,
+    bookingData.requestEarlyCheckin,
+    bookingData.requestLateCheckout,
+    property.nightly_rate,
+    property.pet_fee,
+    property.pet_fee_per_pet,
+    property.early_checkin_fee,
+    property.late_checkout_fee,
+    bookingData.cleaningFee
+  ]);
 
   const createPaymentIntent = async () => {
     setLoading(true);
@@ -158,6 +204,9 @@ export function GuestBookingFlow({
           check_in_date: bookingData.checkInDate,
           check_out_date: bookingData.checkOutDate,
           num_guests: bookingData.numGuests,
+          num_pets: bookingData.numPets,
+          request_early_checkin: bookingData.requestEarlyCheckin,
+          request_late_checkout: bookingData.requestLateCheckout,
           message: bookingData.specialRequests || null,
           payment_intent_id: validatedPaymentIntentId,
         }),
@@ -327,13 +376,83 @@ export function GuestBookingFlow({
                       onChange={(e) => setBookingData({ ...bookingData, numGuests: parseInt(e.target.value) })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                      {Array.from({ length: property.max_guests || 8 }, (_, i) => i + 1).map((num) => (
                         <option key={num} value={num}>
                           {num} {num === 1 ? 'guest' : 'guests'}
                         </option>
                       ))}
                     </select>
+                    {property.max_guests && (
+                      <p className="text-xs text-gray-500 mt-1">Maximum {property.max_guests} guests</p>
+                    )}
                   </div>
+
+                  {/* Pet Selector */}
+                  {property.pets_allowed && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Number of Pets</label>
+                      <select
+                        value={bookingData.numPets}
+                        onChange={(e) => setBookingData({ ...bookingData, numPets: parseInt(e.target.value) })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      >
+                        {Array.from({ length: (property.max_pets || 2) + 1 }, (_, i) => i).map((num) => (
+                          <option key={num} value={num}>
+                            {num} {num === 1 ? 'pet' : 'pets'}
+                          </option>
+                        ))}
+                      </select>
+                      {property.pet_fee && property.pet_fee > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Pet fee: ${property.pet_fee}{property.pet_fee_per_pet ? ' per pet' : ' flat fee'}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Early Checkin / Late Checkout Options */}
+                  {(property.allow_early_checkin || property.allow_late_checkout) && (
+                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <h4 className="font-medium text-gray-900 mb-3">Add-On Requests</h4>
+                      <p className="text-xs text-gray-600 mb-3">
+                        These are requests only and not guaranteed. If approved, fees will be added to your total.
+                      </p>
+                      <div className="space-y-3">
+                        {property.allow_early_checkin && (
+                          <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={bookingData.requestEarlyCheckin}
+                              onChange={(e) => setBookingData({ ...bookingData, requestEarlyCheckin: e.target.checked })}
+                              className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">Early Check-in</div>
+                              <div className="text-xs text-gray-600">
+                                Request check-in {property.early_checkin_hours || 2} hours early (+${property.early_checkin_fee || 20})
+                              </div>
+                            </div>
+                          </label>
+                        )}
+                        {property.allow_late_checkout && (
+                          <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={bookingData.requestLateCheckout}
+                              onChange={(e) => setBookingData({ ...bookingData, requestLateCheckout: e.target.checked })}
+                              className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">Late Check-out</div>
+                              <div className="text-xs text-gray-600">
+                                Request check-out {property.late_checkout_hours || 2} hours late (+${property.late_checkout_fee || 20})
+                              </div>
+                            </div>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Special Requests</label>
@@ -461,6 +580,12 @@ export function GuestBookingFlow({
                       <span className="text-gray-600">Guests:</span>
                       <span className="font-medium">{bookingData.numGuests}</span>
                     </div>
+                    {bookingData.numPets > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Pets:</span>
+                        <span className="font-medium">{bookingData.numPets}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="border-t border-gray-200 pt-4 space-y-2 text-sm">
@@ -474,6 +599,26 @@ export function GuestBookingFlow({
                       <span className="text-gray-600">Cleaning fee</span>
                       <span className="font-medium">${bookingData.cleaningFee}</span>
                     </div>
+                    {bookingData.petFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">
+                          Pet fee {property.pet_fee_per_pet ? `(${bookingData.numPets})` : ''}
+                        </span>
+                        <span className="font-medium">${bookingData.petFee}</span>
+                      </div>
+                    )}
+                    {bookingData.earlyCheckinFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Early check-in (request)</span>
+                        <span className="font-medium">${bookingData.earlyCheckinFee}</span>
+                      </div>
+                    )}
+                    {bookingData.lateCheckoutFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Late check-out (request)</span>
+                        <span className="font-medium">${bookingData.lateCheckoutFee}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-gray-600">Service fee</span>
                       <span className="font-medium">${bookingData.serviceFee}</span>

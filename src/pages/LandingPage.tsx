@@ -6,6 +6,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GuestBookingFlow } from '../components/booking/GuestBookingFlow';
+import { ApproximateLocationMap } from '../components/ApproximateLocationMap';
+import { PhotoGallery } from '../components/PhotoGallery';
+import { PropertyHighlights } from '../components/PropertyHighlights';
+import { AmenitiesDisplay } from '../components/AmenitiesDisplay';
+import { GuidebookModal } from '../components/GuidebookModal';
+import { FlexibleDates } from '../components/FlexibleDates';
+import { ReviewsDisplay } from '../components/ReviewsDisplay';
 
 interface CalendarDay {
   date: string;
@@ -14,14 +21,47 @@ interface CalendarDay {
   isCurrentMonth: boolean;
 }
 
+interface PropertyImage {
+  id: number;
+  image_url: string;
+  caption?: string;
+  display_order: number;
+  is_primary: boolean;
+}
+
 interface Property {
   id: string;
+  slug?: string;
   name: string;
   address: string;
   city: string;
+  state: string;
   bedrooms: number;
   bathrooms: number;
-  image_url?: string;
+  description?: string;
+  property_type?: string;
+  square_feet?: number;
+  street_name?: string;
+  primary_image_url?: string;
+  display_address?: string;
+  neighborhood?: string;
+  approximate_latitude?: number;
+  approximate_longitude?: number;
+  max_guests?: number;
+  pets_allowed?: boolean;
+  max_pets?: number;
+  pet_fee?: number;
+  pet_fee_per_pet?: boolean;
+  allow_early_checkin?: boolean;
+  allow_late_checkout?: boolean;
+  early_checkin_fee?: number;
+  late_checkout_fee?: number;
+  nightly_rate?: number;
+  cleaning_fee?: number;
+  amenities?: string[];
+  images?: PropertyImage[];
+  average_rating?: number;
+  total_reviews?: number;
 }
 
 export function LandingPage() {
@@ -33,6 +73,15 @@ export function LandingPage() {
   const [checkInDate, setCheckInDate] = useState<string | null>(null);
   const [checkOutDate, setCheckOutDate] = useState<string | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [copiedPropertyUrl, setCopiedPropertyUrl] = useState(false);
+  const [showGuidebook, setShowGuidebook] = useState(false);
+  const [guidebookPropertySlug, setGuidebookPropertySlug] = useState<string>('');
+  const [guidebookPropertyName, setGuidebookPropertyName] = useState<string>('');
+  const [availabilityStatus, setAvailabilityStatus] = useState<'checking' | 'available' | 'unavailable' | null>(null);
+
+  // Search filters
+  const [filterGuests, setFilterGuests] = useState<number>(1);
+  const [filterPetsAllowed, setFilterPetsAllowed] = useState<boolean>(false);
 
   const [availabilityData, setAvailabilityData] = useState<{
     blockedDates: Record<string, boolean>;
@@ -43,12 +92,27 @@ export function LandingPage() {
     loadAvailability();
   }, [currentDate, selectedProperty]);
 
-  // Auto-select property if there's only one
-  useEffect(() => {
-    if (properties.length === 1 && selectedProperty === 'all') {
-      setSelectedProperty(properties[0].id);
+  // Filter properties based on search criteria
+  const filteredProperties = properties.filter(property => {
+    // Filter by guest capacity
+    if (filterGuests > 1 && property.max_guests && property.max_guests < filterGuests) {
+      return false;
     }
-  }, [properties]);
+
+    // Filter by pet policy
+    if (filterPetsAllowed && !property.pets_allowed) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Auto-select property if there's only one filtered result
+  useEffect(() => {
+    if (filteredProperties.length === 1 && selectedProperty === 'all') {
+      setSelectedProperty(filteredProperties[0].id);
+    }
+  }, [filteredProperties, selectedProperty]);
 
   const loadAvailability = async () => {
     try {
@@ -193,6 +257,90 @@ export function LandingPage() {
     return availableDates;
   };
 
+  // Check availability in real-time
+  const checkAvailability = (checkIn: string, checkOut: string) => {
+    if (!checkIn || !checkOut) {
+      setAvailabilityStatus(null);
+      return;
+    }
+
+    setAvailabilityStatus('checking');
+
+    // Check if any dates in range are blocked
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    let hasConflict = false;
+
+    for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      if (availabilityData.blockedDates[dateStr]) {
+        hasConflict = true;
+        break;
+      }
+    }
+
+    // Simulate API delay for better UX
+    setTimeout(() => {
+      setAvailabilityStatus(hasConflict ? 'unavailable' : 'available');
+    }, 300);
+  };
+
+  const handleFlexibleSearch = (checkIn: string, checkOut: string, flexibility: number) => {
+    // Calculate date range with flexibility
+    const startDate = new Date(checkIn);
+    startDate.setDate(startDate.getDate() - flexibility);
+
+    const endDate = new Date(checkOut);
+    endDate.setDate(endDate.getDate() + flexibility);
+
+    // Find all available date combinations within the flexible range
+    const availableCombos: Array<{checkIn: string, checkOut: string}> = [];
+
+    // Iterate through possible check-in dates
+    for (let checkInDay = new Date(startDate); checkInDay <= new Date(checkIn).setDate(new Date(checkIn).getDate() + flexibility); checkInDay.setDate(checkInDay.getDate() + 1)) {
+      const checkInStr = checkInDay.toISOString().split('T')[0];
+
+      // Check if this check-in date is available
+      if (!availabilityData.blockedDates[checkInStr]) {
+        // Calculate nights of stay
+        const originalNights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24));
+
+        // Try same length of stay
+        const potentialCheckOut = new Date(checkInDay);
+        potentialCheckOut.setDate(potentialCheckOut.getDate() + originalNights);
+        const checkOutStr = potentialCheckOut.toISOString().split('T')[0];
+
+        // Verify no conflicts in stay period
+        let hasConflict = false;
+        for (let d = new Date(checkInDay); d < potentialCheckOut; d.setDate(d.getDate() + 1)) {
+          const dateStr = d.toISOString().split('T')[0];
+          if (availabilityData.blockedDates[dateStr]) {
+            hasConflict = true;
+            break;
+          }
+        }
+
+        if (!hasConflict) {
+          availableCombos.push({ checkIn: checkInStr, checkOut: checkOutStr });
+        }
+      }
+    }
+
+    // Show results
+    if (availableCombos.length > 0) {
+      // Use the first available combination
+      const bestCombo = availableCombos[0];
+      setCheckInDate(bestCombo.checkIn);
+      setCheckOutDate(bestCombo.checkOut);
+      checkAvailability(bestCombo.checkIn, bestCombo.checkOut);
+
+      // Scroll to calendar
+      window.scrollTo({ top: 400, behavior: 'smooth' });
+    } else {
+      alert(`No availability found within ±${flexibility} days of your preferred dates. Try increasing flexibility or choosing different dates.`);
+    }
+  };
+
   const handleDateClick = (dateStr: string, day: CalendarDay) => {
     console.log('[Calendar] Date clicked:', {
       date: dateStr,
@@ -206,6 +354,7 @@ export function LandingPage() {
       // First selection: set check-in date
       setCheckInDate(dateStr);
       setCheckOutDate(null);
+      setAvailabilityStatus(null);
 
       // Auto-select checkout if only one night available
       const availableCheckouts = getAvailableCheckoutDates(dateStr);
@@ -213,6 +362,7 @@ export function LandingPage() {
       if (availableCheckouts.length === 1) {
         console.log('[Calendar] Auto-selecting checkout:', availableCheckouts[0]);
         setCheckOutDate(availableCheckouts[0]);
+        checkAvailability(dateStr, availableCheckouts[0]);
       }
     } else if (!checkOutDate) {
       // Second selection: set check-out date
@@ -222,21 +372,25 @@ export function LandingPage() {
       if (checkOut > checkIn) {
         // Valid check-out (after check-in)
         setCheckOutDate(dateStr);
+        checkAvailability(checkInDate, dateStr);
       } else {
         // Reset and start over with new check-in
         setCheckInDate(dateStr);
         setCheckOutDate(null);
+        setAvailabilityStatus(null);
 
         // Auto-select checkout if only one night available
         const availableCheckouts = getAvailableCheckoutDates(dateStr);
         if (availableCheckouts.length === 1) {
           setCheckOutDate(availableCheckouts[0]);
+          checkAvailability(dateStr, availableCheckouts[0]);
         }
       }
     } else {
       // Both dates selected, start over
       setCheckInDate(dateStr);
       setCheckOutDate(null);
+      setAvailabilityStatus(null);
 
       // Auto-select checkout if only one night available
       const availableCheckouts = getAvailableCheckoutDates(dateStr);
@@ -301,9 +455,68 @@ export function LandingPage() {
           </div>
         </div>
 
+        {/* Search Filters */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Filter Properties</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Guest Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Number of Guests</label>
+              <select
+                value={filterGuests}
+                onChange={(e) => setFilterGuests(parseInt(e.target.value))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+                  <option key={num} value={num}>
+                    {num} {num === 1 ? 'guest' : 'guests'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Pet Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pet-Friendly</label>
+              <label className="flex items-center gap-3 cursor-pointer px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={filterPetsAllowed}
+                  onChange={(e) => setFilterPetsAllowed(e.target.checked)}
+                  className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-gray-900">Pets allowed</span>
+              </label>
+            </div>
+
+            {/* Results count */}
+            <div className="sm:col-span-2 flex items-end">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 w-full">
+                <p className="text-sm text-blue-900">
+                  <strong>{filteredProperties.length}</strong> {filteredProperties.length === 1 ? 'property' : 'properties'} found
+                  {(filterGuests > 1 || filterPetsAllowed) && (
+                    <button
+                      onClick={() => {
+                        setFilterGuests(1);
+                        setFilterPetsAllowed(false);
+                      }}
+                      className="ml-2 text-blue-600 hover:text-blue-700 font-medium underline"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Calendar Section */}
           <div className="lg:col-span-2">
+            {/* Flexible Dates Component */}
+            <FlexibleDates onFlexibleSearch={handleFlexibleSearch} />
+
             <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
               {/* Calendar Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -330,15 +543,15 @@ export function LandingPage() {
                 </div>
 
                 {/* Property Filter - Only show if multiple properties */}
-                {properties.length > 1 && (
+                {filteredProperties.length > 1 && (
                   <div className="w-full sm:w-auto">
                     <select
                       value={selectedProperty}
                       onChange={(e) => setSelectedProperty(e.target.value)}
                       className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="all">All Properties</option>
-                      {properties.map((property) => (
+                      <option value="all">All Properties ({filteredProperties.length})</option>
+                      {filteredProperties.map((property) => (
                         <option key={property.id} value={property.id}>
                           {property.name}
                         </option>
@@ -458,6 +671,50 @@ export function LandingPage() {
                   </div>
                 )}
 
+                {/* Availability Status Indicator */}
+                {checkInDate && checkOutDate && (
+                  <div className={`rounded-lg p-4 mb-3 flex items-center gap-3 transition-all ${
+                    availabilityStatus === 'checking'
+                      ? 'bg-gray-50 border border-gray-200'
+                      : availabilityStatus === 'available'
+                      ? 'bg-green-50 border border-green-200'
+                      : availabilityStatus === 'unavailable'
+                      ? 'bg-red-50 border border-red-200'
+                      : ''
+                  }`}>
+                    {availabilityStatus === 'checking' && (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Checking availability...</p>
+                        </div>
+                      </>
+                    )}
+                    {availabilityStatus === 'available' && (
+                      <>
+                        <div className="flex-shrink-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">✓</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-green-900">Available!</p>
+                          <p className="text-xs text-green-700">These dates are open for booking</p>
+                        </div>
+                      </>
+                    )}
+                    {availabilityStatus === 'unavailable' && (
+                      <>
+                        <div className="flex-shrink-0 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">✗</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-red-900">Unavailable</p>
+                          <p className="text-xs text-red-700">Some dates in this range are already booked</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {/* Stay Duration */}
                 {checkInDate && checkOutDate && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -476,6 +733,143 @@ export function LandingPage() {
                   </p>
                 ) : (
                   <>
+                    {/* Property Details Card - Only show if specific property selected */}
+                    {selectedProperty !== 'all' && (() => {
+                      const property = properties.find(p => p.id === selectedProperty);
+                      if (!property) return null;
+
+                      const locationDisplay = property.street_name
+                        ? `${property.street_name}, ${property.city}, ${property.state}`
+                        : property.display_address || property.neighborhood || `${property.city}, ${property.state}`;
+
+                      return (
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 mb-4">
+                          <h4 className="font-semibold text-gray-900 mb-3">Property Details</h4>
+
+                          {/* Photo Gallery */}
+                          {property.images && property.images.length > 0 && (
+                            <div className="mb-3">
+                              <PhotoGallery images={property.images} propertyName={property.name} />
+                            </div>
+                          )}
+
+                          {/* Property Info */}
+                          <div className="bg-white rounded-lg p-3 mb-3">
+                            <h5 className="font-semibold text-gray-900 mb-2">{property.name}</h5>
+
+                            {/* Property Highlights */}
+                            <div className="mb-3">
+                              <PropertyHighlights property={property} />
+                            </div>
+
+                            {/* Reviews */}
+                            {property.total_reviews !== undefined && property.total_reviews > 0 && (
+                              <div className="mb-3">
+                                <ReviewsDisplay
+                                  propertyId={property.id}
+                                  propertySlug={property.slug}
+                                  propertyName={property.name}
+                                  averageRating={property.average_rating}
+                                  totalReviews={property.total_reviews}
+                                  compact={true}
+                                />
+                              </div>
+                            )}
+
+                            {property.description && (
+                              <p className="text-xs text-gray-600 mb-2 line-clamp-2">{property.description}</p>
+                            )}
+                            <div className="flex items-center gap-3 text-xs text-gray-700 mb-3">
+                              {property.property_type && (
+                                <span className="capitalize">{property.property_type}</span>
+                              )}
+                              <span>•</span>
+                              <span>{property.bedrooms} bed</span>
+                              <span>•</span>
+                              <span>{property.bathrooms} bath</span>
+                              {property.max_guests && (
+                                <>
+                                  <span>•</span>
+                                  <span>{property.max_guests} guests</span>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Amenities */}
+                            {property.amenities && property.amenities.length > 0 && (
+                              <div className="pt-3 border-t border-gray-200">
+                                <AmenitiesDisplay amenities={property.amenities} compact={true} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Location Display */}
+                          <div className="mb-3">
+                            <p className="text-xs text-gray-600 mb-1">Approximate location</p>
+                            <div className="flex items-center gap-2 text-sm text-gray-900">
+                              <span>📍</span>
+                              <span className="font-medium">{locationDisplay}</span>
+                            </div>
+                          </div>
+
+                          {/* Map Display */}
+                          {property.approximate_latitude && property.approximate_longitude && (
+                            <div className="mt-3">
+                              <ApproximateLocationMap
+                                latitude={property.approximate_latitude}
+                                longitude={property.approximate_longitude}
+                                locationName={locationDisplay}
+                              />
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-2">
+                            {/* View Guidebook Button */}
+                            <button
+                              onClick={() => {
+                                setGuidebookPropertySlug(property.slug || property.id);
+                                setGuidebookPropertyName(property.name);
+                                setShowGuidebook(true);
+                              }}
+                              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                              <span>📖</span>
+                              <span>Guidebook</span>
+                            </button>
+
+                            {/* Share Property Button */}
+                            <button
+                              onClick={() => {
+                                const propertyIdentifier = property.slug || property.id;
+                                const shareUrl = `${window.location.origin}/property/${propertyIdentifier}${
+                                  checkInDate && checkOutDate
+                                    ? `?checkin=${checkInDate}&checkout=${checkOutDate}`
+                                    : ''
+                                }`;
+                                navigator.clipboard.writeText(shareUrl);
+                                setCopiedPropertyUrl(true);
+                                setTimeout(() => setCopiedPropertyUrl(false), 2000);
+                              }}
+                              className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                              {copiedPropertyUrl ? (
+                                <>
+                                  <span>✓</span>
+                                  <span>Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>🔗</span>
+                                  <span>Share</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <p className="text-sm text-gray-600 mb-6">
                       These dates are available! Ready to request your booking?
                     </p>
@@ -562,12 +956,20 @@ export function LandingPage() {
               <p className="text-sm text-gray-600 mb-4">
                 Manage your properties, bookings, and calendar
               </p>
-              <Link
-                to="/login"
-                className="block w-full text-center px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-white transition-colors"
-              >
-                Owner Login
-              </Link>
+              <div className="space-y-2">
+                <Link
+                  to="/login"
+                  className="block w-full text-center px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-white transition-colors"
+                >
+                  Owner Login
+                </Link>
+                <Link
+                  to="/guidebook-manager"
+                  className="block w-full text-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  📖 Manage Guidebooks
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -611,10 +1013,19 @@ export function LandingPage() {
               address: property.address,
               city: property.city,
               state: 'NC',
-              nightly_rate: 150, // Default - actual pricing calculated server-side
-              cleaning_fee: 75,  // Default - actual pricing calculated server-side
+              nightly_rate: property.nightly_rate || 150,
+              cleaning_fee: property.cleaning_fee || 75,
               bedrooms: property.bedrooms,
               bathrooms: property.bathrooms,
+              max_guests: property.max_guests,
+              pets_allowed: property.pets_allowed,
+              max_pets: property.max_pets,
+              pet_fee: property.pet_fee,
+              pet_fee_per_pet: property.pet_fee_per_pet,
+              allow_early_checkin: property.allow_early_checkin,
+              allow_late_checkout: property.allow_late_checkout,
+              early_checkin_fee: property.early_checkin_fee,
+              late_checkout_fee: property.late_checkout_fee,
             }}
             isOpen={showBookingForm}
             onClose={() => setShowBookingForm(false)}
@@ -625,6 +1036,14 @@ export function LandingPage() {
           />
         );
       })()}
+
+      {/* Guidebook Modal */}
+      <GuidebookModal
+        propertySlug={guidebookPropertySlug}
+        propertyName={guidebookPropertyName}
+        isOpen={showGuidebook}
+        onClose={() => setShowGuidebook(false)}
+      />
     </div>
   );
 }

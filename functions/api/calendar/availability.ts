@@ -88,13 +88,45 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       }
     });
 
-    // Get all Fayetteville properties
+    // Get all Fayetteville properties with full details
     const { results: properties } = await env.DB.prepare(`
-      SELECT id, name, address, city, state, bedrooms, bathrooms
+      SELECT
+        id, slug, name, address, city, state, bedrooms, bathrooms,
+        description, property_type, square_feet,
+        street_name, primary_image_url,
+        max_guests, min_guests,
+        pets_allowed, max_pets, pet_fee, pet_fee_per_pet,
+        allow_early_checkin, allow_late_checkout,
+        early_checkin_fee, late_checkout_fee,
+        average_rating, total_reviews,
+        early_checkin_hours, late_checkout_hours,
+        nightly_rate, cleaning_fee, security_deposit,
+        weekend_rate, min_nights, max_nights,
+        display_address, neighborhood,
+        approximate_latitude, approximate_longitude,
+        amenities
       FROM property
       WHERE city = 'Fayetteville' AND state = 'NC'
       ORDER BY name ASC
     `).all();
+
+    // Fetch images for each property
+    const propertiesWithImages = await Promise.all(
+      (properties || []).map(async (property: any) => {
+        const { results: images } = await env.DB.prepare(`
+          SELECT id, image_url, caption, display_order, is_primary
+          FROM property_images
+          WHERE property_id = ?
+          ORDER BY display_order ASC
+        `).bind(property.id).all();
+
+        return {
+          ...property,
+          images: images || [],
+          amenities: property.amenities ? JSON.parse(property.amenities) : []
+        };
+      })
+    );
 
     return new Response(
       JSON.stringify({
@@ -102,7 +134,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         month: monthNum,
         blockedDates,
         events,
-        properties,
+        properties: propertiesWithImages,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
