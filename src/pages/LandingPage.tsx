@@ -13,6 +13,8 @@ import { AmenitiesDisplay } from '../components/AmenitiesDisplay';
 import { GuidebookModal } from '../components/GuidebookModal';
 import { FlexibleDates } from '../components/FlexibleDates';
 import { ReviewsDisplay } from '../components/ReviewsDisplay';
+import { FavoriteButton } from '../components/FavoriteButton';
+import { useFavoritesStore } from '../stores/favoritesStore';
 
 interface CalendarDay {
   date: string;
@@ -66,6 +68,7 @@ interface Property {
 
 export function LandingPage() {
   const navigate = useNavigate();
+  const { favorites } = useFavoritesStore();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedProperty, setSelectedProperty] = useState<string>('all');
   const [properties, setProperties] = useState<Property[]>([]);
@@ -431,6 +434,30 @@ export function LandingPage() {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
+              <Link
+                to="/favorites"
+                className="relative flex items-center gap-2 text-gray-700 hover:text-red-600 font-medium transition-colors"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill={favorites.length > 0 ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
+                {favorites.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {favorites.length}
+                  </span>
+                )}
+              </Link>
               <Link to="/login" className="text-gray-700 hover:text-gray-900 font-medium">
                 Owner Login
               </Link>
@@ -755,7 +782,10 @@ export function LandingPage() {
 
                           {/* Property Info */}
                           <div className="bg-white rounded-lg p-3 mb-3">
-                            <h5 className="font-semibold text-gray-900 mb-2">{property.name}</h5>
+                            <div className="flex items-start justify-between mb-2">
+                              <h5 className="font-semibold text-gray-900 flex-1">{property.name}</h5>
+                              {property.slug && <FavoriteButton slug={property.slug} size="md" />}
+                            </div>
 
                             {/* Property Highlights */}
                             <div className="mb-3">

@@ -35,6 +35,7 @@ import { StaffDashboardPage } from './pages/staff/StaffDashboardPage';
 import { PublicPropertyPage } from './pages/public/PublicPropertyPage';
 import { LandingPage } from './pages/LandingPage';
 import { GuidebookManager } from './pages/GuidebookManager';
+import { FavoritesPage } from './pages/FavoritesPage';
 import { BookingRequestsPage } from './pages/booking-requests/BookingRequestsPage';
 import { BookingConfirmationPage } from './pages/bookings/BookingConfirmationPage';
 import { InstallPrompt, IOSInstallInstructions } from './components/pwa/InstallPrompt';
@@ -49,6 +50,7 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/favorites" element={<FavoritesPage />} />
         <Route path="/guidebook-manager" element={<GuidebookManager />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
