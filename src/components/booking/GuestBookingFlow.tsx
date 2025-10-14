@@ -235,10 +235,10 @@ export function GuestBookingFlow({
   const canProceedFromGuestInfo = bookingData.guestName && bookingData.guestEmail && bookingData.guestPhone && bookingData.numGuests > 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-4 max-h-[calc(100vh-2rem)] flex flex-col">
         {/* Progress Indicator */}
-        <div className="border-b border-gray-200 px-6 py-4">
+        <div className="border-b border-gray-200 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-bold text-gray-900">Book Your Stay</h2>
             <button
@@ -262,9 +262,9 @@ export function GuestBookingFlow({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3">
+        <div className="grid grid-cols-1 lg:grid-cols-3 overflow-y-auto flex-1">
           {/* Main Content */}
-          <div className="lg:col-span-2 p-6">
+          <div className="lg:col-span-2 p-6 overflow-y-auto">
             {/* Step 1: Select Dates */}
             {step === 'dates' && (
               <div className="space-y-6">
